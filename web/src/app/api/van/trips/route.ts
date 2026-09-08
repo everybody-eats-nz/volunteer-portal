@@ -1,20 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
 import { isApprovedDriver } from "@/lib/van/drivers";
+import { checkStartTripRequest, startTripSchema } from "@/lib/van/requests";
 import { startTrip, TripError } from "@/lib/van/trips";
-
-const startTripSchema = z.object({
-  vehicleId: z.string().min(1),
-  startOdo: z.number().int().positive(),
-  startOdoPhotoUrl: z.string().nullable(),
-  organisationId: z.string().min(1),
-  externalOrgName: z.string().trim().min(2).max(120).nullable(),
-  purposeId: z.string().nullable(),
-  purposeOther: z.string().trim().min(3).max(500).nullable(),
-});
 
 /** POST /api/van/trips — open a trip, closing whatever was open on that van. */
 export async function POST(request: Request) {
@@ -38,44 +27,15 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  const input = parsed.data;
 
-  // An external trip describes its use in free text; an internal one carries a
-  // purpose. One or the other has to be there or the report cannot break the
-  // trip down at all.
-  if (!input.purposeId && !input.purposeOther) {
-    return NextResponse.json(
-      { error: "Say what the van is doing." },
-      { status: 400 }
-    );
-  }
-
-  const organisation = await prisma.organisation.findUnique({
-    where: { id: input.organisationId },
-  });
-  if (!organisation || !organisation.isActive) {
-    return NextResponse.json(
-      { error: "That organisation is not on the list." },
-      { status: 400 }
-    );
-  }
-  // Only the catch-all row carries a typed-in borrower name.
-  if (!organisation.isCatchAll && input.externalOrgName) {
-    return NextResponse.json(
-      { error: "That organisation does not take a name." },
-      { status: 400 }
-    );
-  }
-  if (organisation.isCatchAll && !input.externalOrgName) {
-    return NextResponse.json(
-      { error: "Say who is borrowing the van." },
-      { status: 400 }
-    );
-  }
+  // Shared with the app's handler — see lib/van/requests.ts. Two copies of
+  // "what makes a startable trip" is how the two flows drift apart.
+  const problem = await checkStartTripRequest(parsed.data);
+  if (problem) return NextResponse.json({ error: problem }, { status: 400 });
 
   try {
     const { trip, closedTripId } = await startTrip({
-      ...input,
+      ...parsed.data,
       driverId: session.user.id,
     });
     return NextResponse.json({ tripId: trip.id, closedTripId }, { status: 201 });

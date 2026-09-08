@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/prune-chat-logs",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/van-open-trip-reminders",
+      "schedule": "0 * * * *"
     }
   ]
 }

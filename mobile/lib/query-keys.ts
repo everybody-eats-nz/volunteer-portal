@@ -48,6 +48,15 @@ export const queryKeys = {
     pending: (location: string | null) =>
       [...queryKeys.admin.all, 'pending', location ?? 'all'] as const,
   },
+  van: {
+    all: ['van'] as const,
+    /** The tab gate. Every signed-in user asks this once at launch. */
+    driver: () => [...queryKeys.van.all, 'driver'] as const,
+    home: () => [...queryKeys.van.all, 'home'] as const,
+    vehicle: (id: string) => [...queryKeys.van.all, 'vehicle', id] as const,
+    trip: (id: string) => [...queryKeys.van.all, 'trip', id] as const,
+    history: () => [...queryKeys.van.all, 'history'] as const,
+  },
   feedComments: {
     all: ['feed', 'comments'] as const,
     forItem: (itemId: string) => [...queryKeys.feedComments.all, itemId] as const,

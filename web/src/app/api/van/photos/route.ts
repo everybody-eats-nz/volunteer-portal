@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import {
-  uploadFile,
-  ALLOWED_FILE_TYPES,
-  MAX_ODOMETER_PHOTO_SIZE,
-  VAN_ODOMETER_BUCKET,
-} from "@/lib/storage";
 import { isApprovedDriver } from "@/lib/van/drivers";
+import { storeOdometerPhoto } from "@/lib/van/photos";
 
 /**
  * POST /api/van/photos
@@ -32,27 +27,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get("photo") as File | null;
-
-    if (!file) {
-      return NextResponse.json({ error: "No photo provided" }, { status: 400 });
+    const result = await storeOdometerPhoto(await request.formData());
+    if (result.error) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
-    if (file.size > MAX_ODOMETER_PHOTO_SIZE) {
-      return NextResponse.json(
-        { error: "That photo is too large. Try again." },
-        { status: 400 }
-      );
-    }
-    if (!ALLOWED_FILE_TYPES.IMAGE.includes(file.type)) {
-      return NextResponse.json(
-        { error: "That file is not an image." },
-        { status: 400 }
-      );
-    }
-
-    const { url } = await uploadFile(file, "odometer", VAN_ODOMETER_BUCKET);
-    return NextResponse.json({ url });
+    return NextResponse.json({ url: result.url });
   } catch (error) {
     console.error("Odometer photo upload error:", error);
     return NextResponse.json(

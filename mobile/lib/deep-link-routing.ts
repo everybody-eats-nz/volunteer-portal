@@ -80,6 +80,25 @@ export function mapDeepLinkToRoute(rawPath: string): string {
   // /dashboard -> home tab
   if (pathname === "/dashboard") return "/(tabs)";
 
+  // /v/:vanId -> the QR sticker on the van's dashboard. The sticker's URL is
+  // permanent and public, and the web page behind it works for everyone —
+  // outside borrowers, unapproved drivers, people with no app. Claiming it as
+  // a universal link means an approved driver who scans it lands straight on
+  // the odometer step instead of a browser; the start screen handles the
+  // other cases, since being installed is not the same as being approved.
+  const vanSticker = pathname.match(/^\/v\/([^/]+)$/);
+  if (vanSticker) return `/van/start/${vanSticker[1]}`;
+
+  // /drive/trip/:id -> the trip screen. Where the "still logged out" reminder
+  // points, and where a driver arrives from the portal's own driver home.
+  const driveTrip = pathname.match(/^\/drive\/trip\/([^/]+)$/);
+  if (driveTrip) return `/van/trip/${driveTrip[1]}`;
+
+  // Any other /drive* path -> the Drive tab.
+  if (pathname === "/drive" || pathname.startsWith("/drive/")) {
+    return "/(tabs)/drive";
+  }
+
   // /friends/:id -> unified user profile screen
   const friendProfile = pathname.match(/^\/friends\/([^/]+)$/);
   if (friendProfile) return `/user/${friendProfile[1]}`;

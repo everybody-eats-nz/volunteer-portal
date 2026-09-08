@@ -17,12 +17,30 @@ export function isImplausible(distanceKm: number, hours: number): boolean {
   return distanceKm / hours > MAX_PLAUSIBLE_AVG_SPEED;
 }
 
-/** Why it looks wrong, phrased for whoever is reading it. */
+/**
+ * Why it looks wrong, phrased for whoever is reading it.
+ *
+ * Where more than one rule catches a reading, the sentence names whichever is
+ * hardest to argue with, not whichever is checked first. 512 km in two hours
+ * breaks both the distance cap and the speed limit, and "256 km/h" makes the
+ * mistyped digit obvious in a way "over 400 km" does not.
+ *
+ * The speed is quoted only when it is the rule that fired. A van out for four
+ * days that comes back 699 km later was being explained as "that averages
+ * 6 km/h" — which is not merely unhelpful, it is an argument *for* the reading,
+ * and a warning that argues against itself is one drivers learn to tap past.
+ */
 export function explainImplausible(distanceKm: number, hours: number): string {
-  if (hours >= SHORT_TRIP_HOURS) {
+  if (
+    hours >= SHORT_TRIP_HOURS &&
+    distanceKm / hours > MAX_PLAUSIBLE_AVG_SPEED
+  ) {
     return `That averages ${Math.round(
       distanceKm / hours
     )} km/h for the whole trip, loading included. Usually it means a digit is wrong.`;
+  }
+  if (distanceKm > MAX_PLAUSIBLE_KM) {
+    return `That is over ${MAX_PLAUSIBLE_KM} km in a single trip, further than these vans go. Usually it means a digit is wrong.`;
   }
   return "That is a long way for the time the van has been out. Usually it means a digit is wrong.";
 }

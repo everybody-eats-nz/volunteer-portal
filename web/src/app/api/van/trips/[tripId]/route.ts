@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth-options";
+import { tripNotesSchema } from "@/lib/van/requests";
 import { setTripNotes, TripError } from "@/lib/van/trips";
-
-const notesSchema = z.object({ notes: z.string().max(2000) });
 
 /**
  * PATCH /api/van/trips/[tripId] — the optional note.
@@ -22,7 +20,7 @@ export async function PATCH(
   }
 
   const { tripId } = await params;
-  const parsed = notesSchema.safeParse(await request.json());
+  const parsed = tripNotesSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid note." }, { status: 400 });
   }

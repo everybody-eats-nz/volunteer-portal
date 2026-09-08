@@ -1358,6 +1358,11 @@ model Trip {
   /// real observation the next driver photographed.
   endedByUserId String?
 
+  /// When the driver was last nudged that this trip is still open. Exceptions
+  /// are derived and this is not one: it records something we did, so the
+  /// reminder job does not nudge the same driver on every run.
+  reminderSentAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1383,6 +1388,7 @@ model Trip {
   @@index([organisationId, startedAt])
   @@index([startedAt])
   @@index([status])
+  @@index([status, reminderSentAt])
 }
 
 enum DriverStatus {

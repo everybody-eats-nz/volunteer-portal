@@ -50,6 +50,29 @@ describe("explainImplausible", () => {
   it("avoids quoting a speed for a very short trip", () => {
     expect(explainImplausible(200, 0.1)).not.toContain("km/h");
   });
+
+  it("explains a long trip by its distance, not by an average that argues for it", () => {
+    // 699 km over four days is 6 km/h. Quoting that reads as a defence of the
+    // reading rather than a reason to check it, so the distance cap — the rule
+    // that actually fired — does the explaining.
+    const reason = explainImplausible(699, 107);
+    expect(reason).toContain(`${MAX_PLAUSIBLE_KM} km`);
+    expect(reason).not.toContain("km/h");
+  });
+
+  it("prefers the speed when a reading breaks both rules at once", () => {
+    // 512 km in two hours is over the distance cap AND impossibly fast.
+    // "256 km/h" makes the mistyped digit obvious; "over 400 km" does not.
+    expect(isImplausible(512, 2)).toBe(true);
+    expect(explainImplausible(512, 2)).toContain("256 km/h");
+  });
+
+  it("explains a short trip by distance without quoting a speed", () => {
+    expect(isImplausible(MAX_SHORT_TRIP_KM + 1, 0.1)).toBe(true);
+    expect(explainImplausible(MAX_SHORT_TRIP_KM + 1, 0.1)).toContain(
+      "long way for the time"
+    );
+  });
 });
 
 describe("hoursBetween", () => {

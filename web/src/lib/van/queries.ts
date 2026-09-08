@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { firstNameOf } from "@/lib/van/format";
-import type { TripWithContext } from "@/lib/van/trips";
+import { lastChoiceFor, type TripWithContext } from "@/lib/van/trips";
 
 /** Reads shared by the driver screens and the admin screens. */
 
@@ -90,3 +90,49 @@ export async function getFleetStatus() {
 }
 
 export type FleetStatus = Awaited<ReturnType<typeof getFleetStatus>>;
+
+/**
+ * Everything the start-a-trip flow picks from, in the order drivers read it.
+ *
+ * The purpose order is not cosmetic — whatever sits first is a one-tap trip —
+ * so it comes from the database's `sortOrder` and is never re-sorted client
+ * side. `shortcut` is the "Same as last time" repeat, which collapses two taps
+ * into one on the path most drivers take most days.
+ */
+export async function getStartOptions(driverId: string) {
+  const [organisations, purposes, shortcut] = await Promise.all([
+    prisma.organisation.findMany({
+      where: { isActive: true },
+      orderBy: [{ isInternal: "desc" }, { name: "asc" }],
+    }),
+    prisma.tripPurpose.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+    lastChoiceFor(driverId),
+  ]);
+
+  return {
+    organisations: organisations.map((o) => ({
+      id: o.id,
+      name: o.name,
+      isInternal: o.isInternal,
+      isCatchAll: o.isCatchAll,
+    })),
+    purposes: purposes.map((p) => ({
+      id: p.id,
+      label: p.label,
+      requiresNote: p.requiresNote,
+    })),
+    shortcut: shortcut
+      ? {
+          organisationId: shortcut.organisation.id,
+          organisationName: shortcut.organisation.name,
+          purposeId: shortcut.purpose.id,
+          purposeLabel: shortcut.purpose.label,
+        }
+      : null,
+  };
+}
+
+export type StartOptions = Awaited<ReturnType<typeof getStartOptions>>;

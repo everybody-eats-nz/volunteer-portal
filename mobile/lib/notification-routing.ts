@@ -85,6 +85,24 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
+  // The "van still logged out" reminder links to /drive/trip/:id on web.
+  // Its whole purpose is to get the driver to the odometer step, so it opens
+  // the trip screen already in its ending state.
+  const driveTrip = pathname.match(/^\/drive\/trip\/([^/]+)$/);
+  if (driveTrip) {
+    router.push({
+      pathname: "/van/trip/[tripId]",
+      params: { tripId: driveTrip[1], end: "1" },
+    });
+    return;
+  }
+
+  // Any other /drive* path -> the Drive tab.
+  if (pathname === "/drive" || pathname.startsWith("/drive/")) {
+    router.push("/(tabs)/drive");
+    return;
+  }
+
   // Admin: a pending-signup notification links to /admin/shifts/:id on web.
   // Mobile has no per-shift admin page, so route to the approvals queue where
   // the signup can actually be actioned.
