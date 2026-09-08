@@ -1,3 +1,9 @@
+## [0.165.0] - 2026-09-08
+
+### Changes
+- feat(van-log): replace the paper van mileage log book ([#1254](https://github.com/everybody-eats-nz/volunteer-portal/pull/1254)) by @malinmalliyawadu
+
+
 ## [0.164.13] - 2026-09-08
 
 ### Changes
