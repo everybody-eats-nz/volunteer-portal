@@ -23,6 +23,9 @@ import { useDriveHome, useDriverState } from "@/hooks/use-van";
 import { queryKeys } from "@/lib/query-keys";
 import type { FleetVan, OpenTrip, TripDay } from "@/lib/van";
 
+/** How long a painted Drive tab counts as current when returning to it. */
+const HOME_FRESH_MS = 15_000;
+
 /**
  * The Drive tab.
  *
@@ -51,7 +54,14 @@ export default function DriveScreen() {
     useCallback(() => {
       // A trip may have been started or ended on the web since this was last
       // painted, or closed out from under the driver by whoever took the van
-      // next. Returning to the tab re-asks rather than trusting the cache.
+      // next. Returning to the tab re-asks rather than trusting the cache —
+      // but only if what is on screen has had time to go stale. Without the
+      // guard, flicking between tabs fires a request per visit, which is the
+      // one thing a driver on one bar in a loading bay cannot afford.
+      const updatedAt = queryClient.getQueryState(
+        queryKeys.van.home()
+      )?.dataUpdatedAt;
+      if (updatedAt && Date.now() - updatedAt < HOME_FRESH_MS) return;
       void queryClient.invalidateQueries({ queryKey: queryKeys.van.home() });
     }, [queryClient])
   );
@@ -83,14 +93,18 @@ export default function DriveScreen() {
           />
         }
       >
-        <Eyebrow color={isDark ? Brand.greenLight : Brand.green} style={styles.eyebrow}>
-          Everybody Eats · Van log
-        </Eyebrow>
-
         <View style={styles.hero}>
           <Text style={styles.heroLine}>
-            <Text style={[styles.heroText, { color: colors.text }]}>Kia ora, </Text>
-            <Text style={[styles.heroText, styles.heroAccent, { color: colors.text }]}>
+            <Text style={[styles.heroText, { color: colors.text }]}>
+              Kia ora,{" "}
+            </Text>
+            <Text
+              style={[
+                styles.heroText,
+                styles.heroAccent,
+                { color: colors.text },
+              ]}
+            >
               {data?.firstName ?? "driver"}
             </Text>
           </Text>
@@ -215,7 +229,10 @@ function OpenTripPanel({
         onPress={onOpen}
         accessibilityRole="button"
         accessibilityLabel={`${trip.vehicleName}, out ${trip.sinceLabel}. Open the trip.`}
-        style={({ pressed }) => [styles.panelHead, { opacity: pressed ? 0.85 : 1 }]}
+        style={({ pressed }) => [
+          styles.panelHead,
+          { opacity: pressed ? 0.85 : 1 },
+        ]}
       >
         <View style={styles.panelHeadBody}>
           <Eyebrow color={Palette.sun200} rule={false}>
@@ -240,7 +257,13 @@ function OpenTripPanel({
         </Text>
       </View>
 
-      <Button label="End trip" onPress={onEnd} variant="accent" size="lg" fullWidth />
+      <Button
+        label="End trip"
+        onPress={onEnd}
+        variant="accent"
+        size="lg"
+        fullWidth
+      />
     </View>
   );
 }
@@ -266,8 +289,8 @@ function VanRow({
   const status = !out
     ? van.homeCity
     : van.isMine
-      ? "Out with you"
-      : `Out with ${out.holderFirstName}`;
+    ? "Out with you"
+    : `Out with ${out.holderFirstName}`;
 
   return (
     <Pressable
@@ -294,7 +317,8 @@ function VanRow({
         style={[
           styles.vanBadge,
           {
-            backgroundColor: out && !van.isMine ? colors.surfaceSunk : Brand.accent,
+            backgroundColor:
+              out && !van.isMine ? colors.surfaceSunk : Brand.accent,
           },
         ]}
       >
@@ -306,7 +330,10 @@ function VanRow({
       </View>
 
       <View style={styles.vanBody}>
-        <Text style={[styles.vanName, { color: colors.text }]} numberOfLines={1}>
+        <Text
+          style={[styles.vanName, { color: colors.text }]}
+          numberOfLines={1}
+        >
           {van.name}
         </Text>
         <Text
@@ -321,7 +348,9 @@ function VanRow({
         <Text style={[styles.vanOdo, { color: colors.text }]}>
           {van.currentOdoLabel}
         </Text>
-        <Text style={[styles.vanOdoUnit, { color: colors.textSecondary }]}>km</Text>
+        <Text style={[styles.vanOdoUnit, { color: colors.textSecondary }]}>
+          km
+        </Text>
       </View>
     </Pressable>
   );
@@ -358,7 +387,9 @@ function RecentTrips({
   return (
     <View style={styles.history}>
       <View style={styles.sectionHead}>
-        <Eyebrow color={isDark ? Brand.greenLight : Brand.green}>Your driving</Eyebrow>
+        <Eyebrow color={isDark ? Brand.greenLight : Brand.green}>
+          Your driving
+        </Eyebrow>
       </View>
 
       <View style={styles.statLine}>
@@ -385,9 +416,9 @@ function RecentTrips({
                 key={trip.id}
                 onPress={() => onOpenTrip(trip.id)}
                 accessibilityRole="button"
-                accessibilityLabel={`${trip.purposeLabel}, ${trip.subtitle}, ${trip.distanceLabel}${
-                  trip.flagged ? ", flagged for the office" : ""
-                }`}
+                accessibilityLabel={`${trip.purposeLabel}, ${trip.subtitle}, ${
+                  trip.distanceLabel
+                }${trip.flagged ? ", flagged for the office" : ""}`}
                 style={({ pressed }) => [
                   styles.tripRow,
                   { borderColor: colors.border, opacity: pressed ? 0.65 : 1 },
@@ -409,14 +440,19 @@ function RecentTrips({
                 </View>
                 {trip.flagged ? (
                   <View
-                    style={[styles.flagChip, { borderColor: colors.destructive }]}
+                    style={[
+                      styles.flagChip,
+                      { borderColor: colors.destructive },
+                    ]}
                   >
                     <Ionicons
                       name="flag-outline"
                       size={12}
                       color={colors.destructive}
                     />
-                    <Text style={[styles.flagText, { color: colors.destructive }]}>
+                    <Text
+                      style={[styles.flagText, { color: colors.destructive }]}
+                    >
                       Flagged
                     </Text>
                   </View>
@@ -455,7 +491,11 @@ function NotADriver({
 }) {
   return (
     <View
-      style={[styles.container, styles.center, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        styles.center,
+        { backgroundColor: colors.background },
+      ]}
     >
       <Text style={[styles.guard, { color: colors.textSecondary }]}>
         {note ??
@@ -469,7 +509,11 @@ function NotADriver({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
+  center: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
   guard: {
     fontFamily: FontFamily.regular,
     fontSize: 15,
@@ -563,7 +607,12 @@ const styles = StyleSheet.create({
   vanOdoUnit: { fontFamily: FontFamily.regular, fontSize: 11, marginTop: -1 },
 
   history: {},
-  statLine: { flexDirection: "row", alignItems: "baseline", gap: 10, marginBottom: 18 },
+  statLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 10,
+    marginBottom: 18,
+  },
   statNumber: {
     fontFamily: FontFamily.display,
     fontSize: 40,
@@ -615,6 +664,10 @@ const styles = StyleSheet.create({
   },
 
   footer: { marginTop: 44 },
-  hairline: { height: StyleSheet.hairlineWidth, width: "100%", marginBottom: 14 },
+  hairline: {
+    height: StyleSheet.hairlineWidth,
+    width: "100%",
+    marginBottom: 14,
+  },
   footerEyebrow: { alignSelf: "center" },
 });
