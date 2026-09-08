@@ -50,14 +50,17 @@ export const VAN_FLEET = [
     rego: "GNP417",
     homeCity: "Wellington",
     ownerOrgName: "Everybody Eats",
-    photoUrl: "/van-placeholder.svg",
+    // No photo: the fleet list draws its own placeholder for a van that has
+    // none, and seeding one in made every seeded van look like it had a
+    // photograph when it did not. An admin uploads the real one.
+    photoUrl: null,
   },
   {
     name: "Tāmaki Van",
     rego: "DLR906",
     homeCity: "Auckland",
     ownerOrgName: "Everybody Eats",
-    photoUrl: "/van-placeholder.svg",
+    photoUrl: null,
   },
 ] as const;
 
