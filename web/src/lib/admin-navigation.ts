@@ -246,7 +246,7 @@ export const adminNavCategories: AdminNavCategory[] = [
         title: "Vans",
         href: "/admin/van/vehicles",
         icon: Truck,
-        description: "The fleet, and the QR sticker for each dashboard",
+        description: "Each van in the fleet, and its printable QR sticker",
         commandKey: "van-vehicles",
       },
       {

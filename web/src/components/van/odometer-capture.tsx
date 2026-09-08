@@ -37,7 +37,8 @@ export function OdometerCapture({
 }) {
   const [phase, setPhase] = useState<Phase>("capture");
   const [value, setValue] = useState("");
-  const [preview, setPreview] = useState<string | null>(null);
+  /** A photo was taken, whether or not it survived the upload. */
+  const [tookPhoto, setTookPhoto] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploadFailed, setUploadFailed] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -45,12 +46,8 @@ export function OdometerCapture({
 
   async function onFile(file: File | undefined) {
     if (!file) return;
-    // Release the previous object URL: a driver who retakes the photo a few
-    // times should not leak a full-size image per attempt.
-    setPreview((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return URL.createObjectURL(file);
-    });
+    setTookPhoto(true);
+    setPhotoUrl(null);
     setPhase("confirm");
     setUploadFailed(false);
     setUploading(true);
@@ -71,21 +68,11 @@ export function OdometerCapture({
   }
 
   function typeInstead() {
-    setPreview((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
+    setTookPhoto(false);
     setPhotoUrl(null);
     setUploadFailed(false);
     setPhase("confirm");
   }
-
-  // `preview` only ever holds a blob: URL minted by URL.createObjectURL from
-  // the driver's own capture, so it cannot carry a javascript: or data: scheme.
-  // Checked rather than assumed: this value lands in an <img src>, and an
-  // invariant worth relying on is worth enforcing at the point of use.
-  const previewSrc =
-    preview && preview.startsWith("blob:") ? preview : null;
 
   const odo = Number(value.replace(/\D/g, ""));
   const valid = value !== "" && Number.isFinite(odo) && odo > 0;
@@ -153,17 +140,25 @@ export function OdometerCapture({
         Type the number from the dashboard.
       </p>
 
-      {previewSrc && (
-        <div className="mt-4 aspect-[16/9] w-full overflow-hidden rounded-xl ring-1 ring-border">
-          {/* The driver's own capture, shown back so they can read it off.
-              A plain <img>, not next/image: this is a local blob URL that
-              exists for seconds and must never go near the image optimiser. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={previewSrc}
-            alt="The odometer photo you just took"
-            className="size-full object-cover"
-          />
+      {/* The photo as *stored*, not as captured. Showing the local file back
+          would reassure a driver whose upload had actually failed, and the
+          office can only ever check the number against what was saved. While
+          the upload is in flight the frame holds its place so the layout does
+          not jump. */}
+      {tookPhoto && !uploadFailed && (
+        <div className="mt-4 grid aspect-[16/9] w-full place-items-center overflow-hidden rounded-xl bg-muted ring-1 ring-border">
+          {photoUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={photoUrl}
+              alt="The odometer photo that was saved"
+              className="size-full object-cover"
+            />
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              Saving the photo…
+            </span>
+          )}
         </div>
       )}
 
@@ -200,7 +195,7 @@ export function OdometerCapture({
         </p>
       )}
 
-      {!previewSrc && (
+      {!tookPhoto && (
         <Note tone="warn">
           Recorded without a photo. This trip will show up on the office&rsquo;s
           exceptions list.
@@ -247,7 +242,7 @@ export function OdometerCapture({
           className="w-full"
           onClick={() => setPhase("capture")}
         >
-          {previewSrc ? "Retake the photo" : "Take a photo instead"}
+          {tookPhoto ? "Retake the photo" : "Take a photo instead"}
         </Button>
       </div>
     </div>
