@@ -50,7 +50,17 @@ async function startTrip(page: Page, reading: string) {
   await page.waitForURL(/\/drive\/trip\/[^/]+\?started=1/, { timeout: 15000 });
 }
 
+/*
+ * This hook signs in twice, creates a van and navigates twice, so it needs
+ * well over the config's default budget. That default is 15s locally against
+ * 30s in CI (`playwright.config.ts`), and a file-level beforeAll takes the
+ * global one — `test.describe.configure({ timeout })` does not reach it. Run
+ * this spec locally with `--timeout=60000`, or it fails here with a hook
+ * timeout that surfaces as `waitForURL: Test ended` on the first test and
+ * reads like a routing regression.
+ */
 test.beforeAll(async ({ browser }) => {
+  test.setTimeout(60_000);
   const page = await browser.newPage();
   await createTestVan(page);
 

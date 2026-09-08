@@ -12,10 +12,18 @@ import { remindLeftOpenTrips } from "@/lib/van/reminders";
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
-  if (
-    !process.env.CRON_SECRET ||
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!process.env.CRON_SECRET) {
+    // Refusing is right — an unsecured job that emails drivers is worse than
+    // no job. But refusing *silently* looks identical to a job that runs and
+    // finds nothing, so an environment missing the secret would quietly never
+    // remind anybody. Say so, distinctly from an unauthorized caller. The
+    // response is the same either way; only the log differs.
+    console.error(
+      "[cron] CRON_SECRET is not set — van open-trip reminders will never run"
+    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

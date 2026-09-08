@@ -27,22 +27,40 @@ export async function GET(request: Request) {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86_400_000);
 
-  const [fleet, myTrips, options] = await Promise.all([
+  const [fleet, open, closed, recent, options] = await Promise.all([
     getFleetStatus(),
-    prisma.trip.findMany({
-      where: { driverId: auth.userId },
+    // Asked for on its own rather than picked out of the page below. A trip
+    // left open on Friday sorts behind everything logged since, so on any
+    // page short enough to be worth sending it would fall off the end — and
+    // the driver would open the tab to no sign of the van they still have.
+    prisma.trip.findFirst({
+      where: { driverId: auth.userId, status: "OPEN" },
       include: tripInclude,
       orderBy: { startedAt: "desc" },
-      take: 30,
+    }),
+    prisma.trip.findMany({
+      where: { driverId: auth.userId, status: { not: "OPEN" } },
+      include: tripInclude,
+      orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+      // The tab shows a handful and links to the full history, so this is
+      // sized for what it paints, not for the sum below.
+      take: 12,
+    }),
+    // Summed in the database over the whole window. Adding up the page
+    // instead understated the number for exactly the drivers it flatters —
+    // anyone with more trips in a month than the page holds.
+    prisma.trip.aggregate({
+      where: {
+        driverId: auth.userId,
+        status: { not: "OPEN" },
+        startedAt: { gte: thirtyDaysAgo },
+      },
+      _sum: { distanceKm: true },
     }),
     getStartOptions(auth.userId),
   ]);
 
-  const open = myTrips.find((t) => t.status === "OPEN") ?? null;
-  const closed = myTrips.filter((t) => t.status !== "OPEN");
-  const recentKm = closed
-    .filter((t) => t.startedAt >= thirtyDaysAgo)
-    .reduce((sum, t) => sum + (t.distanceKm ?? 0), 0);
+  const recentKm = recent._sum.distanceKm ?? 0;
 
   return NextResponse.json({
     firstName: firstNameOf(auth.user.name ?? auth.user.email),
