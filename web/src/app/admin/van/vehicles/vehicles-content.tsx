@@ -1062,8 +1062,9 @@ function VehicleDialog({
             <div>
               <Label htmlFor="van-owner">Belongs to</Label>
               {/* Every van needs an owner, so no organisations is a dead end
-                  rather than an inconvenience. Say what is wrong instead of
-                  rendering a blank picker above a button that will not press. */}
+                  rather than an inconvenience. Send the admin to the screen
+                  that fixes it instead of rendering a blank picker above a
+                  button that will not press. */}
               {organisations.length === 0 ? (
                 <div
                   className="mt-1.5 flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-900 dark:text-amber-200"
@@ -1071,12 +1072,14 @@ function VehicleDialog({
                 >
                   <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
                   <p>
-                    Nothing for a van to belong to. The van reference data seed{" "}
-                    <code className="font-mono">npm run prisma:seed</code> adds
-                    the default organisations to a database that has none — it
-                    leaves a database that already has some alone, so if this
-                    persists, check that at least one organisation is active and
-                    is not the catch-all.
+                    Nothing for a van to belong to yet.{" "}
+                    <Link
+                      href="/admin/van/organisations"
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      Add an organisation
+                    </Link>{" "}
+                    first, then come back to this.
                   </p>
                 </div>
               ) : (
