@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { listSelectableOrganisations } from "@/lib/van/drivers";
 import { DriverRegisterForm } from "@/components/van/register-form";
 
 export const metadata: Metadata = {
@@ -24,12 +25,7 @@ export default async function DriverRegisterPage({
   }
 
   const [organisations, profile] = await Promise.all([
-    prisma.organisation.findMany({
-      // The catch-all is a bucket for one-off borrowers on a trip, not
-      // somewhere a person can belong.
-      where: { isActive: true, isCatchAll: false },
-      orderBy: [{ isInternal: "desc" }, { name: "asc" }],
-    }),
+    listSelectableOrganisations(),
     prisma.driverProfile.findUnique({ where: { userId: session.user.id } }),
   ]);
 

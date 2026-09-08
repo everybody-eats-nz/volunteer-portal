@@ -39,6 +39,8 @@ export function displayUserName(user: SearchableUser): string {
 interface UserSearchSelectProps {
   /** The currently selected user, or null when nothing is chosen yet. */
   value: SearchableUser | null;
+  /** Lands on the trigger, so a `<Label htmlFor>` actually reaches it. */
+  id?: string;
   onValueChange: (user: SearchableUser | null) => void;
   placeholder?: string;
   searchPlaceholder?: string;
@@ -54,6 +56,7 @@ interface UserSearchSelectProps {
  */
 export function UserSearchSelect({
   value,
+  id,
   onValueChange,
   placeholder = "Select a person...",
   searchPlaceholder = "Search by name or email...",
@@ -121,6 +124,7 @@ export function UserSearchSelect({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}

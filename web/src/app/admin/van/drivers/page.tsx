@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { listDriverProfiles } from "@/lib/van/drivers";
+import {
+  listDriverProfiles,
+  listSelectableOrganisations,
+} from "@/lib/van/drivers";
 import { formatDate } from "@/lib/van/format";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
@@ -24,9 +27,10 @@ export default async function VanDriversPage() {
   const session = await getServerSession(authOptions);
   if (session?.user?.role !== "ADMIN") redirect("/dashboard");
 
-  const [profiles, tripCounts] = await Promise.all([
+  const [profiles, tripCounts, organisations] = await Promise.all([
     listDriverProfiles(),
     prisma.trip.groupBy({ by: ["driverId"], _count: { _all: true } }),
+    listSelectableOrganisations(),
   ]);
 
   const counts = new Map(tripCounts.map((row) => [row.driverId, row._count._all]));
@@ -61,7 +65,14 @@ export default async function VanDriversPage() {
       description="Only approved drivers can take a van out. Driving is a capability rather than a role, so approving somebody here does not change anything else about their account."
     >
       <PageContainer>
-        <VanDriversContent drivers={drivers} />
+        <VanDriversContent
+          drivers={drivers}
+          organisations={organisations.map((org) => ({
+            id: org.id,
+            name: org.name,
+            isInternal: org.isInternal,
+          }))}
+        />
       </PageContainer>
     </AdminPageWrapper>
   );
