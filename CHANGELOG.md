@@ -1,3 +1,15 @@
+## [0.164.13] - 2026-09-08
+
+### Changes
+- chore(deps): bump fast-uri from 3.1.5 to 3.1.7 in /web ([#1245](https://github.com/everybody-eats-nz/volunteer-portal/pull/1245)) by @dependabot[bot]
+
+
+## [0.164.12] - 2026-09-08
+
+### Changes
+- chore(deps-dev): bump @humanfs/node from 0.16.6 to 0.16.8 in /web ([#1246](https://github.com/everybody-eats-nz/volunteer-portal/pull/1246)) by @dependabot[bot]
+
+
 ## [0.164.11] - 2026-09-07
 
 ### Changes
