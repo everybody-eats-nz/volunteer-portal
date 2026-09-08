@@ -13,6 +13,7 @@ import https from "https";
 
 import { PrismaClient } from "../src/generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { seedVanDemoData } from "./seed-van-demo";
 import {
   AchievementCategory,
   CriteriaLogic,
@@ -2954,6 +2955,10 @@ async function main() {
   }
 
   console.log(`✅ Seeded 3 surveys with ${assignmentCount} assignments`);
+
+  // Van mileage log: fleet, drivers, and trips including the six deliberately
+  // broken records the exceptions view exists to catch.
+  await seedVanDemoData(prisma);
 
   await downloadAndConvertProfileImages();
 }

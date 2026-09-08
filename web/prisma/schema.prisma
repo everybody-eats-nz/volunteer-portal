@@ -170,6 +170,12 @@ model User {
   messageThread MessageThread? @relation("VolunteerThread")
   sentMessages  Message[]      @relation("MessageSender")
 
+  // Van mileage log. Driving is a capability, not a role — see DriverProfile.
+  driverProfile          DriverProfile?  @relation("DriverProfileUser")
+  approvedDriverProfiles DriverProfile[] @relation("DriverProfileApprover")
+  trips                  Trip[]          @relation("TripDriver")
+  tripsClosedForOthers   Trip[]          @relation("TripClosedByNextDriver")
+
   // Analytics queries filter heavily on role + createdAt
   @@index([role, createdAt])
   // Archive filters and scheduled job queries
@@ -1235,4 +1241,191 @@ model MessagingHours {
 
   @@unique([location, dayOfWeek])
   @@index([location])
+}
+
+// ---------------------------------------------------------------------------
+// Van mileage log
+//
+// Replaces the paper Collins log book in the Everybody Eats vans. The vans were
+// sponsored by a decarbonisation fund, so the reason this exists is the monthly
+// breakdown Meridian gets: data entry is the cost, the report is the product.
+// ---------------------------------------------------------------------------
+
+/// Who a van was used FOR. Everybody Eats and Hopper Cafe are internal; outside
+/// borrowers like Sustainability Trust are not. Deliberately not `Location`:
+/// `Location` is a restaurant with an address and a meals target, and a van is
+/// lent to organisations that have no restaurant at all.
+model Organisation {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  isInternal Boolean  @default(false)
+  /// The catch-all row that holds one-off borrowers named in Trip.externalOrgName.
+  /// Exactly one row carries this, and drivers never see it in the org list.
+  isCatchAll Boolean  @default(false)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  vehicles       Vehicle[]
+  trips          Trip[]
+  driverProfiles DriverProfile[]
+
+  @@index([isActive])
+}
+
+model Vehicle {
+  id         String  @id @default(cuid())
+  name       String
+  rego       String  @unique
+  photoUrl   String?
+  ownerOrgId String
+  /// "Auckland" / "Wellington". Groups the van picker; not a Location FK,
+  /// because a van serves a city rather than one restaurant.
+  homeCity   String
+  /// Denormalised cache of the most recent reading recorded. Trips remain the
+  /// truth; every exception rule reads the trip chain, never this.
+  currentOdo Int     @default(0)
+  isActive   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownerOrg Organisation @relation(fields: [ownerOrgId], references: [id])
+  trips    Trip[]
+
+  @@index([isActive])
+  @@index([homeCity])
+}
+
+/// Admin-editable. The order is not cosmetic: whatever sits first is a one-tap
+/// trip, so putting the most common run first is the difference between one tap
+/// and three.
+model TripPurpose {
+  id           String  @id @default(cuid())
+  label        String
+  /// Prompt the driver for free text after picking this one. The prototype
+  /// decided this by matching the literal label "other", which breaks the
+  /// moment an admin renames the purpose.
+  requiresNote Boolean @default(false)
+  isActive     Boolean @default(true)
+  sortOrder    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trips Trip[]
+
+  @@index([isActive, sortOrder])
+}
+
+enum TripStatus {
+  OPEN
+  CLOSED
+  /// A driver saw a warning and confirmed the reading anyway, or the trip was
+  /// closed by the next driver rather than by the person who opened it.
+  /// Narrower than "has an exception" — exceptions are derived, never stored.
+  FLAGGED
+}
+
+model Trip {
+  id              String  @id @default(cuid())
+  vehicleId       String
+  driverId        String
+  /// The organisation the van was used FOR, not the driver's employer.
+  organisationId  String
+  /// Set only when organisationId is the catch-all external org.
+  externalOrgName String?
+  /// Internal trips carry a purpose. External trips describe usage in purposeOther.
+  purposeId       String?
+  purposeOther    String?
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  startOdo  Int
+  endOdo    Int?
+
+  startOdoPhotoUrl String?
+  endOdoPhotoUrl   String?
+
+  /// Derived: endOdo - startOdo. Null while the trip is open. Stored so the
+  /// report can sum it without recomputing across a two-year table.
+  distanceKm Int?
+  notes      String?
+  status     TripStatus @default(OPEN)
+
+  /// Set when the next driver's start reading closed this trip instead of its
+  /// own driver ending it. Never silently invented: the closing reading is a
+  /// real observation the next driver photographed.
+  endedByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Reserved. Populated by nothing today; present so GPS needs no migration. ---
+  startLat      Float?
+  startLng      Float?
+  endLat        Float?
+  endLng        Float?
+  routePolyline String?
+
+  // --- Reserved. Per-km recharge to borrowers or cross-charge to Hopper Cafe. ---
+  chargeable     Boolean @default(false)
+  rateCentsPerKm Int?
+
+  vehicle      Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver       User         @relation("TripDriver", fields: [driverId], references: [id])
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  purpose      TripPurpose? @relation(fields: [purposeId], references: [id])
+  endedBy      User?        @relation("TripClosedByNextDriver", fields: [endedByUserId], references: [id])
+
+  @@index([vehicleId, startedAt])
+  @@index([driverId, startedAt])
+  @@index([organisationId, startedAt])
+  @@index([startedAt])
+  @@index([status])
+}
+
+enum DriverStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+/// Driving is a capability, not a role. `User.role` is a single exclusive value
+/// treated as binary in ~37 places, and a volunteer who also drives the van must
+/// stay a volunteer — so this is modelled the way RestaurantManager is: a
+/// separate one-to-one record on userId. The gate on starting a trip is "has an
+/// APPROVED DriverProfile", never a role check.
+model DriverProfile {
+  id     String       @id @default(cuid())
+  userId String       @unique
+  status DriverStatus @default(PENDING)
+
+  licenceClass    String?
+  licenceExpiry   DateTime?
+  /// Reserved. Licence images are sensitive: when upload lands they go in a
+  /// private bucket readable only by admins with a retention rule, never the
+  /// public bucket the odometer photos use.
+  licenceFrontUrl String?
+  licenceBackUrl  String?
+
+  /// The driver's own organisation. A non-internal organisation here is what
+  /// marks somebody as an outside borrower rather than a volunteer — see
+  /// src/lib/volunteer-programme.ts, which is the only place that rule lives.
+  organisationId String?
+
+  approvedById String?
+  approvedAt   DateTime?
+  /// Why an admin declined or suspended, shown back to the driver.
+  statusNote   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation("DriverProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy   User?         @relation("DriverProfileApprover", fields: [approvedById], references: [id])
+  organisation Organisation? @relation(fields: [organisationId], references: [id])
+
+  @@index([status])
+  @@index([organisationId])
 }

@@ -406,3 +406,4 @@ See `web/docs/` for comprehensive guides:
 - **[Authentication & Authorization](web/docs/authentication-authorization.md)** — Auth system details
 - **[Profile Images](web/docs/profile-images.md)** — Image upload and storage
 - **[Resource Hub](web/docs/resource-hub.md)** — Resource system documentation
+- **[Van Mileage Log](web/docs/van-mileage-log.md)** — Van trip logging, QR stickers, driver approval, exceptions

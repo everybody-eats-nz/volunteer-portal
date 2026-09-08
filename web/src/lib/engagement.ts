@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
+import { inVolunteerProgrammeSql } from "@/lib/volunteer-programme";
 import { shiftStartNZ } from "@/lib/concurrent-shifts";
 import { differenceInMonths } from "date-fns";
 
@@ -146,7 +147,7 @@ export async function getEngagementSummary(
         FROM "User" u
         LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
         LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
-        WHERE u.role = 'VOLUNTEER'::"Role"
+        WHERE u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
         GROUP BY u.id, u."defaultLocation"
       )
       SELECT
@@ -187,7 +188,7 @@ export async function getEngagementSummary(
         JOIN "Shift" shf ON shf.id = sg."shiftId"
         JOIN "User" u ON u.id = sg."userId"
         WHERE sg.status = 'CONFIRMED'
-          AND u.role = 'VOLUNTEER'::"Role"
+          AND u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
           AND shf."end" >= ${periodStart}
           AND shf."end" < ${now}
           ${fp.loc}
@@ -375,7 +376,7 @@ export async function getReactivatedVolunteers(
       JOIN "Shift" shf ON shf.id = sg."shiftId"
       JOIN "User" u ON u.id = sg."userId"
       WHERE sg.status = 'CONFIRMED'
-        AND u.role = 'VOLUNTEER'::"Role"
+        AND u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
         AND shf."end" >= ${periodStart}
         AND shf."end" < ${now}
         ${fp.loc}
@@ -614,7 +615,7 @@ export async function getEngagementSegmentVolunteers(
       FROM "User" u
       LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
       LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
-      WHERE u.role = 'VOLUNTEER'::"Role"
+      WHERE u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
       GROUP BY u.id, u.email, u.name, u."firstName", u."lastName",
         u."profilePhotoUrl", u."defaultLocation"
     ),
@@ -992,7 +993,7 @@ export async function getEngagementVolunteers(params: {
       FROM "User" u
       LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
       LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
-      WHERE u.role = 'VOLUNTEER'::"Role"
+      WHERE u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
         ${searchCond}
       GROUP BY u.id, u.name, u."firstName", u."lastName", u.email,
         u."profilePhotoUrl", u."volunteerGrade", u."createdAt",

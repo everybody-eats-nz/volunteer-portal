@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
+import { inVolunteerProgrammeSql } from "@/lib/volunteer-programme";
 import { nowInNZT, toNZT } from "@/lib/timezone";
 import {
   UNSPECIFIED_LOCATION,
@@ -78,7 +79,7 @@ export async function getRecruitmentData(
           u."createdAt",
           COALESCE(NULLIF(u."defaultLocation", ''), ${UNSPECIFIED_LOCATION}) AS location
         FROM "User" u
-        WHERE u.role = 'VOLUNTEER'::"Role"
+        WHERE u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
           AND u."createdAt" >= ${periodStart}
           AND u."createdAt" < ${now}
           ${locationCond}
@@ -156,7 +157,7 @@ export async function getRecruitmentData(
       WITH user_base AS (
         SELECT u.id, u."createdAt"
         FROM "User" u
-        WHERE u.role = 'VOLUNTEER'::"Role"
+        WHERE u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
           AND u."createdAt" >= ${periodStart}
           AND u."createdAt" < ${now}
           ${locationCond}
@@ -194,7 +195,7 @@ export async function getRecruitmentData(
         COALESCE(NULLIF(u."defaultLocation", ''), ${UNSPECIFIED_LOCATION})     AS location,
         COUNT(*)::bigint                                                        AS count
       FROM "User" u
-      WHERE u.role = 'VOLUNTEER'::"Role"
+      WHERE u.role = 'VOLUNTEER'::"Role" AND ${inVolunteerProgrammeSql("u")}
         AND u."createdAt" >= ${trendStart}
         AND u."createdAt" < ${now}
         ${locationCond}

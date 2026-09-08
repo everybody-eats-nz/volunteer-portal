@@ -193,14 +193,21 @@ test.describe("Admin Navigation", () => {
 
       // Continue tabbing to reach sidebar elements
       let tabCount = 0;
-      let focusedElement = page.locator(":focus");
 
       while (tabCount < 15) {
         await page.keyboard.press("Tab");
-        focusedElement = page.locator(":focus");
 
-        // Check if we've focused on a sidebar link
-        const href = await focusedElement.getAttribute("href");
+        // Read document.activeElement rather than `page.locator(":focus")`.
+        // A locator's getAttribute waits for a match, so any Tab that lands
+        // focus on <body> — which happens while the sidebar is still settling
+        // under parallel load — blocked here for the whole test timeout
+        // instead of simply moving on to the next Tab.
+        const href = await page.evaluate(
+          () =>
+            (document.activeElement as HTMLElement | null)?.getAttribute(
+              "href"
+            ) ?? null
+        );
         if (href?.includes("/admin/")) {
           // Try activating with Enter
           await page.keyboard.press("Enter");

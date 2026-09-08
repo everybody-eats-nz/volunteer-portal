@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { inVolunteerProgramme } from "@/lib/volunteer-programme";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -26,6 +27,8 @@ export async function GET(request: NextRequest) {
       where: {
         role: "VOLUNTEER",
         archivedAt: null,
+        // A borrowed-van driver is not competing for volunteer achievements.
+        ...inVolunteerProgramme,
       },
       select: {
         id: true,
