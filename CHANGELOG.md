@@ -1,3 +1,39 @@
+## [0.164.11] - 2026-09-07
+
+### Changes
+- chore(deps-dev): bump fflate from 0.4.8 to 0.4.9 in /web ([#1247](https://github.com/everybody-eats-nz/volunteer-portal/pull/1247)) by @dependabot[bot]
+
+
+## [0.164.10] - 2026-09-07
+
+### Changes
+- chore(deps): bump @simplewebauthn/server from 13.2.3 to 13.3.2 in /web ([#1249](https://github.com/everybody-eats-nz/volunteer-portal/pull/1249)) by @dependabot[bot]
+
+
+## [0.164.9] - 2026-09-07
+
+### Changes
+- fix(flaky): should preserve date and location filters when deleting from calendar view ([#1256](https://github.com/everybody-eats-nz/volunteer-portal/pull/1256)) by @malinmalliyawadu
+
+
+## [0.164.8] - 2026-09-07
+
+### Changes
+- chore(deps): bump picomatch from 4.0.3 to 4.0.7 in /web ([#1252](https://github.com/everybody-eats-nz/volunteer-portal/pull/1252)) by @dependabot[bot]
+
+
+## [0.164.7] - 2026-09-07
+
+### Changes
+- chore(deps-dev): bump @babel/core from 7.28.5 to 7.29.7 in /web ([#1251](https://github.com/everybody-eats-nz/volunteer-portal/pull/1251)) by @dependabot[bot]
+
+
+## [0.164.6] - 2026-09-07
+
+### Changes
+- chore(deps): bump browserslist from 4.28.1 to 4.28.9 in /web ([#1253](https://github.com/everybody-eats-nz/volunteer-portal/pull/1253)) by @dependabot[bot]
+
+
 ## [0.164.5] - 2026-09-01
 
 ### Changes
