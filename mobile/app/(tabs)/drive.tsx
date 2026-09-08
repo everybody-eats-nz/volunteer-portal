@@ -184,15 +184,6 @@ export default function DriveScreen() {
           }
           onSeeAll={() => router.push("/van/trips")}
         />
-
-        <View style={styles.footer}>
-          <View style={[styles.hairline, { backgroundColor: colors.border }]} />
-          <View style={styles.footerEyebrow}>
-            <Eyebrow color={colors.textSecondary} rule={false}>
-              Ngā mihi · every km counts toward the report
-            </Eyebrow>
-          </View>
-        </View>
       </ScrollView>
     </View>
   );
@@ -521,7 +512,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   scroll: { paddingHorizontal: 24 },
-  eyebrow: { marginBottom: 20 },
 
   hero: { marginBottom: 26 },
   heroLine: { marginBottom: 16 },
@@ -669,5 +659,4 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 14,
   },
-  footerEyebrow: { alignSelf: "center" },
 });
