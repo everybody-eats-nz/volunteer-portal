@@ -21,7 +21,7 @@ nothing to a funder.
 | `/drive/register` | Driver self-registration. |
 | `/admin/van/trips` | Every trip, filterable, CSV export, odometer photos. |
 | `/admin/van/exceptions` | Where the record does not add up. |
-| `/admin/van/drivers` | Approve who can take a van out. |
+| `/admin/van/drivers` | Approve who can take a van out, or add somebody directly. |
 | `/admin/van/vehicles` | The fleet board: where every van is right now, its photo, and its printable QR sticker. |
 | `/admin/van/purposes` | What drivers pick from, and in what order. |
 | `/api/mobile/van/*` | The same flows for the Expo app's Drive tab. |
@@ -33,7 +33,7 @@ Library code is under `src/lib/van/`:
 | `plausibility.ts` | The one rule shared by the driver's warning and the admin exception. |
 | `exceptions.ts` | The six rules, derived at read time. Never stored. |
 | `trips.ts` | Every write to a trip. Start, end, handover, notes. |
-| `drivers.ts` | Driver profiles and the approval gate. |
+| `drivers.ts` | Driver profiles, the approval gate, and both doors into it. |
 | `queries.ts` | Reads shared by the driver and admin screens. |
 | `format.ts` | NZ formatting, built on the app's `formatInNZT`. |
 | `requests.ts` | What a driver's device sends, validated once for both clients. |
@@ -72,6 +72,36 @@ who also drives the van has to stay a volunteer.
 Driving is modelled the way `RestaurantManager` is: a separate one-to-one
 `DriverProfile` on `userId`. **The gate on starting a trip is "has an APPROVED
 DriverProfile", never a role check.**
+
+### There are two doors into the allowed list, and one decision
+
+Drivers normally arrive by scanning the sticker and filling in `/drive/register`,
+which lands them PENDING for the office to approve. That leaves the office
+unable to help the person standing at the desk or on the phone, so
+`/admin/van/drivers` also **adds a driver directly**: pick the person, say who
+they drive for, and they can take a van out straight away.
+
+It is deliberately the *same* decision, not a second kind of approval. The
+profile lands `APPROVED` with `approvedById` and `approvedAt` stamped exactly as
+the queue stamps them, so "who vouched for this driver" is answerable without
+caring which door they came through. Nothing else about the account changes —
+driving is a capability, so this writes a `DriverProfile` and never a role.
+
+Two rules fall out of that:
+
+- **Already approved is a no-op.** Re-adding somebody by mistake must not
+  quietly rewrite who vouched for them or move them to another organisation.
+- **A blank licence field means "the office did not retype it"**, not "this
+  driver has no licence", so a driver who filled those in on their own form
+  keeps what they sent.
+
+The person still needs a portal account first; there is no account creation
+here. Somebody with no login is invited from the admin users page and then
+added, rather than teaching this dialog a second way to make a `User`.
+
+Which organisations either door offers is `listSelectableOrganisations()` in
+`drivers.ts` — one list, so the admin dialog can never offer an option the
+driver's own form rejects, and neither can offer the catch-all.
 
 ### Warn, never block
 
