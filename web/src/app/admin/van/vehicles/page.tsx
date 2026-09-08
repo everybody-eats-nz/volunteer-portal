@@ -7,6 +7,7 @@ import { getBaseUrl } from "@/lib/utils";
 import { detectExceptions } from "@/lib/van/exceptions";
 import { tripInclude } from "@/lib/van/trips";
 import { driverNameOf } from "@/lib/van/queries";
+import { formatDate, formatSince } from "@/lib/van/format";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { VanVehiclesContent, type AdminVehicle } from "./vehicles-content";
@@ -35,11 +36,12 @@ export default async function VanVehiclesPage() {
 
   // The same rule the exceptions page uses, so a van cannot read "Out" here and
   // "Overdue" one tab away.
+  const now = new Date();
   const overdueTripIds = new Set(
     detectExceptions(
       trips,
       vehicles.map((v) => ({ id: v.id, name: v.name })),
-      new Date()
+      now
     )
       .filter((e) => e.kind === "left-open")
       .map((e) => e.tripId)
@@ -53,9 +55,8 @@ export default async function VanVehiclesPage() {
   );
 
   const rows: AdminVehicle[] = vehicles.map((vehicle) => {
-    const open = trips.find(
-      (t) => t.vehicleId === vehicle.id && t.status === "OPEN"
-    );
+    const forVehicle = trips.filter((t) => t.vehicleId === vehicle.id);
+    const open = forVehicle.find((t) => t.status === "OPEN");
     const totals = totalsByVehicle.get(vehicle.id);
     return {
       id: vehicle.id,
@@ -71,15 +72,26 @@ export default async function VanVehiclesPage() {
         "Unknown",
       tripCount: totals?.trips ?? 0,
       loggedKm: totals?.km ?? 0,
-      status: !open ? "in" : overdueTripIds.has(open.id) ? "overdue" : "out",
+      status: !vehicle.isActive
+        ? "retired"
+        : !open
+          ? "in"
+          : overdueTripIds.has(open.id)
+            ? "overdue"
+            : "out",
       holderName: open ? driverNameOf(open) : null,
+      // Formatted here rather than in the browser: these read in NZ time, and a
+      // client that formatted them against its own clock would render a
+      // different string on the server than on hydration.
+      outSinceLabel: open ? formatSince(open.startedAt, now) : null,
+      lastUsedLabel: forVehicle[0] ? formatDate(forVehicle[0].startedAt) : null,
     };
   });
 
   return (
     <AdminPageWrapper
       title="Vans"
-      description="Each van carries a sticker that opens the log with the van already chosen. Print one from here."
+      description="Every van in the fleet, where it is right now, and the sticker that opens its log."
     >
       <PageContainer>
         <VanVehiclesContent

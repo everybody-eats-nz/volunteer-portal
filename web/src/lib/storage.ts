@@ -25,6 +25,15 @@ export const VAN_ODOMETER_BUCKET = "van-odometer";
 /** Phones produce large JPEGs and the dial is all that matters. */
 export const MAX_ODOMETER_PHOTO_SIZE = 4 * 1024 * 1024;
 export const MAX_PROFILE_PHOTO_SIZE = 1 * 1024 * 1024; // 1MB
+/**
+ * Folder inside the shared public bucket for the fleet's van photos. Unlike
+ * odometer photos these are reference images shown in the admin fleet list and
+ * on the driver's status screen, so they live with the other public admin
+ * uploads rather than in the evidence bucket.
+ */
+export const VAN_PHOTO_FOLDER = "van-photos";
+/** The browser crops and re-encodes before upload, so anything larger is a bug. */
+export const MAX_VEHICLE_PHOTO_SIZE = 4 * 1024 * 1024;
 
 /**
  * Upload a file to Supabase storage (uses service role for admin uploads)

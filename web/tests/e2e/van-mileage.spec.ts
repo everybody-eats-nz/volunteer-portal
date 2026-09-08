@@ -29,7 +29,7 @@ async function createTestVan(page: Page) {
   await page.getByTestId("van-vehicle-add").first().click();
   await page.getByTestId("van-vehicle-name").fill(VAN_NAME);
   await page.getByTestId("van-vehicle-rego").fill(REGO);
-  await page.getByLabel("City").fill("Wellington");
+  await page.getByTestId("van-vehicle-city").fill("Wellington");
   await page.getByTestId("van-vehicle-save").click();
 
   await expect(page.getByText(VAN_NAME).first()).toBeVisible({ timeout: 15000 });

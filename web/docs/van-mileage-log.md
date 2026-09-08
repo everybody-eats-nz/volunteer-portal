@@ -22,7 +22,7 @@ nothing to a funder.
 | `/admin/van/trips` | Every trip, filterable, CSV export, odometer photos. |
 | `/admin/van/exceptions` | Where the record does not add up. |
 | `/admin/van/drivers` | Approve who can take a van out. |
-| `/admin/van/vehicles` | The fleet, and each van's printable QR sticker. |
+| `/admin/van/vehicles` | The fleet board: where every van is right now, its photo, and its printable QR sticker. |
 | `/admin/van/purposes` | What drivers pick from, and in what order. |
 | `/api/mobile/van/*` | The same flows for the Expo app's Drive tab. |
 
@@ -240,6 +240,14 @@ somewhere private and admin-only.
 If the bucket is missing, uploads fail softly and trips record without photos,
 landing on the missing-photo exception.
 
+**Van photos** are different and need no new bucket. A photo of the van itself
+is a reference image, not evidence, so it goes into the existing public
+`resource-hub` bucket under a `van-photos/` folder, alongside the other admin
+uploads. The browser crops it to 16:9 and re-encodes it before upload, which is
+what keeps a phone photo inside the request limit and what keeps the fleet grid
+from choosing the crop itself. A van without a photo is normal — the fleet card
+draws the brand van mark in the same frame.
+
 ### Cron
 
 `/api/cron/van-open-trip-reminders` is registered hourly in `vercel.json` and
@@ -256,8 +264,9 @@ admin-editable, and re-running a name-keyed upsert against a live database
 resurrects anything renamed away.
 
 **The seeded van names and registrations are placeholders** carried over from
-the design prototype. An admin corrects them on `/admin/van/vehicles` before the
-stickers are printed, which is part of why that screen exists.
+the design prototype, and the seeded vans have no photo. An admin corrects the
+names and uploads the real photos on `/admin/van/vehicles` before the stickers
+are printed, which is part of why that screen exists.
 
 `prisma/seed-van-demo.ts` adds ~140 trips over 90 days for development, with six
 records broken on purpose so the exceptions view has something to show. Those

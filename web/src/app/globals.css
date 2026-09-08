@@ -568,3 +568,44 @@ h6 em,
   border-radius: 6px;
   max-width: 100%;
 }
+
+/* Printing a van sticker.
+   The sticker lives inside a Radix dialog, which is centred with a transform —
+   without this, "Print sticker" produced a page of admin chrome with the
+   sticker sliced off the edge. Everything is hidden by visibility (so the
+   layout does not collapse), the sticker's dialog ancestor is un-transformed,
+   and the sticker itself prints at roughly the size it is stuck on at. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body:has(#van-sticker-printable) * {
+    visibility: hidden !important;
+  }
+
+  body:has(#van-sticker-printable) #van-sticker-printable,
+  body:has(#van-sticker-printable) #van-sticker-printable * {
+    visibility: visible !important;
+  }
+
+  [data-slot="dialog-content"]:has(#van-sticker-printable) {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #van-sticker-printable {
+    width: 90mm;
+    break-inside: avoid;
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
