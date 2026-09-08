@@ -1,3 +1,9 @@
+## [0.167.0] - 2026-09-08
+
+### Changes
+- feat(van-log): rebuild the fleet page and upload van photos ([#1258](https://github.com/everybody-eats-nz/volunteer-portal/pull/1258)) by @malinmalliyawadu
+
+
 ## [0.166.0] - 2026-09-08
 
 ### Changes
