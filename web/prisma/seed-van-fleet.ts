@@ -75,7 +75,17 @@ export async function seedVanFleet(prisma: PrismaClient): Promise<void> {
   // existing database pick up what it is missing while still never
   // resurrecting a row an admin has since renamed or removed.
   if ((await prisma.organisation.count()) === 0) {
-    await prisma.organisation.createMany({ data: [...VAN_ORGANISATIONS] });
+    // skipDuplicates because the count above and the insert below are two
+    // statements, not one transaction: two seeds racing each other (a deploy
+    // retried while the first is still running) would otherwise have the
+    // loser die on the unique name. There is no equivalent for the purposes
+    // below — TripPurpose.label is deliberately not unique, since an admin may
+    // want two similarly named ones — so a genuine race there duplicates them
+    // and an admin deletes the spares.
+    await prisma.organisation.createMany({
+      data: [...VAN_ORGANISATIONS],
+      skipDuplicates: true,
+    });
     console.log(`   + ${VAN_ORGANISATIONS.length} organisations`);
   }
 
@@ -85,9 +95,11 @@ export async function seedVanFleet(prisma: PrismaClient): Promise<void> {
   }
 
   if ((await prisma.vehicle.count()) === 0) {
-    // Owners are resolved by name, but tolerantly: a database that already
-    // carried organisations need not carry these ones, and a van parked under
-    // the wrong org is a dropdown away from correct where a thrown seed is not.
+    // Owners are resolved by name, but tolerantly. A database that already
+    // carried organisations skips the block above, so "Everybody Eats" need
+    // not exist here — an admin may have renamed or removed it. A van parked
+    // under the wrong organisation is one dropdown away from correct, where a
+    // seed that threw halfway through is not.
     const fallbackOrg = await prisma.organisation.findFirst({
       where: { isActive: true, isCatchAll: false },
       orderBy: [{ isInternal: "desc" }, { name: "asc" }],
@@ -98,23 +110,27 @@ export async function seedVanFleet(prisma: PrismaClient): Promise<void> {
       return;
     }
 
+    const vans = [];
     for (const van of VAN_FLEET) {
       const owner =
         (await prisma.organisation.findUnique({
           where: { name: van.ownerOrgName },
         })) ?? fallbackOrg;
 
-      await prisma.vehicle.create({
-        data: {
-          name: van.name,
-          rego: van.rego,
-          homeCity: van.homeCity,
-          photoUrl: van.photoUrl,
-          ownerOrgId: owner.id,
-        },
+      vans.push({
+        name: van.name,
+        rego: van.rego,
+        homeCity: van.homeCity,
+        photoUrl: van.photoUrl,
+        ownerOrgId: owner.id,
       });
     }
-    console.log(`   + ${VAN_FLEET.length} vans`);
+
+    // One statement, and skipDuplicates for the same reason as above: the
+    // registration is unique, so a racing seed would otherwise die here rather
+    // than on the organisations it already got past.
+    await prisma.vehicle.createMany({ data: vans, skipDuplicates: true });
+    console.log(`   + ${vans.length} vans`);
   }
 
   console.log("✅ Van log reference data up to date");

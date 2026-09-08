@@ -1071,10 +1071,12 @@ function VehicleDialog({
                 >
                   <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
                   <p>
-                    No organisations set up yet, so there is nothing for a van to
-                    belong to. Run the van reference data seed{" "}
-                    <code className="font-mono">npm run prisma:seed</code> to add
-                    them, then reload this page.
+                    Nothing for a van to belong to. The van reference data seed{" "}
+                    <code className="font-mono">npm run prisma:seed</code> adds
+                    the default organisations to a database that has none — it
+                    leaves a database that already has some alone, so if this
+                    persists, check that at least one organisation is active and
+                    is not the catch-all.
                   </p>
                 </div>
               ) : (
