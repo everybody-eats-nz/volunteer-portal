@@ -4,10 +4,9 @@ import type { PrismaClient } from "../src/generated/client";
  * Reference data for the van mileage log: the organisations a van gets used
  * for, the purposes drivers pick from, and the fleet itself.
  *
- * Shared by the production and demo seeds so the fleet is defined once. Every
- * row here is upserted by natural key and safe to re-run, but — like the
- * restaurant locations — the vans and organisations are only *created* on first
- * boot. Names and regos are admin-editable, and re-running a name-keyed upsert
+ * Shared by the production and demo seeds so the fleet is defined once. Safe to
+ * re-run: each group below is written only when its own table is still empty,
+ * because names and regos are admin-editable and re-running a name-keyed upsert
  * against a live database would resurrect anything an admin had renamed.
  */
 
@@ -67,50 +66,72 @@ export const VAN_FLEET = [
 export async function seedVanFleet(prisma: PrismaClient): Promise<void> {
   console.log("🚐 Seeding van mileage log reference data...");
 
-  for (const org of VAN_ORGANISATIONS) {
-    await prisma.organisation.upsert({
-      where: { name: org.name },
-      update: {},
-      create: org,
+  // Each group is gated on its own table being empty rather than on a shared
+  // "is this a brand new database" flag. The van log shipped long after the
+  // restaurant locations did, so on a database that predates it a location
+  // count reads "not first boot" and this reference data never lands at all —
+  // which leaves Organisation empty, and with it the "Belongs to" picker on
+  // /admin/van/vehicles, so no van can be added. Gating per table lets an
+  // existing database pick up what it is missing while still never
+  // resurrecting a row an admin has since renamed or removed.
+  if ((await prisma.organisation.count()) === 0) {
+    // skipDuplicates because the count above and the insert below are two
+    // statements, not one transaction: two seeds racing each other (a deploy
+    // retried while the first is still running) would otherwise have the
+    // loser die on the unique name. There is no equivalent for the purposes
+    // below — TripPurpose.label is deliberately not unique, since an admin may
+    // want two similarly named ones — so a genuine race there duplicates them
+    // and an admin deletes the spares.
+    await prisma.organisation.createMany({
+      data: [...VAN_ORGANISATIONS],
+      skipDuplicates: true,
     });
+    console.log(`   + ${VAN_ORGANISATIONS.length} organisations`);
   }
 
-  // Purposes have no natural unique key (an admin may legitimately want two
-  // similarly named ones), so match on the label of an existing row.
-  for (const purpose of VAN_TRIP_PURPOSES) {
-    const existing = await prisma.tripPurpose.findFirst({
-      where: { label: purpose.label },
-      select: { id: true },
-    });
-    if (!existing) await prisma.tripPurpose.create({ data: purpose });
+  if ((await prisma.tripPurpose.count()) === 0) {
+    await prisma.tripPurpose.createMany({ data: [...VAN_TRIP_PURPOSES] });
+    console.log(`   + ${VAN_TRIP_PURPOSES.length} trip purposes`);
   }
 
-  const everybodyEats = await prisma.organisation.findUniqueOrThrow({
-    where: { name: "Everybody Eats" },
-  });
+  if ((await prisma.vehicle.count()) === 0) {
+    // Owners are resolved by name, but tolerantly. A database that already
+    // carried organisations skips the block above, so "Everybody Eats" need
+    // not exist here — an admin may have renamed or removed it. A van parked
+    // under the wrong organisation is one dropdown away from correct, where a
+    // seed that threw halfway through is not.
+    const fallbackOrg = await prisma.organisation.findFirst({
+      where: { isActive: true, isCatchAll: false },
+      orderBy: [{ isInternal: "desc" }, { name: "asc" }],
+    });
 
-  for (const van of VAN_FLEET) {
-    const owner =
-      van.ownerOrgName === "Everybody Eats"
-        ? everybodyEats
-        : await prisma.organisation.findUniqueOrThrow({
-            where: { name: van.ownerOrgName },
-          });
+    if (!fallbackOrg) {
+      console.log("   ! No organisation to own a van — skipping the fleet");
+      return;
+    }
 
-    await prisma.vehicle.upsert({
-      where: { rego: van.rego },
-      update: {},
-      create: {
+    const vans = [];
+    for (const van of VAN_FLEET) {
+      const owner =
+        (await prisma.organisation.findUnique({
+          where: { name: van.ownerOrgName },
+        })) ?? fallbackOrg;
+
+      vans.push({
         name: van.name,
         rego: van.rego,
         homeCity: van.homeCity,
         photoUrl: van.photoUrl,
         ownerOrgId: owner.id,
-      },
-    });
+      });
+    }
+
+    // One statement, and skipDuplicates for the same reason as above: the
+    // registration is unique, so a racing seed would otherwise die here rather
+    // than on the organisations it already got past.
+    await prisma.vehicle.createMany({ data: vans, skipDuplicates: true });
+    console.log(`   + ${vans.length} vans`);
   }
 
-  console.log(
-    `✅ Van log seeded: ${VAN_FLEET.length} vans, ${VAN_ORGANISATIONS.length} organisations, ${VAN_TRIP_PURPOSES.length} purposes`
-  );
+  console.log("✅ Van log reference data up to date");
 }

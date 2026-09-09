@@ -433,12 +433,13 @@ async function main() {
 
   console.log("✅ Newsletter lists created");
 
-  // Van mileage log reference data. First boot only, for the same reason the
-  // locations above are: van names and regos are admin-editable, and a
-  // name-keyed upsert on a live database resurrects anything renamed away.
-  if (isFirstBoot) {
-    await seedVanFleet(prisma);
-  }
+  // Van mileage log reference data. Deliberately NOT gated on isFirstBoot: the
+  // van log shipped after every existing database already had its locations, so
+  // that flag reads false forever there and the organisations never land —
+  // leaving the "Belongs to" picker on /admin/van/vehicles empty and no van
+  // addable at all. seedVanFleet gates each group on its own table instead, so
+  // it is safe to re-run and still never overwrites an admin's edits.
+  await seedVanFleet(prisma);
 
   console.log("🎉 Production seed completed successfully!");
 }

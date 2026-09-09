@@ -7,6 +7,7 @@ import { getBaseUrl } from "@/lib/utils";
 import { detectExceptions } from "@/lib/van/exceptions";
 import { tripInclude } from "@/lib/van/trips";
 import { driverNameOf } from "@/lib/van/queries";
+import { listSelectableOrganisations } from "@/lib/van/drivers";
 import { formatDate, formatSince } from "@/lib/van/format";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
@@ -18,10 +19,7 @@ export default async function VanVehiclesPage() {
 
   const [vehicles, organisations, trips, totals] = await Promise.all([
     prisma.vehicle.findMany({ orderBy: [{ isActive: "desc" }, { name: "asc" }] }),
-    prisma.organisation.findMany({
-      where: { isActive: true, isCatchAll: false },
-      orderBy: [{ isInternal: "desc" }, { name: "asc" }],
-    }),
+    listSelectableOrganisations(),
     prisma.trip.findMany({
       include: tripInclude,
       orderBy: { startedAt: "desc" },

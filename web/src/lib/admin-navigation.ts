@@ -31,6 +31,7 @@ import {
   TriangleAlert,
   ListChecks,
   IdCard,
+  Building2,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -255,6 +256,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: ListChecks,
         description: "What drivers pick from, and in what order",
         commandKey: "van-purposes",
+      },
+      {
+        title: "Organisations",
+        href: "/admin/van/organisations",
+        icon: Building2,
+        description: "Who a van belongs to, and who a driver drives for",
+        commandKey: "van-organisations",
       },
     ],
   },

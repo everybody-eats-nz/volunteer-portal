@@ -1061,19 +1061,42 @@ function VehicleDialog({
             </div>
             <div>
               <Label htmlFor="van-owner">Belongs to</Label>
-              <select
-                id="van-owner"
-                value={ownerOrgId}
-                onChange={(e) => setOwnerOrgId(e.target.value)}
-                className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                data-testid="van-vehicle-owner"
-              >
-                {organisations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
+              {/* Every van needs an owner, so no organisations is a dead end
+                  rather than an inconvenience. Send the admin to the screen
+                  that fixes it instead of rendering a blank picker above a
+                  button that will not press. */}
+              {organisations.length === 0 ? (
+                <div
+                  className="mt-1.5 flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-900 dark:text-amber-200"
+                  data-testid="van-vehicle-owner-empty"
+                >
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <p>
+                    Nothing for a van to belong to yet.{" "}
+                    <Link
+                      href="/admin/van/organisations"
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      Add an organisation
+                    </Link>{" "}
+                    first, then come back to this.
+                  </p>
+                </div>
+              ) : (
+                <select
+                  id="van-owner"
+                  value={ownerOrgId}
+                  onChange={(e) => setOwnerOrgId(e.target.value)}
+                  className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  data-testid="van-vehicle-owner"
+                >
+                  {organisations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 

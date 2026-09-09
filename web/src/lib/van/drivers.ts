@@ -45,13 +45,14 @@ export async function isApprovedDriver(userId: string): Promise<boolean> {
 }
 
 /**
- * The organisations a person can say they drive for.
+ * The organisations a person can say they drive for, and a van can belong to.
  *
  * The catch-all is a bucket for one-off borrowers named on a trip, not
- * somewhere a person can belong, and a retired organisation is not an answer to
- * "who do you drive for". Both doors into the driver list — the driver's own
- * form and the office's add-a-driver dialog — read this one list, so neither
- * can start offering an option the other rejects.
+ * somewhere a person or a van can belong, and a retired organisation is not an
+ * answer to "who do you drive for". Every door that offers this choice — the
+ * driver's own form, the office's add-a-driver dialog, the fleet page's
+ * "Belongs to", and the guard that stops the last one being retired — reads
+ * this one list, so none can start offering an option another rejects.
  */
 export async function listSelectableOrganisations() {
   return prisma.organisation.findMany({
