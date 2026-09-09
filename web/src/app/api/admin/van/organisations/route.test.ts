@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST, PATCH } from "./route";
 import { prisma } from "@/lib/prisma";
 import { requireVanAdmin } from "@/lib/van/admin-guard";
+import { listSelectableOrganisations } from "@/lib/van/drivers";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -11,9 +12,14 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
-      count: vi.fn(),
     },
   },
+}));
+
+// The route asks the same helper the pickers do rather than counting rows
+// itself, so the guard cannot drift from the list it is guarding.
+vi.mock("@/lib/van/drivers", () => ({
+  listSelectableOrganisations: vi.fn(),
 }));
 
 vi.mock("@/lib/van/admin-guard", () => ({
@@ -24,7 +30,13 @@ const guard = vi.mocked(requireVanAdmin);
 const create = vi.mocked(prisma.organisation.create);
 const update = vi.mocked(prisma.organisation.update);
 const findUnique = vi.mocked(prisma.organisation.findUnique);
-const count = vi.mocked(prisma.organisation.count);
+const selectable = vi.mocked(listSelectableOrganisations);
+
+/** n organisations a van could belong to, as the helper would return them. */
+const selectableCount = (n: number) =>
+  selectable.mockResolvedValue(
+    Array.from({ length: n }, (_, i) => ({ id: `org-${i}` })) as never
+  );
 
 const post = (body: unknown) =>
   POST(new Request("http://t/api", { method: "POST", body: JSON.stringify(body) }));
@@ -46,7 +58,7 @@ beforeEach(() => {
   create.mockImplementation((({ data }: { data: object }) =>
     Promise.resolve({ id: "new", ...data })) as never);
   update.mockResolvedValue(org() as never);
-  count.mockResolvedValue(5);
+  selectableCount(5);
 });
 
 describe("POST /api/admin/van/organisations", () => {
@@ -117,7 +129,7 @@ describe("PATCH /api/admin/van/organisations", () => {
   it("refuses to retire the last organisation a van could belong to", async () => {
     // Allowing this recreates the dead end this whole screen exists to fix.
     findUnique.mockResolvedValue(org() as never);
-    count.mockResolvedValue(1);
+    selectableCount(1);
 
     const response = await patch({ id: "org-1", isActive: false });
 
@@ -127,7 +139,7 @@ describe("PATCH /api/admin/van/organisations", () => {
 
   it("retires one when others remain", async () => {
     findUnique.mockResolvedValue(org() as never);
-    count.mockResolvedValue(2);
+    selectableCount(2);
 
     const response = await patch({ id: "org-1", isActive: false });
 
@@ -144,7 +156,7 @@ describe("PATCH /api/admin/van/organisations", () => {
     const response = await patch({ id: "org-1", isActive: true });
 
     expect(response.status).toBe(200);
-    expect(count).not.toHaveBeenCalled();
+    expect(selectable).not.toHaveBeenCalled();
   });
 
   it("never clears the catch-all flag, however it is asked for", async () => {

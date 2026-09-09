@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireVanAdmin } from "@/lib/van/admin-guard";
+import { listSelectableOrganisations } from "@/lib/van/drivers";
 
 /**
  * Organisations were the one piece of van reference data with no admin screen,
@@ -33,9 +34,6 @@ const updateSchema = z.object({
   isInternal: z.boolean().optional(),
   isActive: z.boolean().optional(),
 });
-
-/** Active, and not the catch-all: the ones a van or a driver can belong to. */
-const SELECTABLE = { isActive: true, isCatchAll: false } as const;
 
 export async function POST(request: Request) {
   const guard = await requireVanAdmin();
@@ -88,8 +86,10 @@ export async function PATCH(request: Request) {
     }
     // The last one standing owns every van and every driver. Retiring it would
     // empty the "Belongs to" picker — the exact dead end this screen is for.
-    const selectable = await prisma.organisation.count({ where: SELECTABLE });
-    if (selectable <= 1) {
+    // Read through the same helper the pickers do, so this guard cannot come to
+    // disagree with the list it is guarding.
+    const selectable = await listSelectableOrganisations();
+    if (selectable.length <= 1) {
       return NextResponse.json(
         { error: "Vans and drivers need at least one organisation to belong to." },
         { status: 400 }
