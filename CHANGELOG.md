@@ -1,3 +1,9 @@
+## [0.167.2] - 2026-09-09
+
+### Changes
+- Fix van fleet seeding on existing databases ([#1260](https://github.com/everybody-eats-nz/volunteer-portal/pull/1260)) by @malinmalliyawadu
+
+
 ## [0.167.1] - 2026-09-08
 
 ### Changes
