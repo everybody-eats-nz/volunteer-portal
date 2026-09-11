@@ -37,6 +37,15 @@ import { VanTripsContent, type AdminTripRow } from "./trips-content";
  * disagrees with the audit is worse than one that shows nothing.
  */
 
+/**
+ * The ledger reads a window over the recent record rather than the whole of it,
+ * the same window the exceptions view takes. That is fine for a list and not
+ * fine for a total: the oldest month inside a full window is only partly
+ * loaded, so totalling it would under-report the month to the funder. The
+ * client is told when the window filled up and drops that month.
+ */
+const TRIP_WINDOW = 1500;
+
 export default async function VanTripsPage({
   searchParams,
 }: {
@@ -52,7 +61,7 @@ export default async function VanTripsPage({
     prisma.trip.findMany({
       include: tripInclude,
       orderBy: { startedAt: "desc" },
-      take: 1500,
+      take: TRIP_WINDOW,
     }),
     prisma.vehicle.findMany({ orderBy: { name: "asc" } }),
     prisma.tripPurpose.findMany({ orderBy: { sortOrder: "asc" } }),
@@ -68,6 +77,9 @@ export default async function VanTripsPage({
   // Where the previous trip in this van left the dial. The ledger renders the
   // chain against it, so a gap or a reading that goes backwards is visible on
   // the row itself rather than only in a total that quietly does not add up.
+  //
+  // The sort is doing real work, not restating the query: trips arrive newest
+  // first, and the chain has to be walked in the order the van was driven.
   const previousEndOdo = new Map<string, number | null>();
   for (const van of vehicles) {
     let previous: number | null = null;
@@ -132,6 +144,7 @@ export default async function VanTripsPage({
         <VanTripsContent
           rows={rows}
           initialVehicleId={vehicle ?? null}
+          windowed={trips.length === TRIP_WINDOW}
           options={{
             vehicles: vehicles.map((v) => ({
               id: v.id,

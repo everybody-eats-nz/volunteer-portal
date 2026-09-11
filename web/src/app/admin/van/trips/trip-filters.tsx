@@ -136,7 +136,10 @@ export function TripFilterBar({
       </div>
 
       {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          data-testid="van-trips-active-filters"
+        >
           <span className="text-[13px] text-muted-foreground">Showing only</span>
           {chips.map((chip) => (
             <button

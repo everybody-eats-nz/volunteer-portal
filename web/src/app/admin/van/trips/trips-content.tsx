@@ -6,6 +6,7 @@ import { downloadCsv, toCsv } from "@/lib/csv";
 import type { ExceptionKind, Severity } from "@/lib/van/exceptions";
 import {
   inPeriod,
+  monthLabel,
   monthsCovered,
   periodLabel,
   periodSlug,
@@ -96,12 +97,21 @@ export function VanTripsContent({
   rows,
   options,
   initialVehicleId,
+  windowed,
 }: {
   rows: AdminTripRow[];
   options: TripFilterOptions;
   initialVehicleId: string | null;
+  /** The server's trip window filled up, so the record here starts mid-month. */
+  windowed: boolean;
 }) {
-  const months = useMemo(() => monthsCovered(rows.map((r) => r.dayKey)), [rows]);
+  const months = useMemo(() => {
+    const covered = monthsCovered(rows.map((r) => r.dayKey));
+    // The oldest month of a full window is only partly loaded, so its total
+    // would under-report. A month you cannot open beats a month whose figure is
+    // quietly wrong, on the screen the funder's number comes off.
+    return windowed && covered.length > 1 ? covered.slice(0, -1) : covered;
+  }, [rows, windowed]);
 
   const [filters, setFilters] = useState<TripFilters>({
     ...EMPTY_FILTERS,
@@ -115,7 +125,11 @@ export function VanTripsContent({
       ? rows.find((row) => row.vehicleId === initialVehicleId)
       : rows[0];
     const month = firstMatch?.monthKey ?? months[0];
-    return month ? { mode: "month", month } : { mode: "all" };
+    // A van last driven inside the dropped partial month has no month to land
+    // on, so it falls back to all time rather than to an empty September.
+    return month && months.includes(month)
+      ? { mode: "month", month }
+      : { mode: "all" };
   });
 
   const [viewing, setViewing] = useState<AdminTripRow | null>(null);
@@ -226,6 +240,13 @@ export function VanTripsContent({
           exportDisabled={shown.length === 0}
         />
         <TripFilterBar filters={filters} onChange={setFilters} options={options} />
+        {windowed && (
+          <p className="text-[13px] text-muted-foreground">
+            Only the most recent {nf.format(rows.length)} trips are loaded, so
+            anything before {monthLabel(months[months.length - 1] ?? "")} is not
+            counted here.
+          </p>
+        )}
       </div>
 
       <LedgerHead
