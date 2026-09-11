@@ -19,7 +19,7 @@ nothing to a funder.
 | `/drive/trip/[tripId]` | One trip. Also where the optional note lives. |
 | `/drive/trip/[tripId]/end` | End-of-trip flow. |
 | `/drive/register` | Driver self-registration. |
-| `/admin/van/trips` | Every trip, filterable, CSV export, odometer photos. |
+| `/admin/van/trips` | The ledger. One month at a time, split by who and what the kilometres were for, CSV export, odometer photos. |
 | `/admin/van/exceptions` | Where the record does not add up. |
 | `/admin/van/drivers` | Approve who can take a van out, or add somebody directly. |
 | `/admin/van/vehicles` | The fleet board: where every van is right now, its photo, and its printable QR sticker. |
@@ -114,6 +114,38 @@ office.
 That extends to infrastructure: if the odometer photo will not upload, the
 reading is still recorded and the trip lands on the missing-photo exception. A
 misconfigured storage bucket never strands a driver.
+
+### The trips screen is organised by reporting period
+
+Meridian asks for a month, so a month is the unit: the ledger opens on the
+newest month with a trip in it and steps a month at a time, rather than opening
+on "the last 1500 trips, newest first". A range and an all-time mode stay for
+the questions a month cannot answer, and the export is named for whichever is
+showing (`van-log-september-2026.csv`) so the file says which month it is on the
+way in.
+
+The split by organisation and by purpose is the same thing Meridian is owed, and
+until it lived on this screen the office worked it out in a spreadsheet after
+exporting. Hues are assigned to the five largest entities **over the whole
+record, not over the current view** — assigning them by rank after filtering
+would repaint every organisation that survived the filter, so a colour would
+stop meaning one organisation.
+
+The rows are ruled off by day with the day's own subtotal, because a figure the
+office has to defend is checked against one day rather than against a running
+sum — the same reason the paper book was ruled that way.
+
+### The audit is on the row, not only on the exceptions page
+
+The ledger renders the odometer as a chain: where the previous trip in that van
+left the dial, then where this one started and finished. A break in that chain
+is the whole audit, so it is annotated on the row itself, and anything
+`detectExceptions` says about a trip is written underneath it in words.
+
+Those annotations come from **the same `detectExceptions` the exceptions view
+runs**, called once in the page and attached to each row. Recomputing the rules
+for the ledger would let the two screens drift, and a ledger that disagrees with
+the audit is worse than one that shows nothing.
 
 ### Exceptions are derived, never stored
 
