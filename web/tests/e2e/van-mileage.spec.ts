@@ -300,6 +300,29 @@ test.describe("van mileage log - the office", () => {
     await expect(page.getByTestId("van-trips-active-filters")).toHaveCount(0);
   });
 
+  test("opens a trip from the keyboard alone", async ({ page }) => {
+    await loginAsAdmin(page);
+    await gotoSettled(page, "/admin/van/trips");
+
+    // The row carries a click for the mouse, but the keyboard path is a real
+    // focusable control inside it rather than a tabbable <tr>: putting
+    // role="button" on the row would take it out of the table's accessibility
+    // tree, so a screen reader would lose the columns it belongs to.
+    const opener = page.getByTestId(/^van-trip-photos-/).first();
+    await expect(opener).toHaveAttribute("aria-label", /^Open the .+ trip at /);
+    await opener.focus();
+    await page.keyboard.press("Enter");
+
+    const viewer = page.getByTestId("van-photo-viewer");
+    await expect(viewer).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+
+    // The rows are still rows, which is what the row-scoped queries above rely
+    // on and what a screen reader reads the ledger with.
+    expect(await page.getByRole("row").count()).toBeGreaterThan(1);
+  });
+
   test("derives the implausible trip as an exception", async ({ page }) => {
     await loginAsAdmin(page);
     await gotoSettled(page, "/admin/van/exceptions");
