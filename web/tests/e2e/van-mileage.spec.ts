@@ -254,6 +254,75 @@ test.describe("van mileage log - the office", () => {
     await expect(viewer).toContainText("recorded as");
   });
 
+  test("narrows the ledger by period and says what is filtered", async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+    await gotoSettled(page, "/admin/van/trips");
+
+    // The screen exists to produce a month for the funder, so it opens on one.
+    const month = page.getByTestId("van-trips-month").first();
+    await expect(month).toBeVisible();
+    const opened = await month.inputValue();
+
+    // Stepping back a month is the primary navigation, and it only steps as
+    // far as the record goes — so only assert it when there is a month to
+    // step to.
+    const previous = page.getByTestId("van-trips-month-previous").first();
+    if (await previous.isEnabled()) {
+      await previous.click();
+      await expect
+        .poll(() => month.inputValue())
+        .not.toBe(opened);
+    }
+
+    await page.getByTestId("van-trips-period-all").first().click();
+    await expect(page.getByTestId("van-trips-summary").first()).toContainText(
+      "km"
+    );
+
+    // A filter that leaves no trace is how the totals above get misread as the
+    // month's, so every active one is restated as a chip you can drop.
+    await expect(page.getByTestId("van-trips-active-filters")).toHaveCount(0);
+    await page
+      .getByTestId("van-trips-filter-vehicle")
+      .first()
+      .selectOption({ label: VAN_NAME });
+
+    const chips = page.getByTestId("van-trips-active-filters").first();
+    await expect(chips).toBeVisible();
+    await expect(chips).toContainText(VAN_NAME);
+    await expect(
+      page.getByRole("cell", { name: VAN_NAME, exact: true }).first()
+    ).toBeVisible();
+
+    await chips.getByRole("button", { name: "Clear all" }).click();
+    await expect(page.getByTestId("van-trips-active-filters")).toHaveCount(0);
+  });
+
+  test("opens a trip from the keyboard alone", async ({ page }) => {
+    await loginAsAdmin(page);
+    await gotoSettled(page, "/admin/van/trips");
+
+    // The row carries a click for the mouse, but the keyboard path is a real
+    // focusable control inside it rather than a tabbable <tr>: putting
+    // role="button" on the row would take it out of the table's accessibility
+    // tree, so a screen reader would lose the columns it belongs to.
+    const opener = page.getByTestId(/^van-trip-photos-/).first();
+    await expect(opener).toHaveAttribute("aria-label", /^Open the .+ trip at /);
+    await opener.focus();
+    await page.keyboard.press("Enter");
+
+    const viewer = page.getByTestId("van-photo-viewer");
+    await expect(viewer).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+
+    // The rows are still rows, which is what the row-scoped queries above rely
+    // on and what a screen reader reads the ledger with.
+    expect(await page.getByRole("row").count()).toBeGreaterThan(1);
+  });
+
   test("derives the implausible trip as an exception", async ({ page }) => {
     await loginAsAdmin(page);
     await gotoSettled(page, "/admin/van/exceptions");
