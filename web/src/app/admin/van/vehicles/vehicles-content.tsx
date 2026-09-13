@@ -60,6 +60,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VanPhotoField } from "@/components/van/van-photo-field";
+import { Plate } from "@/components/van/van-chrome";
 import { formatKm, formatOdo } from "@/lib/van/format";
 import { canOptimiseImage } from "@/lib/van/images";
 import { cn } from "@/lib/utils";
@@ -93,34 +94,6 @@ const ALL_CITIES = "__all__";
 /* -------------------------------------------------------------------------- */
 /*  Small brand pieces                                                        */
 /* -------------------------------------------------------------------------- */
-
-/**
- * The rego, set as a number plate.
- *
- * It is the only identifier shared by the van, the paper book it replaced and
- * the person standing next to it, so it is worth being recognisable at a glance
- * rather than another line of grey metadata.
- */
-function Plate({
-  rego,
-  className,
-}: {
-  rego: string;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        // White rather than cream: it sits on the pale empty frame as often as
-        // on a photo, and cream on cream is not a plate.
-        "inline-flex items-center rounded-[6px] bg-white px-2 py-[3px] text-[13px] font-bold uppercase leading-none tracking-[0.14em] text-forest-700 tabular-nums ring-1 ring-inset ring-forest-700/40",
-        className
-      )}
-    >
-      {rego}
-    </span>
-  );
-}
 
 /**
  * Status, set to sit on top of a photograph.

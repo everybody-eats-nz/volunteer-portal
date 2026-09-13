@@ -1,3 +1,9 @@
+## [0.168.0] - 2026-09-11
+
+### Changes
+- Redesign van trips ledger with period selection and filtering ([#1262](https://github.com/everybody-eats-nz/volunteer-portal/pull/1262)) by @malinmalliyawadu
+
+
 ## [0.167.2] - 2026-09-09
 
 ### Changes
