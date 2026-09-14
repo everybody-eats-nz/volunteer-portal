@@ -38,6 +38,7 @@
     "expo-auth-session": "~55.0.15",
     "expo-blur": "~55.0.14",
     "expo-calendar": "~55.0.14",
+    "expo-camera": "~55.0.23",
     "expo-constants": "~55.0.9",
     "expo-crypto": "~55.0.14",
     "expo-device": "~55.0.15",

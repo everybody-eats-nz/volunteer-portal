@@ -18,7 +18,7 @@ import {
   RotateCcw,
   Search,
   TriangleAlert,
-  Truck,
+  Van,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -836,7 +836,7 @@ function EmptyState({
 }) {
   return (
     <div className="grain rounded-2xl border border-dashed border-forest-500/25 bg-forest-500/[0.03] px-6 py-14 text-center dark:border-cream-50/20 dark:bg-cream-50/[0.03]">
-      <Truck
+      <Van
         className="mx-auto size-10 text-forest-500/30 dark:text-cream-50/25"
         aria-hidden
       />

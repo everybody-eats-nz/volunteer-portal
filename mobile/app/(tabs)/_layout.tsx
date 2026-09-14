@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
@@ -91,9 +92,20 @@ export default function TabLayout() {
         {canDrive && (
           <NativeTabs.Trigger name="drive">
             <NativeTabs.Trigger.Label>Drive</NativeTabs.Trigger.Label>
+            {/*
+              SF Symbols has no van (the nearest, box.truck, is a lorry and
+              needs iOS 16), so iOS draws the vector glyph as a template image,
+              tinted like the symbols beside it. Android has a Material van.
+            */}
             <NativeTabs.Trigger.Icon
-              sf={{ default: 'car', selected: 'car.fill' }}
-              md="directions_car"
+              src={
+                <NativeTabs.Trigger.VectorIcon
+                  family={MaterialCommunityIcons}
+                  name="van-utility"
+                />
+              }
+              renderingMode="template"
+              md="airport_shuttle"
             />
           </NativeTabs.Trigger>
         )}

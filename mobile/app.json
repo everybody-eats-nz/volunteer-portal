@@ -144,7 +144,17 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Everybody Eats to access your photos to share shift moments.",
-          "cameraPermission": "Allow Everybody Eats to use the camera to take shift photos."
+          "cameraPermission": "Allow Everybody Eats to use the camera to photograph the van odometer and take shift photos.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Everybody Eats to use the camera to photograph the van odometer and take shift photos.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
         }
       ],
       "expo-font",
