@@ -171,9 +171,22 @@ test.describe("Admin Notes Management", () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test("should delete an admin note with confirmation dialog", async ({
-    page,
-  }) => {
+  test("should delete an admin note with confirmation dialog", async (
+    { page },
+    testInfo
+  ) => {
+    // beforeEach (admin login, then two sequential note-cleanup fetches) and
+    // this test's own navigation + first render all share the one 30s test
+    // timeout. Under CI's 20-shard parallel load that chain can occasionally
+    // exceed it before the "Add Admin Note" button even appears — reproduced
+    // 2026-09-14 via flaky-test report: 14/18 runs this week, always the same
+    // `addNoteButton.click()` timing out waiting for the button to exist, not
+    // a real bug in the delete flow. Same fix as admin-shifts.spec.ts's
+    // reject-dialog test (#1244) for the identical class of problem.
+    if (process.env.CI) {
+      testInfo.setTimeout(testInfo.timeout + 20_000);
+    }
+
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
     // First create a note to delete
