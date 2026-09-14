@@ -186,6 +186,10 @@
         {
           "ios": {
             "deploymentTarget": "16.0"
+          },
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "extraProguardRules": "# Keep deobfuscatable stack traces in Play crash reports.\n-keepattributes SourceFile,LineNumberTable\n-renamesourcefileattribute SourceFile\n\n# expo-notifications ships proguard-rules.pro but never wires it up as\n# consumerProguardFiles, so its keep rules have to be repeated here.\n-keep class expo.modules.notifications.** { *; }\n"
           }
         }
       ]
