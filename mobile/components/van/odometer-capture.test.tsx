@@ -8,8 +8,15 @@ import { uploadOdometerPhoto } from "@/lib/van";
 import { render } from "@/test-utils/render";
 
 type ViewfinderProps = {
-  onCapture: (photo: { uri: string; mimeType: string; fileName: string }) => void;
+  onCapture: (photo: {
+    uri: string;
+    mimeType: string;
+    fileName: string;
+    reading: number | null;
+  }) => void;
   onUnavailable: (reason: "denied" | "failed") => void;
+  minimum?: number | null;
+  expected?: number | null;
 };
 
 // Stands in for the live camera, so a test can drive what it reports back.
@@ -70,7 +77,12 @@ vi.mock("expo-image-picker", () => ({
 }));
 vi.mock("@/lib/van", () => ({ uploadOdometerPhoto: vi.fn() }));
 
-const photo = { uri: "file:///odometer.jpg", mimeType: "image/jpeg", fileName: "odometer.jpg" };
+const photo = {
+  uri: "file:///odometer.jpg",
+  mimeType: "image/jpeg",
+  fileName: "odometer.jpg",
+  reading: null,
+};
 
 function renderCapture(props: Partial<OdometerCaptureProps> = {}) {
   return render(
@@ -120,6 +132,55 @@ describe("OdometerCapture", () => {
     expect(readingField(tree)).toHaveLength(1);
     expect(uploadOdometerPhoto).toHaveBeenCalledWith(photo);
     expect(pressableLabelled(tree, "Retake the odometer photo")).toBeDefined();
+  });
+
+  it("fills in the number the camera read, and says where it came from", async () => {
+    const onSubmit = vi.fn();
+    const tree = renderCapture({ onSubmit, minimum: 12300, knownReading: 12345 });
+    expect(viewfinder.state.props).toMatchObject({ minimum: 12300, expected: 12345 });
+
+    await act(async () => {
+      viewfinder.state.props!.onCapture({ ...photo, reading: 12400 });
+    });
+
+    expect(readingField(tree)[0].props.value).toBe("12400");
+    expect(
+      tree.root.findAll((node) => node.props.testID === "odometer-read-note")
+    ).not.toHaveLength(0);
+
+    act(() => {
+      pressableLabelled(tree, "Next")!.props.onPress();
+    });
+    expect(onSubmit).toHaveBeenCalledWith(12400, "https://storage/odometer.jpg", photo.uri);
+  });
+
+  it("stops calling the number read once the driver has touched it", async () => {
+    const tree = renderCapture();
+
+    await act(async () => {
+      viewfinder.state.props!.onCapture({ ...photo, reading: 12400 });
+    });
+    act(() => {
+      readingField(tree)[0].props.onChangeText("12401");
+    });
+
+    expect(readingField(tree)[0].props.value).toBe("12401");
+    expect(
+      tree.root.findAll((node) => node.props.testID === "odometer-read-note")
+    ).toHaveLength(0);
+  });
+
+  it("leaves the field alone when the camera could not read the dial", async () => {
+    const tree = renderCapture();
+
+    await act(async () => {
+      viewfinder.state.props!.onCapture(photo);
+    });
+
+    expect(readingField(tree)[0].props.value).toBe("");
+    expect(
+      tree.root.findAll((node) => node.props.testID === "odometer-read-note")
+    ).toHaveLength(0);
   });
 
   it("still records the reading when the photo will not upload", async () => {

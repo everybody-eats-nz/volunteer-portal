@@ -190,6 +190,7 @@ export default function TripScreen() {
           knownReadingCaption="Started at"
           knownReadingLabel={`${data.startOdoLabel} km`}
           minimum={data.startOdo}
+          knownReading={data.startOdo}
           submitLabel="End trip"
           submitting={submitting}
           onSubmit={(odo, photoUrl) => void close(odo, photoUrl, false)}

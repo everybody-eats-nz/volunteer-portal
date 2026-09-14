@@ -59,6 +59,11 @@ export type OdometerCaptureProps = {
   knownReadingCaption: string;
   /** Nothing at or below this is accepted. Ending a trip passes its start. */
   minimum?: number | null;
+  /**
+   * The same number, for the camera: it tells the dial from the trip meter
+   * beside it when the reader has more than one number to choose from.
+   */
+  knownReading?: number | null;
   submitLabel: string;
   submitting?: boolean;
   /**
@@ -77,6 +82,7 @@ export function OdometerCapture({
   knownReadingLabel,
   knownReadingCaption,
   minimum = null,
+  knownReading = null,
   submitLabel,
   submitting = false,
   initialOdo = null,
@@ -89,6 +95,12 @@ export function OdometerCapture({
   const isDark = scheme === "dark";
 
   const [text, setText] = useState(initialOdo === null ? "" : String(initialOdo));
+  /**
+   * The number in the field came off the photo, not the number pad. It is
+   * said so beside the field until the driver touches it: a number they did
+   * not type is one they have to be told to check.
+   */
+  const [readFromPhoto, setReadFromPhoto] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(initialPhotoUri);
   const [photoState, setPhotoState] = useState<
     "none" | "uploading" | "stored" | "failed"
@@ -135,10 +147,17 @@ export function OdometerCapture({
   }));
 
   const acceptPhoto = useCallback(
-    async (asset: { uri: string; mimeType?: string | null; fileName?: string | null }) => {
+    async (
+      asset: { uri: string; mimeType?: string | null; fileName?: string | null },
+      reading: number | null = null
+    ) => {
       const attempt = ++shot.current;
       setPhotoUri(asset.uri);
       setPhotoState("uploading");
+      if (reading !== null) {
+        setText(String(reading));
+        setReadFromPhoto(true);
+      }
       if (Platform.OS === "ios") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -223,8 +242,10 @@ export function OdometerCapture({
 
         <OdometerViewfinder
           style={styles.viewfinder}
+          minimum={minimum}
+          expected={knownReading}
           onCapture={(photo) => {
-            void acceptPhoto(photo);
+            void acceptPhoto(photo, photo.reading);
             setPhase("reading");
           }}
           onUnavailable={cameraUnavailable}
@@ -274,7 +295,10 @@ export function OdometerCapture({
           </Text>
           <TextInput
             value={text}
-            onChangeText={setText}
+            onChangeText={(value) => {
+              setText(value);
+              setReadFromPhoto(false);
+            }}
             keyboardType="number-pad"
             inputMode="numeric"
             returnKeyType="done"
@@ -304,6 +328,29 @@ export function OdometerCapture({
             {knownReadingCaption} {knownReadingLabel}
           </Text>
         )}
+
+        {readFromPhoto && !belowStart ? (
+          <Animated.View
+            entering={FadeIn.duration(180)}
+            style={[
+              styles.readNote,
+              { backgroundColor: isDark ? "rgba(248,251,105,0.14)" : Palette.sun100 },
+            ]}
+            accessibilityRole="text"
+            testID="odometer-read-note"
+          >
+            <Ionicons
+              name="scan-outline"
+              size={15}
+              color={isDark ? Palette.sun200 : Palette.ink}
+            />
+            <Text
+              style={[styles.readNoteText, { color: isDark ? Palette.sun200 : Palette.ink }]}
+            >
+              Read from your photo. Check it matches the dial.
+            </Text>
+          </Animated.View>
+        ) : null}
       </Animated.View>
 
       <PhotoWell
@@ -439,6 +486,17 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 19,
   },
+  readNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    alignSelf: "flex-start",
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  readNoteText: { fontFamily: FontFamily.semiBold, fontSize: 13 },
   photoWell: {
     flexDirection: "row",
     alignItems: "center",
