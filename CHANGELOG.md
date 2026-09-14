@@ -1,3 +1,9 @@
+## [0.170.0] - 2026-09-14
+
+### Changes
+- Read the odometer off the live camera and fill the number in ([#1273](https://github.com/everybody-eats-nz/volunteer-portal/pull/1273)) by @malinmalliyawadu
+
+
 ## [0.169.2] - 2026-09-14
 
 ### Changes
