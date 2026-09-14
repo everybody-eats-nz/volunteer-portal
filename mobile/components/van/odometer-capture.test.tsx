@@ -122,6 +122,39 @@ describe("OdometerCapture", () => {
     expect(pressableLabelled(tree, "Retake the odometer photo")).toBeDefined();
   });
 
+  it("still records the reading when the photo will not upload", async () => {
+    vi.mocked(uploadOdometerPhoto).mockResolvedValue(null);
+    const onSubmit = vi.fn();
+    const tree = renderCapture({ onSubmit });
+
+    await act(async () => {
+      viewfinder.state.props!.onCapture(photo);
+    });
+    act(() => {
+      readingField(tree)[0].props.onChangeText("12400");
+    });
+    act(() => {
+      pressableLabelled(tree, "Next")!.props.onPress();
+    });
+
+    expect(
+      tree.root.findAll((node) => node.props.children === "Photo didn't save — the reading still counts")
+    ).not.toHaveLength(0);
+    expect(onSubmit).toHaveBeenCalledWith(12400, null, photo.uri);
+  });
+
+  it("refuses an end reading at or below where the trip started", () => {
+    const onSubmit = vi.fn();
+    const tree = renderCapture({ minimum: 12400, initialOdo: 12400, onSubmit });
+
+    act(() => {
+      pressableLabelled(tree, "Next")!.props.onPress();
+    });
+
+    expect(pressableLabelled(tree, "Next")!.props.disabled).toBe(true);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("lets the driver skip the photo and type the reading", () => {
     const tree = renderCapture();
 
