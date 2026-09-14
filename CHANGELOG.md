@@ -1,3 +1,9 @@
+## [0.169.0] - 2026-09-14
+
+### Changes
+- Open the odometer screen on a live camera, and use a van icon ([#1271](https://github.com/everybody-eats-nz/volunteer-portal/pull/1271)) by @malinmalliyawadu
+
+
 ## [0.168.0] - 2026-09-11
 
 ### Changes
