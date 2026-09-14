@@ -1,3 +1,9 @@
+## [0.169.2] - 2026-09-14
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 6 updates ([#1267](https://github.com/everybody-eats-nz/volunteer-portal/pull/1267)) by @dependabot[bot]
+
+
 ## [0.169.1] - 2026-09-14
 
 ### Changes
