@@ -1,4 +1,4 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -313,11 +313,11 @@ function VanRow({
           },
         ]}
       >
-        {out && !van.isMine ? (
-          <Ionicons name="swap-horizontal" size={20} color={colors.textSecondary} />
-        ) : (
-          <MaterialCommunityIcons name="van-utility" size={22} color={Palette.ink} />
-        )}
+        <Ionicons
+          name={out && !van.isMine ? "swap-horizontal" : "car-outline"}
+          size={20}
+          color={out && !van.isMine ? colors.textSecondary : Palette.ink}
+        />
       </View>
 
       <View style={styles.vanBody}>
