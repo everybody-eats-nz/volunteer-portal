@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, QrCode, Truck } from "lucide-react";
+import { ChevronRight, QrCode, Van } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DriverScreen, StatusPill } from "@/components/van/van-chrome";
@@ -119,7 +119,7 @@ export function DriverHome({
               data-testid="van-home-start-trip"
             >
               <Link href="/drive/vans">
-                <Truck aria-hidden />
+                <Van aria-hidden />
                 Start a trip
               </Link>
             </Button>
