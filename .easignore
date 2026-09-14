@@ -1,0 +1,75 @@
+# EAS upload ignore list for the mobile app.
+#
+# eas-cli archives the whole GIT REPOSITORY -- it resolves the archive root with
+# `git rev-parse --show-toplevel`, so the upload starts here, not in mobile/.
+# It also reads .easignore only from that root, which is why this file lives at
+# the top of the monorepo rather than next to app.json.
+#
+# When this file exists, EAS uses it INSTEAD of every .gitignore in the repo (it
+# does not extend them), so every pattern needed to keep the upload small has to
+# live here. It also short-circuits the scan that otherwise walks every
+# .gitignore in the tree, including the ones inside node_modules.
+
+# --- the web app is not part of the mobile build ---
+web/
+
+# --- dependencies (installed fresh on the build worker) ---
+node_modules/
+
+# --- generated native projects (rebuilt by prebuild on the worker) ---
+# These are the main culprits for multi-GB uploads: Pods, Gradle caches,
+# build outputs, .cxx, DerivedData, etc.
+mobile/ios/
+mobile/android/
+mobile/.kotlin/
+
+# --- Expo / Metro / build outputs ---
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/build/
+mobile/expo-env.d.ts
+.metro-health-check*
+
+# --- TypeScript / lint caches ---
+*.tsbuildinfo
+
+# --- env & secrets (provided via EAS env / secrets, not the archive) ---
+.env
+.env*.local
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+everybody-eats-play.json
+
+# --- store / marketing assets not needed to build the app ---
+mobile/android-screenshots/
+mobile/ios-screenshots.pco/
+mobile/Unlinked Picasso App/
+
+# --- tests & local-only tooling ---
+mobile/test-utils/
+**/*.test.ts
+**/*.test.tsx
+mobile/vitest.config.ts
+.vscode/
+.cursor/
+.claude/
+.github/
+
+# --- docs / reports ---
+*.md
+mobile/posthog-setup-report.md
+
+# --- debug logs ---
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# --- OS cruft ---
+.DS_Store
