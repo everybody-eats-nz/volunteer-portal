@@ -6,7 +6,9 @@ import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,6 +17,7 @@ import {
   View,
 } from "react-native";
 import Animated, {
+  FadeIn,
   useAnimatedKeyboard,
   useAnimatedStyle,
 } from "react-native-reanimated";
@@ -25,11 +28,15 @@ import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { uploadOdometerPhoto } from "@/lib/van";
 
+import { OdometerViewfinder } from "./load-viewfinder";
+
 /**
  * The odometer. Both ends of a trip come through here.
  *
- * The dial is the point of the whole feature, so it is the whole screen: one
- * large tabular numeral, the photo under it, one button. Nothing else competes.
+ * It opens on a live camera: the photo is the first thing a driver does at the
+ * van, so landing here is one tap on the shutter away from having it. The shot
+ * then drops into the well under one large tabular numeral with the number pad
+ * already up. Nothing else competes.
  *
  * Two rules shape the behaviour:
  *
@@ -90,6 +97,18 @@ export function OdometerCapture({
   const photoUrl = useRef<string | null>(initialPhotoUrl);
   /** Which shot is current, so a slow first upload cannot clobber a retake. */
   const shot = useRef(0);
+  /**
+   * A driver stepping back into this screen with a reading or a photo already
+   * given has done the camera part, so they land on the number instead.
+   */
+  const [startsOnCamera] = useState(
+    Boolean(OdometerViewfinder) && initialOdo === null && !initialPhotoUri
+  );
+  const [phase, setPhase] = useState<"camera" | "reading">(
+    startsOnCamera ? "camera" : "reading"
+  );
+  /** Whether the camera was opened by a tap on the well, not on arrival. */
+  const [openedByTap, setOpenedByTap] = useState(false);
   /** Measured from the mirror below, so "km" sits beside the number. */
   const [fieldWidth, setFieldWidth] = useState(0);
 
@@ -115,15 +134,52 @@ export function OdometerCapture({
         : 0,
   }));
 
+  const acceptPhoto = useCallback(
+    async (asset: { uri: string; mimeType?: string | null; fileName?: string | null }) => {
+      const attempt = ++shot.current;
+      setPhotoUri(asset.uri);
+      setPhotoState("uploading");
+      if (Platform.OS === "ios") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+
+      // Deliberately not awaited by the submit path. By the time the driver has
+      // typed the number this has usually finished; if it has not, or if it
+      // fails outright, the trip records without it.
+      const url = await uploadOdometerPhoto(asset);
+      // A retake started while this was in flight owns the reading now.
+      if (attempt !== shot.current) return;
+      photoUrl.current = url;
+      setPhotoState(url ? "stored" : "failed");
+    },
+    []
+  );
+
+  const cameraRefused = useCallback(() => {
+    Alert.alert(
+      "Camera access needed",
+      "Enable camera access for Everybody Eats in Settings to photograph the odometer. You can still record the reading without a photo.",
+      [
+        { text: "Not now", style: "cancel" },
+        { text: "Open Settings", onPress: () => void Linking.openSettings() },
+      ]
+    );
+  }, []);
+
   const takePhoto = useCallback(async () => {
-    // The camera, not the library: an odometer photo is evidence behind a
-    // funding report, and it is taken at the dial.
+    if (OdometerViewfinder) {
+      setOpenedByTap(true);
+      Keyboard.dismiss();
+      setPhase("camera");
+      return;
+    }
+
+    // Binaries without the live viewfinder: the system camera, not the
+    // library. An odometer photo is evidence behind a funding report, and it
+    // is taken at the dial.
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Camera access needed",
-        "Enable camera access for Everybody Eats in Settings to photograph the odometer. You can still record the reading without a photo."
-      );
+      cameraRefused();
       return;
     }
 
@@ -132,24 +188,19 @@ export function OdometerCapture({
       quality: 0.6,
     });
     if (result.canceled || !result.assets[0]) return;
+    void acceptPhoto(result.assets[0]);
+  }, [acceptPhoto, cameraRefused]);
 
-    const asset = result.assets[0];
-    const attempt = ++shot.current;
-    setPhotoUri(asset.uri);
-    setPhotoState("uploading");
-    if (Platform.OS === "ios") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-
-    // Deliberately not awaited by the submit path. By the time the driver has
-    // typed the number this has usually finished; if it has not, or if it
-    // fails outright, the trip records without it.
-    const url = await uploadOdometerPhoto(asset);
-    // A retake started while this was in flight owns the reading now.
-    if (attempt !== shot.current) return;
-    photoUrl.current = url;
-    setPhotoState(url ? "stored" : "failed");
-  }, []);
+  const cameraUnavailable = useCallback(
+    (reason: "denied" | "failed") => {
+      setPhase("reading");
+      // Refused on arrival, the driver has just answered the system prompt and
+      // needs no second one. Refused from a tap on the well, they asked for the
+      // camera and deserve to be told why it is not there.
+      if (reason === "denied" && openedByTap) cameraRefused();
+    },
+    [openedByTap, cameraRefused]
+  );
 
   const submit = () => {
     if (!canSubmit || odo === null) return;
@@ -158,12 +209,47 @@ export function OdometerCapture({
 
   const fieldTint = belowStart ? colors.destructive : colors.text;
 
+  if (phase === "camera" && OdometerViewfinder) {
+    return (
+      <View style={styles.cameraRoot} testID="odometer-camera">
+        <View style={styles.readingBlock}>
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+            {label.toUpperCase()}
+          </Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            {knownReadingCaption} {knownReadingLabel}
+          </Text>
+        </View>
+
+        <OdometerViewfinder
+          style={styles.viewfinder}
+          onCapture={(photo) => {
+            void acceptPhoto(photo);
+            setPhase("reading");
+          }}
+          onUnavailable={cameraUnavailable}
+        />
+
+        <Button
+          label={photoUri ? "Keep the last photo" : "Skip the photo"}
+          onPress={() => setPhase("reading")}
+          variant="ghost"
+          size="md"
+          fullWidth
+        />
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
-      <View style={styles.readingBlock}>
+      <Animated.View
+        style={styles.readingBlock}
+        entering={startsOnCamera || openedByTap ? FadeIn.duration(220) : undefined}
+      >
         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
           {label.toUpperCase()}
         </Text>
@@ -218,7 +304,7 @@ export function OdometerCapture({
             {knownReadingCaption} {knownReadingLabel}
           </Text>
         )}
-      </View>
+      </Animated.View>
 
       <PhotoWell
         uri={photoUri}
@@ -324,6 +410,8 @@ function PhotoWell({
 
 const styles = StyleSheet.create({
   root: { flex: 1, gap: 22 },
+  cameraRoot: { flex: 1, gap: 14 },
+  viewfinder: { flex: 1, minHeight: 280 },
   readingBlock: { gap: 6 },
   fieldLabel: {
     fontFamily: FontFamily.semiBold,
