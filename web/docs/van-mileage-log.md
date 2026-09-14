@@ -182,6 +182,37 @@ which client the trip came from. Where the two clients would otherwise have
 retyped the same rule — what makes a startable trip, what an odometer photo may
 be — that rule moved into `requests.ts` and `photos.ts` and both call it.
 
+### The app reads the dial itself
+
+The odometer screen opens on a live camera and reads the number off it, the
+way a barcode scanner does: while the viewfinder is up it takes a low-cost
+still every few hundred milliseconds, hands it to an on-device text
+recogniser, and looks for the number inside the guide. Two stills in a row
+that agree is a reading. That still becomes the odometer photo, the number
+lands in the field already filled in, and the driver is on the next step
+without touching the shutter. The field says the number came off the photo
+until the driver touches it, because a number they did not type is one they
+have to be told to check.
+
+The recogniser is `expo-mlkit-ocr`, configured with `iosEngine: "vision"`:
+Apple Vision on iOS (nothing added to the binary) and Google ML Kit on
+Android, both entirely on the phone. Nothing leaves the device before the
+driver has confirmed the reading. It needs iOS 16, set through
+`expo-build-properties` in `mobile/app.json`.
+
+What makes a number "the dial" lives in `mobile/lib/odometer-reading.ts`, which
+is pure and tested: 4 to 7 digits, inside the guide, above the trip's start
+reading when ending, and near the last recorded reading rather than the trip
+meter beside it. A drum odometer's tenths digit is dropped when that is what
+puts the number near the last reading. Letters a seven-segment display gets
+mistaken for (`O`, `S`, `B`) are read as the digits they resemble, but only
+in tokens that are mostly digits already.
+
+Like the camera, the recogniser is a native module looked up at runtime
+(`mobile/components/van/load-odometer-reader.ts`) rather than imported, so an
+older install taking an over-the-air update keeps a plain camera and types
+the number, which is what it did before.
+
 ### The app asks the server whether a reading looks wrong
 
 The browser flow runs `plausibility.ts` in the page, because the page can

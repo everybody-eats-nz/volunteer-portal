@@ -221,6 +221,7 @@ export default function StartTripScreen() {
           label="Odometer now"
           knownReadingCaption="Last recorded"
           knownReadingLabel={`${vehicle.currentOdoLabel} km`}
+          knownReading={vehicle.currentOdo}
           submitLabel="Next"
           initialOdo={odo}
           initialPhotoUri={photoUri}
