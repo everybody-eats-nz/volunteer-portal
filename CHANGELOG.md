@@ -1,3 +1,9 @@
+## [0.171.0] - 2026-09-15
+
+### Changes
+- Add PNG export for van stickers to email to drivers ([#1277](https://github.com/everybody-eats-nz/volunteer-portal/pull/1277)) by @malinmalliyawadu
+
+
 ## [0.170.1] - 2026-09-14
 
 ### Changes
