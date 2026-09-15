@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { PageContainer } from "@/components/page-container";
 import { createNZDate, formatInNZT } from "@/lib/timezone";
+import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 
 type ShiftType = {
   id: string;
@@ -60,6 +61,7 @@ export default async function EditShiftPage({
       signups: {
         include: { user: true },
       },
+      _count: { select: { placeholders: true } },
     },
   });
 
@@ -89,6 +91,13 @@ export default async function EditShiftPage({
     (signup) => signup.status !== "CANCELED" && signup.status !== "NO_SHOW"
   );
   const hasSignups = activeSignups.length > 0;
+
+  // Spots actually taken: CONFIRMED signups plus unregistered walk-ins. Pending
+  // requests and the waitlist don't hold a spot (see SPOT_TAKING_STATUSES), so
+  // they must never gate what capacity this form will accept — otherwise a
+  // start-time-only edit on a shift with pending requests can't be saved
+  // without inflating capacity to cover them.
+  const spotsTaken = getShiftConfirmedCount(shift);
 
   async function updateShift(formData: FormData) {
     "use server";
@@ -301,8 +310,12 @@ export default async function EditShiftPage({
           <Alert className="mb-6">
             <AlertTriangleIcon className="h-4 w-4" />
             <AlertDescription>
-              This shift has {activeSignups.length} active signup(s). Reducing
-              capacity below this number may affect volunteer assignments.
+              This shift has {activeSignups.length} active signup(s), of which{" "}
+              {spotsTaken} take a spot (confirmed volunteers and walk-ins).
+              Pending requests and the waitlist don&apos;t need capacity, so you
+              can change the time or other details without raising it. Setting
+              capacity below {spotsTaken} leaves the shift over capacity — it
+              won&apos;t remove anyone.
             </AlertDescription>
           </Alert>
         )}
@@ -457,7 +470,7 @@ export default async function EditShiftPage({
                       type="number"
                       name="capacity"
                       id="capacity"
-                      min={Math.max(1, activeSignups.length)}
+                      min={1}
                       step={1}
                       placeholder="e.g. 6"
                       required
@@ -466,8 +479,8 @@ export default async function EditShiftPage({
                       data-testid="edit-shift-capacity-input"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {hasSignups
-                        ? `Minimum capacity: ${activeSignups.length} (current active signups)`
+                      {spotsTaken > 0
+                        ? `Maximum number of volunteers needed. ${spotsTaken} spot(s) currently taken by confirmed volunteers and walk-ins; pending and waitlisted signups don't count.`
                         : "Maximum number of volunteers needed"}
                     </p>
                   </div>
@@ -554,8 +567,10 @@ export default async function EditShiftPage({
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Consider the impact of your changes on these volunteer
-                      signups.
+                      Only confirmed volunteers (and unregistered walk-ins)
+                      count toward capacity. Consider the impact of your changes
+                      on these volunteer signups — everyone keeps their place
+                      when you change the time.
                     </p>
                   </div>
                 </div>

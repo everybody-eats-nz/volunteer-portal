@@ -5,6 +5,8 @@ import {
   deleteTestUsers,
   createShift,
   deleteTestShifts,
+  createSignup,
+  getUserByEmail,
 } from "./helpers/test-helpers";
 import { gotoSettled } from "./helpers/streaming";
 import { randomUUID } from "crypto";
@@ -182,6 +184,71 @@ test.describe("Admin Shift Edit and Delete", () => {
       await expect(
         page.getByText("End time must be after start time")
       ).toBeVisible();
+    });
+
+    // Regression: a shift whose non-cancelled signups outnumbered its capacity
+    // could not have its start time changed. The capacity input's `min` was the
+    // count of every non-cancelled signup, so the browser blocked submit until
+    // capacity was inflated to cover pending requests and the waitlist — which
+    // hold no spot. Only CONFIRMED signups (and unregistered walk-ins) take
+    // capacity.
+    test("should save a start-time-only change when pending and waitlisted requests exceed capacity", async ({
+      page,
+    }) => {
+      const waitlistedEmail = `volunteer-waitlisted-${testId}@example.com`;
+      // Register for afterEach cleanup, which deletes users only after the
+      // shifts (and therefore their signups) are gone.
+      testEmails.push(waitlistedEmail);
+      await createTestUser(page, waitlistedEmail);
+
+      const [pendingUser, waitlistedUser] = await Promise.all([
+        getUserByEmail(page, testEmails[1]),
+        getUserByEmail(page, waitlistedEmail),
+      ]);
+      expect(pendingUser).not.toBeNull();
+      expect(waitlistedUser).not.toBeNull();
+
+      // One spot, two requests that hold no spot — the shape that blocked the
+      // save before.
+      const operatingDate = new Date(operatingDateStr + "T00:00:00");
+      const shift = await createShift(page, {
+        location: "Wellington",
+        start: new Date(operatingDate.setHours(10, 0)),
+        end: new Date(operatingDate.setHours(14, 0)),
+        capacity: 1,
+      });
+      testShiftIds.push(shift.id);
+
+      await createSignup(page, {
+        userId: pendingUser!.id,
+        shiftId: shift.id,
+        status: "PENDING",
+      });
+      await createSignup(page, {
+        userId: waitlistedUser!.id,
+        shiftId: shift.id,
+        status: "WAITLISTED",
+      });
+
+      await gotoSettled(page, `/admin/shifts/${shift.id}/edit`);
+
+      const capacityInput = page.getByTestId("edit-shift-capacity-input");
+      await expect(capacityInput).toHaveValue("1");
+      await expect(capacityInput).toHaveAttribute("min", "1");
+
+      // Change only the start time — capacity is left exactly as it was.
+      await page.getByTestId("edit-shift-start-time-input").fill("13:00");
+      await page.getByTestId("update-shift-button").click();
+
+      await expect(page).toHaveURL(/\/admin\/shifts\?updated=1/);
+      await expect(page.getByTestId("shift-updated-message")).toBeVisible();
+
+      // The saved shift takes the new time and keeps its original capacity.
+      await gotoSettled(page, `/admin/shifts/${shift.id}/edit`);
+      await expect(
+        page.getByTestId("edit-shift-start-time-input")
+      ).toHaveValue("13:00");
+      await expect(capacityInput).toHaveValue("1");
     });
 
     test("should allow canceling edit and return to shifts page", async ({
