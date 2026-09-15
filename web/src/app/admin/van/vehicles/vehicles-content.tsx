@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,7 @@ import {
   Archive,
   ArrowUpRight,
   Building2,
+  Download,
   MapPin,
   MoreHorizontal,
   Pencil,
@@ -63,6 +64,11 @@ import { VanPhotoField } from "@/components/van/van-photo-field";
 import { Plate } from "@/components/van/van-chrome";
 import { formatKm, formatOdo } from "@/lib/van/format";
 import { canOptimiseImage } from "@/lib/van/images";
+import {
+  renderStickerPng,
+  stickerFileName,
+  STICKER_QR_SIZE,
+} from "@/lib/van/sticker-png";
 import { cn } from "@/lib/utils";
 
 export type VehicleStatus = "in" | "out" | "overdue" | "retired";
@@ -878,26 +884,70 @@ function StickerDialog({
   url: string;
   onClose: () => void;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLHeadingElement>(null);
+  const qrRef = useRef<SVGSVGElement>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Not everyone who drives a van is in the building, or on the payroll: an
+  // outside organisation's drivers are sent the code and register themselves.
+  // The SVG on screen cannot be saved from the browser's own image menu, so
+  // the sticker is redrawn as a PNG that can be attached to an email.
+  async function downloadPng() {
+    const qr = qrRef.current;
+    const card = cardRef.current;
+    const heading = nameRef.current;
+    if (!qr || !card || !heading) return;
+
+    setSaving(true);
+    try {
+      const blob = await renderStickerPng({
+        qr,
+        name: vehicle.name,
+        rego: vehicle.rego,
+        headingFont: getComputedStyle(heading).fontFamily,
+        bodyFont: getComputedStyle(card).fontFamily,
+      });
+
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = stickerFileName(vehicle.name, vehicle.rego);
+      link.click();
+      // Revoking in the same tick cancels the download in some browsers.
+      setTimeout(() => URL.revokeObjectURL(href), 0);
+    } catch {
+      toast.error("Could not save the sticker. Print it instead.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Sticker for {vehicle.name}</DialogTitle>
           <DialogDescription>
-            The QR code points at the van&rsquo;s id, not its rego, so renaming
-            the van or changing its plate never invalidates a sticker already on
-            a dashboard.
+            Print it for the dashboard, or save it as a PNG to send to somebody
+            who drives this van. The QR code points at the van&rsquo;s id, not
+            its rego, so renaming the van or changing its plate never
+            invalidates a sticker already on a dashboard.
           </DialogDescription>
         </DialogHeader>
 
         <div
           id="van-sticker-printable"
+          ref={cardRef}
           className="rounded-xl bg-white px-5 py-6 text-center ring-1 ring-forest-500/15"
         >
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-forest-500">
             Everybody Eats · Van Log
           </p>
-          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-forest-700">
+          <h3
+            ref={nameRef}
+            className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-forest-700"
+          >
             {vehicle.name}
           </h3>
           {/* The same plate the fleet list shows, so the sticker on the
@@ -907,8 +957,9 @@ function StickerDialog({
           </div>
           <div className="mt-4 flex justify-center">
             <QRCodeSVG
+              ref={qrRef}
               value={url}
-              size={192}
+              size={STICKER_QR_SIZE}
               level="M"
               bgColor="#ffffff"
               fgColor="#1d5337"
@@ -925,9 +976,21 @@ function StickerDialog({
           {url}
         </p>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => window.print()}>
+          <Button
+            variant="secondary"
+            onClick={() => window.print()}
+            data-testid="van-sticker-print"
+          >
             <Printer aria-hidden />
             Print sticker
+          </Button>
+          <Button
+            onClick={downloadPng}
+            disabled={saving}
+            data-testid="van-sticker-download"
+          >
+            <Download aria-hidden />
+            {saving ? "Saving…" : "Download PNG"}
           </Button>
         </DialogFooter>
       </DialogContent>
