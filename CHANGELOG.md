@@ -1,3 +1,9 @@
+## [0.171.1] - 2026-09-15
+
+### Changes
+- Fix shift capacity validation for pending/waitlisted signups ([#1278](https://github.com/everybody-eats-nz/volunteer-portal/pull/1278)) by @malinmalliyawadu
+
+
 ## [0.171.0] - 2026-09-15
 
 ### Changes
