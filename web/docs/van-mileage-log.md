@@ -22,7 +22,7 @@ nothing to a funder.
 | `/admin/van/trips` | The ledger. One month at a time, split by who and what the kilometres were for, CSV export, odometer photos. |
 | `/admin/van/exceptions` | Where the record does not add up. |
 | `/admin/van/drivers` | Approve who can take a van out, or add somebody directly. |
-| `/admin/van/vehicles` | The fleet board: where every van is right now, its photo, and its printable QR sticker. |
+| `/admin/van/vehicles` | The fleet board: where every van is right now, its photo, and its QR sticker — printable, or saved as a PNG to send on. |
 | `/admin/van/purposes` | What drivers pick from, and in what order. |
 | `/api/mobile/van/*` | The same flows for the Expo app's Drive tab. |
 
@@ -41,6 +41,7 @@ Library code is under `src/lib/van/`:
 | `mobile-guard.ts` | The driver gate for the app's JWT-authenticated routes. |
 | `mobile-payloads.ts` | The shapes the app renders, labelled in NZ time. |
 | `reminders.ts` | The nudge to end a forgotten trip. |
+| `sticker-png.ts` | The sticker, drawn on a canvas so it can be emailed. |
 
 ## The decisions worth knowing
 
@@ -53,6 +54,27 @@ or changing its plate never invalidates a sticker already stuck to a dashboard.
 
 The page stays dumb: it decides what to show from whether the van is out, never
 from how the driver arrived.
+
+### The sticker is printed *and* sent
+
+Not everybody who drives a van is in the building. The Sustainability Trust
+drives one of them, and their drivers register themselves off the code rather
+than being handed a printed one, so the office needs a file it can attach to an
+email — an inline `<svg>` QR cannot be saved from the browser's own "save image"
+menu, which is what the office tried first.
+
+So the sticker dialog both prints and downloads. The PNG is **drawn on a canvas
+from the same geometry as the printable card**, not screenshotted: no
+html-to-image dependency, and it comes out at any resolution (4x, ~1300px wide
+— enough to print at the ~90mm it is stuck on at, and still scannable when a
+mail client shrinks it into a preview pane).
+
+Two things about that drawing are easy to get wrong and are commented in
+`sticker-png.ts`: the QR is re-rasterised from the vector rather than scaled up
+from the screen, and the whole card is laid out in the PNG's own pixels rather
+than in CSS pixels under a scaled transform — Chrome shapes a line at whatever
+font size it is given, so scaling afterwards magnifies the rounding in every
+glyph's advance into gaps you can see.
 
 ### The page is public; the action is not
 
