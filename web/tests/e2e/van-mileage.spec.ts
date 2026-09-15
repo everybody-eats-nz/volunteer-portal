@@ -2,6 +2,7 @@ import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { gotoSettled, waitForStreamSettled } from "./helpers/streaming";
+import { readFileSync } from "node:fs";
 
 /**
  * The van mileage log's two critical paths: starting a trip and ending one.
@@ -321,6 +322,37 @@ test.describe("van mileage log - the office", () => {
     // The rows are still rows, which is what the row-scoped queries above rely
     // on and what a screen reader reads the ledger with.
     expect(await page.getByRole("row").count()).toBeGreaterThan(1);
+  });
+
+  test("saves the sticker as a PNG that can be emailed to a driver", async ({
+    page,
+  }) => {
+    // Drivers from an outside organisation are sent the code rather than
+    // handed a printed one, so the office needs a file it can attach.
+    await loginAsAdmin(page);
+    await gotoSettled(page, "/admin/van/vehicles");
+
+    await page.getByTestId(`van-vehicle-sticker-${vanId}`).first().click();
+    await expect(
+      page.getByText(`Sticker for ${VAN_NAME}`).first()
+    ).toBeVisible();
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByTestId("van-sticker-download").first().click(),
+    ]);
+
+    // The file is forwarded on by hand, so it has to name its van.
+    expect(download.suggestedFilename()).toContain(REGO.toLowerCase());
+    expect(download.suggestedFilename()).toMatch(/\.png$/);
+
+    // Really a PNG, and really drawn: an empty canvas still saves a file.
+    const file = await download.path();
+    const bytes = readFileSync(file);
+    expect(bytes.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+    );
+    expect(bytes.byteLength).toBeGreaterThan(10_000);
   });
 
   test("derives the implausible trip as an exception", async ({ page }) => {
