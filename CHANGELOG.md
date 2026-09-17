@@ -1,3 +1,9 @@
+## [0.171.2] - 2026-09-17
+
+### Changes
+- fix: always show announcements in the mobile feed for admins ([#1279](https://github.com/everybody-eats-nz/volunteer-portal/pull/1279)) by @malinmalliyawadu
+
+
 ## [0.171.1] - 2026-09-15
 
 ### Changes
