@@ -32,7 +32,7 @@ function parseCriteriaShiftTypeId(criteria: string): string | undefined {
  *
  * Returns a unified activity feed for the mobile home screen.
  * Pulls real data from:
- * - Admin announcements (targeted to the requesting user)
+ * - Admin announcements (targeted to the requesting user; admins see all)
  * - Recent achievement unlocks (friends + own)
  * - Friend signups (friends signing up for shifts)
  * - Shift recaps (aggregate stats for completed shifts at user's locations)
@@ -50,6 +50,9 @@ export async function GET(request: Request) {
   }
 
   const { userId } = auth;
+  // Admins see every live announcement, whoever it was aimed at. See the
+  // targeting filter below for why.
+  const isAdmin = auth.user.role === "ADMIN";
   const since = new Date();
   since.setDate(since.getDate() - 14);
   const now = new Date();
@@ -228,9 +231,11 @@ export async function GET(request: Request) {
           { expiresAt: null },
           { expiresAt: { gt: now } },
         ],
-        // Pre-filter: skip announcements that explicitly exclude this user's grade
+        // Pre-filter: skip announcements that explicitly exclude this user's
+        // grade. Admins skip the pre-filter too, so it can't drop an
+        // announcement before the admin bypass below gets to see it.
         AND: [
-          userProfile?.volunteerGrade
+          !isAdmin && userProfile?.volunteerGrade
             ? {
                 OR: [
                   { targetGrades: { isEmpty: true } },
@@ -317,7 +322,7 @@ export async function GET(request: Request) {
 
   const items: FeedItem[] = [];
 
-  // Filter announcements to those targeting this user
+  // Filter announcements to those targeting this user (admins see them all)
   const friendIdSet = new Set(friendIds);
 
   for (const ann of announcements) {
@@ -357,15 +362,21 @@ export async function GET(request: Request) {
     // shifts.
     const activityMatch = userMatchesActivityTargeting(workedShifts, ann);
 
-    if (
-      !locationMatch ||
-      !gradeMatch ||
-      !labelMatch ||
-      !userMatch ||
-      !shiftMatch ||
-      !activityMatch
-    )
-      continue;
+    const targetedAtMe =
+      locationMatch &&
+      gradeMatch &&
+      labelMatch &&
+      userMatch &&
+      shiftMatch &&
+      activityMatch;
+
+    // Admins always see every live announcement, including ones aimed at an
+    // audience they aren't part of. Volunteers can comment on announcements
+    // and the author is notified, but tapping that notification opens the
+    // item from this feed, so an admin outside the audience had no way to
+    // reach the thread and reply. `visibleAsAdmin` marks the ones that are
+    // only there because of this bypass, so the app can label the card.
+    if (!targetedAtMe && !isAdmin) continue;
 
     const authorName =
       ann.author.firstName ?? ann.author.name ?? "Admin";
@@ -379,6 +390,7 @@ export async function GET(request: Request) {
       timestamp: ann.createdAt.toISOString(),
       author: authorName,
       authorPhotoUrl: ann.author.profilePhotoUrl ?? undefined,
+      visibleAsAdmin: targetedAtMe ? undefined : true,
       likeCount: 0,
       likedByMe: false,
       recentLikers: [],
