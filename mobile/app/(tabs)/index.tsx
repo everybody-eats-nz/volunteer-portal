@@ -2279,6 +2279,18 @@ function FeedCard({
             </View>
           )}
           <View style={styles.feedBody}>
+            {item.visibleAsAdmin && (
+              <View
+                style={[styles.feedTodayPill, { backgroundColor: "#e2e8f0" }]}
+              >
+                <Text
+                  accessibilityLabel="Shown to you as an admin. This announcement went to a different audience."
+                  style={[styles.feedTodayPillText, { color: "#334155" }]}
+                >
+                  Admin view
+                </Text>
+              </View>
+            )}
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               {item.title}
             </Text>
@@ -3127,7 +3139,11 @@ function FeedItemSheet({
     item.type === "daily_menu" &&
     formatNZDateOnly(item.serviceDate, "yyyy-MM-dd") <
       formatNZT(new Date(), "yyyy-MM-dd");
-  const headerLabel = isPastDailyMenu ? "Past Menu" : config.label;
+  const headerLabel = isPastDailyMenu
+    ? "Past Menu"
+    : item.type === "announcement" && item.visibleAsAdmin
+      ? "Admin view"
+      : config.label;
 
   // Hero avatar: the friend who posted, or the admin behind an announcement.
   const heroAvatarUrl =
