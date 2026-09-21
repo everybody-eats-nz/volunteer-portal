@@ -1,3 +1,9 @@
+## [0.171.5] - 2026-09-21
+
+### Changes
+- fix(flaky): loads, renders KPIs and charts, and switches across all tabs ([#1284](https://github.com/everybody-eats-nz/volunteer-portal/pull/1284)) by @malinmalliyawadu
+
+
 ## [0.171.4] - 2026-09-20
 
 ### Changes
