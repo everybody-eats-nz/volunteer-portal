@@ -79,7 +79,26 @@ function FriendsSkeleton() {
   );
 }
 
-export default async function FriendsPage({
+export default function FriendsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  // Suspense boundary: the session check and `tab` search param below are
+  // uncached, per-request data. Under cacheComponents (next.config), a
+  // route that reads them with no boundary to bail into can intermittently
+  // throw "encountered uncached data during prerendering or a navigation"
+  // during the shell/prefetch pass — surfacing as flaky e2e failures under
+  // concurrent load. Mirrors the pattern already used in the root layout
+  // (src/app/layout.tsx) and now the admin layout.
+  return (
+    <Suspense>
+      <FriendsPageContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function FriendsPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>;

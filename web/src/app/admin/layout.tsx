@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -15,7 +16,26 @@ import {
 import { AdminHeaderProvider } from "@/contexts/admin-header-context";
 import { ScrollToTop } from "@/components/scroll-to-top";
 
-export default async function AdminLayout({
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Suspense boundary: everything below reads the session (an uncached,
+  // per-request API), which cacheComponents treats as dynamic data during
+  // prerendering. Without a boundary to bail into, Next.js's shell/prefetch
+  // pass for /admin/* routes intermittently throws "encountered uncached
+  // data during prerendering or a navigation" — surfacing as flaky e2e
+  // failures under concurrent load. Mirrors the same pattern already used
+  // for dynamic reads in the root layout (src/app/layout.tsx).
+  return (
+    <Suspense>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </Suspense>
+  );
+}
+
+async function AdminLayoutContent({
   children,
 }: {
   children: React.ReactNode;
