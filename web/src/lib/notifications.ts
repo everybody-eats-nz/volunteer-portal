@@ -6,6 +6,7 @@ import {
   updateUnreadCount,
 } from "./notification-helpers";
 import { sendPushToUser, sendPushToUsers } from "./services/expo-push";
+import { formatInNZT } from "@/lib/timezone";
 
 export interface CreateNotificationParams {
   userId: string;
@@ -407,6 +408,33 @@ export async function createShiftWaitlistedNotification(
     message: `You've been added to the waitlist for ${shiftName} on ${shiftDate}`,
     actionUrl: "/shifts/mine",
     relatedId: shiftId,
+  });
+}
+
+/**
+ * Tell a waitlisted volunteer that a place has opened up and is theirs if they
+ * take it.
+ *
+ * The deadline is in the message rather than only on the screen behind it: a
+ * push that says "a spot opened up" without saying how long you have is an
+ * invitation to find out too late.
+ */
+export async function createWaitlistOfferNotification(params: {
+  userId: string;
+  shiftName: string;
+  shiftDate: string;
+  shiftId: string;
+  expiresAt: Date;
+}) {
+  return createNotification({
+    userId: params.userId,
+    type: "SHIFT_WAITLIST_OFFER",
+    title: "A spot just opened up",
+    message: `A place on ${params.shiftName} (${params.shiftDate}) is yours if you want it. Accept by ${formatInNZT(params.expiresAt, "h:mma EEEE")} or it goes to the next person.`,
+    // Web shows the offer as a banner on /shifts/mine; mobile reads ?offer=
+    // and opens that shift directly, where the accept/decline lives.
+    actionUrl: `/shifts/mine?offer=${params.shiftId}`,
+    relatedId: params.shiftId,
   });
 }
 

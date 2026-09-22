@@ -803,7 +803,7 @@ export function ShiftSignupDialog({
             >
               {isWaitlist ? (
                 <span data-testid="waitlist-process-note">
-                  {WAITLIST_EXPLAINER} We&apos;ll email you if you get one.
+                  {WAITLIST_EXPLAINER}
                 </span>
               ) : (
                 "Your signup will be reviewed by an administrator. You'll receive an email confirmation if you're approved for this shift."

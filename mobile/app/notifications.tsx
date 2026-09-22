@@ -61,6 +61,13 @@ const ICON_MAP: Record<NotificationType, IconSpec> = {
     color: "#b45309",
     bg: "rgba(180, 83, 9, 0.12)",
   },
+  // An offer is good news with a deadline on it, so it reads as an
+  // invitation rather than as another waiting-room update.
+  SHIFT_WAITLIST_OFFER: {
+    name: "sparkles",
+    color: Brand.green,
+    bg: "rgba(29, 83, 55, 0.10)",
+  },
   SHIFT_CANCELED: {
     name: "close-circle",
     color: "#b91c1c",

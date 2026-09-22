@@ -129,15 +129,17 @@ secret so CI migrations and runtime agree.
 
 ## 7. Cron jobs
 
-Vercel Cron is gone. Recreate the two jobs as **Coolify Scheduled Tasks**
+Vercel Cron is gone. Recreate the jobs as **Coolify Scheduled Tasks**
 (container → Scheduled Tasks), each running a `curl` with the `CRON_SECRET`:
 
 | Schedule (UTC) | Command |
 |---|---|
 | `0 4 * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/refresh-website-content` |
 | `0 3 * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/prune-chat-logs` |
+| `0 * * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/van-open-trip-reminders` |
+| `*/15 * * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/waitlist-offers` |
 
-> These two crons were likely **not running on Vercel** anyway: `CRON_SECRET`
+> The first two crons were likely **not running on Vercel** anyway: `CRON_SECRET`
 > was never set in the Vercel env, and `proxy.ts` default-denied `/api/cron/*`.
 > Both are fixed in this branch (`proxy.ts` allowlists `/api/cron`, and the
 > routes reject a missing `CRON_SECRET` instead of accepting `"Bearer undefined"`).

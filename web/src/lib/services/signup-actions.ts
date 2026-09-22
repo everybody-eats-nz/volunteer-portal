@@ -10,6 +10,7 @@ import { formatInNZT } from "@/lib/timezone";
 import { getLocationAddresses } from "@/lib/locations";
 import { autoCancelOverlappingPendingSignups } from "@/lib/signup-utils.server";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
+import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 
 export type SignupAction =
   | "approve"
@@ -249,10 +250,17 @@ export async function applySignupAction({
   }
 
   if (action === "reject") {
+    const wasConfirmed = signup.status === "CONFIRMED";
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
       data: { status: "CANCELED" },
     });
+
+    if (wasConfirmed) {
+      offerWaitlistPlaces(signup.shiftId).catch((err) =>
+        console.error("Error offering the freed place to the waitlist:", err)
+      );
+    }
 
     if (sendEmail) {
       if (signup.user.email) {
@@ -384,6 +392,12 @@ export async function applySignupAction({
           : "Removed from waitlist and volunteer notified",
       };
     }
+
+    // An admin cancelling a confirmed volunteer frees the same place a
+    // self-cancellation does, so the waitlist rolls over the same way.
+    offerWaitlistPlaces(signup.shiftId).catch((err) =>
+      console.error("Error offering the freed place to the waitlist:", err)
+    );
 
     return {
       signup: updatedSignup,

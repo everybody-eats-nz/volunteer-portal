@@ -421,7 +421,7 @@ export function ShiftSignupSheet({
               <Text style={ss.infoEmoji}>{isWaitlist ? '📋' : 'ℹ️'}</Text>
               <Text style={[ss.infoText, { color: colors.textSecondary, flex: 1 }]}>
                 {isWaitlist
-                  ? `${WAITLIST_EXPLAINER} We'll notify you if you get one.`
+                  ? WAITLIST_EXPLAINER
                   : "Your signup will be reviewed by an administrator. You'll be notified once confirmed."}
               </Text>
             </View>

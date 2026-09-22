@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 import { format } from "date-fns";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -163,6 +164,14 @@ export default async function EditShiftPage({
       });
     } catch {
       redirect(`/admin/shifts/${id}/edit?error=update`);
+    }
+
+    // Raising capacity creates places just as surely as a cancellation does,
+    // so the waitlist gets offered them too. Awaited rather than
+    // fire-and-forget: this is a server action that redirects, and a promise
+    // left running past the redirect may never finish.
+    if (!isPastShift) {
+      await offerWaitlistPlaces(id);
     }
 
     // Return to the day and restaurant the shift now sits on, so the admin

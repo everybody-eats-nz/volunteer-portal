@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { hasLiveWaitlistOffer } from "@/lib/waitlist-offers.server";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
@@ -117,6 +118,13 @@ export async function GET(
   const userSignup = shift.signups.find((s) => s.userId === userId);
   const userStatus = userSignup?.status ?? null;
 
+  // A live waitlist offer: a place is being held for them until this moment,
+  // and the screen shows accept/decline instead of the usual standby copy.
+  const waitlistOfferExpiresAt =
+    userSignup && hasLiveWaitlistOffer(userSignup)
+      ? userSignup.waitlistOfferExpiresAt!.toISOString()
+      : null;
+
   // Count confirmed signups + unregistered placeholders
   const signedUpCount = getShiftEffectiveCount(shift);
 
@@ -160,6 +168,7 @@ export async function GET(
     signedUp: signedUpCount,
     waitlistCount,
     status: userStatus,
+    waitlistOfferExpiresAt,
     notes: shift.notes,
     signups,
     events: cmsEvents.map((event) => ({

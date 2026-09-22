@@ -24,6 +24,11 @@ type ShiftDetailResponse = {
   /** Volunteers waiting for a place on this shift. */
   waitlistCount: number;
   status: "CONFIRMED" | "PENDING" | "WAITLISTED" | "REGULAR_PENDING" | null;
+  /**
+   * ISO deadline when a place is being held for this volunteer off the
+   * waitlist, or null when there's no live offer.
+   */
+  waitlistOfferExpiresAt?: string | null;
   notes: string | null;
   signups: {
     id: string;
@@ -106,6 +111,11 @@ type UseShiftDetailReturn = {
    * rather than inside it because the shifts list endpoint doesn't send it.
    */
   waitlistCount: number;
+  /**
+   * When a place held for this volunteer off the waitlist runs out (ISO), or
+   * null when there is no live offer. Drives the accept/decline prompt.
+   */
+  waitlistOfferExpiresAt: string | null;
   /** Marketing CMS events at this restaurant on the shift's day */
   events: ShiftEvent[];
   /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
@@ -179,6 +189,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
     shift,
     signups,
     waitlistCount: data?.waitlistCount ?? 0,
+    waitlistOfferExpiresAt: data?.waitlistOfferExpiresAt ?? null,
     events: data?.events ?? [],
     periodFriends,
     eligibility: data?.eligibility ?? null,
