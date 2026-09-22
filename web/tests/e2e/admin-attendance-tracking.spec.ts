@@ -83,15 +83,17 @@ test.describe("Admin Attendance Tracking", () => {
 
       await gotoSettled(page, `/admin/shifts?date=${weekAgoStr}&location=Wellington`);
 
-      // Should either show shift cards OR no shifts message
+      // Either shift cards or the empty state - the point is that the day
+      // renders at all. Asserted as one retrying expectation rather than two
+      // instantaneous reads: the shift list is its own Suspense boundary, so
+      // a snapshot taken while it is still streaming sees neither and fails
+      // for reasons that have nothing to do with the data.
       const shiftCards = page.locator('[data-testid^="shift-card-"]');
       const noShiftsMessage = page.getByText("No shifts scheduled");
 
-      // One of these should be visible
-      const hasShifts = (await shiftCards.count()) > 0;
-      const hasNoShiftsMessage = await noShiftsMessage.isVisible();
-
-      expect(hasShifts || hasNoShiftsMessage).toBe(true);
+      await expect(shiftCards.first().or(noShiftsMessage)).toBeVisible({
+        timeout: 15000,
+      });
     });
   });
 
@@ -248,6 +250,131 @@ test.describe("Admin Attendance Tracking", () => {
       // Header sits in a styled container — verify the red theme class.
       const noShowContainer = noShowHeader.locator("xpath=ancestor::div[1]");
       await expect(noShowContainer).toHaveClass(/bg-red-50/);
+    });
+  });
+
+  test.describe("Marking a No Show While the Shift Is Underway", () => {
+    let testUserEmail: string;
+    let testShiftId: string;
+    let testSignupId: string;
+    let testShiftDateStr: string;
+
+    test.beforeEach(async ({ page }) => {
+      const testId = randomUUID().slice(0, 8);
+      testUserEmail = `volunteer-live-noshow-${testId}@example.com`;
+
+      await createTestUser(page, testUserEmail, "VOLUNTEER");
+      const volunteer = await getUserByEmail(page, testUserEmail);
+
+      // A shift that started an hour ago and runs for another two: exactly the
+      // moment an admin is standing in the restaurant working out who came.
+      const start = new Date(Date.now() - 60 * 60 * 1000);
+      const end = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      testShiftDateStr = formatInNZT(start, "yyyy-MM-dd");
+
+      const kitchenShiftType = await getShiftTypeByName(page, "Kitchen Prep");
+      const shift = await createShift(page, {
+        location: "Wellington",
+        start,
+        end,
+        capacity: 4,
+        shiftTypeId: kitchenShiftType?.id,
+      });
+      testShiftId = shift.id;
+
+      const signup = await createSignup(page, {
+        userId: volunteer!.id,
+        shiftId: testShiftId,
+        status: "CONFIRMED",
+      });
+      testSignupId = signup.id;
+    });
+
+    test.afterEach(async ({ page }) => {
+      await deleteSignupsByShiftIds(page, [testShiftId]);
+      await deleteTestShifts(page, [testShiftId]);
+      await deleteTestUsers(page, [testUserEmail]);
+    });
+
+    test("marks a confirmed volunteer absent before the shift has ended", async ({
+      page,
+    }) => {
+      await gotoSettled(
+        page,
+        `/admin/shifts?date=${testShiftDateStr}&location=Wellington`
+      );
+
+      const shiftCard = page.locator(
+        `[data-testid="shift-card-${testShiftId}"]`
+      );
+      await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+      const markAbsent = page.getByTestId(
+        `shift-${testShiftId}-volunteer-${testSignupId}-mark-absent-button`
+      );
+      await expect(markAbsent).toBeVisible({ timeout: 10000 });
+      await markAbsent.click();
+
+      await page
+        .getByTestId(
+          `shift-${testShiftId}-volunteer-${testSignupId}-mark-absent-dialog-confirm`
+        )
+        .click();
+
+      // The volunteer moves into the No Show group on the same card.
+      await expect(
+        page.getByTestId(`volunteers-${testShiftId}`).getByText(/^No Show$/)
+      ).toBeVisible({ timeout: 15000 });
+    });
+
+    test("offers no attendance action before the shift has started", async ({
+      page,
+    }) => {
+      // Until people are due to arrive, marking them absent would be a guess
+      // rather than a record. Its own shift, so this stays parallel-safe.
+      const start = new Date(Date.now() + 3 * 60 * 60 * 1000);
+      const end = new Date(Date.now() + 6 * 60 * 60 * 1000);
+      const kitchenShiftType = await getShiftTypeByName(page, "Kitchen Prep");
+      const futureShift = await createShift(page, {
+        location: "Wellington",
+        start,
+        end,
+        capacity: 4,
+        shiftTypeId: kitchenShiftType?.id,
+      });
+      const volunteer = await getUserByEmail(page, testUserEmail);
+      const futureSignup = await createSignup(page, {
+        userId: volunteer!.id,
+        shiftId: futureShift.id,
+        status: "CONFIRMED",
+      });
+
+      try {
+        await gotoSettled(
+          page,
+          `/admin/shifts?date=${formatInNZT(start, "yyyy-MM-dd")}&location=Wellington`
+        );
+
+        const shiftCard = page.locator(
+          `[data-testid="shift-card-${futureShift.id}"]`
+        );
+        await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+        // Cancel is still offered, so an empty card would not pass this.
+        await expect(
+          page.getByTestId(
+            `shift-${futureShift.id}-volunteer-${futureSignup.id}-cancel-button`
+          )
+        ).toBeVisible({ timeout: 10000 });
+        await expect(
+          page.getByTestId(
+            `shift-${futureShift.id}-volunteer-${futureSignup.id}-mark-absent-button`
+          )
+        ).toHaveCount(0);
+      } finally {
+        await deleteSignupsByShiftIds(page, [futureShift.id]);
+        await deleteTestShifts(page, [futureShift.id]);
+      }
     });
   });
 
