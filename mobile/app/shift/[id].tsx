@@ -667,7 +667,7 @@ export default function ShiftDetailScreen() {
                       : myStatus === "WAITLISTED"
                       ? `${yourWaitlistStandingSentence(
                           waitlistCount
-                        )} We'll be in touch if a place opens up.`
+                        )} If a place opens up we'll send it straight to you.`
                       : statusUi.meta ??
                         `${formatNZT(date, "EEE h:mma")} — ${formatNZT(
                           endDate,
