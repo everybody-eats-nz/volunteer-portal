@@ -29,6 +29,8 @@ type ShiftDetailResponse = {
    * waitlist, or null when there's no live offer.
    */
   waitlistOfferExpiresAt?: string | null;
+  /** Server-formatted NZ deadline, e.g. "3:34PM today". */
+  waitlistOfferExpiresLabel?: string | null;
   notes: string | null;
   signups: {
     id: string;
@@ -116,6 +118,8 @@ type UseShiftDetailReturn = {
    * null when there is no live offer. Drives the accept/decline prompt.
    */
   waitlistOfferExpiresAt: string | null;
+  /** How that deadline reads, worded server-side in NZ time. */
+  waitlistOfferExpiresLabel: string | null;
   /** Marketing CMS events at this restaurant on the shift's day */
   events: ShiftEvent[];
   /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
@@ -190,6 +194,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
     signups,
     waitlistCount: data?.waitlistCount ?? 0,
     waitlistOfferExpiresAt: data?.waitlistOfferExpiresAt ?? null,
+    waitlistOfferExpiresLabel: data?.waitlistOfferExpiresLabel ?? null,
     events: data?.events ?? [],
     periodFriends,
     eligibility: data?.eligibility ?? null,

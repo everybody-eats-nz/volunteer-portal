@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { hasLiveWaitlistOffer } from "@/lib/waitlist-offers.server";
+import { offerDeadlineLabel } from "@/lib/waitlist";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
@@ -120,10 +121,15 @@ export async function GET(
 
   // A live waitlist offer: a place is being held for them until this moment,
   // and the screen shows accept/decline instead of the usual standby copy.
-  const waitlistOfferExpiresAt =
-    userSignup && hasLiveWaitlistOffer(userSignup)
-      ? userSignup.waitlistOfferExpiresAt!.toISOString()
-      : null;
+  const hasOffer = Boolean(userSignup && hasLiveWaitlistOffer(userSignup));
+  const waitlistOfferExpiresAt = hasOffer
+    ? userSignup!.waitlistOfferExpiresAt!.toISOString()
+    : null;
+  // Worded server-side in NZ time. "today"/"tomorrow" computed on the phone
+  // would be wrong for a volunteer whose device is in another timezone.
+  const waitlistOfferExpiresLabel = hasOffer
+    ? offerDeadlineLabel(userSignup!.waitlistOfferExpiresAt!)
+    : null;
 
   // Count confirmed signups + unregistered placeholders
   const signedUpCount = getShiftEffectiveCount(shift);
@@ -169,6 +175,7 @@ export async function GET(
     waitlistCount,
     status: userStatus,
     waitlistOfferExpiresAt,
+    waitlistOfferExpiresLabel,
     notes: shift.notes,
     signups,
     events: cmsEvents.map((event) => ({

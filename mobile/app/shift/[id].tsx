@@ -150,6 +150,7 @@ export default function ShiftDetailScreen() {
     signups: shiftSignups,
     waitlistCount,
     waitlistOfferExpiresAt,
+    waitlistOfferExpiresLabel,
     events,
     periodFriends,
     eligibility,
@@ -757,7 +758,7 @@ export default function ShiftDetailScreen() {
           <View style={s.offerWrap}>
             <WaitlistOfferCard
               shiftId={shift.id}
-              expiresAt={waitlistOfferExpiresAt}
+              deadlineLabel={waitlistOfferExpiresLabel}
               onAnswered={refresh}
             />
           </View>

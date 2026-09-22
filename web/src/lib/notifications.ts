@@ -6,7 +6,7 @@ import {
   updateUnreadCount,
 } from "./notification-helpers";
 import { sendPushToUser, sendPushToUsers } from "./services/expo-push";
-import { formatInNZT } from "@/lib/timezone";
+import { offerDeadlineLabel } from "@/lib/waitlist";
 
 export interface CreateNotificationParams {
   userId: string;
@@ -430,7 +430,7 @@ export async function createWaitlistOfferNotification(params: {
     userId: params.userId,
     type: "SHIFT_WAITLIST_OFFER",
     title: "A spot just opened up",
-    message: `A place on ${params.shiftName} (${params.shiftDate}) is yours if you want it. Accept by ${formatInNZT(params.expiresAt, "h:mma EEEE")} or it goes to the next person.`,
+    message: `A place on ${params.shiftName} (${params.shiftDate}) is yours if you want it. Accept by ${offerDeadlineLabel(params.expiresAt)} or it goes to the next person.`,
     // Web shows the offer as a banner on /shifts/mine; mobile reads ?offer=
     // and opens that shift directly, where the accept/decline lives.
     actionUrl: `/shifts/mine?offer=${params.shiftId}`,

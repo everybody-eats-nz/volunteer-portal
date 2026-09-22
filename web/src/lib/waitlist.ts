@@ -9,6 +9,8 @@
  * read the same way everywhere.
  */
 
+import { formatInNZT } from "@/lib/timezone";
+
 /** Compact chip/inline label, e.g. "7 waiting". */
 export function waitlistChipLabel(count: number): string {
   return `${count} waiting`;
@@ -51,3 +53,28 @@ export function yourWaitlistStandingSentence(count: number): string {
  */
 export const WAITLIST_EXPLAINER =
   "If a confirmed volunteer cancels, the place is offered to whoever has been waiting longest - so keep an eye out, you'll have a short window to say yes.";
+
+/**
+ * When a waitlist offer runs out, worded for someone glancing at a push
+ * notification.
+ *
+ * An offer window is at most four hours, so the deadline is nearly always
+ * later the same day - naming the weekday there reads as though it's next
+ * week ("let us know by 3:34PM Wednesday", on a Wednesday). Say "today"
+ * when it is today, and only fall back to the weekday when the shift start
+ * has pulled the deadline further out.
+ *
+ * Both arguments are absolute instants; the day comparison is done in NZ
+ * time, never in the reader's local calendar.
+ */
+export function offerDeadlineLabel(expiresAt: Date, now: Date = new Date()): string {
+  const time = formatInNZT(expiresAt, "h:mma");
+  const day = (d: Date) => formatInNZT(d, "yyyy-MM-dd");
+
+  if (day(expiresAt) === day(now)) return `${time} today`;
+
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  if (day(expiresAt) === day(tomorrow)) return `${time} tomorrow`;
+
+  return `${time} on ${formatInNZT(expiresAt, "EEEE")}`;
+}

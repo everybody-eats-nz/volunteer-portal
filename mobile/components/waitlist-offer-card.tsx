@@ -17,12 +17,16 @@ import { api, ApiError } from "@/lib/api";
  */
 export function WaitlistOfferCard({
   shiftId,
-  expiresAt,
+  deadlineLabel,
   onAnswered,
 }: {
   shiftId: string;
-  /** ISO deadline from the API. */
-  expiresAt: string;
+  /**
+   * How the deadline reads, e.g. "3:34PM today". Formatted server-side in NZ
+   * time: working it out from the phone's own clock puts a volunteer who is
+   * travelling on the wrong day.
+   */
+  deadlineLabel: string | null;
   /** Refresh the screen once the answer lands. */
   onAnswered: () => void | Promise<void>;
 }) {
@@ -32,15 +36,6 @@ export function WaitlistOfferCard({
 
   const [pending, setPending] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const deadline = new Date(expiresAt);
-  const deadlineLabel = Number.isNaN(deadline.getTime())
-    ? null
-    : deadline.toLocaleString([], {
-        weekday: "short",
-        hour: "numeric",
-        minute: "2-digit",
-      });
 
   async function respond(action: "accept" | "decline") {
     setPending(action);

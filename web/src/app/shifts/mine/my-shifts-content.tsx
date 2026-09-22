@@ -15,7 +15,7 @@ import {
 } from "./waitlist-offer-banner";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { getWaitlistCounts } from "@/lib/waitlist.server";
-import { waitlistCountLabel } from "@/lib/waitlist";
+import { offerDeadlineLabel, waitlistCountLabel } from "@/lib/waitlist";
 import {
   CalendarPlus,
   ChevronLeft,
@@ -148,7 +148,7 @@ async function fetchLiveWaitlistOffers(
       "h:mma"
     )}–${formatInNZT(offer.shift.end, "h:mma")}`,
     location: offer.shift.location,
-    expiresLabel: formatInNZT(offer.waitlistOfferExpiresAt!, "h:mma EEEE"),
+    expiresLabel: offerDeadlineLabel(offer.waitlistOfferExpiresAt!),
   }));
 }
 
