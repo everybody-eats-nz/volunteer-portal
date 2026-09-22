@@ -9,8 +9,10 @@ import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
  *
  * Service-day overview for admins on the floor: every shift on the given day
  * (default: today in NZT), each with confirmed/capacity/pending counts and the
- * roster of signed-up volunteers. Read-only — actions live on the approvals
- * endpoint.
+ * roster of signed-up volunteers, including anyone already marked as a
+ * no-show so attendance can be corrected from the floor. Approving and
+ * rejecting still lives on the approvals endpoint; attendance is applied
+ * through /api/mobile/admin/signups/[id].
  */
 export async function GET(req: Request) {
   const auth = await requireMobileAdmin(req);
@@ -43,7 +45,16 @@ export async function GET(req: Request) {
       signups: {
         where: {
           status: {
-            in: ["CONFIRMED", "PENDING", "WAITLISTED", "REGULAR_PENDING"],
+            in: [
+              "CONFIRMED",
+              "PENDING",
+              "WAITLISTED",
+              "REGULAR_PENDING",
+              // Kept on the roster so a no-show marked by mistake (or someone
+              // who turned up late) can be put right without leaving the
+              // screen.
+              "NO_SHOW",
+            ],
           },
         },
         orderBy: { createdAt: "asc" },
@@ -85,6 +96,7 @@ export async function GET(req: Request) {
     const waitlistedCount = signups.filter(
       (s) => s.status === "WAITLISTED"
     ).length;
+    const noShowCount = signups.filter((s) => s.status === "NO_SHOW").length;
 
     return {
       id: shift.id,
@@ -96,6 +108,7 @@ export async function GET(req: Request) {
       confirmedCount,
       pendingCount,
       waitlistedCount,
+      noShowCount,
       // Negative when understaffed — the screen flags these.
       fillGap: shift.capacity - confirmedCount,
       signups,

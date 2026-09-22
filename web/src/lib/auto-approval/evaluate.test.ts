@@ -36,6 +36,7 @@ function rule(overrides: Partial<RuleConfig> = {}): RuleConfig {
     minVolunteerGrade: null,
     minCompletedShifts: null,
     minAttendanceRate: null,
+    maxNoShows: null,
     minAccountAgeDays: null,
     maxDaysInAdvance: null,
     requireShiftTypeExperience: false,
@@ -58,6 +59,7 @@ function volunteer(overrides: Partial<VolunteerSnapshot> = {}): VolunteerSnapsho
     accountAgeDays: 200,
     completedShifts: 10,
     canceledShifts: 0,
+    noShowShifts: 0,
     attendanceRate: 100,
     age: 30,
     labelIds: [],
@@ -121,6 +123,39 @@ describe("evaluate", () => {
     );
     expect(decision.outcome).toBe("HELD");
     expect(decision.rule).toBeNull();
+  });
+
+  it("keeps auto-approval while a volunteer is under the no-show limit", () => {
+    const decision = evaluate(
+      [rule({ maxNoShows: 3 })],
+      volunteer({ noShowShifts: 2 }),
+      shift,
+      ctx
+    );
+    expect(decision.outcome).toBe("APPROVED");
+  });
+
+  it("blocks auto-approval once the no-show limit is reached", () => {
+    // Nic's rule: three no-shows and a human decides from then on.
+    const decision = evaluate(
+      [rule({ kind: "BLOCK", maxNoShows: 3 })],
+      volunteer({ noShowShifts: 3 }),
+      shift,
+      ctx
+    );
+    expect(decision.outcome).toBe("HELD");
+  });
+
+  it("reports the volunteer's no-show count in the trace", () => {
+    const decision = evaluate(
+      [rule({ maxNoShows: 3 })],
+      volunteer({ noShowShifts: 1 }),
+      shift,
+      ctx
+    );
+    const trace = decision.trace[0].criteria.find((c) => c.key === "maxNoShows");
+    expect(trace?.requirement).toBe("fewer than 3 no shows");
+    expect(trace?.actual).toBe("1 no show");
   });
 
   it("approves on a single met condition under OR logic", () => {

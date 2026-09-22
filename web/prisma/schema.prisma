@@ -624,6 +624,10 @@ model AutoAcceptRule {
   minVolunteerGrade          VolunteerGrade? // Minimum grade required
   minCompletedShifts         Int? // Minimum completed shifts
   minAttendanceRate          Float? // Minimum attendance percentage (0-100)
+  // Volunteer must have FEWER than this many no-shows. Typically set on a
+  // BLOCK rule ("3 no shows and a human decides") so repeat no-shows lose
+  // auto-approval without anyone having to notice by hand.
+  maxNoShows                 Int?
   minAccountAgeDays          Int? // Days since registration
   maxDaysInAdvance           Int? // Only auto-accept if shift is X or fewer days away
   requireShiftTypeExperience Boolean         @default(false) // Must have done this shift type before

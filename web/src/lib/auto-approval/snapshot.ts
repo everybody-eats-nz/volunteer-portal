@@ -14,6 +14,7 @@ interface SnapshotRow {
   completedShiftAdjustment: number;
   completedShifts: bigint;
   canceledShifts: bigint;
+  noShowShifts: bigint;
   hasShiftTypeExperience: boolean | null;
   labelIds: string[] | null;
 }
@@ -86,6 +87,14 @@ export async function getVolunteerSnapshots(
             AND sg."canceledAt" IS NOT NULL
             AND sg."previousStatus" = 'CONFIRMED'
         ) AS canceled,
+        -- A no-show is the most expensive kind of unreliability: the spot was
+        -- held, nobody else could take it, and the kitchen was short on the
+        -- night. Counting it is what stops marking someone absent from
+        -- silently *raising* their attendance rate by removing them from the
+        -- completed tally without landing anywhere else.
+        COUNT(*) FILTER (
+          WHERE sg.status = 'NO_SHOW'
+        ) AS no_shows,
         BOOL_OR(
           sg.status = 'CONFIRMED'
           AND sh."end" < NOW()
@@ -113,6 +122,7 @@ export async function getVolunteerSnapshots(
       u."completedShiftAdjustment",
       COALESCE(h.completed, 0) AS "completedShifts",
       COALESCE(h.canceled, 0) AS "canceledShifts",
+      COALESCE(h.no_shows, 0) AS "noShowShifts",
       COALESCE(h.has_experience, FALSE) AS "hasShiftTypeExperience",
       l.label_ids AS "labelIds"
     FROM "User" u
@@ -128,7 +138,8 @@ export async function getVolunteerSnapshots(
     const completedShifts =
       Number(row.completedShifts) + (row.completedShiftAdjustment ?? 0);
     const canceledShifts = Number(row.canceledShifts);
-    const total = completedShifts + canceledShifts;
+    const noShowShifts = Number(row.noShowShifts);
+    const total = completedShifts + canceledShifts + noShowShifts;
 
     return {
       userId: row.id,
@@ -143,6 +154,7 @@ export async function getVolunteerSnapshots(
       ),
       completedShifts,
       canceledShifts,
+      noShowShifts,
       // No history reads as perfect rather than as zero - a brand new
       // volunteer shouldn't be scored as unreliable.
       attendanceRate: total > 0 ? (completedShifts / total) * 100 : 100,

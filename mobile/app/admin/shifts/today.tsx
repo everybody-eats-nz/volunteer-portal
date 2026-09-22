@@ -13,12 +13,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdminLocationFilter } from "@/components/admin/location-filter";
+import { AttendanceSheet } from "@/components/admin/attendance-sheet";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAdminToday } from "@/hooks/use-admin";
 import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { formatTimeRange, initialOf } from "@/lib/admin-format";
 import type { TodayShift } from "@/lib/admin";
+import { isShiftStarted } from "@/lib/shift-time";
 import { goBackOrHome } from "@/lib/navigation";
 
 /** YYYY-MM-DD for the device-local day at the given offset from today. */
@@ -116,7 +118,15 @@ export default function TonightShiftsScreen() {
         <FlatList
           data={data}
           keyExtractor={(s) => s.id}
-          renderItem={({ item }) => <ShiftCard shift={item} colors={colors} rule={rule} />}
+          renderItem={({ item }) => (
+            <ShiftCard
+              shift={item}
+              colors={colors}
+              rule={rule}
+              date={dateParam}
+              location={selectedLocation}
+            />
+          )}
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, gap: 14 }}
           onRefresh={refetch}
           refreshing={isRefetching}
@@ -132,11 +142,22 @@ function ShiftCard({
   shift,
   colors,
   rule,
+  date,
+  location,
 }: {
   shift: TodayShift;
   colors: (typeof Colors)["light"];
   rule: string;
+  date: string;
+  location: string | null;
 }) {
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
+  // Attendance is only meaningful once people were due to arrive. Before that
+  // the button would be inviting a guess.
+  const started = isShiftStarted(shift.start);
+  const confirmedRoster = shift.signups.filter(
+    (s) => s.status === "CONFIRMED" || s.status === "NO_SHOW"
+  ).length;
   const short = shift.fillGap > 0;
   const fillRatio = shift.capacity > 0 ? Math.min(shift.confirmedCount / shift.capacity, 1) : 1;
   const barColor = short ? colors.destructive : Brand.green;
@@ -202,9 +223,21 @@ function ShiftCard({
                   </Text>
                 </View>
               )}
-              <Text style={[styles.rosterName, { color: colors.textSecondary }]} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.rosterName,
+                  {
+                    color:
+                      s.status === "NO_SHOW"
+                        ? colors.destructive
+                        : colors.textSecondary,
+                  },
+                  s.status === "NO_SHOW" && styles.rosterNameAbsent,
+                ]}
+                numberOfLines={1}
+              >
                 {s.volunteer.name.split(" ")[0]}
-                {s.status !== "CONFIRMED" ? " ·" : ""}
+                {s.status !== "CONFIRMED" && s.status !== "NO_SHOW" ? " ·" : ""}
               </Text>
             </View>
           ))}
@@ -217,6 +250,40 @@ function ShiftCard({
           )}
         </View>
       )}
+
+      {/* Attendance. Appears the moment service starts - this is the whole
+          point of the screen being on a phone rather than a desk. */}
+      {started && confirmedRoster > 0 && (
+        <Pressable
+          onPress={() => setAttendanceOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Take attendance for ${shift.shiftTypeName}`}
+          style={({ pressed }) => [
+            styles.attendanceBtn,
+            { borderColor: rule, backgroundColor: pressed ? colors.surfaceSunk : "transparent" },
+          ]}
+        >
+          <Ionicons name="clipboard-outline" size={16} color={Brand.green} />
+          <Text style={[styles.attendanceBtnText, { color: Brand.green }]}>
+            Take attendance
+          </Text>
+          {shift.noShowCount > 0 && (
+            <View style={[styles.noShowChip, { backgroundColor: "rgba(194,65,12,0.12)" }]}>
+              <Text style={[styles.noShowChipText, { color: colors.destructive }]}>
+                {shift.noShowCount} no {shift.noShowCount === 1 ? "show" : "shows"}
+              </Text>
+            </View>
+          )}
+        </Pressable>
+      )}
+
+      <AttendanceSheet
+        visible={attendanceOpen}
+        onClose={() => setAttendanceOpen(false)}
+        shift={shift}
+        date={date}
+        location={location}
+      />
     </View>
   );
 }
@@ -280,4 +347,18 @@ const styles = StyleSheet.create({
   rosterAvatarFallback: { alignItems: "center", justifyContent: "center" },
   rosterInitial: { fontFamily: FontFamily.semiBold, fontSize: 11 },
   rosterName: { fontFamily: FontFamily.medium, fontSize: 12.5 },
+  rosterNameAbsent: { textDecorationLine: "line-through" },
+  attendanceBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  attendanceBtnText: { fontFamily: FontFamily.semiBold, fontSize: 14 },
+  noShowChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  noShowChipText: { fontFamily: FontFamily.semiBold, fontSize: 11 },
 });

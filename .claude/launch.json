@@ -2,10 +2,23 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "web-nic",
+      "cwd": "web",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "export PATH=\"/Users/malin/.nvm/versions/node/v24.12.0/bin:$PATH\"; exec npm run dev -- --port 3100"
+      ],
+      "port": 3100
+    },
+    {
       "name": "web",
       "cwd": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     },
@@ -13,14 +26,20 @@
       "name": "docs",
       "cwd": "docs",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 4321
     },
     {
       "name": "mobile",
       "cwd": "mobile",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start"],
+      "runtimeArgs": [
+        "expo",
+        "start"
+      ],
       "port": 8081
     }
   ]

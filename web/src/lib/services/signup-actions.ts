@@ -459,10 +459,14 @@ export async function applySignupAction({
         "Only confirmed signups can be marked as absent"
       );
     }
-    if (new Date() < signup.shift.end) {
+    // Attendance is decided on the floor, not in hindsight: once a shift has
+    // started the team already knows who walked through the door, and making
+    // them wait until the shift ends means the record gets written hours late
+    // or not at all. Anything before the start time is still a prediction.
+    if (new Date() < signup.shift.start) {
       throw new SignupActionError(
         400,
-        "Can only mark attendance for past shifts"
+        "Can only mark attendance once the shift has started"
       );
     }
 
@@ -480,8 +484,11 @@ export async function applySignupAction({
       "Only confirmed or no-show signups can have attendance marked"
     );
   }
-  if (new Date() < signup.shift.end) {
-    throw new SignupActionError(400, "Can only mark attendance for past shifts");
+  if (new Date() < signup.shift.start) {
+    throw new SignupActionError(
+      400,
+      "Can only mark attendance once the shift has started"
+    );
   }
 
   const updatedSignup = await prisma.signup.update({

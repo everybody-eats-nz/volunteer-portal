@@ -19,6 +19,26 @@ export function isShiftCompleted(shiftEnd: Date | string | null | undefined): bo
 }
 
 /**
+ * Determines if a shift has started, whether or not it has since ended.
+ *
+ * This is the line attendance is marked against: the team knows who turned up
+ * from the moment service begins, so no-shows are recorded from the start
+ * time rather than waiting for the shift to finish.
+ *
+ * @param shiftStart - The start date/time of the shift
+ * @returns true if the shift has begun, false if it is still upcoming
+ */
+export function isShiftStarted(shiftStart: Date | string | null | undefined): boolean {
+  if (!shiftStart) {
+    return false;
+  }
+
+  const startDate = shiftStart instanceof Date ? shiftStart : new Date(shiftStart);
+
+  return new Date() >= startDate;
+}
+
+/**
  * Determines if a shift is currently in progress
  * @param shiftStart - The start date/time of the shift
  * @param shiftEnd - The end date/time of the shift

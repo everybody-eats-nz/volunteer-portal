@@ -33,6 +33,7 @@ export function toRuleConfig(rule: AutoAcceptRule): RuleConfig {
     minVolunteerGrade: rule.minVolunteerGrade,
     minCompletedShifts: rule.minCompletedShifts,
     minAttendanceRate: rule.minAttendanceRate,
+    maxNoShows: rule.maxNoShows,
     minAccountAgeDays: rule.minAccountAgeDays,
     maxDaysInAdvance: rule.maxDaysInAdvance,
     requireShiftTypeExperience: rule.requireShiftTypeExperience,

@@ -17,6 +17,7 @@ export interface RuleConfig {
   minVolunteerGrade: VolunteerGrade | null;
   minCompletedShifts: number | null;
   minAttendanceRate: number | null;
+  maxNoShows: number | null;
   minAccountAgeDays: number | null;
   maxDaysInAdvance: number | null;
   requireShiftTypeExperience: boolean;
@@ -42,6 +43,7 @@ export interface VolunteerSnapshot {
   accountAgeDays: number;
   completedShifts: number;
   canceledShifts: number;
+  noShowShifts: number;
   attendanceRate: number;
   age: number | null;
   labelIds: string[];

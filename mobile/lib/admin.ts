@@ -80,6 +80,8 @@ export interface TodayShift {
   confirmedCount: number;
   pendingCount: number;
   waitlistedCount: number;
+  /** Volunteers already marked absent for this shift. */
+  noShowCount: number;
   fillGap: number;
   signups: TodayShiftSignup[];
 }

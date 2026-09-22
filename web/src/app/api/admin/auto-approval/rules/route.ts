@@ -60,6 +60,7 @@ export async function POST(req: Request) {
       minVolunteerGrade: data.minVolunteerGrade ?? null,
       minCompletedShifts: data.minCompletedShifts ?? null,
       minAttendanceRate: data.minAttendanceRate ?? null,
+      maxNoShows: data.maxNoShows ?? null,
       minAccountAgeDays: data.minAccountAgeDays ?? null,
       maxDaysInAdvance: data.maxDaysInAdvance ?? null,
       minVolunteerAge: data.minVolunteerAge ?? null,
