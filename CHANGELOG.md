@@ -1,3 +1,9 @@
+## [0.173.0] - 2026-09-23
+
+### Changes
+- fix(auth): case-insensitive email login, validated reset links, and change password from profile ([#1286](https://github.com/everybody-eats-nz/volunteer-portal/pull/1286)) by @malinmalliyawadu
+
+
 ## [0.172.0] - 2026-09-23
 
 ### Changes
