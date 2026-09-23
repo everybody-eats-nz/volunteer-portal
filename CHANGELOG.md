@@ -1,3 +1,9 @@
+## [0.174.0] - 2026-09-23
+
+### Changes
+- feat(van): let admins remove a driver entirely ([#1287](https://github.com/everybody-eats-nz/volunteer-portal/pull/1287)) by @malinmalliyawadu
+
+
 ## [0.173.0] - 2026-09-23
 
 ### Changes
