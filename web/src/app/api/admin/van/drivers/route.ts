@@ -5,6 +5,7 @@ import { requireVanAdmin } from "@/lib/van/admin-guard";
 import {
   addDriverAsAdmin,
   isSelectableOrganisation,
+  removeDriver,
   setDriverStatus,
 } from "@/lib/van/drivers";
 
@@ -12,6 +13,10 @@ const decisionSchema = z.object({
   profileId: z.string().min(1),
   status: z.enum(["PENDING", "APPROVED", "SUSPENDED"]),
   statusNote: z.string().trim().max(500).nullable().default(null),
+});
+
+const removeSchema = z.object({
+  profileId: z.string().min(1),
 });
 
 const addDriverSchema = z.object({
@@ -101,4 +106,40 @@ export async function PATCH(request: Request) {
     parsed.data.statusNote
   );
   return NextResponse.json({ status: profile.status });
+}
+
+/**
+ * DELETE /api/admin/van/drivers
+ *
+ * Take somebody off the driver list entirely, rather than holding them. Their
+ * trip history stays; only the driver record goes. Outside borrowers are put on
+ * hold instead; see `removeDriver` for why.
+ */
+export async function DELETE(request: Request) {
+  const guard = await requireVanAdmin();
+  if (guard.denied) return guard.denied;
+
+  const parsed = removeSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  const outcome = await removeDriver(parsed.data.profileId);
+  if (outcome === "not-found") {
+    return NextResponse.json(
+      { error: "That driver has already been removed." },
+      { status: 404 }
+    );
+  }
+  if (outcome === "external") {
+    return NextResponse.json(
+      {
+        error:
+          "They drive for an outside organisation, so removing them would count them as a volunteer. Put them on hold instead.",
+      },
+      { status: 409 }
+    );
+  }
+
+  return NextResponse.json({ outcome });
 }

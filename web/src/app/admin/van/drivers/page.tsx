@@ -27,13 +27,20 @@ export default async function VanDriversPage() {
   const session = await getServerSession(authOptions);
   if (session?.user?.role !== "ADMIN") redirect("/dashboard");
 
-  const [profiles, tripCounts, organisations] = await Promise.all([
+  const [profiles, tripCounts, openTrips, organisations] = await Promise.all([
     listDriverProfiles(),
     prisma.trip.groupBy({ by: ["driverId"], _count: { _all: true } }),
+    prisma.trip.findMany({
+      where: { status: "OPEN" },
+      select: { driverId: true, vehicle: { select: { name: true } } },
+    }),
     listSelectableOrganisations(),
   ]);
 
   const counts = new Map(tripCounts.map((row) => [row.driverId, row._count._all]));
+  const openVans = new Map(
+    openTrips.map((trip) => [trip.driverId, trip.vehicle.name])
+  );
   const now = new Date();
 
   const drivers: AdminDriver[] = profiles.map((profile) => ({
@@ -57,6 +64,7 @@ export default async function VanDriversPage() {
     approvedAtLabel: profile.approvedAt ? formatDate(profile.approvedAt) : null,
     registeredAtLabel: formatDate(profile.createdAt),
     tripCount: counts.get(profile.userId) ?? 0,
+    openTripVanName: openVans.get(profile.userId) ?? null,
   }));
 
   return (
