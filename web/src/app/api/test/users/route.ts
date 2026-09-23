@@ -20,14 +20,28 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true },
+      select: {
+        id: true,
+        email: true,
+        passwordResetToken: true,
+        passwordResetTokenExpiresAt: true,
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Expose whether a reset is pending (never the token itself) so e2e tests
+    // can verify forgot-password found the account.
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      passwordResetPending:
+        !!user.passwordResetToken &&
+        !!user.passwordResetTokenExpiresAt &&
+        user.passwordResetTokenExpiresAt > new Date(),
+    });
   } catch (error) {
     console.error("Error getting user:", error);
     return NextResponse.json({ error: "Failed to get user" }, { status: 500 });

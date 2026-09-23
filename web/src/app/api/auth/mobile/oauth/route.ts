@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import { emailMatches, normalizeEmail } from "@/lib/utils/email";
 import { signMobileToken, toMobileUser } from "@/lib/mobile-auth";
 import { unarchiveUser } from "@/lib/archive-service";
 import { ArchiveTriggerSource } from "@/generated/client";
@@ -68,7 +69,10 @@ export async function POST(request: Request) {
     }
 
     // Upsert the user — same logic as the NextAuth signIn callback for web OAuth
-    let user = await prisma.user.findUnique({ where: { email: profile.email } });
+    let user = await prisma.user.findFirst({
+      where: emailMatches(profile.email),
+      orderBy: { createdAt: "asc" },
+    });
 
     if (!user) {
       const nameParts = (profile.name ?? "").split(" ").filter(Boolean);
@@ -77,7 +81,7 @@ export async function POST(request: Request) {
 
       user = await prisma.user.create({
         data: {
-          email: profile.email,
+          email: normalizeEmail(profile.email),
           name: profile.name ?? "",
           firstName,
           lastName,

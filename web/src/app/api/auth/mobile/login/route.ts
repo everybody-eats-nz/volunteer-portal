@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
+import { emailMatches } from "@/lib/utils/email";
 import { signMobileToken, toMobileUser } from "@/lib/mobile-auth";
 
 export async function POST(request: Request) {
@@ -15,8 +16,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Stored emails are mixed-case, so match case-insensitively and let the
+    // password pick the account in the rare case two differ only by casing.
+    const candidates = await prisma.user.findMany({
+      where: emailMatches(String(email)),
+      orderBy: { createdAt: "asc" },
       select: {
         id: true,
         name: true,
@@ -37,15 +41,16 @@ export async function POST(request: Request) {
       },
     });
 
-    if (!user || !user.hashedPassword || user.archivedAt) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 }
-      );
+    let user: (typeof candidates)[number] | null = null;
+    for (const candidate of candidates) {
+      if (!candidate.hashedPassword) continue;
+      if (await bcrypt.compare(String(password), candidate.hashedPassword)) {
+        user = candidate;
+        break;
+      }
     }
 
-    const valid = await bcrypt.compare(password, user.hashedPassword);
-    if (!valid) {
+    if (!user || user.archivedAt) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }

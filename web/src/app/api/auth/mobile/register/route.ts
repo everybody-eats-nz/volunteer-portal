@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
+import { emailMatches, normalizeEmail } from "@/lib/utils/email";
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
 import { syncNewsletterSubscriptions } from "@/lib/newsletter-sync";
@@ -70,8 +71,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
+    const existingUser = await prisma.user.findFirst({
+      where: emailMatches(data.email),
     });
     if (existingUser) {
       return NextResponse.json(
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.create({
       data: {
-        email: data.email,
+        email: normalizeEmail(data.email),
         hashedPassword,
         firstName: data.firstName,
         lastName: data.lastName,

@@ -9,6 +9,7 @@ import GoogleProvider from "next-auth/providers/google";
 //   FacebookProfile,
 // } from "next-auth/providers/facebook";
 import { prisma } from "@/lib/prisma";
+import { emailMatches, normalizeEmail } from "@/lib/utils/email";
 import bcrypt from "bcrypt";
 import { unarchiveUser } from "@/lib/archive-service";
 import { ArchiveTriggerSource } from "@/generated/client";
@@ -107,8 +108,12 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+        // Stored emails are mixed-case (see normalizeEmail), so match
+        // case-insensitively. In the rare case two accounts differ only by
+        // casing, the password decides which one is signing in.
+        const candidates = await prisma.user.findMany({
+          where: emailMatches(credentials.email),
+          orderBy: { createdAt: "asc" },
           select: {
             id: true,
             email: true,
@@ -122,12 +127,16 @@ export const authOptions: NextAuthOptions = {
             archivedAt: true,
           },
         });
+        let user: (typeof candidates)[number] | null = null;
+        for (const candidate of candidates) {
+          // OAuth-only accounts have an empty hash and can't use a password.
+          if (!candidate.hashedPassword) continue;
+          if (await bcrypt.compare(credentials.password, candidate.hashedPassword)) {
+            user = candidate;
+            break;
+          }
+        }
         if (!user) return null;
-        const valid = await bcrypt.compare(
-          credentials.password,
-          user.hashedPassword
-        );
-        if (!valid) return null;
 
         if (user.archivedAt) {
           if (credentials.reactivate === "true") {
@@ -202,9 +211,11 @@ export const authOptions: NextAuthOptions = {
       // Handle OAuth sign-in
       if (account?.provider !== "credentials" && user?.email) {
         try {
-          // Check if user already exists
-          let existingUser = await prisma.user.findUnique({
-            where: { email: user.email },
+          // Check if user already exists (case-insensitively — stored
+          // emails are mixed-case)
+          let existingUser = await prisma.user.findFirst({
+            where: emailMatches(user.email),
+            orderBy: { createdAt: "asc" },
           });
 
           if (!existingUser) {
@@ -215,7 +226,7 @@ export const authOptions: NextAuthOptions = {
 
             existingUser = await prisma.user.create({
               data: {
-                email: user.email,
+                email: normalizeEmail(user.email),
                 name: user.name || "",
                 firstName,
                 lastName,

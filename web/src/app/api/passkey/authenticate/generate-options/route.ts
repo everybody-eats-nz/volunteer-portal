@@ -12,6 +12,7 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/server";
 import { prisma } from "@/lib/prisma";
+import { emailMatches } from "@/lib/utils/email";
 import { storeChallenge, bufferToBase64URL } from "@/lib/webauthn-utils";
 import { rpID, userVerification, timeout } from "@/lib/webauthn-config";
 
@@ -30,8 +31,8 @@ export async function POST(req: NextRequest) {
 
     if (email) {
       // Find user by email
-      const user = await prisma.user.findUnique({
-        where: { email },
+      const user = await prisma.user.findFirst({
+        where: emailMatches(email),
         include: {
           passkeys: {
             select: {

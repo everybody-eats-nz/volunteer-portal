@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { emailMatches } from "@/lib/utils/email";
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
 import { checkForBot } from "@/lib/bot-protection";
@@ -50,8 +51,8 @@ export async function POST(req: Request) {
 
     if (validatedData.email) {
       // Public endpoint: resend for specific email
-      const user = await prisma.user.findUnique({
-        where: { email: validatedData.email },
+      const user = await prisma.user.findFirst({
+        where: emailMatches(validatedData.email),
         select: {
           id: true,
           email: true,
