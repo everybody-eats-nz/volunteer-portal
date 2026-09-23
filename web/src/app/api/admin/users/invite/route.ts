@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emailMatches, normalizeEmail } from "@/lib/utils/email";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendInvitationEmail } from "@/lib/email";
@@ -36,8 +37,8 @@ export async function POST(req: Request) {
     const validatedData = inviteUserSchema.parse(body);
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+    const existingUser = await prisma.user.findFirst({
+      where: emailMatches(validatedData.email),
     });
 
     if (existingUser) {
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     // Create the user
     const newUser = await prisma.user.create({
       data: {
-        email: validatedData.email,
+        email: normalizeEmail(validatedData.email),
         firstName: validatedData.firstName || null,
         lastName: validatedData.lastName || null,
         name:

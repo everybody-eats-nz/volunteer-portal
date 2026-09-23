@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
+import { emailMatches, normalizeEmail } from "@/lib/utils/email";
 import { autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
@@ -116,8 +117,8 @@ export async function POST(req: Request) {
     const validatedData = registerSchema.parse(body);
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+    const existingUser = await prisma.user.findFirst({
+      where: emailMatches(validatedData.email),
     });
 
     if (existingUser) {
@@ -151,7 +152,7 @@ export async function POST(req: Request) {
 
     // Prepare data for database insertion
     const userData = {
-      email: validatedData.email,
+      email: normalizeEmail(validatedData.email),
       hashedPassword,
       firstName: validatedData.firstName,
       lastName: validatedData.lastName,

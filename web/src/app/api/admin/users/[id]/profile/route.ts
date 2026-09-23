@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emailMatches, normalizeEmail } from "@/lib/utils/email";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -68,9 +69,12 @@ export async function PATCH(
     }
 
     // If email is being changed, check if new email is already in use
-    if (validatedData.email && validatedData.email !== targetUser.email) {
-      const emailExists = await prisma.user.findUnique({
-        where: { email: validatedData.email },
+    const newEmail = validatedData.email
+      ? normalizeEmail(validatedData.email)
+      : undefined;
+    if (newEmail && newEmail !== normalizeEmail(targetUser.email)) {
+      const emailExists = await prisma.user.findFirst({
+        where: { ...emailMatches(newEmail), NOT: { id: targetUser.id } },
       });
 
       if (emailExists) {
@@ -88,8 +92,8 @@ export async function PATCH(
       requiresParentalConsent?: boolean;
     } = {};
 
-    if (validatedData.email) {
-      updateData.email = validatedData.email;
+    if (newEmail) {
+      updateData.email = newEmail;
     }
 
     if (validatedData.dateOfBirth) {

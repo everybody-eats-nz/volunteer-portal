@@ -3,10 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
 import bcrypt from "bcrypt";
-import { redirect } from "next/navigation";
 import { campaignMonitorService } from "@/lib/services/campaign-monitor";
 import { validatePassword } from "@/lib/utils/password-validation";
 import { getBaseUrl } from "@/lib/utils";
+import { emailMatches } from "@/lib/utils/email";
 
 interface ForgotPasswordResult {
   success: boolean;
@@ -40,9 +40,13 @@ export async function forgotPasswordAction(
       };
     }
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    // Find user by email. Stored emails are mixed-case (they were saved
+    // exactly as typed at registration), so the match must be
+    // case-insensitive or anyone who registered with a capital letter can
+    // never reset their password.
+    const user = await prisma.user.findFirst({
+      where: emailMatches(email),
+      orderBy: { createdAt: "asc" },
     });
 
     // Always return success for security (don't reveal if email exists)
@@ -181,19 +185,5 @@ export async function resetPasswordAction(
       message: "An error occurred while resetting your password",
       error: "An error occurred while resetting your password",
     };
-  }
-}
-
-export async function resetPasswordRedirectAction(
-  token: string,
-  prevState: unknown,
-  formData: FormData
-): Promise<void> {
-  const result = await resetPasswordAction(token, prevState, formData);
-  
-  if (result.success) {
-    redirect("/login?message=password-reset-success");
-  } else {
-    redirect(`/reset-password?token=${token}&error=${encodeURIComponent(result.error || result.message)}`);
   }
 }

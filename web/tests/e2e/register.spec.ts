@@ -159,16 +159,12 @@ test.describe("Registration Page", () => {
           "Or create account with email"
         );
 
-        // Check for specific OAuth provider buttons
+        // At least one OAuth provider button should be visible if the
+        // section exists. Use a retrying assertion rather than a one-shot
+        // isVisible() check, which raced the buttons' render and flaked.
         const googleButton = page.getByTestId("oauth-google-button");
         const facebookButton = page.getByTestId("oauth-facebook-button");
-
-        // At least one OAuth provider should be visible if the section exists
-        const hasOAuthButtons =
-          (await googleButton.isVisible()) ||
-          (await facebookButton.isVisible());
-
-        expect(hasOAuthButtons).toBe(true);
+        await expect(googleButton.or(facebookButton).first()).toBeVisible();
       }
     });
 

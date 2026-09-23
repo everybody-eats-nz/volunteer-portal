@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { logout } from "./helpers/auth";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
@@ -39,6 +40,46 @@ async function createTestUser(page: Page) {
   }
 
   return { email: testEmail, password: testPassword };
+}
+
+/**
+ * Seed a user with a password reset token via the test-only users API, the
+ * same way forgot-password does it, so the reset page can be exercised with a
+ * genuinely live (or genuinely expired) link.
+ */
+async function createUserWithResetToken(
+  page: Page,
+  options: { expired?: boolean; email?: string } = {}
+) {
+  const email = options.email ?? generateTestEmail();
+  const password = "TestPassword123";
+  const token = `e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const oneHour = 60 * 60 * 1000;
+  const expiresAt = new Date(
+    Date.now() + (options.expired ? -oneHour : oneHour)
+  ).toISOString();
+
+  const response = await page.request.post("/api/test/users", {
+    data: {
+      email,
+      password,
+      passwordResetToken: token,
+      passwordResetTokenExpiresAt: expiresAt,
+    },
+  });
+  if (!response.ok()) {
+    throw new Error(`Failed to seed reset token: ${await response.text()}`);
+  }
+
+  return { email, password, token };
+}
+
+async function signInWithPassword(page: Page, email: string, password: string) {
+  await page.goto("/login");
+  await waitForPageLoad(page);
+  await page.getByTestId("email-input").fill(email);
+  await page.getByTestId("password-input").fill(password);
+  await page.getByTestId("login-submit-button").click();
 }
 
 test.describe("Password Reset Flow", () => {
@@ -142,6 +183,29 @@ test.describe("Password Reset Flow", () => {
       await expect(successText).toBeVisible();
     });
 
+    test("finds an account whose stored email has capital letters", async ({
+      page,
+    }) => {
+      // Legacy accounts were stored exactly as typed at registration, so
+      // a volunteer who signed up as "Jane.Doe@Example.com" must still be
+      // able to reset their password by typing it in lowercase.
+      const storedEmail = `Mixed.Case-${Date.now()}@Example.com`;
+      const response = await page.request.post("/api/test/users", {
+        data: { email: storedEmail, password: "TestPassword123" },
+      });
+      expect(response.ok()).toBeTruthy();
+
+      await page.getByTestId("email-input").fill(storedEmail.toLowerCase());
+      await page.getByTestId("forgot-password-submit-button").click();
+      await expect(page.getByTestId("success-message")).toBeVisible();
+
+      const lookup = await page.request.get(
+        `/api/test/users?email=${encodeURIComponent(storedEmail)}`
+      );
+      expect(lookup.ok()).toBeTruthy();
+      expect((await lookup.json()).passwordResetPending).toBe(true);
+    });
+
     test("should handle non-existent email gracefully", async ({ page }) => {
       const emailInput = page.getByTestId("email-input");
       const submitButton = page.getByTestId("forgot-password-submit-button");
@@ -177,9 +241,11 @@ test.describe("Password Reset Flow", () => {
   });
 
   test.describe("Reset Password Page", () => {
+    let account: { email: string; password: string; token: string };
+
     test.beforeEach(async ({ page }) => {
-      // Navigate with a mock token
-      await page.goto("/reset-password?token=mock-token-123");
+      account = await createUserWithResetToken(page);
+      await page.goto(`/reset-password?token=${account.token}`);
       await waitForPageLoad(page);
     });
 
@@ -306,23 +372,55 @@ test.describe("Password Reset Flow", () => {
       await expect(passwordMatchCheck).toHaveText("Passwords match");
     });
 
-    test("should handle password reset submission", async ({ page }) => {
-      const passwordInput = page.getByTestId("password-input");
-      const confirmPasswordInput = page.getByTestId("confirm-password-input");
-      const submitButton = page.getByTestId("reset-password-submit-button");
+    test("resets the password, signs in with it, and retires the link", async ({
+      page,
+    }) => {
+      const newPassword = "NewSecurePass123";
 
-      // Fill valid passwords
-      await passwordInput.fill("NewSecurePass123");
-      await confirmPasswordInput.fill("NewSecurePass123");
+      await page.getByTestId("password-input").fill(newPassword);
+      await page.getByTestId("confirm-password-input").fill(newPassword);
+      await page.getByTestId("reset-password-submit-button").click();
 
-      await submitButton.click();
+      await expect(page.getByTestId("success-message")).toBeVisible();
+      await expect(page.getByTestId("success-message")).toContainText(
+        /password reset successfully/i
+      );
 
-      // Should show loading state or error response (server action may resolve very quickly)
+      // The form hands over to the login page, which confirms the reset
+      await page.waitForURL(/\/login\?message=password-reset-success/, {
+        timeout: 10000,
+      });
+      // Scope to the login page's banner: the reset form's own success
+      // message can linger in React's hidden staging container while the
+      // client-side navigation settles.
       await expect(
         page
-          .getByText(/resetting password|invalid|expired|reset/i)
-          .first()
+          .getByTestId("success-message")
+          .filter({ hasText: "Password reset successful!" })
       ).toBeVisible();
+
+      // The new password works (scoped to the login form for the same
+      // reason as above: the reset form shares field test ids)
+      const loginForm = page.getByTestId("login-form");
+      await loginForm.getByTestId("email-input").fill(account.email);
+      await loginForm.getByTestId("password-input").fill(newPassword);
+      await loginForm.getByTestId("login-submit-button").click();
+      await page.waitForURL("/dashboard");
+
+      // ...and the old one is gone
+      await logout(page);
+      await signInWithPassword(page, account.email, account.password);
+      await expect(page.getByText(/invalid credentials/i)).toBeVisible();
+
+      // Reopening the same link now says it has been used, not a blank form
+      await page.goto(`/reset-password?token=${account.token}`);
+      await waitForPageLoad(page);
+      await expect(page.getByTestId("invalid-token-card")).toBeVisible();
+      await expect(page.getByTestId("reset-link-invalid")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /already been used/i })
+      ).toBeVisible();
+      await expect(page.getByTestId("reset-password-form")).toHaveCount(0);
     });
 
     test("should have link back to login", async ({ page }) => {
@@ -333,6 +431,53 @@ test.describe("Password Reset Flow", () => {
   });
 
   test.describe("Invalid Token Handling", () => {
+    test("shows the used-link message for a token that no longer exists", async ({
+      page,
+    }) => {
+      await page.goto("/reset-password?token=not-a-real-token");
+      await waitForPageLoad(page);
+
+      await expect(page.getByTestId("invalid-token-card")).toBeVisible();
+      await expect(page.getByTestId("reset-link-invalid")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /already been used/i })
+      ).toBeVisible();
+      await expect(page.getByTestId("reset-password-form")).toHaveCount(0);
+
+      // Offers both ways forward
+      await expect(page.getByText("Request new reset link")).toBeVisible();
+      await expect(page.getByTestId("back-to-login-link")).toBeVisible();
+    });
+
+    test("shows the expired message for a token past its expiry", async ({
+      page,
+    }) => {
+      const { token } = await createUserWithResetToken(page, { expired: true });
+      await page.goto(`/reset-password?token=${token}`);
+      await waitForPageLoad(page);
+
+      await expect(page.getByTestId("invalid-token-card")).toBeVisible();
+      await expect(page.getByTestId("reset-link-expired")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /link has expired/i })
+      ).toBeVisible();
+      await expect(page.getByTestId("reset-password-form")).toHaveCount(0);
+    });
+
+    test("a newer request retires the older link", async ({ page }) => {
+      const { email, token: olderToken } = await createUserWithResetToken(page);
+
+      await page.goto("/forgot-password");
+      await waitForPageLoad(page);
+      await page.getByTestId("email-input").fill(email);
+      await page.getByTestId("forgot-password-submit-button").click();
+      await expect(page.getByTestId("success-message")).toBeVisible();
+
+      await page.goto(`/reset-password?token=${olderToken}`);
+      await waitForPageLoad(page);
+      await expect(page.getByTestId("reset-link-invalid")).toBeVisible();
+    });
+
     test("should show invalid token page when no token provided", async ({
       page,
     }) => {

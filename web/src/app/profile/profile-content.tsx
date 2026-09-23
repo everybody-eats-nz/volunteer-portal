@@ -9,6 +9,7 @@ import Image from "next/image";
 import { MotionCard } from "@/components/motion-card";
 import { ContentGrid } from "@/components/dashboard-animated";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import { ChangePasswordForm } from "@/components/change-password-form";
 
 /** Four-point sparkle — the marketing site's signature accent mark. */
 function Sparkle({ className }: { className?: string }) {
@@ -189,6 +190,7 @@ export async function ProfileContent() {
           volunteerAgreementAccepted: true,
           healthSafetyPolicyAccepted: true,
           role: true,
+          hashedPassword: true,
         },
       }),
       prisma.shiftType.findMany({
@@ -228,6 +230,9 @@ export async function ProfileContent() {
   const availableLocations = safeParseAvailability(
     userProfile?.availableLocations
   );
+
+  // Accounts created through Google/Apple sign-in have no password yet.
+  const hasPassword = (userProfile?.hashedPassword ?? "").length > 0;
 
   // Check if profile is incomplete based on required fields
   const isProfileIncomplete =
@@ -437,6 +442,41 @@ export async function ProfileContent() {
                 }
                 last
               />
+            </div>
+          </CardContent>
+        </MotionCard>
+
+        {/* Password & security */}
+        <MotionCard className={detailCard}>
+          <CardContent className="p-6 sm:p-8">
+            <CardHeading
+              testId="password-security-heading"
+              title="Password & Security"
+              subtitle={
+                hasPassword
+                  ? "Change the password you sign in with"
+                  : "Add a password to your account"
+              }
+              icon={
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              }
+            />
+
+            <div data-testid="password-security-section">
+              <ChangePasswordForm hasPassword={hasPassword} />
             </div>
           </CardContent>
         </MotionCard>

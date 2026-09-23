@@ -480,3 +480,43 @@ test.describe("Login Page", () => {
     });
   });
 });
+
+test.describe("Email casing", () => {
+  test("signs in when the email is typed in a different case", async ({
+    page,
+  }) => {
+    const email = `case-login-${Date.now()}@example.com`;
+    const response = await page.request.post("/api/test/users", {
+      data: { email, password: "Test123456" },
+    });
+    expect(response.ok()).toBeTruthy();
+
+    await page.goto("/login");
+    await page.waitForLoadState("load");
+    await page.getByTestId("email-input").fill(email.toUpperCase());
+    await page.getByTestId("password-input").fill("Test123456");
+    await page.getByTestId("login-submit-button").click();
+
+    await page.waitForURL("/dashboard");
+  });
+
+  test("signs in to a legacy account whose stored email has capitals", async ({
+    page,
+  }) => {
+    // Accounts registered before emails were normalised are stored exactly
+    // as typed; typing the address in lowercase (as autofill does) must work.
+    const storedEmail = `Legacy.Case-${Date.now()}@Example.com`;
+    const response = await page.request.post("/api/test/users", {
+      data: { email: storedEmail, password: "Test123456" },
+    });
+    expect(response.ok()).toBeTruthy();
+
+    await page.goto("/login");
+    await page.waitForLoadState("load");
+    await page.getByTestId("email-input").fill(storedEmail.toLowerCase());
+    await page.getByTestId("password-input").fill("Test123456");
+    await page.getByTestId("login-submit-button").click();
+
+    await page.waitForURL("/dashboard");
+  });
+});
