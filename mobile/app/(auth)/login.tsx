@@ -26,7 +26,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/lib/auth";
-import { ApiError } from "@/lib/api";
+import { API_URL, ApiError } from "@/lib/api";
 import { isPasskeySupported, signInWithPasskey } from "@/lib/passkey-client";
 import { signInWithApple, useGoogleAuth } from "@/lib/oauth";
 import { posthog } from "@/lib/posthog";
@@ -197,6 +197,20 @@ export default function LoginScreen({
     ? "rgba(253,248,239,0.10)"
     : "rgba(29,83,55,0.12)";
   const inputBg = isDark ? "rgba(253,248,239,0.05)" : Palette.cream200;
+
+  // Password resets are email-driven, so hand off to the web flow (the reset
+  // link in the email lands on the web app anyway). Pre-fill whatever the
+  // volunteer has already typed so they don't have to retype it.
+  const openForgotPassword = () => {
+    Haptics.selectionAsync();
+    const typed = email.trim();
+    const url = typed
+      ? `${API_URL}/forgot-password?email=${encodeURIComponent(typed)}`
+      : `${API_URL}/forgot-password`;
+    openBrowserAsync(url, {
+      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+    });
+  };
   const inputStroke = isDark
     ? "rgba(253,248,239,0.12)"
     : "rgba(29,83,55,0.15)";
@@ -470,6 +484,24 @@ export default function LoginScreen({
                 </Pressable>
               </View>
 
+              <View style={styles.forgotRow}>
+                <Pressable
+                  onPress={openForgotPassword}
+                  disabled={anyBusy}
+                  hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                  accessibilityRole="link"
+                  accessibilityLabel="Forgot password? Reset it on the website"
+                  style={({ pressed }) => [
+                    styles.forgotBtn,
+                    { opacity: anyBusy ? 0.5 : pressed ? 0.6 : 1 },
+                  ]}
+                >
+                  <ThemedText style={styles.forgotText}>
+                    Forgot password?
+                  </ThemedText>
+                </Pressable>
+              </View>
+
               <Pressable
                 onPress={handleEmailLogin}
                 disabled={anyBusy || !email.trim() || !password.trim()}
@@ -686,6 +718,22 @@ const styles = StyleSheet.create({
     minHeight: 54,
     borderRadius: 999,
     paddingHorizontal: 20,
+  },
+  forgotRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: -4,
+    marginBottom: -6,
+  },
+  forgotBtn: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  forgotText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    color: Brand.green,
   },
   signInBtn: {
     marginTop: 6,
