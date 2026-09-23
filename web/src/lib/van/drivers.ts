@@ -214,3 +214,36 @@ export async function listDriverProfiles(status?: DriverStatus) {
     orderBy: [{ status: "asc" }, { createdAt: "asc" }],
   });
 }
+
+export type RemoveDriverOutcome = "removed" | "not-found" | "external";
+
+/**
+ * Take somebody off the driver list entirely, as if they had never registered.
+ * Their Drive tab disappears and a van scan offers the driver form again, which
+ * lands PENDING like any first registration.
+ *
+ * Only the DriverProfile goes. Trips hang off the User, not the profile, so the
+ * log keeps every kilometre they drove and who drove it.
+ *
+ * An outside borrower is refused. For them the profile is not only a van key:
+ * it is what keeps them out of volunteer reporting, volunteer email and the
+ * inactivity archiver (see src/lib/volunteer-programme.ts), so deleting it would
+ * quietly enrol them as a volunteer. Putting them on hold takes the van away
+ * just as completely and leaves that alone.
+ */
+export async function removeDriver(
+  profileId: string
+): Promise<RemoveDriverOutcome> {
+  const profile = await prisma.driverProfile.findUnique({
+    where: { id: profileId },
+    select: { organisation: { select: { isInternal: true } } },
+  });
+  if (!profile) return "not-found";
+  if (profile.organisation?.isInternal === false) return "external";
+
+  // deleteMany so two admins clicking at once is a no-op, not a P2025 throw.
+  const { count } = await prisma.driverProfile.deleteMany({
+    where: { id: profileId },
+  });
+  return count > 0 ? "removed" : "not-found";
+}

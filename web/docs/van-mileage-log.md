@@ -121,6 +121,27 @@ The person still needs a portal account first; there is no account creation
 here. Somebody with no login is invited from the admin users page and then
 added, rather than teaching this dialog a second way to make a `User`.
 
+### Taking somebody off the list
+
+There are two ways out, and they are not the same thing:
+
+- **Put on hold** (`SUSPENDED`) keeps the profile, shows the office's note back
+  to the driver, and survives them re-registering. Lifting it is the office's
+  call.
+- **Remove** (`removeDriver()` in `drivers.ts`) deletes the `DriverProfile`, as
+  if they had never registered. The Drive tab goes from their app, and a later
+  sticker scan offers the form again and lands PENDING. Trips hang off `User`,
+  not the profile, so the log keeps everything they drove.
+
+Remove is refused for an outside borrower (a driver whose organisation is not
+internal). Their profile is also what keeps them out of volunteer reporting,
+bulk email and the inactivity archiver (`src/lib/volunteer-programme.ts`), so
+deleting it would silently enrol them as a volunteer. Put them on hold instead.
+
+The app re-asks `/api/mobile/van/driver` on foreground after five minutes, and
+straight away if the Drive tab's fleet request comes back 403, so the tab
+disappears soon after either decision.
+
 Which organisations either door offers is `listSelectableOrganisations()` in
 `drivers.ts` — one list, so the admin dialog can never offer an option the
 driver's own form rejects, and neither can offer the catch-all.

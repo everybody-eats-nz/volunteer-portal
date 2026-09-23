@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, ShieldOff, UserCheck, UserPlus } from "lucide-react";
+import { Check, ShieldOff, UserCheck, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,8 @@ export interface AdminDriver {
   approvedAtLabel: string | null;
   registeredAtLabel: string;
   tripCount: number;
+  /** The van they have out right now, if any. */
+  openTripVanName: string | null;
 }
 
 /**
@@ -66,6 +68,7 @@ export function VanDriversContent({
   const [suspending, setSuspending] = useState<AdminDriver | null>(null);
   const [note, setNote] = useState("");
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<AdminDriver | null>(null);
 
   const pending = drivers.filter((d) => d.status === "PENDING");
   const approved = drivers.filter((d) => d.status === "APPROVED");
@@ -102,6 +105,47 @@ export function VanDriversContent({
       setBusyId(null);
     }
   }
+
+  async function remove(driver: AdminDriver) {
+    setBusyId(driver.profileId);
+    try {
+      const response = await fetch("/api/admin/van/drivers", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId: driver.profileId }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error ?? "Could not remove that driver.");
+        return;
+      }
+      toast.success(`${driver.name} is no longer a driver`);
+      setRemoving(null);
+      router.refresh();
+    } catch {
+      toast.error("No connection. Try again in a moment.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // Outside borrowers stay on the list: their driver record is also what keeps
+  // them out of volunteer reporting and email, so holding them is the way to
+  // take the van away. The server refuses the removal too.
+  const removeButton = (driver: AdminDriver) =>
+    driver.organisationIsInternal === false ? null : (
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={busyId === driver.profileId}
+        onClick={() => setRemoving(driver)}
+        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+        data-testid={`van-driver-remove-${driver.userId}`}
+      >
+        <UserMinus aria-hidden />
+        Remove
+      </Button>
+    );
 
   return (
     <div className="space-y-6" data-testid="van-drivers-page">
@@ -176,6 +220,7 @@ export function VanDriversContent({
               <ShieldOff aria-hidden />
               Put on hold
             </Button>
+            {removeButton(driver)}
           </DriverCard>
         ))}
       </Section>
@@ -197,6 +242,7 @@ export function VanDriversContent({
                 <UserCheck aria-hidden />
                 Let them drive again
               </Button>
+              {removeButton(driver)}
             </DriverCard>
           ))}
         </Section>
@@ -213,6 +259,54 @@ export function VanDriversContent({
           }}
         />
       )}
+
+      <Dialog
+        open={removing !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoving(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {removing?.name} as a driver?</DialogTitle>
+            <DialogDescription>
+              The Drive tab disappears from their app and they can no longer
+              take a van out. Nothing else about their account changes.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc space-y-1.5 pl-5 text-[13px] leading-snug text-muted-foreground">
+            <li>
+              {removing && removing.tripCount > 0
+                ? `Their ${removing.tripCount} ${removing.tripCount === 1 ? "trip stays" : "trips stay"} in the log.`
+                : "They have no trips in the log."}
+            </li>
+            <li>
+              If they want to drive again, they register by scanning the van
+              sticker and wait for approval like anyone new.
+            </li>
+            {removing?.openTripVanName && (
+              <li className="text-foreground" data-testid="van-driver-remove-open-trip">
+                They have {removing.openTripVanName} out right now. That trip
+                stays open until the next driver&apos;s start reading closes
+                it.
+              </li>
+            )}
+          </ul>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setRemoving(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={busyId !== null}
+              onClick={() => removing && void remove(removing)}
+              data-testid="van-driver-confirm-remove"
+            >
+              Remove driver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={suspending !== null}
@@ -513,9 +607,11 @@ function DriverCard({
 }) {
   return (
     <li>
-      <Card>
+      <Card className="py-0">
         <CardContent className="flex flex-wrap items-start gap-4 p-4">
-          <div className="min-w-0 flex-1">
+          {/* The basis is what makes the actions wrap underneath on a phone
+              rather than squeezing the name into a one-word column. */}
+          <div className="min-w-0 flex-1 basis-64">
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 href={`/admin/volunteers/${driver.userId}`}

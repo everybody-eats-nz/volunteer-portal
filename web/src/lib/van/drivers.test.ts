@@ -1,12 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { addDriverAsAdmin, isSelectableOrganisation } from "./drivers";
+import {
+  addDriverAsAdmin,
+  isSelectableOrganisation,
+  removeDriver,
+} from "./drivers";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     driverProfile: {
       findUnique: vi.fn(),
       upsert: vi.fn(),
+      deleteMany: vi.fn(),
     },
     organisation: { findUnique: vi.fn() },
   },
@@ -15,6 +20,7 @@ vi.mock("@/lib/prisma", () => ({
 const findUnique = vi.mocked(prisma.driverProfile.findUnique);
 const upsert = vi.mocked(prisma.driverProfile.upsert);
 const findOrg = vi.mocked(prisma.organisation.findUnique);
+const deleteMany = vi.mocked(prisma.driverProfile.deleteMany);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -119,5 +125,43 @@ describe("isSelectableOrganisation", () => {
 
     findOrg.mockResolvedValue(null as never);
     await expect(isSelectableOrganisation("nope")).resolves.toBe(false);
+  });
+});
+
+describe("removeDriver", () => {
+  it("deletes an internal driver's profile", async () => {
+    findUnique.mockResolvedValue({ organisation: { isInternal: true } } as never);
+    deleteMany.mockResolvedValue({ count: 1 } as never);
+
+    expect(await removeDriver("profile-1")).toBe("removed");
+    expect(deleteMany).toHaveBeenCalledWith({ where: { id: "profile-1" } });
+  });
+
+  it("deletes a driver who never named an organisation", async () => {
+    findUnique.mockResolvedValue({ organisation: null } as never);
+    deleteMany.mockResolvedValue({ count: 1 } as never);
+
+    expect(await removeDriver("profile-1")).toBe("removed");
+  });
+
+  it("refuses an outside borrower, whose profile keeps them out of volunteer reporting", async () => {
+    findUnique.mockResolvedValue({ organisation: { isInternal: false } } as never);
+
+    expect(await removeDriver("profile-1")).toBe("external");
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("reports a profile that is already gone", async () => {
+    findUnique.mockResolvedValue(null as never);
+
+    expect(await removeDriver("profile-1")).toBe("not-found");
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("treats losing a race with another admin as already gone", async () => {
+    findUnique.mockResolvedValue({ organisation: null } as never);
+    deleteMany.mockResolvedValue({ count: 0 } as never);
+
+    expect(await removeDriver("profile-1")).toBe("not-found");
   });
 });

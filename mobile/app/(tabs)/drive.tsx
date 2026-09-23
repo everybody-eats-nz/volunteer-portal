@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
   Platform,
   Pressable,
@@ -20,6 +20,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDriveHome, useDriverState } from "@/hooks/use-van";
+import { ApiError } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import type { FleetVan, OpenTrip, TripDay } from "@/lib/van";
 
@@ -65,6 +66,17 @@ export default function DriveScreen() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.van.home() });
     }, [queryClient])
   );
+
+  // The office put this driver on hold or removed them since the tab was
+  // painted: the fleet answers 403 before the cached driver state has gone
+  // stale. Re-ask it, so the tab itself goes rather than sitting there empty.
+  const homeForbidden =
+    home.error instanceof ApiError && home.error.status === 403;
+  useEffect(() => {
+    if (homeForbidden) {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.van.driver() });
+    }
+  }, [homeForbidden, queryClient]);
 
   if (driver.data && !driver.data.canDrive) {
     return <NotADriver colors={colors} note={driver.data.statusNote} />;
