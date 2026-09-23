@@ -1,3 +1,9 @@
+## [0.172.0] - 2026-09-23
+
+### Changes
+- feat: record no-shows mid-shift, and offer freed places to the waitlist automatically ([#1285](https://github.com/everybody-eats-nz/volunteer-portal/pull/1285)) by @malinmalliyawadu
+
+
 ## [0.171.5] - 2026-09-21
 
 ### Changes
