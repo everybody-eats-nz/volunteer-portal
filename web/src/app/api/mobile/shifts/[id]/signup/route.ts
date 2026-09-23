@@ -12,6 +12,7 @@ import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 import { validateGuardianRequirement } from "@/lib/guardian-validation";
 import { getMissingProfileFields } from "@/lib/profile-completion";
 import { syncProfileCompletedFlag } from "@/lib/profile-completion.server";
+import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 
 /**
  * POST /api/mobile/shifts/[id]/signup
@@ -339,6 +340,17 @@ export async function DELETE(
           error
         );
       });
+  }
+
+  // Same rollover the web cancellation does: a freed place goes straight back
+  // out to the waitlist instead of waiting for an admin to spot it.
+  if (existingSignup.status === "CONFIRMED") {
+    offerWaitlistPlaces(existingSignup.shiftId).catch((error) =>
+      console.error(
+        "[mobile/signup DELETE] Failed to roll the waitlist over:",
+        error
+      )
+    );
   }
 
   return NextResponse.json({

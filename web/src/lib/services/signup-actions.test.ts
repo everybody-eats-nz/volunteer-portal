@@ -57,9 +57,9 @@ type SignupStatus =
 
 function makeSignup(
   status: SignupStatus,
-  overrides: { capacity?: number; shiftEnd?: Date } = {}
+  overrides: { capacity?: number; shiftStart?: Date; shiftEnd?: Date } = {}
 ) {
-  const start = new Date("2026-07-01T06:00:00.000Z");
+  const start = overrides.shiftStart ?? new Date("2026-07-01T06:00:00.000Z");
   const end = overrides.shiftEnd ?? new Date("2026-07-01T09:00:00.000Z");
   return {
     id: "signup_1",
@@ -147,13 +147,54 @@ describe("applySignupAction", () => {
     await expectActionError("cancel", 400);
   });
 
-  it("blocks marking attendance before the shift has ended", async () => {
+  it("blocks marking attendance before the shift has started", async () => {
     mockedFindUnique.mockResolvedValue(
       makeSignup("CONFIRMED", {
+        shiftStart: new Date(Date.now() + 60 * 60 * 1000),
+        shiftEnd: new Date(Date.now() + 4 * 60 * 60 * 1000),
+      }) as never
+    );
+    const err = await expectActionError("mark_absent", 400);
+    expect(err.message).toBe(
+      "Can only mark attendance once the shift has started"
+    );
+    expect(mockedUpdate).not.toHaveBeenCalled();
+  });
+
+  it("marks a no-show while the shift is still underway", async () => {
+    // The team records attendance during service, not hours later - see the
+    // gate in applySignupAction.
+    mockedFindUnique.mockResolvedValue(
+      makeSignup("CONFIRMED", {
+        shiftStart: new Date(Date.now() - 60 * 60 * 1000),
         shiftEnd: new Date(Date.now() + 60 * 60 * 1000),
       }) as never
     );
-    await expectActionError("mark_absent", 400);
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "mark_absent",
+    });
+
+    expect(result.signup.status).toBe("NO_SHOW");
+    expect(result.message).toBe("Volunteer marked as no show");
+  });
+
+  it("reverses a no-show while the shift is still underway", async () => {
+    mockedFindUnique.mockResolvedValue(
+      makeSignup("NO_SHOW", {
+        shiftStart: new Date(Date.now() - 60 * 60 * 1000),
+        shiftEnd: new Date(Date.now() + 60 * 60 * 1000),
+      }) as never
+    );
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "mark_present",
+    });
+
+    expect(result.signup.status).toBe("CONFIRMED");
+    expect(result.message).toBe("Volunteer attendance confirmed");
   });
 
   it("confirms a pending signup when the shift has capacity", async () => {

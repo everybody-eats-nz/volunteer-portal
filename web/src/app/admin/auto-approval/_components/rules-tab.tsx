@@ -71,6 +71,7 @@ export interface SerializedRuleClient {
   minVolunteerGrade: "GREEN" | "YELLOW" | "PINK" | null;
   minCompletedShifts: number | null;
   minAttendanceRate: number | null;
+  maxNoShows: number | null;
   minAccountAgeDays: number | null;
   maxDaysInAdvance: number | null;
   minVolunteerAge: number | null;

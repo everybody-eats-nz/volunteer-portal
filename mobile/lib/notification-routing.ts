@@ -53,6 +53,18 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
+  // /shifts/mine?offer=:shiftId -> that shift's detail screen, which is where
+  // the accept/decline for a waitlist offer lives on mobile. The web banner
+  // sits on /shifts/mine; mobile has no equivalent page, and dropping someone
+  // on the shifts tab with a ticking offer would be a good way to lose it.
+  if (pathname === "/shifts/mine") {
+    const offerShiftId = query.get("offer");
+    if (offerShiftId) {
+      router.push({ pathname: "/shift/[id]", params: { id: offerShiftId } });
+      return;
+    }
+  }
+
   // /shifts/details?date=YYYY-MM-DD&location=X -> shifts tab focused on that
   // day. Shortage notifications deep-link here; the shifts tab honours ?date=
   // and switches its location filter to ?location= — without that, a push for

@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  actOnSignup,
   fetchAdminLocations,
   fetchAdminMessageNotifyPref,
   fetchAdminPending,
@@ -14,6 +15,7 @@ import {
   fetchAdminToday,
   fetchAdminUnreadCount,
   setAdminMessageNotifyPref,
+  type SignupAction,
   type ThreadStatus,
 } from "@/lib/admin";
 import { queryClient } from "@/lib/query-client";
@@ -78,6 +80,38 @@ export function useAdminToday(date: string, location: string | null = null) {
         (r) => r.shifts
       ),
   });
+}
+
+/**
+ * Mark a volunteer present or absent from the service-day roster.
+ *
+ * Attendance is recorded during the shift, so the roster the admin is looking
+ * at is the one that has to change: on success we refetch that exact day and
+ * location rather than invalidating every admin query. `pendingSignupId` lets
+ * a row show its own spinner without freezing the rest of the list.
+ */
+export function useMarkAttendance(date: string, location: string | null) {
+  const mutation = useMutation({
+    mutationFn: ({
+      signupId,
+      action,
+    }: {
+      signupId: string;
+      action: Extract<SignupAction, "mark_absent" | "mark_present">;
+    }) => actOnSignup(signupId, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.admin.today(date, location),
+      });
+    },
+  });
+
+  return {
+    mark: mutation.mutate,
+    pendingSignupId: mutation.isPending
+      ? (mutation.variables?.signupId ?? null)
+      : null,
+  };
 }
 
 /** Pending signups awaiting approval, optionally scoped to one restaurant. */

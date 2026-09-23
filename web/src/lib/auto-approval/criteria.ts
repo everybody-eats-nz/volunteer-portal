@@ -172,11 +172,28 @@ export const CRITERIA: CriterionDef[] = [
     isSet: (rule) => rule.minAttendanceRate !== null,
     requirement: (rule) => `${rule.minAttendanceRate}% attendance or better`,
     actual: (snapshot) =>
-      snapshot.completedShifts + snapshot.canceledShifts === 0
+      snapshot.completedShifts +
+        snapshot.canceledShifts +
+        snapshot.noShowShifts ===
+      0
         ? "no history yet (counts as 100%)"
         : `${Math.round(snapshot.attendanceRate)}% attendance`,
     passes: (rule, snapshot) =>
       snapshot.attendanceRate >= rule.minAttendanceRate!,
+  },
+  {
+    key: "maxNoShows",
+    label: "No shows",
+    group: "track-record",
+    isSet: (rule) => rule.maxNoShows !== null,
+    // Read as a ceiling on a BLOCK rule ("3 or more no shows and a human
+    // decides") and as a bar to clear on an APPROVE rule. Either way the
+    // number an admin types is the count that is *too many*, so the volunteer
+    // passes while they are still under it.
+    requirement: (rule) =>
+      `fewer than ${plural(rule.maxNoShows!, "no show")}`,
+    actual: (snapshot) => plural(snapshot.noShowShifts, "no show"),
+    passes: (rule, snapshot) => snapshot.noShowShifts < rule.maxNoShows!,
   },
   {
     key: "requireShiftTypeExperience",

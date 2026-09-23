@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatInNZT } from "@/lib/timezone";
-import { isShiftCompleted } from "@/lib/shift-utils";
+import { isShiftCompleted, isShiftStarted } from "@/lib/shift-utils";
 import {
   Dialog,
   DialogContent,
@@ -528,14 +528,14 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       case "mark_absent":
         return {
           title: "Mark Volunteer as No Show",
-          description: "Mark this volunteer as a no-show for this completed shift. This will change their status to 'No Show'.",
+          description: "Mark this volunteer as a no-show for this shift. This will change their status to 'No Show'. You can undo it if they turn up late.",
           actionText: "Mark No Show",
           variant: "destructive" as const,
         };
       case "mark_present":
         return {
           title: "Confirm Volunteer Attendance",
-          description: "Confirm that this volunteer attended this completed shift. This will change their status back to 'Confirmed'.",
+          description: "Confirm that this volunteer attended this shift. This will change their status back to 'Confirmed'.",
           actionText: "Mark Present",
           variant: "default" as const,
         };
@@ -551,6 +551,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
   // Helper to check if shift has ended (use end time, not start time)
   const shiftCompleted = currentShift ? isShiftCompleted(currentShift.end) : false;
+  const shiftStarted = currentShift ? isShiftStarted(currentShift.start) : false;
 
   const tid = (suffix: string) =>
     testIdPrefix ? `${testIdPrefix}-${suffix}` : `volunteer-${suffix}-${signupId}`;
@@ -595,67 +596,75 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
     const cancelPastDialogContent = getDialogContent("cancel_past");
     const markAbsentDialogContent = getDialogContent("mark_absent");
 
+    // Attendance is recorded from the moment a shift starts, not once it ends -
+    // the team knows who walked in, and making them come back after service to
+    // write it down is how no-shows go unrecorded. Shared between the
+    // in-progress and completed rows so both read and behave identically.
+    const markAbsentDialog = (
+      <Dialog open={dialogOpen === "mark_absent"} onOpenChange={(open) => setDialogOpen(open ? "mark_absent" : null)}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
+                disabled={loading === "mark_absent"}
+                title="Mark as no show"
+                aria-label="Mark as no show"
+                data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-button` : `volunteer-mark-absent-${signupId}`}
+              >
+                {loading === "mark_absent" ? (
+                  <Clock className="h-3 w-3 animate-spin" />
+                ) : (
+                  <UserX className="h-3 w-3" />
+                )}
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Mark as no show</TooltipContent>
+        </Tooltip>
+        <DialogContent className="sm:max-w-[425px]" data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog` : `volunteer-mark-absent-dialog-${signupId}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-title` : `volunteer-mark-absent-dialog-title-${signupId}`}>
+              <UserX className="h-5 w-5 text-red-500" />
+              {markAbsentDialogContent.title}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-description` : `volunteer-mark-absent-dialog-description-${signupId}`}>
+              {markAbsentDialogContent.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(null)}
+              disabled={loading === "mark_absent"}
+              data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-cancel` : `volunteer-mark-absent-dialog-cancel-${signupId}`}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={markAbsentDialogContent.variant}
+              onClick={() => handleAction("mark_absent")}
+              disabled={loading === "mark_absent"}
+              data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-confirm` : `volunteer-mark-absent-dialog-confirm-${signupId}`}
+            >
+              {loading === "mark_absent" ? (
+                <Clock className="h-3 w-3 animate-spin mr-2" />
+              ) : null}
+              {markAbsentDialogContent.actionText}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+
     if (shiftCompleted) {
-      // Past shift - show attendance tracking
+      // Past shift - attendance tracking only; there is no longer a shift to
+      // move anyone to.
       return (
         <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-confirmed-past-actions` : `volunteer-actions-${signupId}-confirmed-past`}>
-          {/* Mark Absent Button */}
-          <Dialog open={dialogOpen === "mark_absent"} onOpenChange={(open) => setDialogOpen(open ? "mark_absent" : null)}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
-                    disabled={loading === "mark_absent"}
-                    title="Mark as no show"
-                    aria-label="Mark as no show"
-                    data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-button` : `volunteer-mark-absent-${signupId}`}
-                  >
-                    {loading === "mark_absent" ? (
-                      <Clock className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <UserX className="h-3 w-3" />
-                    )}
-                  </Button>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Mark as no show</TooltipContent>
-            </Tooltip>
-            <DialogContent className="sm:max-w-[425px]" data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog` : `volunteer-mark-absent-dialog-${signupId}`}>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2" data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-title` : `volunteer-mark-absent-dialog-title-${signupId}`}>
-                  <UserX className="h-5 w-5 text-red-500" />
-                  {markAbsentDialogContent.title}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-description` : `volunteer-mark-absent-dialog-description-${signupId}`}>
-                  {markAbsentDialogContent.description}
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setDialogOpen(null)}
-                  disabled={loading === "mark_absent"}
-                  data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-cancel` : `volunteer-mark-absent-dialog-cancel-${signupId}`}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant={markAbsentDialogContent.variant}
-                  onClick={() => handleAction("mark_absent")}
-                  disabled={loading === "mark_absent"}
-                  data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-dialog-confirm` : `volunteer-mark-absent-dialog-confirm-${signupId}`}
-                >
-                  {loading === "mark_absent" ? (
-                    <Clock className="h-3 w-3 animate-spin mr-2" />
-                  ) : null}
-                  {markAbsentDialogContent.actionText}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {markAbsentDialog}
 
           {/* Cancel Button for past shifts */}
           <Dialog open={dialogOpen === "cancel"} onOpenChange={(open) => setDialogOpen(open ? "cancel" : null)}>
@@ -718,80 +727,82 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       );
     }
 
-    // Current/future shift - show normal actions
+    // Shift underway - the roster is live, so attendance sits alongside the
+    // usual actions rather than replacing them. A volunteer who turned up at
+    // the wrong restaurant still needs moving mid-service.
     return (
       <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-confirmed-actions` : `volunteer-actions-${signupId}-confirmed`}>
-        {/* Move Button */}
-        {!shiftCompleted && moveDialog}
+        {shiftStarted && markAbsentDialog}
 
-        {/* Cancel Button - only for future shifts */}
-        {!shiftCompleted && (
-          <Dialog open={dialogOpen === "cancel"} onOpenChange={(open) => setDialogOpen(open ? "cancel" : null)}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
-                    disabled={loading === "cancel"}
-                    title="Cancel this shift"
-                    aria-label="Cancel this shift"
-                    data-testid={testIdPrefix ? `${testIdPrefix}-cancel-button` : `volunteer-cancel-${signupId}`}
-                  >
-                    {loading === "cancel" ? (
-                      <Clock className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <UserMinus className="h-3 w-3" />
-                    )}
-                  </Button>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Cancel this shift</TooltipContent>
-            </Tooltip>
-            <DialogContent className="sm:max-w-[425px]" data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog` : `volunteer-cancel-dialog-${signupId}`}>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2" data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-title` : `volunteer-cancel-dialog-title-${signupId}`}>
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                  {cancelDialogContent.title}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-description` : `volunteer-cancel-dialog-description-${signupId}`}>
-                  {cancelDialogContent.description}
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <div className="flex-1">
-                  <EmailPreviewDialog
-                    emailType="volunteerCancellation"
-                    triggerLabel="Preview Email"
-                    triggerVariant="outline"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setDialogOpen(null)}
-                    disabled={loading === "cancel"}
-                    data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-cancel` : `volunteer-cancel-dialog-cancel-${signupId}`}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant={cancelDialogContent.variant}
-                    onClick={() => handleAction("cancel")}
-                    disabled={loading === "cancel"}
-                    data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-confirm` : `volunteer-cancel-dialog-confirm-${signupId}`}
-                  >
-                    {loading === "cancel" ? (
-                      <Clock className="h-3 w-3 animate-spin mr-2" />
-                    ) : null}
-                    {cancelDialogContent.actionText}
-                  </Button>
-                </div>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+        {/* Move Button */}
+        {moveDialog}
+
+        {/* Cancel Button */}
+        <Dialog open={dialogOpen === "cancel"} onOpenChange={(open) => setDialogOpen(open ? "cancel" : null)}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
+                  disabled={loading === "cancel"}
+                  title="Cancel this shift"
+                  aria-label="Cancel this shift"
+                  data-testid={testIdPrefix ? `${testIdPrefix}-cancel-button` : `volunteer-cancel-${signupId}`}
+                >
+                  {loading === "cancel" ? (
+                    <Clock className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <UserMinus className="h-3 w-3" />
+                  )}
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>Cancel this shift</TooltipContent>
+          </Tooltip>
+          <DialogContent className="sm:max-w-[425px]" data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog` : `volunteer-cancel-dialog-${signupId}`}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2" data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-title` : `volunteer-cancel-dialog-title-${signupId}`}>
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                {cancelDialogContent.title}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-description` : `volunteer-cancel-dialog-description-${signupId}`}>
+                {cancelDialogContent.description}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <div className="flex-1">
+                <EmailPreviewDialog
+                  emailType="volunteerCancellation"
+                  triggerLabel="Preview Email"
+                  triggerVariant="outline"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDialogOpen(null)}
+                  disabled={loading === "cancel"}
+                  data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-cancel` : `volunteer-cancel-dialog-cancel-${signupId}`}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant={cancelDialogContent.variant}
+                  onClick={() => handleAction("cancel")}
+                  disabled={loading === "cancel"}
+                  data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-confirm` : `volunteer-cancel-dialog-confirm-${signupId}`}
+                >
+                  {loading === "cancel" ? (
+                    <Clock className="h-3 w-3 animate-spin mr-2" />
+                  ) : null}
+                  {cancelDialogContent.actionText}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

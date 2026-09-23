@@ -20,6 +20,7 @@ import {
 } from "@/lib/funnel";
 import { getMissingProfileFields } from "@/lib/profile-completion";
 import { syncProfileCompletedFlag } from "@/lib/profile-completion.server";
+import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 
 /**
  * HTML sanitizer for serverless environment.
@@ -404,6 +405,15 @@ export async function DELETE(
         console.error("[DELETE] Failed to send manager notifications:", error);
         // Continue - don't fail the cancellation due to notification errors
       });
+
+    // A confirmed place just freed up: offer it to the waitlist rather than
+    // leaving the restaurant short. Fire-and-forget - the cancellation has
+    // already succeeded and must not fail on the rollover.
+    if (existingSignup.status === "CONFIRMED") {
+      offerWaitlistPlaces(shiftId).catch((error) =>
+        console.error("[DELETE] Failed to roll the waitlist over:", error)
+      );
+    }
 
     return NextResponse.json(canceledSignup);
   } catch (error) {

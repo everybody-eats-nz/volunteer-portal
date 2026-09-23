@@ -51,6 +51,7 @@ interface Draft {
   minAccountAgeDays: string;
   minCompletedShifts: string;
   minAttendanceRate: string;
+  maxNoShows: string;
   requireShiftTypeExperience: boolean;
   maxDaysInAdvance: string;
 }
@@ -71,6 +72,7 @@ const EMPTY: Draft = {
   minAccountAgeDays: "",
   minCompletedShifts: "",
   minAttendanceRate: "",
+  maxNoShows: "",
   requireShiftTypeExperience: false,
   maxDaysInAdvance: "",
 };
@@ -92,6 +94,7 @@ function toDraft(rule: SerializedRuleClient): Draft {
     minAccountAgeDays: rule.minAccountAgeDays?.toString() ?? "",
     minCompletedShifts: rule.minCompletedShifts?.toString() ?? "",
     minAttendanceRate: rule.minAttendanceRate?.toString() ?? "",
+    maxNoShows: rule.maxNoShows?.toString() ?? "",
     requireShiftTypeExperience: rule.requireShiftTypeExperience,
     maxDaysInAdvance: rule.maxDaysInAdvance?.toString() ?? "",
   };
@@ -117,6 +120,7 @@ function toPayload(draft: Draft) {
     minAccountAgeDays: numeric(draft.minAccountAgeDays),
     minCompletedShifts: numeric(draft.minCompletedShifts),
     minAttendanceRate: numeric(draft.minAttendanceRate),
+    maxNoShows: numeric(draft.maxNoShows),
     requireShiftTypeExperience: draft.requireShiftTypeExperience,
     maxDaysInAdvance: numeric(draft.maxDaysInAdvance),
   };
@@ -131,6 +135,7 @@ function countConditions(draft: Draft) {
     draft.minAccountAgeDays.trim() !== "",
     draft.minCompletedShifts.trim() !== "",
     draft.minAttendanceRate.trim() !== "",
+    draft.maxNoShows.trim() !== "",
     draft.requireShiftTypeExperience,
     draft.maxDaysInAdvance.trim() !== "",
   ].filter(Boolean).length;
@@ -433,6 +438,14 @@ export function RuleEditor({
                   onChange={(v) => set("minAttendanceRate", v)}
                   placeholder="85"
                   max={100}
+                />
+                <NumberField
+                  id="rule-no-shows"
+                  label="Fewer than"
+                  suffix="no shows"
+                  value={draft.maxNoShows}
+                  onChange={(v) => set("maxNoShows", v)}
+                  placeholder="3"
                 />
                 <NumberField
                   id="rule-lead-time"

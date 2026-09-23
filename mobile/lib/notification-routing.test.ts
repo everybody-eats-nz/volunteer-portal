@@ -88,6 +88,17 @@ describe("navigateToNotificationTarget", () => {
         expect.objectContaining({ pathname: "/shift/[id]" })
       );
     });
+
+    it("opens the offered shift for a waitlist offer", () => {
+      // The web banner lives on /shifts/mine; mobile has no such page, and the
+      // offer has a deadline, so ?offer= goes straight to the shift.
+      navigateToNotificationTarget("/shifts/mine?offer=shift-123");
+      expect(pushMock).toHaveBeenCalledWith({
+        pathname: "/shift/[id]",
+        params: { id: "shift-123" },
+      });
+      expect(pushMock).not.toHaveBeenCalledWith("/(tabs)/shifts");
+    });
   });
 
   describe("other targets", () => {

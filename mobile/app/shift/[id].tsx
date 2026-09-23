@@ -55,6 +55,7 @@ import {
   removeShiftFromCalendar,
 } from "@/lib/calendar-sync";
 import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
+import { WaitlistOfferCard } from "@/components/waitlist-offer-card";
 import { GlassButton } from "@/components/glass-button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
@@ -148,6 +149,8 @@ export default function ShiftDetailScreen() {
     shift,
     signups: shiftSignups,
     waitlistCount,
+    waitlistOfferExpiresAt,
+    waitlistOfferExpiresLabel,
     events,
     periodFriends,
     eligibility,
@@ -665,7 +668,7 @@ export default function ShiftDetailScreen() {
                       : myStatus === "WAITLISTED"
                       ? `${yourWaitlistStandingSentence(
                           waitlistCount
-                        )} We'll be in touch if a place opens up.`
+                        )} If a place opens up we'll send it straight to you.`
                       : statusUi.meta ??
                         `${formatNZT(date, "EEE h:mma")} — ${formatNZT(
                           endDate,
@@ -748,6 +751,18 @@ export default function ShiftDetailScreen() {
             )}
           </View>
         </View>
+
+        {/* ═══ Waitlist offer - first thing under the status strip, because
+            it is the only thing here with a deadline on it ═══ */}
+        {waitlistOfferExpiresAt && !isPast && (
+          <View style={s.offerWrap}>
+            <WaitlistOfferCard
+              shiftId={shift.id}
+              deadlineLabel={waitlistOfferExpiresLabel}
+              onAnswered={refresh}
+            />
+          </View>
+        )}
 
         {/* ═══ Marketing event at this restaurant on the shift's day ═══ */}
         {events.length > 0 && (
@@ -1475,6 +1490,7 @@ const s = StyleSheet.create({
     marginTop: -46,
     marginBottom: -4,
   },
+  offerWrap: { paddingHorizontal: 16, paddingTop: 20 },
   statusStrip: {
     borderRadius: 18,
     padding: 18,

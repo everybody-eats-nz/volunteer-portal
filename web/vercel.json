@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/van-open-trip-reminders",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/waitlist-offers",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

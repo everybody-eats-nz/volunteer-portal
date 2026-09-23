@@ -114,6 +114,8 @@ export function NotificationItem({
         return "🎯";
       case "SHIFT_WAITLISTED":
         return "⏰";
+      case "SHIFT_WAITLIST_OFFER":
+        return "✨";
       case "SHIFT_CANCELED":
         return "❌";
       case "ACHIEVEMENT_UNLOCKED":

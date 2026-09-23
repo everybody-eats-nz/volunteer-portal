@@ -36,9 +36,13 @@ export function yourWaitlistStandingSentence(count: number): string {
 }
 
 /**
- * How the list actually clears. Admins confirm waitlisted volunteers by hand,
- * so this promises no queue position — saying "you're 3rd" would imply an
- * order the portal doesn't keep.
+ * How the list actually clears.
+ *
+ * Deliberately promises no queue position - saying "you're 3rd" would imply an
+ * order the portal doesn't keep. It does now promise that a freed place is
+ * offered automatically: if a confirmed volunteer cancels, the place goes
+ * straight to the longest-waiting person the auto-approval rules already
+ * trust. Anyone else on the list is still the team's call.
  */
 export const WAITLIST_EXPLAINER =
-  "A place opens up only if a confirmed volunteer cancels, and the team picks who comes off the list.";
+  "If a confirmed volunteer cancels, the place is offered to whoever has been waiting longest - so keep an eye out, you'll have a short window to say yes.";

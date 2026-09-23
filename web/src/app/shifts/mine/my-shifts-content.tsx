@@ -9,9 +9,13 @@ import { StatBand } from "@/components/ui/stat-band";
 import { AvatarList } from "@/components/ui/avatar-list";
 import { ShiftDetailsDialog } from "./shift-details-dialog";
 import { StatusBadge } from "./status-badge";
+import {
+  WaitlistOfferBanner,
+  type WaitlistOffer,
+} from "./waitlist-offer-banner";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { getWaitlistCounts } from "@/lib/waitlist.server";
-import { waitlistCountLabel } from "@/lib/waitlist";
+import { offerDeadlineLabel, waitlistCountLabel } from "@/lib/waitlist";
 import {
   CalendarPlus,
   ChevronLeft,
@@ -98,6 +102,54 @@ async function fetchMonthShifts(
       },
     },
   });
+}
+
+/**
+ * Live waitlist offers for this volunteer.
+ *
+ * Deliberately not scoped to the month being viewed: an offer has a deadline,
+ * and hiding it because someone happens to be looking at last month would be a
+ * good way to lose the place.
+ */
+async function fetchLiveWaitlistOffers(
+  userId: string
+): Promise<WaitlistOffer[]> {
+  const now = new Date();
+  const offers = await prisma.signup.findMany({
+    where: {
+      userId,
+      status: "WAITLISTED",
+      waitlistOfferDeclinedAt: null,
+      waitlistOfferExpiresAt: { gt: now },
+      shift: { start: { gt: now } },
+    },
+    orderBy: { waitlistOfferExpiresAt: "asc" },
+    select: {
+      shiftId: true,
+      waitlistOfferExpiresAt: true,
+      shift: {
+        select: {
+          start: true,
+          end: true,
+          location: true,
+          shiftType: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  return offers.map((offer) => ({
+    shiftId: offer.shiftId,
+    shiftName: offer.shift.shiftType.name,
+    // Formatted server-side in NZ time. Letting the browser format it is how
+    // an overseas volunteer ends up reading the wrong day.
+    shiftWhen: `${formatInNZT(offer.shift.start, "EEEE d MMMM")} · ${formatInNZT(
+      offer.shift.start,
+      "h:mma"
+    )}–${formatInNZT(offer.shift.end, "h:mma")}`,
+    location: offer.shift.location,
+    expiresLabel: offerDeadlineLabel(offer.waitlistOfferExpiresAt!),
+  }));
 }
 
 interface MyShiftsContentProps {
@@ -239,9 +291,12 @@ export async function MyShiftsContent({
 
   // Waitlist sizes for the shifts this volunteer is waiting on. Standby is only
   // a real decision if you can see how many people are already waiting.
-  const waitlistCounts = await getWaitlistCounts(
-    upcoming.filter((s) => s.status === "WAITLISTED").map((s) => s.shift.id)
-  );
+  const [waitlistCounts, waitlistOffers] = await Promise.all([
+    getWaitlistCounts(
+      upcoming.filter((s) => s.status === "WAITLISTED").map((s) => s.shift.id)
+    ),
+    fetchLiveWaitlistOffers(userId),
+  ]);
 
   // Group open shifts (spots available, preferred locations) by day for the
   // "more mahi" strip — one chip per day, deep-linking to that day's page.
@@ -324,6 +379,9 @@ export async function MyShiftsContent({
 
   return (
     <>
+      {/* An offer has a deadline, so it goes above everything else. */}
+      <WaitlistOfferBanner offers={waitlistOffers} />
+
       {/* Stats overview — editorial hairline band, matching the landing
           page's "mahi in numbers" treatment. */}
       <StatBand testId="stats-overview" className="mb-8" stats={stats} />

@@ -347,6 +347,17 @@ model Signup {
   // Volunteer-provided note
   note String? // Optional note from volunteer when signing up
 
+  // Waitlist offer. When a confirmed place frees up, the next eligible person
+  // on the waitlist gets first refusal until `waitlistOfferExpiresAt`. The
+  // status deliberately stays WAITLISTED for the life of the offer - they do
+  // not hold a place until they accept - so every screen that doesn't know
+  // about offers still reads correctly.
+  waitlistOfferedAt       DateTime?
+  waitlistOfferExpiresAt  DateTime?
+  // Set when they say no, or when an offer lapses unanswered. Either way we
+  // don't offer this shift to them again; the place moves down the list.
+  waitlistOfferDeclinedAt DateTime?
+
   shift                 Shift                  @relation(fields: [shiftId], references: [id])
   user                  User                   @relation(fields: [userId], references: [id])
   regularSignup         RegularSignup? // One-to-one relation with RegularSignup
@@ -358,6 +369,9 @@ model Signup {
   @@index([userId, canceledAt])
   // shiftId-only index for reverse joins (Shift → Signup lookups in analytics)
   @@index([shiftId])
+  // The expiry sweep asks one question across every shift at once: which live
+  // offers have run out? Without this it is a full scan of Signup.
+  @@index([waitlistOfferExpiresAt])
 }
 
 model Achievement {
@@ -503,6 +517,7 @@ enum NotificationType {
   FRIEND_REQUEST_ACCEPTED // Someone accepted your friend request
   SHIFT_CONFIRMED // Your shift signup was confirmed
   SHIFT_WAITLISTED // Your shift signup was waitlisted
+  SHIFT_WAITLIST_OFFER // A place opened up and is yours if you accept in time
   SHIFT_CANCELED // Your shift was canceled by admin
   ACHIEVEMENT_UNLOCKED // You unlocked a new achievement
   SHIFT_CANCELLATION_MANAGER // Volunteer canceled shift - notify managers
@@ -624,6 +639,10 @@ model AutoAcceptRule {
   minVolunteerGrade          VolunteerGrade? // Minimum grade required
   minCompletedShifts         Int? // Minimum completed shifts
   minAttendanceRate          Float? // Minimum attendance percentage (0-100)
+  // Volunteer must have FEWER than this many no-shows. Typically set on a
+  // BLOCK rule ("3 no shows and a human decides") so repeat no-shows lose
+  // auto-approval without anyone having to notice by hand.
+  maxNoShows                 Int?
   minAccountAgeDays          Int? // Days since registration
   maxDaysInAdvance           Int? // Only auto-accept if shift is X or fewer days away
   requireShiftTypeExperience Boolean         @default(false) // Must have done this shift type before

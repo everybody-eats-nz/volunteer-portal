@@ -12,6 +12,7 @@ import {
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { gotoSettled } from "./helpers/streaming";
 import { formatInNZT } from "@/lib/timezone";
+import { WAITLIST_EXPLAINER } from "@/lib/waitlist";
 import { randomUUID } from "crypto";
 
 /**
@@ -104,7 +105,11 @@ test.describe("Waitlist size visibility", () => {
     // than showing the "you're signed up" confirmation.
     const standing = page.getByTestId("your-waitlist-standing").first();
     await expect(standing).toContainText("You're on the waitlist");
-    await expect(standing).toContainText("if a confirmed volunteer cancels");
+    // Assert against the shared constant rather than a copy of its wording:
+    // the behaviour being pinned is "the page explains how the list clears",
+    // and hard-coding a fragment just breaks the next time the copy is
+    // reworded.
+    await expect(standing).toContainText(WAITLIST_EXPLAINER);
 
     // Leaving is the other half of the decision, so the action has to be
     // reachable and worded as leaving a waitlist, not cancelling a shift.

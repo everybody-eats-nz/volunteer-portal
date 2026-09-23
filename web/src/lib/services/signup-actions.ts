@@ -10,6 +10,7 @@ import { formatInNZT } from "@/lib/timezone";
 import { getLocationAddresses } from "@/lib/locations";
 import { autoCancelOverlappingPendingSignups } from "@/lib/signup-utils.server";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
+import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 
 export type SignupAction =
   | "approve"
@@ -249,10 +250,17 @@ export async function applySignupAction({
   }
 
   if (action === "reject") {
+    const wasConfirmed = signup.status === "CONFIRMED";
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
       data: { status: "CANCELED" },
     });
+
+    if (wasConfirmed) {
+      offerWaitlistPlaces(signup.shiftId).catch((err) =>
+        console.error("Error offering the freed place to the waitlist:", err)
+      );
+    }
 
     if (sendEmail) {
       if (signup.user.email) {
@@ -385,6 +393,12 @@ export async function applySignupAction({
       };
     }
 
+    // An admin cancelling a confirmed volunteer frees the same place a
+    // self-cancellation does, so the waitlist rolls over the same way.
+    offerWaitlistPlaces(signup.shiftId).catch((err) =>
+      console.error("Error offering the freed place to the waitlist:", err)
+    );
+
     return {
       signup: updatedSignup,
       message: skipNotification
@@ -459,10 +473,14 @@ export async function applySignupAction({
         "Only confirmed signups can be marked as absent"
       );
     }
-    if (new Date() < signup.shift.end) {
+    // Attendance is decided on the floor, not in hindsight: once a shift has
+    // started the team already knows who walked through the door, and making
+    // them wait until the shift ends means the record gets written hours late
+    // or not at all. Anything before the start time is still a prediction.
+    if (new Date() < signup.shift.start) {
       throw new SignupActionError(
         400,
-        "Can only mark attendance for past shifts"
+        "Can only mark attendance once the shift has started"
       );
     }
 
@@ -480,8 +498,11 @@ export async function applySignupAction({
       "Only confirmed or no-show signups can have attendance marked"
     );
   }
-  if (new Date() < signup.shift.end) {
-    throw new SignupActionError(400, "Can only mark attendance for past shifts");
+  if (new Date() < signup.shift.start) {
+    throw new SignupActionError(
+      400,
+      "Can only mark attendance once the shift has started"
+    );
   }
 
   const updatedSignup = await prisma.signup.update({
