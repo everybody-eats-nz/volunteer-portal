@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { randomBytes } from "node:crypto";
 import { logout } from "./helpers/auth";
 
 // Helper function to wait for page to load completely
@@ -53,7 +54,9 @@ async function createUserWithResetToken(
 ) {
   const email = options.email ?? generateTestEmail();
   const password = "TestPassword123";
-  const token = `e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  // Same shape as forgotPasswordAction generates (CodeQL also flags
+  // Math.random() here as insecure randomness in a security context).
+  const token = `e2e-${randomBytes(16).toString("hex")}`;
   const oneHour = 60 * 60 * 1000;
   const expiresAt = new Date(
     Date.now() + (options.expired ? -oneHour : oneHour)
