@@ -1,3 +1,9 @@
+## [0.174.2] - 2026-09-27
+
+### Changes
+- chore(deps): bump marked from 18.0.13 to 18.0.14 in /web in the production-dependencies group across 1 directory ([#1290](https://github.com/everybody-eats-nz/volunteer-portal/pull/1290)) by @dependabot[bot]
+
+
 ## [0.174.1] - 2026-09-27
 
 ### Changes
