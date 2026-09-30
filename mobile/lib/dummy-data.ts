@@ -741,13 +741,24 @@ export type FeedItem =
   | ({ type: 'achievement'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; criteria?: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'photo_post'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftId: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
-  | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerCount: number; timestamp: string } & FeedInteractions)
+  | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerCount: number; /** Published diner notes left via pay-at-table that night (marketing CMS). Optional so older API builds still parse. */ dinerFeedback?: DinerFeedbackNote[]; timestamp: string } & FeedInteractions)
   | ({ type: 'new_shift'; id: string; location: string; count: number; shiftIds: string[]; shiftTypes: string[]; earliestStart: string; latestStart: string; preview: NewShiftPreview[]; timestamp: string } & FeedInteractions)
   | ({ type: 'daily_menu'; id: string; menuId: string; location: string; serviceDate: string; chefName?: string; announcement?: string; starter: MenuCourseItem[]; mains: MenuCourseItem[]; drink: MenuCourseItem[]; dessert: MenuCourseItem[]; timestamp: string } & FeedInteractions)
   | ({ type: 'community_event'; id: string; title: string; description?: string; location?: string; eventDate: string; displayTime?: string; imageUrl?: string; url: string; priceLabel?: string; ticketUrl?: string; timestamp: string; pinned?: boolean } & FeedInteractions)
   | ({ type: 'journal_post'; id: string; title: string; summary?: string; category?: string; imageUrl?: string; author?: string; url: string; timestamp: string } & FeedInteractions);
 
 export type MenuCourseItem = { name: string; description?: string };
+
+/** A guest's note from the pay-at-table flow — only positive, consented notes reach the app. */
+export type DinerFeedbackNote = {
+  id: number;
+  message: string;
+  /** First name the diner chose to share, if any. */
+  name?: string | null;
+  /** Optional 1–5 star rating. */
+  rating?: number | null;
+  createdAt: string;
+};
 
 export type NewShiftPreview = {
   id: string;

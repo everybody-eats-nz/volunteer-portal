@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   clearMarketingCmsCache,
   getCmsEventsForShift,
+  getRecentCmsDinerFeedback,
   getRecentCmsJournalPosts,
   getUpcomingCmsEvents,
 } from "./marketing-cms";
@@ -53,6 +54,50 @@ const journalDoc = {
   _status: "published",
 };
 
+const locationDocs = [
+  {
+    id: 1,
+    name: "Everybody Eats Onehunga",
+    slug: "onehunga",
+    menuLocationName: "Onehunga",
+    _status: "published",
+  },
+  {
+    id: 2,
+    name: "Wellington",
+    slug: "wellington",
+    menuLocationName: "",
+    _status: "published",
+  },
+];
+
+const feedbackItem = {
+  id: 41,
+  message: "Best  meal I've had\nall week. Thank you!",
+  name: "Aroha",
+  rating: 5,
+  locationSlug: "onehunga",
+  locationName: "Everybody Eats Onehunga",
+  createdAt: "2026-08-29T08:15:00.000Z",
+};
+
+/** Routes fetch by URL so Promise.all ordering can't make the test brittle. */
+function mockFeedbackEndpoints(
+  fetchMock: ReturnType<typeof vi.fn>,
+  feedback: unknown[],
+  locations: unknown[] = locationDocs
+) {
+  fetchMock.mockImplementation(async (url: string) => {
+    if (url.includes("/api/public/feedback")) {
+      return jsonResponse({ feedback });
+    }
+    if (url.includes("/api/locations")) {
+      return jsonResponse({ docs: locations });
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+}
+
 describe("marketing-cms service", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -76,6 +121,7 @@ describe("marketing-cms service", () => {
 
     expect(await getUpcomingCmsEvents()).toEqual([]);
     expect(await getRecentCmsJournalPosts()).toEqual([]);
+    expect(await getRecentCmsDinerFeedback()).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -223,6 +269,7 @@ describe("marketing-cms service", () => {
 
     expect(await getUpcomingCmsEvents()).toEqual([]);
     expect(await getRecentCmsJournalPosts()).toEqual([]);
+    expect(await getRecentCmsDinerFeedback()).toEqual([]);
   });
 
   it("returns [] on a non-OK response with nothing cached", async () => {
@@ -264,6 +311,107 @@ describe("marketing-cms service", () => {
       const events = await getCmsEventsForShift(null, new Date());
       expect(events).toEqual([]);
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getRecentCmsDinerFeedback", () => {
+    it("maps published notes and resolves CMS slugs to portal location names", async () => {
+      mockFeedbackEndpoints(fetchMock, [
+        feedbackItem,
+        {
+          ...feedbackItem,
+          id: 42,
+          name: "",
+          rating: null,
+          locationSlug: "wellington",
+          locationName: "Wellington",
+        },
+      ]);
+
+      const notes = await getRecentCmsDinerFeedback();
+
+      expect(notes).toEqual([
+        {
+          id: 41,
+          message: "Best meal I've had all week. Thank you!",
+          name: "Aroha",
+          rating: 5,
+          locationSlug: "onehunga",
+          location: "Onehunga",
+          createdAt: "2026-08-29T08:15:00.000Z",
+        },
+        {
+          id: 42,
+          message: "Best meal I've had all week. Thank you!",
+          name: null,
+          rating: null,
+          locationSlug: "wellington",
+          // Blank menuLocationName falls back to the CMS display name.
+          location: "Wellington",
+          createdAt: "2026-08-29T08:15:00.000Z",
+        },
+      ]);
+
+      const urls = fetchMock.mock.calls.map((call) => call[0] as string);
+      const feedbackUrl = urls.find((u) => u.includes("/api/public/feedback"))!;
+      expect(feedbackUrl).toContain(`${BASE_URL}/api/public/feedback?`);
+      expect(feedbackUrl).toContain("since=");
+      expect(feedbackUrl).toContain("limit=200");
+      const locationsUrl = urls.find((u) => u.includes("/api/locations"))!;
+      expect(locationsUrl).toContain(
+        `${encodeURIComponent("where[_status][equals]")}=published`
+      );
+    });
+
+    it("keeps notes for unknown slugs with a null location and drops invalid notes", async () => {
+      mockFeedbackEndpoints(fetchMock, [
+        { ...feedbackItem, id: 1, locationSlug: "special-events" },
+        { ...feedbackItem, id: 2, locationSlug: null },
+        { ...feedbackItem, id: 3, message: "   " },
+        { ...feedbackItem, id: 4, createdAt: "not-a-date" },
+        { ...feedbackItem, id: 5, rating: 9 },
+      ]);
+
+      const notes = await getRecentCmsDinerFeedback();
+
+      expect(notes.map((n) => n.id)).toEqual([1, 2, 5]);
+      expect(notes[0].location).toBeNull();
+      expect(notes[0].locationSlug).toBe("special-events");
+      expect(notes[1].location).toBeNull();
+      expect(notes[2].rating).toBeNull();
+    });
+
+    it("asks the CMS for notes from the last two weeks", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-15T10:00:00.000Z"));
+      mockFeedbackEndpoints(fetchMock, []);
+
+      await getRecentCmsDinerFeedback();
+
+      const feedbackUrl = fetchMock.mock.calls
+        .map((call) => call[0] as string)
+        .find((u) => u.includes("/api/public/feedback"))!;
+      const since = new URL(feedbackUrl).searchParams.get("since");
+      expect(since).toBe("2026-09-01T10:00:00.000Z");
+    });
+
+    it("returns [] when the feedback endpoint responds non-OK", async () => {
+      fetchMock.mockImplementation(async (url: string) =>
+        url.includes("/api/public/feedback")
+          ? jsonResponse({}, false, 502)
+          : jsonResponse({ docs: locationDocs })
+      );
+
+      expect(await getRecentCmsDinerFeedback()).toEqual([]);
+    });
+
+    it("caches feedback and its location map together", async () => {
+      mockFeedbackEndpoints(fetchMock, [feedbackItem]);
+
+      await getRecentCmsDinerFeedback();
+      await getRecentCmsDinerFeedback();
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   });
 });

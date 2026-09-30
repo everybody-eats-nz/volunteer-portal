@@ -56,6 +56,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useHomeShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
   getShiftThemeByName,
+  type DinerFeedbackNote,
   type FeedComment,
   type FeedItem,
   type LikeUser,
@@ -2081,6 +2082,259 @@ function getRecapMessage(
   return RECAP_TEMPLATES[index](meals, volunteers);
 }
 
+/** Star rating colours: amber on paper, sun-yellow on the forest spotlight. */
+const STAR_AMBER = { light: "#D99A00", dark: "#F2C94C" } as const;
+
+function DinerStars({
+  rating,
+  filledColor,
+  emptyColor,
+  size = 13,
+}: {
+  rating: number;
+  filledColor: string;
+  emptyColor: string;
+  size?: number;
+}) {
+  const filled = Math.max(0, Math.min(5, Math.round(rating)));
+  return (
+    <View
+      style={styles.dinerStarsRow}
+      accessibilityLabel={`${filled} out of 5 stars`}
+      accessibilityRole="text"
+    >
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Ionicons
+          key={star}
+          name={star <= filled ? "star" : "star-outline"}
+          size={size}
+          color={star <= filled ? filledColor : emptyColor}
+        />
+      ))}
+    </View>
+  );
+}
+
+function dinerByline(note: DinerFeedbackNote): string {
+  const name = note.name?.trim();
+  return name ? `— ${name}` : "— A guest";
+}
+
+/**
+ * The "wow" moment of a shift recap: guests' own words, set on the brand's
+ * dark-forest panel with sun-yellow stars — the same pairing the marketing
+ * site uses for its hero. With several notes it becomes a swipeable pager.
+ *
+ * Only positive, consented notes ever reach the app (the marketing CMS gates
+ * publication and staff can override), so these are always safe to celebrate.
+ */
+function DinerSpotlight({
+  notes,
+  compact = false,
+}: {
+  notes: DinerFeedbackNote[];
+  /** Feed card: clamp long quotes and show a "tap to read" hint. */
+  compact?: boolean;
+}) {
+  const [pageWidth, setPageWidth] = useState(0);
+  const [page, setPage] = useState(0);
+  const pager = notes.length > 1 && pageWidth > 0;
+  const shown = pager ? notes : notes.slice(0, 1);
+
+  const renderNote = (note: DinerFeedbackNote) => (
+    <View
+      key={note.id}
+      style={[
+        styles.dinerSpotlightPage,
+        pager ? { width: pageWidth, paddingHorizontal: 16 } : null,
+      ]}
+    >
+      {typeof note.rating === "number" && (
+        <DinerStars
+          rating={note.rating}
+          filledColor={Palette.sun200}
+          emptyColor="rgba(253, 248, 239, 0.28)"
+          size={15}
+        />
+      )}
+      <Text
+        style={[
+          styles.dinerSpotlightQuote,
+          compact ? styles.dinerSpotlightQuoteCompact : null,
+        ]}
+        numberOfLines={compact ? 4 : undefined}
+      >
+        {note.message}
+      </Text>
+      <Text style={styles.dinerSpotlightByline} numberOfLines={1}>
+        {dinerByline(note)}
+      </Text>
+    </View>
+  );
+
+  return (
+    <LinearGradient
+      colors={[Palette.forest700, Palette.forest500, Palette.forest800]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.dinerSpotlight}
+      onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}
+    >
+      {/* Decorative depth: giant quote mark + soft ring, like the sheet hero. */}
+      <Text style={styles.dinerSpotlightGlyph} accessible={false}>
+        “
+      </Text>
+      <View style={[styles.dinerSpotlightRing, styles.dinerSpotlightRingOuter]} />
+      <View style={[styles.dinerSpotlightRing, styles.dinerSpotlightRingInner]} />
+
+      <View style={styles.dinerSpotlightHeader}>
+        <Text style={styles.dinerSpotlightLabel}>💬 In diners’ words</Text>
+        {notes.length > 1 && (
+          <View style={styles.dinerSpotlightCount}>
+            <Text style={styles.dinerSpotlightCountText}>
+              {notes.length} notes
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {pager ? (
+        <ScrollView
+          horizontal
+          pagingEnabled
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          style={{ width: pageWidth, marginHorizontal: -16 }}
+          contentContainerStyle={{ paddingHorizontal: 0 }}
+          onMomentumScrollEnd={(e) =>
+            setPage(
+              Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageWidth))
+            )
+          }
+        >
+          {shown.map(renderNote)}
+        </ScrollView>
+      ) : (
+        shown.map(renderNote)
+      )}
+
+      <View style={styles.dinerSpotlightFooter}>
+        {pager ? (
+          <View style={styles.dinerSpotlightDots} accessible={false}>
+            {shown.map((note, index) => (
+              <View
+                key={note.id}
+                style={[
+                  styles.dinerSpotlightDot,
+                  index === page ? styles.dinerSpotlightDotActive : null,
+                ]}
+              />
+            ))}
+          </View>
+        ) : (
+          <View />
+        )}
+        {compact && (
+          <Text style={styles.dinerSpotlightHint}>
+            {notes.length > 1 ? "Swipe · tap to read all" : "Tap to read"}
+          </Text>
+        )}
+      </View>
+    </LinearGradient>
+  );
+}
+
+/** A guest's note as a paper quote card — the sheet's list beneath the spotlight. */
+function DinerNoteQuote({
+  note,
+  colors,
+  isDark,
+}: {
+  note: DinerFeedbackNote;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.dinerNote,
+        {
+          backgroundColor: isDark ? "rgba(16, 185, 129, 0.08)" : colors.surfaceSoft,
+          borderLeftColor: isDark ? colors.tint : Brand.green,
+        },
+      ]}
+    >
+      {typeof note.rating === "number" && (
+        <DinerStars
+          rating={note.rating}
+          filledColor={isDark ? STAR_AMBER.dark : STAR_AMBER.light}
+          emptyColor={colors.border}
+        />
+      )}
+      <Text style={[styles.dinerNoteQuote, { color: colors.text }]}>
+        “{note.message}”
+      </Text>
+      <Text
+        style={[styles.dinerNoteByline, { color: colors.textSecondary }]}
+        numberOfLines={1}
+      >
+        {dinerByline(note)}
+      </Text>
+    </View>
+  );
+}
+
+/** Headline strip for the sheet: average stars (when any) and how many guests wrote in. */
+function DinerSummary({
+  notes,
+  colors,
+  isDark,
+}: {
+  notes: DinerFeedbackNote[];
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  const average = dinerAverageRating(notes);
+  const guestWord = notes.length === 1 ? "guest" : "guests";
+  if (average === null) {
+    return (
+      <View style={sheet.dinerSummary}>
+        <Text style={[sheet.dinerSummaryText, { color: colors.textSecondary }]}>
+          {notes.length} {notes.length === 1 ? "note" : "notes"} from {guestWord}{" "}
+          who paid at the table that night
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <View style={sheet.dinerSummary}>
+      <Text style={[sheet.dinerSummaryBig, { color: colors.text }]}>
+        {average.toFixed(1)}
+      </Text>
+      <View style={sheet.dinerSummaryMeta}>
+        <DinerStars
+          rating={average}
+          filledColor={isDark ? STAR_AMBER.dark : STAR_AMBER.light}
+          emptyColor={colors.border}
+          size={16}
+        />
+        <Text style={[sheet.dinerSummaryText, { color: colors.textSecondary }]}>
+          from {notes.length} {guestWord} who paid at the table that night
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/** Average of the star ratings guests chose to leave, or null when none did. */
+function dinerAverageRating(notes: DinerFeedbackNote[]): number | null {
+  const ratings = notes
+    .map((n) => n.rating)
+    .filter((r): r is number => typeof r === "number");
+  if (ratings.length === 0) return null;
+  return ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+}
+
 /** Human label for a marketing CMS journal category slug. */
 function journalCategoryLabel(category?: string): string {
   if (!category) return "From the journal";
@@ -2542,6 +2796,11 @@ function FeedCard({
             >
               {getRecapMessage(item.mealsServed, item.volunteerCount, item.id)}
             </Text>
+            {item.dinerFeedback && item.dinerFeedback.length > 0 && (
+              <View style={styles.dinerNotePreview}>
+                <DinerSpotlight notes={item.dinerFeedback} compact />
+              </View>
+            )}
             <View style={styles.feedFooter}>
               <Text
                 style={[styles.feedMetaText, { color: colors.textSecondary }]}
@@ -3660,6 +3919,65 @@ function FeedItemSheet({
                 </View>
               </View>
             </View>
+
+            {/* ── Diner notes from pay-at-table (shift recap) ── */}
+            {item.type === "shift_recap" &&
+            item.dinerFeedback &&
+            item.dinerFeedback.length > 0 ? (
+              <View
+                style={[
+                  sheet.dinerCard,
+                  {
+                    backgroundColor: colors.card,
+                    shadowColor: isDark ? "#000" : "#64748b",
+                  },
+                ]}
+              >
+                <View style={sheet.criteriaHeader}>
+                  <View
+                    style={[
+                      sheet.criteriaSectionAccent,
+                      { backgroundColor: accentColor },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      sheet.criteriaSectionLabel,
+                      { color: accentColor },
+                    ]}
+                  >
+                    In diners’ own words
+                  </Text>
+                </View>
+
+                <DinerSummary
+                  notes={item.dinerFeedback}
+                  colors={colors}
+                  isDark={isDark}
+                />
+
+                <DinerSpotlight notes={item.dinerFeedback.slice(0, 1)} />
+
+                {item.dinerFeedback.length > 1 && (
+                  <View style={sheet.dinerList}>
+                    {item.dinerFeedback.slice(1).map((note) => (
+                      <DinerNoteQuote
+                        key={note.id}
+                        note={note}
+                        colors={colors}
+                        isDark={isDark}
+                      />
+                    ))}
+                  </View>
+                )}
+
+                <Text
+                  style={[sheet.dinerClosing, { color: colors.textSecondary }]}
+                >
+                  Ngā mihi, whānau — this is your mahi in their words. 💚
+                </Text>
+              </View>
+            ) : null}
 
             {/* ── Achievement criteria card ── */}
             {item.type === "achievement" && item.criteria ? (
@@ -4885,6 +5203,133 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.regular,
   },
+  dinerNotePreview: {
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  dinerSpotlight: {
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    overflow: "hidden",
+  },
+  dinerSpotlightGlyph: {
+    position: "absolute",
+    top: -18,
+    right: 10,
+    fontSize: 120,
+    lineHeight: 120,
+    fontFamily: FontFamily.displayItalic,
+    color: "rgba(248, 251, 105, 0.16)",
+  },
+  dinerSpotlightRing: {
+    position: "absolute",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(253, 248, 239, 0.07)",
+  },
+  dinerSpotlightRingOuter: {
+    width: 220,
+    height: 220,
+    bottom: -120,
+    left: -70,
+  },
+  dinerSpotlightRingInner: {
+    width: 140,
+    height: 140,
+    bottom: -80,
+    left: -30,
+  },
+  dinerSpotlightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  dinerSpotlightLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    color: Palette.sun200,
+  },
+  dinerSpotlightCount: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(253, 248, 239, 0.14)",
+  },
+  dinerSpotlightCountText: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    color: Palette.cream50,
+  },
+  dinerSpotlightPage: {
+    gap: 8,
+  },
+  dinerSpotlightQuote: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontFamily: FontFamily.displayItalic,
+    color: Palette.cream50,
+    letterSpacing: -0.2,
+  },
+  dinerSpotlightQuoteCompact: {
+    fontSize: 18,
+    lineHeight: 25,
+  },
+  dinerSpotlightByline: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    color: "rgba(253, 248, 239, 0.75)",
+  },
+  dinerSpotlightFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+    minHeight: 14,
+  },
+  dinerSpotlightDots: {
+    flexDirection: "row",
+    gap: 5,
+  },
+  dinerSpotlightDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(253, 248, 239, 0.35)",
+  },
+  dinerSpotlightDotActive: {
+    width: 16,
+    backgroundColor: Palette.sun200,
+  },
+  dinerSpotlightHint: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    color: "rgba(253, 248, 239, 0.55)",
+  },
+  dinerNote: {
+    borderRadius: 14,
+    borderLeftWidth: 3,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 5,
+  },
+  dinerStarsRow: {
+    flexDirection: "row",
+    gap: 1,
+  },
+  dinerNoteQuote: {
+    fontSize: 16,
+    lineHeight: 23,
+    fontFamily: FontFamily.displayItalic,
+  },
+  dinerNoteByline: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+  },
   feedDot: {
     fontSize: 12,
   },
@@ -4947,6 +5392,49 @@ const styles = StyleSheet.create({
 /* ── Sheet detail styles ── */
 
 const sheet = StyleSheet.create({
+  // Diner notes card (shift recap)
+  dinerCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 18,
+    gap: 14,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  dinerSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  dinerSummaryBig: {
+    fontSize: 40,
+    lineHeight: 44,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -1,
+  },
+  dinerSummaryMeta: {
+    flex: 1,
+    gap: 4,
+  },
+  dinerSummaryText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: FontFamily.regular,
+  },
+  dinerList: {
+    gap: 10,
+  },
+  dinerClosing: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: FontFamily.displayItalic,
+    textAlign: "center",
+  },
   // Hero banner
   heroBanner: {
     alignItems: "center",
