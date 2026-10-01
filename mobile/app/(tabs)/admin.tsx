@@ -101,10 +101,6 @@ export default function AdminScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Eyebrow color={paperTint.eyebrow} style={styles.eyebrowSpacing}>
-          Everybody Eats · Admin
-        </Eyebrow>
-
         <View style={styles.heroBlock}>
           <Text style={styles.heroLine}>
             <Text style={[styles.hero, { color: paperTint.ink }]}>Kia ora, </Text>
@@ -174,7 +170,7 @@ export default function AdminScreen() {
         <View style={styles.welcomeFooter}>
           <View style={[styles.hairline, { backgroundColor: paperTint.rule, marginBottom: 14 }]} />
           <View style={styles.footerEyebrow}>
-            <Eyebrow color={colors.textSecondary} rule={false}>
+            <Eyebrow color={colors.textSecondary}>
               Ngā mihi · thanks for steering the waka
             </Eyebrow>
           </View>
@@ -268,7 +264,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   scrollContent: { paddingHorizontal: 24 },
-  eyebrowSpacing: { marginBottom: 20 },
   channelEyebrow: {
     marginTop: 28,
     marginBottom: 16,

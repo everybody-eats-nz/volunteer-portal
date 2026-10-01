@@ -56,7 +56,6 @@ export default function ForgotPasswordPage() {
     <AuthShell
       testid="forgot-password-page"
       cardTestid="forgot-password-form-card"
-      brandEyebrow="Kia ora"
       brandHeading={
         <>
           Let&apos;s get you back <em>in</em>

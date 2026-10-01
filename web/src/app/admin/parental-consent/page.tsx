@@ -7,6 +7,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { ParentalConsentTable } from "./parental-consent-table";
 import { prisma } from "@/lib/prisma";
+import { getUsersRequiringParentalConsent } from "@/lib/parental-consent";
 
 /**
  * Admin page for managing parental consent approvals
@@ -25,7 +26,7 @@ export default async function AdminParentalConsentPage() {
 
   // Get statistics for volunteers requiring parental consent
   // Note: We use requiresParentalConsent flag to stay consistent with the table data
-  const [totalUnder16, pendingApproval, approved] = await Promise.all([
+  const [totalUnder16, pendingApproval, approved, consentUsers] = await Promise.all([
     // Total volunteers requiring parental consent
     prisma.user.count({
       where: {
@@ -52,6 +53,7 @@ export default async function AdminParentalConsentPage() {
         parentalConsentReceived: true,
       },
     }),
+    getUsersRequiringParentalConsent(),
   ]);
 
   return (
@@ -128,7 +130,7 @@ export default async function AdminParentalConsentPage() {
           </div>
 
           {/* Consent Management Table */}
-          <ParentalConsentTable />
+          <ParentalConsentTable initialUsers={consentUsers} />
         </div>
       </AdminPageWrapper>
     </PageContainer>

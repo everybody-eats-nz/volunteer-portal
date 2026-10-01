@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { TableSkeleton } from "@/components/admin/admin-skeletons";
 import { format } from "date-fns";
 
 type LogEntry = {
@@ -127,8 +128,15 @@ export function ArchivingLog() {
       </CardHeader>
       <CardContent>
         {logs === null ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            Loading…
+          <div aria-busy="true" className="overflow-hidden rounded-lg border">
+            <span className="sr-only" role="status">
+              Loading archive events
+            </span>
+            <TableSkeleton
+              card={false}
+              rows={6}
+              columns={["w-28", "w-24", "w-36", "w-20", "w-24", "w-40"]}
+            />
           </div>
         ) : logs.length === 0 ? (
           <div

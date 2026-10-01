@@ -1718,11 +1718,6 @@ const s = StyleSheet.create({
     gap: 10,
     marginBottom: 4,
   },
-  friendsGroupRule: {
-    width: 12,
-    height: 1,
-    backgroundColor: "rgba(128,128,128,0.4)",
-  },
   friendsGroupLabel: {
     flex: 1,
     fontSize: 10,

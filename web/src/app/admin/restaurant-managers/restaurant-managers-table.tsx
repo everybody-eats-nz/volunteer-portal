@@ -21,7 +21,6 @@ import { getInitials, getUserDisplayName } from "./types";
 
 interface RestaurantManagersTableProps {
   managers: RestaurantManager[];
-  loading: boolean;
   editingId: string | null;
   onToggleNotifications: (managerId: string, currentState: boolean) => void;
   onDelete: (managerId: string) => void;
@@ -29,24 +28,10 @@ interface RestaurantManagersTableProps {
 
 export default function RestaurantManagersTable({
   managers,
-  loading,
   editingId,
   onToggleNotifications,
   onDelete,
 }: RestaurantManagersTableProps) {
-  if (loading) {
-    return (
-      <div className="space-y-2" data-testid="loading-managers">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-16 animate-pulse rounded-xl bg-muted/60"
-          />
-        ))}
-      </div>
-    );
-  }
-
   if (managers.length === 0) {
     return (
       <div

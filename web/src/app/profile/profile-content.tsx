@@ -253,11 +253,6 @@ export async function ProfileContent() {
           className="absolute -bottom-28 -right-24 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(closest-side,rgb(248_251_105/0.18),transparent)]"
         />
         <div className="relative mx-auto max-w-md">
-          <p className="eyebrow mb-5 flex items-center justify-center gap-3 text-sun-200/90">
-            <span className="inline-block h-px w-8 bg-sun-200/50" />
-            Kia ora
-            <span className="inline-block h-px w-8 bg-sun-200/50" />
-          </p>
           <h3 className="display text-3xl tracking-tight sm:text-4xl">
             Sign in required
           </h3>
@@ -310,10 +305,6 @@ export async function ProfileContent() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="eyebrow mb-3 flex items-center justify-center gap-3 text-sun-200/90 md:justify-start">
-              <span className="hidden h-px w-8 bg-sun-200/50 md:inline-block" />
-              Kia ora
-            </p>
             <h2 className="display text-3xl leading-[1.05] tracking-tight sm:text-4xl">
               {userProfile?.name || session.user.name || "Volunteer"}
             </h2>

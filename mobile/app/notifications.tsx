@@ -22,7 +22,6 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -359,20 +358,6 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
 
   return (
     <Animated.View entering={FadeIn.duration(220)} style={styles.hero}>
-      <View style={styles.heroEyebrowRow}>
-        <View
-          style={[
-            styles.heroEyebrowDot,
-            {
-              backgroundColor: hasUnread ? Brand.accent : colors.border,
-            },
-          ]}
-        />
-        <Eyebrow rule={false} color={colors.textSecondary}>
-          Latest updates
-        </Eyebrow>
-      </View>
-
       <ThemedText type="display" style={styles.heroTitle}>
         {hasUnread ? (
           <>
@@ -608,17 +593,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
     gap: 8,
-  },
-  heroEyebrowRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  heroEyebrowDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
   },
   heroTitle: {
     fontFamily: FontFamily.display,

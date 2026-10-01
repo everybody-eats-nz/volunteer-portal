@@ -782,7 +782,11 @@ export function NotificationsContent({
                   value={filterLocation}
                   onValueChange={setFilterLocation}
                 >
-                  <SelectTrigger id="location" data-testid="location-filter">
+                  <SelectTrigger
+                    id="location"
+                    size="md"
+                    data-testid="location-filter"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -802,7 +806,11 @@ export function NotificationsContent({
                   value={filterShiftType}
                   onValueChange={setFilterShiftType}
                 >
-                  <SelectTrigger id="shiftType" data-testid="shift-type-filter">
+                  <SelectTrigger
+                    id="shiftType"
+                    size="md"
+                    data-testid="shift-type-filter"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -830,7 +838,7 @@ export function NotificationsContent({
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="availability"
@@ -861,7 +869,7 @@ export function NotificationsContent({
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div
                 className="text-sm text-muted-foreground"
                 data-testid="volunteer-count"
@@ -869,9 +877,12 @@ export function NotificationsContent({
                 {filteredVolunteers.length} volunteers match filters
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex w-full gap-2 sm:w-auto">
                 <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger
+                    size="md"
+                    className="min-w-0 flex-1 sm:w-[200px] sm:flex-none"
+                  >
                     <SelectValue
                       placeholder={
                         notificationGroups.length === 0
@@ -931,7 +942,7 @@ export function NotificationsContent({
         </Card>
 
         {/* Send Button */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
               Ready to send to {selectedVolunteers.size} volunteers for{" "}
@@ -945,7 +956,7 @@ export function NotificationsContent({
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <EmailPreviewDialog
               emailType="shortage"
               triggerLabel="Preview Email"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
+import { ServiceNightReportSkeleton } from "@/components/service-night-report-skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -315,17 +316,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
   };
 
   if (fetching) {
-    return (
-      <Card className="mb-6 gap-0 overflow-hidden py-0">
-        <div className="border-b bg-muted/40 px-6 py-5">
-          <div className="h-3 w-32 animate-pulse rounded bg-muted-foreground/20" />
-          <div className="mt-2 h-6 w-56 animate-pulse rounded bg-muted-foreground/20" />
-        </div>
-        <div className="flex items-center justify-center px-6 py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </Card>
-    );
+    return <ServiceNightReportSkeleton />;
   }
 
   return (
@@ -525,7 +516,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
               value={form.protein || undefined}
               onValueChange={(v) => set("protein", v)}
             >
-              <SelectTrigger id="protein" className="h-9 w-full">
+              <SelectTrigger id="protein" size="md" className="w-full">
                 <SelectValue placeholder="Select protein" />
               </SelectTrigger>
               <SelectContent>

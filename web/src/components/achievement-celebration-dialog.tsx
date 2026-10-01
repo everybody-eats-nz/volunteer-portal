@@ -177,10 +177,8 @@ export function AchievementCelebrationDialog({
                 </motion.div>
               </div>
 
-              <p className="eyebrow flex items-center gap-3 text-sun-200/90">
-                <span className="inline-block h-px w-8 bg-sun-200/50" />
+              <p className="eyebrow text-sun-200/90">
                 Ngā mihi nui
-                <span className="inline-block h-px w-8 bg-sun-200/50" />
               </p>
 
               <h2 className="display text-3xl leading-tight tracking-tight text-cream-50 sm:text-4xl">

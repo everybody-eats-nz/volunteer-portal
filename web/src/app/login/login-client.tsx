@@ -230,6 +230,9 @@ export default function LoginClient({ providers }: LoginClientProps) {
     } else if (res?.ok) {
       // Add a small delay to ensure session is established
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Deliberate full reload: every server component and the session
+      // provider must start from the new session cookie.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/";
     }
   }
@@ -457,7 +460,6 @@ export default function LoginClient({ providers }: LoginClientProps) {
     <AuthShell
       testid="login-page"
       cardTestid="login-form-card"
-      brandEyebrow="Kia ora"
       brandHeading={
         <>
           Good to have you <em>back</em>

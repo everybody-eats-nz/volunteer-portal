@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
- * Page-local branded header for the profile edit flow — eyebrow + Fraunces
+ * Page-local branded header for the profile edit flow — Fraunces
  * display treatment matching the rest of the portal. Shared by the edit page
  * and its loading state so the two never drift. The accessible heading name
  * keeps "Edit Your Profile" and the description keeps the sentence the e2e
@@ -12,10 +12,6 @@ import { Button } from "@/components/ui/button";
 export function ProfileEditPageHeader() {
   return (
     <header>
-      <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-        <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-        Kia ora · Keep your details fresh
-      </p>
       <h1 className="display text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50">
         Edit Your <em>Profile</em>
       </h1>

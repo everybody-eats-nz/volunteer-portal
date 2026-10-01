@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { TableSkeleton } from "@/components/admin/admin-skeletons";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import type { ArchiveCategory } from "@/lib/archive-service";
 import { format, formatDistanceToNowStrict } from "date-fns";
@@ -146,8 +147,17 @@ export function PendingCategory({
       </CardHeader>
       <CardContent>
         {users === null ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            Loading…
+          <div aria-busy="true" className="overflow-hidden rounded-lg border">
+            <span className="sr-only" role="status">
+              Loading pending volunteers
+            </span>
+            <TableSkeleton
+              card={false}
+              rows={6}
+              columns={["w-40", "w-24", "w-24", "w-20"]}
+              avatar
+              actions
+            />
           </div>
         ) : users.length === 0 ? (
           <div

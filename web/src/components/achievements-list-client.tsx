@@ -368,16 +368,10 @@ export function AchievementsListClient({
     <section data-testid="achievements-collection">
       {/* Section header — editorial, sits straight on the cream page */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow mb-3 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-            The collection
-          </p>
-          {/* Deliberately not a heading element: the e2e suite locates the page
-              by its single /achievements/i heading (the h1). */}
-          <div className="display text-3xl tracking-tight text-forest-700 sm:text-4xl dark:text-cream-50">
-            All <em>Achievements</em>
-          </div>
+        {/* Deliberately not a heading element: the e2e suite locates the page
+            by its single /achievements/i heading (the h1). */}
+        <div className="display text-3xl tracking-tight text-forest-700 sm:text-4xl dark:text-cream-50">
+          All <em>Achievements</em>
         </div>
         <Button
           variant="outline"

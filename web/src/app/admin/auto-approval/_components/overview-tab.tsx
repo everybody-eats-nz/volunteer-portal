@@ -20,14 +20,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/ui/stats-card";
 import { cn } from "@/lib/utils";
 import { formatInNZT } from "@/lib/timezone";
 import {
   ApexChart,
   ChartErrorBoundary,
-  ChartSkeleton,
   SegmentedControl,
 } from "@/app/admin/analytics/_components/primitives";
 import {
@@ -38,6 +36,7 @@ import {
 } from "@/app/admin/analytics/_lib/chart-theme";
 
 import { EmptyState, VolunteerCell } from "./shared";
+import { OverviewTabSkeleton } from "./overview-skeleton";
 import { OUTCOME_META, OutcomeBadge, type Outcome } from "./outcome";
 
 interface Overview {
@@ -172,16 +171,7 @@ export function OverviewTab({ onJumpToDecisions }: { onJumpToDecisions: () => vo
   }, [data, tokens]);
 
   if (loading && !data) {
-    return (
-      <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 w-full" />
-          ))}
-        </div>
-        <ChartSkeleton height={320} />
-      </div>
-    );
+    return <OverviewTabSkeleton />;
   }
 
   if (!data) {

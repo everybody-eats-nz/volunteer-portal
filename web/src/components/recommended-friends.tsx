@@ -40,8 +40,7 @@ function SuggestionsPanel({ children }: { children: React.ReactNode }) {
         aria-hidden
       />
       <div className="relative">
-        <p className="eyebrow mb-4 flex items-center gap-3 text-sun-200/90">
-          <span className="inline-block h-px w-8 bg-sun-200/50" />
+        <p className="eyebrow mb-4 text-sun-200/90">
           People you may know
         </p>
         {children}

@@ -115,14 +115,10 @@ async function FriendsPageContent({
 
   return (
     <PageContainer testid="friends-page">
-      {/* Branded header — eyebrow + Fraunces display treatment, matching the
+      {/* Branded header — Fraunces display treatment, matching the
           dashboard, shifts and profile pages (new.everybodyeats.nz). */}
       <div className="flex flex-col gap-6 pb-8 lg:flex-row lg:items-end lg:justify-between">
         <header>
-          <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-            Kia ora · Your volunteer whānau
-          </p>
           <h1 className="display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50">
             <span>
               My <em>Friends</em>

@@ -260,8 +260,8 @@ Round generously — the marketing brand uses soft, paper-like corners.
 
 ### Eyebrow (kicker)
 
-A small uppercase kicker preceded by a 32px hairline rule — sits above a
-section/screen display heading. Use the shared component:
+A small uppercase kicker that sits above a section/screen display heading -
+text only, no leading rule. Use the shared component:
 
 ```tsx
 import { Eyebrow } from '@/components/ui/eyebrow';
@@ -272,6 +272,11 @@ import { Eyebrow } from '@/components/ui/eyebrow';
 ```
 
 ~11px, uppercase, ~0.18em tracking. Pair with a `display`/`title` heading.
+
+Use it sparingly. An eyebrow earns its place when it carries something the
+heading does not - a status ("You're on the waitlist"), or the only label for a
+section that has no heading of its own ("Pick a channel"). Skip it when it is
+just a greeting or restates the heading directly below it.
 
 ### Pill buttons
 
@@ -361,7 +366,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 | ---------------------------- | ------------------------------------------ |
 | `constants/theme.ts`         | Palette, Brand, Colors, FontFamily tokens  |
 | `components/themed-text.tsx` | Themed text + display/accent type scale    |
-| `components/ui/eyebrow.tsx`  | Section/screen eyebrow (kicker + rule)      |
+| `components/ui/eyebrow.tsx`  | Section/screen eyebrow (uppercase kicker)   |
 | `components/ui/button.tsx`   | Pill Button (primary / ghost / accent)      |
 | `components/haptic-tab.tsx`  | Tab bar button with haptic feedback        |
 | `app/_layout.tsx`            | Font loading, theme provider               |

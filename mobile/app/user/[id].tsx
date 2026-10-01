@@ -17,7 +17,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { formatNZT } from "@/lib/dates";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -568,12 +567,6 @@ function IdentityBlock({
             </Text>
           </View>
         )}
-      </View>
-
-      <View style={styles.identityEyebrow}>
-        <Eyebrow color={colors.textSecondary}>
-          {isFriends ? "Your whānau" : "Volunteer"}
-        </Eyebrow>
       </View>
 
       <Text style={[styles.heroName, { color: colors.text }]}>
@@ -1635,10 +1628,6 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontSize: 44,
     fontFamily: FontFamily.headingBold,
-  },
-  identityEyebrow: {
-    marginBottom: 10,
-    alignSelf: "center",
   },
   heroName: {
     fontSize: 34,

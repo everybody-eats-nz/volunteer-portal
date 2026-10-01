@@ -87,11 +87,7 @@ export function SendFriendRequestForm({
         data-testid="send-friend-request-dialog"
       >
         <ResponsiveDialogHeader className="pb-4">
-          <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-            Grow the whānau
-          </p>
-          <ResponsiveDialogTitle className="display display-medium mt-2 text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+          <ResponsiveDialogTitle className="display display-medium text-2xl tracking-tight text-forest-700 dark:text-cream-50">
             Send Friend Request
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>

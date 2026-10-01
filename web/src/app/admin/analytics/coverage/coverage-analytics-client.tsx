@@ -1,5 +1,6 @@
 "use client";
 
+import { ApexChart } from "@/app/admin/analytics/_components/primitives";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -39,11 +40,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import dynamic from "next/dynamic";
 import { DayOfWeekFilter } from "@/components/day-of-week-filter";
 import type { ShiftCoverageData, ShiftCoverageRow } from "@/lib/shift-coverage";
 
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface Props {
   data: ShiftCoverageData;
@@ -201,7 +200,7 @@ export function CoverageAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
-                  <SelectTrigger id="months">
+                  <SelectTrigger id="months" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -215,7 +214,7 @@ export function CoverageAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger id="location">
+                  <SelectTrigger id="location" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -372,7 +371,7 @@ export function CoverageAnalyticsClient({
             </CardHeader>
             <CardContent>
               {hasData ? (
-                <Chart
+                <ApexChart
                   key={`coverage-${initialMonths}-${initialLocation}-${initialDays}`}
                   options={{
                     chart: {

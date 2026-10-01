@@ -423,7 +423,11 @@ function FilterSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-auto min-w-40" aria-label={placeholder}>
+      <SelectTrigger
+        size="md"
+        className="w-auto min-w-40"
+        aria-label={placeholder}
+      >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

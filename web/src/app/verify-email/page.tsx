@@ -245,11 +245,6 @@ export default function VerifyEmailPage() {
           data-testid="verify-email-card"
         >
           <CardHeader className="text-center">
-            <p className="eyebrow mx-auto mb-2 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-              Kia ora
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-            </p>
             <div
               className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl"
               data-testid="verification-icon"
