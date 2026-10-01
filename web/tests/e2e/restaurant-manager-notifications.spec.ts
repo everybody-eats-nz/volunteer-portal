@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { selectFirstOption } from "./helpers/select";
+import { gotoSettled } from "./helpers/streaming";
 
 /**
  * Removes every restaurant-manager assignment via the authenticated admin API so
@@ -21,6 +22,10 @@ async function clearRestaurantManagerAssignments(page: Page) {
   }
 }
 
+// Every test mutates the same global set of manager assignments (beforeEach
+// wipes them all), so running them in parallel workers makes them race.
+test.describe.configure({ mode: "default" });
+
 test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to admin dashboard
@@ -33,8 +38,7 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
   test("admin can assign restaurant managers to locations", async ({
     page,
   }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Check page loads correctly
     await expect(page.getByTestId("admin-page-header")).toBeVisible();
@@ -58,8 +62,7 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
   });
 
   test("restaurant manager assignment workflow", async ({ page }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Select an admin user (assuming we have at least one admin)
     await selectFirstOption(page.getByTestId("user-select"));
@@ -85,8 +88,7 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
   test("admin can view and manage restaurant manager assignments", async ({
     page,
   }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Check that the assignments section is visible
     const assignmentsSection = page.getByText("Current Assignments");
@@ -124,8 +126,7 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
   test("admin can toggle notification preferences for managers", async ({
     page,
   }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Ensure at least one manager assignment exists by creating one
     let hasAssignments = await page
@@ -144,7 +145,7 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
       });
 
       // Reload to see the table
-      await page.goto("/admin/restaurant-managers");
+      await gotoSettled(page, "/admin/restaurant-managers");
       await page.waitForLoadState("load");
       hasAssignments = await page
         .getByTestId("managers-table")
@@ -170,8 +171,7 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
   });
 
   test("admin can remove restaurant manager assignments", async ({ page }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Ensure at least one manager assignment exists
     let hasAssignments = await page
@@ -189,7 +189,7 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
         timeout: 5000,
       });
 
-      await page.goto("/admin/restaurant-managers");
+      await gotoSettled(page, "/admin/restaurant-managers");
       await page.waitForLoadState("load");
       hasAssignments = await page
         .getByTestId("managers-table")
@@ -297,8 +297,7 @@ test.describe("Restaurant Manager Assignment Data Validation", () => {
   });
 
   test("form validates required fields", async ({ page }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Try to submit form without selecting user
     const submitButton = page.getByTestId("assign-manager-button");
@@ -319,8 +318,7 @@ test.describe("Restaurant Manager Assignment Data Validation", () => {
   });
 
   test("form handles location selection and removal", async ({ page }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Select a user first
     await selectFirstOption(page.getByTestId("user-select"));
@@ -338,8 +336,7 @@ test.describe("Restaurant Manager Assignment Data Validation", () => {
   test("assignment form resets after successful submission", async ({
     page,
   }) => {
-    await page.goto("/admin/restaurant-managers");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/restaurant-managers");
 
     // Fill out form
     await selectFirstOption(page.getByTestId("user-select"));

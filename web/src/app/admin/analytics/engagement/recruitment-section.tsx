@@ -1,5 +1,6 @@
 "use client";
 
+import { ApexChart } from "@/app/admin/analytics/_components/primitives";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
@@ -13,7 +14,6 @@ import {
   UserX,
   CalendarCheck,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import {
   Tooltip,
@@ -36,7 +36,6 @@ import type {
 import { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
 import { RecruitmentUsersDialog } from "../recruitment/recruitment-users-dialog";
 
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 const MONTHS_LABELS: Record<string, string> = {
   "1": "1 month",
@@ -391,7 +390,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
             </CardHeader>
             <CardContent>
               {registrationTrend.some((t) => t.count > 0) ? (
-                <Chart
+                <ApexChart
                   options={{
                     chart: {
                       type: "bar" as const,
@@ -686,7 +685,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Chart
+              <ApexChart
                 options={{
                   chart: {
                     type: "bar" as const,

@@ -484,8 +484,8 @@ export function EngagementVolunteerTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between space-x-2">
-        <div className="flex-1 flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="text-sm text-muted-foreground">
             {pagination.totalCount > 0 ? (
               <>
@@ -522,8 +522,8 @@ export function EngagementVolunteerTable({
             </Select>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-muted-foreground whitespace-nowrap">
             Page {pagination.page} of {pagination.totalPages || 1}
           </p>
           <Button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { MapPinned, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -22,14 +22,15 @@ import {
 interface RestaurantManagersContentProps {
   adminUsers: ManagerUser[];
   locations: Location[];
+  initialManagers: RestaurantManager[];
 }
 
 export function RestaurantManagersContent({
   adminUsers,
   locations,
+  initialManagers,
 }: RestaurantManagersContentProps) {
-  const [managers, setManagers] = useState<RestaurantManager[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [managers, setManagers] = useState<RestaurantManager[]>(initialManagers);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,14 +50,8 @@ export function RestaurantManagersContent({
     } catch (error) {
       console.error("Error fetching managers:", error);
       toast.error("Failed to load restaurant managers");
-    } finally {
-      setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    fetchManagers();
-  }, [fetchManagers]);
 
   const coverage = useMemo(
     () => sortCoverageByRisk(computeCoverage(locations, managers)),
@@ -264,21 +259,10 @@ export function RestaurantManagersContent({
         <p className="text-sm text-muted-foreground">
           Who gets alerted at each venue. Riskiest locations appear first.
         </p>
-        {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-40 animate-pulse rounded-2xl bg-muted/60"
-              />
-            ))}
-          </div>
-        ) : (
-          <LocationCoverageGrid
-            coverage={coverage}
-            onAssignToLocation={handleAssignToLocation}
-          />
-        )}
+        <LocationCoverageGrid
+          coverage={coverage}
+          onAssignToLocation={handleAssignToLocation}
+        />
       </section>
 
       {/* 3 — Recipients list + assign/edit panel */}
@@ -293,7 +277,6 @@ export function RestaurantManagersContent({
           <div className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border dark:bg-white/[0.02] sm:p-5">
             <RestaurantManagersTable
               managers={managers}
-              loading={loading}
               editingId={editingId}
               onToggleNotifications={handleToggleNotifications}
               onDelete={handleDelete}

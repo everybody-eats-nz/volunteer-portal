@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
+import { getUsersRequiringParentalConsent } from "@/lib/parental-consent";
 
 /**
  * GET /api/admin/parental-consent
@@ -16,31 +16,7 @@ export async function GET() {
     }
 
     // Get all users under 16 who require parental consent (exclude archived)
-    const usersRequiringConsent = await prisma.user.findMany({
-      where: {
-        requiresParentalConsent: true,
-        archivedAt: null,
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        dateOfBirth: true,
-        parentalConsentReceived: true,
-        parentalConsentReceivedAt: true,
-        parentalConsentApprovedBy: true,
-        profileCompleted: true,
-        createdAt: true,
-        phone: true,
-        emergencyContactName: true,
-        emergencyContactPhone: true,
-      },
-      orderBy: [
-        { parentalConsentReceived: 'asc' }, // Show pending first
-        { createdAt: 'desc' }
-      ]
-    });
+    const usersRequiringConsent = await getUsersRequiringParentalConsent();
 
     return NextResponse.json({ users: usersRequiringConsent });
   } catch (error) {

@@ -35,6 +35,29 @@ export default async function RestaurantManagersPage() {
     ],
   });
 
+  // Load assignments on the server so the page arrives complete (the route
+  // skeleton covers the wait) instead of flashing an empty coverage state.
+  const managers = await prisma.restaurantManager.findMany({
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          name: true,
+          role: true,
+        },
+      },
+    },
+    orderBy: { user: { email: "asc" } },
+  });
+  const initialManagers = managers.map((manager) => ({
+    ...manager,
+    createdAt: manager.createdAt.toISOString(),
+    updatedAt: manager.updatedAt.toISOString(),
+  }));
+
   // Get available locations
   const locations = (await getActiveLocationNames()).map(location => ({
     value: location,
@@ -49,6 +72,7 @@ export default async function RestaurantManagersPage() {
       <RestaurantManagersContent
         adminUsers={adminUsers}
         locations={locations}
+        initialManagers={initialManagers}
       />
     </AdminPageWrapper>
   );

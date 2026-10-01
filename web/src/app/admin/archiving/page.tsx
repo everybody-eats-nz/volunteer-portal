@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { getArchiveStats } from "@/lib/archive-service";
 import { ArchivingTabs } from "./archiving-tabs";
 
 export const metadata: Metadata = {
@@ -18,13 +19,15 @@ export default async function ArchivingPage() {
   if (!session?.user) redirect("/login?callbackUrl=/admin/archiving");
   if (role !== "ADMIN") redirect("/dashboard");
 
+  const initialStats = await getArchiveStats();
+
   return (
     <AdminPageWrapper
       title="Volunteer Archiving"
       description="Soft-archive inactive volunteers based on Nic's rules. Run passes manually while the cron is being set up — per-rule actions and a full activity log are available below."
     >
       <div className="space-y-6">
-        <ArchivingTabs />
+        <ArchivingTabs initialStats={initialStats} />
       </div>
     </AdminPageWrapper>
   );
