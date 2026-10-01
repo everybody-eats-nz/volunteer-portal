@@ -19,6 +19,17 @@ async function navigateToVolunteerProfile(page: Page, volunteerId: string) {
 }
 
 test.describe("Admin Notes Management", () => {
+  // All tests below create/delete admin notes for the one shared
+  // testVolunteerId (beforeEach even cleans up the previous test's notes).
+  // Under fullyParallel + CI's 2 workers, Playwright can otherwise schedule
+  // two of these tests concurrently, so one test's cleanup/create races
+  // another's read of the same volunteer's notes — this occasionally starved
+  // the dev server long enough that "add-note-button" (which only renders
+  // after its own fetchNotes() completes, see admin-notes-manager.tsx) missed
+  // even the already-extended 50s timeout below. Serializing removes the
+  // contention at its source instead of chasing the timeout further.
+  test.describe.configure({ mode: "serial" });
+
   let testVolunteerId: string | null = null;
   const testEmail = "admin-notes-test@example.com";
 
@@ -56,32 +67,28 @@ test.describe("Admin Notes Management", () => {
     // Clean up any existing notes for this volunteer before each test
     if (testVolunteerId) {
       try {
-        const response = await page.evaluate(async (volunteerId) => {
-          return fetch(`/api/admin/admin-notes?volunteerId=${volunteerId}`, {
-            method: "GET",
-          });
+        const notes = await page.evaluate(async (volunteerId) => {
+          const response = await fetch(
+            `/api/admin/admin-notes?volunteerId=${volunteerId}`,
+            { method: "GET" }
+          );
+          return response.json();
         }, testVolunteerId);
 
-        if (response) {
-          const notes = await page.evaluate(async (volunteerId) => {
-            const response = await fetch(
-              `/api/admin/admin-notes?volunteerId=${volunteerId}`,
-              {
-                method: "GET",
-              }
-            );
-            return response.json();
-          }, testVolunteerId);
-
-          // Delete each note
-          for (const note of notes) {
-            await page.evaluate(async (noteId) => {
-              return fetch(`/api/admin/admin-notes/${noteId}`, {
-                method: "DELETE",
-              });
-            }, note.id);
-          }
-        }
+        // Notes are independent, so delete them concurrently rather than
+        // awaiting one round trip at a time — this cleanup runs before
+        // every test in this describe block.
+        await Promise.all(
+          notes.map((note: { id: string }) =>
+            page.evaluate(
+              (noteId) =>
+                fetch(`/api/admin/admin-notes/${noteId}`, {
+                  method: "DELETE",
+                }),
+              note.id
+            )
+          )
+        );
       } catch (error) {
         console.log("Error cleaning up notes:", error);
       }
