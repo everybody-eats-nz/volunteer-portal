@@ -36,6 +36,7 @@ import { Image } from "expo-image";
 import { ShiftMonthCalendar } from "@/components/shift-month-calendar";
 import { ThemedText } from "@/components/themed-text";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
@@ -434,222 +435,225 @@ export default function ShiftsScreen() {
     !error;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.content,
-        Platform.OS === "android" && { paddingTop: insets.top },
-      ]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refresh}
-          tintColor={colors.tint}
-          colors={[colors.tint]}
-          progressBackgroundColor={colors.card}
-        />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <View style={{ flex: 1, gap: 8 }}>
-            <Eyebrow>Find your mahi</Eyebrow>
-            <ThemedText type="title">
-              Your <ThemedText type="accent">shifts</ThemedText>
-            </ThemedText>
-            <ThemedText type="caption" style={{ color: colors.textSecondary }}>
-              Your mahi and open shifts
-            </ThemedText>
-          </View>
-          {locations.length > 1 && (
-            <LocationPill
-              label={locationFilter ?? "All locations"}
-              showNewDot={hasNewLocation}
-              onPress={openLocationPicker}
-              isDark={isDark}
-              colors={colors}
-            />
-          )}
-        </View>
-      </View>
-
-      {/* Location picker sheet */}
-      <LocationPickerSheet
-        visible={pickerVisible}
-        locations={locations}
-        newLocationNames={newLocationNames}
-        selected={locationFilter}
-        onSelect={(value) => {
-          Haptics.selectionAsync();
-          setLocationFilter(value);
-          setPickerVisible(false);
-        }}
-        onClose={() => setPickerVisible(false)}
-        isDark={isDark}
-        colors={colors}
-      />
-
-      {/* Error */}
-      {error && !isLoading && (
-        <View style={styles.emptyState}>
-          <View
-            style={[
-              styles.emptyIconCircle,
-              { backgroundColor: "rgba(239, 68, 68, 0.1)" },
-            ]}
-          >
-            <Ionicons name="cloud-offline-outline" size={32} color="#ef4444" />
-          </View>
-          <ThemedText type="subtitle" style={{ textAlign: "center" }}>
-            {"Couldn't load shifts"}
-          </ThemedText>
-          <ThemedText
-            type="caption"
-            style={{ color: colors.textSecondary, textAlign: "center" }}
-          >
-            Pull down to try again
-          </ThemedText>
-        </View>
-      )}
-
-      {/* Initial loading */}
-      {showInitialLoading && (
-        <View style={styles.emptyState}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <ThemedText
-            type="caption"
-            style={{ color: colors.textSecondary, marginTop: 12 }}
-          >
-            Loading shifts...
-          </ThemedText>
-        </View>
-      )}
-
-      {!error && !showInitialLoading && (
-        <>
-          {/* Next shift pill */}
-          {nextShift && (
-            <NextShiftPill shift={nextShift} colors={colors} isDark={isDark} />
-          )}
-
-          {/* Calendar card */}
-          <View
-            style={[
-              styles.calendarCard,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                shadowColor: isDark ? "#000" : Palette.forest700,
-                marginTop: nextShift ? 14 : 20,
-              },
-            ]}
-          >
-            <ShiftMonthCalendar
-              selectedDate={selectedDate}
-              onSelectDate={selectDate}
-              shiftCountByDate={shiftCountByDate}
-              friendDates={friendDates}
-              signedUpDates={signedUpDates}
-              pastAttendedDates={pastAttendedDates}
-              isDark={isDark}
-            />
-          </View>
-
-          {/* Date nav */}
-          <DateNavHeader
-            selectedDate={selectedDate}
-            onNudge={nudgeDay}
-            isDark={isDark}
+    <>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={[
+          styles.content,
+          Platform.OS === "android" && { paddingTop: insets.top },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refresh}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
           />
-
-          {/* Day shifts */}
-          {totalDayShifts === 0 ? (
-            <View style={styles.dayEmpty}>
-              <View
-                style={[
-                  styles.dayEmptyIcon,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(253, 248, 239, 0.04)"
-                      : "rgba(29, 83, 55, 0.05)",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="leaf-outline"
-                  size={22}
-                  color={colors.textSecondary}
-                />
-              </View>
-              <Text style={[styles.dayEmptyTitle, { color: colors.text }]}>
-                No shifts on this day
-              </Text>
-              <Text
-                style={[
-                  styles.dayEmptySubtitle,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                Try another day from the calendar above
-              </Text>
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleRow}>
+            <View style={{ flex: 1, gap: 8 }}>
+              <Eyebrow>Find your mahi</Eyebrow>
+              <ThemedText type="title">
+                Your <ThemedText type="accent">shifts</ThemedText>
+              </ThemedText>
+              <ThemedText type="caption" style={{ color: colors.textSecondary }}>
+                Your mahi and open shifts
+              </ThemedText>
             </View>
-          ) : (
-            <View style={styles.shiftList}>
-              {selectedDayPeriods.map((period) => {
-                // Union friends across the shifts actually rendered in this
-                // period — keeps the header in sync with the location filter
-                // (the server-returned periodFriends map is not location-scoped).
-                const friends: PeriodFriend[] = mergeVolunteers(
-                  period.shifts.map((shift) => shiftFriends[shift.id] ?? [])
-                );
-                return (
-                  <View key={period.periodKey} style={styles.periodGroup}>
-                    <PeriodHeader
-                      label={period.periodLabel}
-                      count={period.shifts.length}
-                      friends={friends}
-                      colors={colors}
-                      isDark={isDark}
-                    />
-                    <View style={styles.dayCards}>
-                      {period.shifts.map((shift) => (
-                        <ShiftCard
-                          key={shift.id}
-                          shift={shift}
-                          friends={shiftFriends[shift.id] ?? []}
-                          colors={colors}
-                          isDark={isDark}
-                          showStatus={!!shift.status}
-                          conflicting={
-                            !shift.status &&
-                            new Date(shift.end).getTime() >= Date.now() &&
-                            bookedPeriodKeys.has(getShiftPeriodKey(shift.start))
-                          }
-                        />
-                      ))}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </>
-      )}
-
-      {/* Loading more */}
-      {isLoadingMore && (
-        <View style={styles.loadingMore}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text
-            style={[styles.loadingMoreText, { color: colors.textSecondary }]}
-          >
-            Loading shifts...
-          </Text>
+            {locations.length > 1 && (
+              <LocationPill
+                label={locationFilter ?? "All locations"}
+                showNewDot={hasNewLocation}
+                onPress={openLocationPicker}
+                isDark={isDark}
+                colors={colors}
+              />
+            )}
+          </View>
         </View>
-      )}
-    </ScrollView>
+
+        {/* Location picker sheet */}
+        <LocationPickerSheet
+          visible={pickerVisible}
+          locations={locations}
+          newLocationNames={newLocationNames}
+          selected={locationFilter}
+          onSelect={(value) => {
+            Haptics.selectionAsync();
+            setLocationFilter(value);
+            setPickerVisible(false);
+          }}
+          onClose={() => setPickerVisible(false)}
+          isDark={isDark}
+          colors={colors}
+        />
+
+        {/* Error */}
+        {error && !isLoading && (
+          <View style={styles.emptyState}>
+            <View
+              style={[
+                styles.emptyIconCircle,
+                { backgroundColor: "rgba(239, 68, 68, 0.1)" },
+              ]}
+            >
+              <Ionicons name="cloud-offline-outline" size={32} color="#ef4444" />
+            </View>
+            <ThemedText type="subtitle" style={{ textAlign: "center" }}>
+              {"Couldn't load shifts"}
+            </ThemedText>
+            <ThemedText
+              type="caption"
+              style={{ color: colors.textSecondary, textAlign: "center" }}
+            >
+              Pull down to try again
+            </ThemedText>
+          </View>
+        )}
+
+        {/* Initial loading */}
+        {showInitialLoading && (
+          <View style={styles.emptyState}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <ThemedText
+              type="caption"
+              style={{ color: colors.textSecondary, marginTop: 12 }}
+            >
+              Loading shifts...
+            </ThemedText>
+          </View>
+        )}
+
+        {!error && !showInitialLoading && (
+          <>
+            {/* Next shift pill */}
+            {nextShift && (
+              <NextShiftPill shift={nextShift} colors={colors} isDark={isDark} />
+            )}
+
+            {/* Calendar card */}
+            <View
+              style={[
+                styles.calendarCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  shadowColor: isDark ? "#000" : Palette.forest700,
+                  marginTop: nextShift ? 14 : 20,
+                },
+              ]}
+            >
+              <ShiftMonthCalendar
+                selectedDate={selectedDate}
+                onSelectDate={selectDate}
+                shiftCountByDate={shiftCountByDate}
+                friendDates={friendDates}
+                signedUpDates={signedUpDates}
+                pastAttendedDates={pastAttendedDates}
+                isDark={isDark}
+              />
+            </View>
+
+            {/* Date nav */}
+            <DateNavHeader
+              selectedDate={selectedDate}
+              onNudge={nudgeDay}
+              isDark={isDark}
+            />
+
+            {/* Day shifts */}
+            {totalDayShifts === 0 ? (
+              <View style={styles.dayEmpty}>
+                <View
+                  style={[
+                    styles.dayEmptyIcon,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(253, 248, 239, 0.04)"
+                        : "rgba(29, 83, 55, 0.05)",
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="leaf-outline"
+                    size={22}
+                    color={colors.textSecondary}
+                  />
+                </View>
+                <Text style={[styles.dayEmptyTitle, { color: colors.text }]}>
+                  No shifts on this day
+                </Text>
+                <Text
+                  style={[
+                    styles.dayEmptySubtitle,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Try another day from the calendar above
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.shiftList}>
+                {selectedDayPeriods.map((period) => {
+                  // Union friends across the shifts actually rendered in this
+                  // period - keeps the header in sync with the location filter
+                  // (the server-returned periodFriends map is not location-scoped).
+                  const friends: PeriodFriend[] = mergeVolunteers(
+                    period.shifts.map((shift) => shiftFriends[shift.id] ?? [])
+                  );
+                  return (
+                    <View key={period.periodKey} style={styles.periodGroup}>
+                      <PeriodHeader
+                        label={period.periodLabel}
+                        count={period.shifts.length}
+                        friends={friends}
+                        colors={colors}
+                        isDark={isDark}
+                      />
+                      <View style={styles.dayCards}>
+                        {period.shifts.map((shift) => (
+                          <ShiftCard
+                            key={shift.id}
+                            shift={shift}
+                            friends={shiftFriends[shift.id] ?? []}
+                            colors={colors}
+                            isDark={isDark}
+                            showStatus={!!shift.status}
+                            conflicting={
+                              !shift.status &&
+                              new Date(shift.end).getTime() >= Date.now() &&
+                              bookedPeriodKeys.has(getShiftPeriodKey(shift.start))
+                            }
+                          />
+                        ))}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Loading more */}
+        {isLoadingMore && (
+          <View style={styles.loadingMore}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text
+              style={[styles.loadingMoreText, { color: colors.textSecondary }]}
+            >
+              Loading shifts...
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+      <StatusBarScrim />
+    </>
   );
 }
 

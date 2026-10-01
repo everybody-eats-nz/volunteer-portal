@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDriveHome, useDriverState } from "@/hooks/use-van";
@@ -197,6 +198,7 @@ export default function DriveScreen() {
           onSeeAll={() => router.push("/van/trips")}
         />
       </ScrollView>
+      <StatusBarScrim />
     </View>
   );
 }

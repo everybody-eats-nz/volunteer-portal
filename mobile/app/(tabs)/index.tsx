@@ -40,6 +40,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ImageViewer } from "@/components/image-viewer";
@@ -376,226 +377,229 @@ export default function HomeScreen() {
   );
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.content,
-        Platform.OS === "android" && { paddingTop: insets.top },
-      ]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={shiftsLoading || feedLoading}
-          onRefresh={() => {
-            refreshShifts();
-            refreshFeed();
-          }}
-          tintColor={colors.tint}
-          colors={[colors.tint]}
-          progressBackgroundColor={colors.card}
-        />
-      }
-    >
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text
-            style={[
-              styles.greeting,
-              { color: colors.textSecondary, fontFamily: FontFamily.regular },
-            ]}
-          >
-            Kia ora 👋
-          </Text>
-          <ThemedText type="title">{profile?.firstName ?? ""}</ThemedText>
-        </View>
-        <View style={styles.headerRight}>
-          <Pressable
-            onPress={() => router.push("/notifications" as Href)}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.bellButton,
-              {
-                backgroundColor:
-                  colorScheme === "dark"
-                    ? "rgba(253, 248, 239, 0.06)"
-                    : "rgba(29, 83, 55, 0.06)",
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={
-              unreadNotifications > 0
-                ? `Notifications, ${unreadNotifications} unread`
-                : "Notifications"
-            }
-          >
-            <Ionicons
-              name={
-                unreadNotifications > 0
-                  ? "notifications"
-                  : "notifications-outline"
-              }
-              size={22}
-              color={colors.text}
-            />
-            {unreadNotifications > 0 && (
-              <View
-                style={[
-                  styles.bellDot,
-                  {
-                    backgroundColor: Brand.accent,
-                    borderColor: colors.background,
-                  },
-                ]}
-              />
-            )}
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/(tabs)/profile")}
-            style={({ pressed }) => [
-              styles.avatarButton,
-              { opacity: pressed ? 0.85 : 1 },
-            ]}
-            accessibilityLabel="View profile"
-          >
-            {profile?.image ? (
-              <Image
-                source={{ uri: profile.image }}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.avatarFallback,
-                  { backgroundColor: Brand.green },
-                ]}
-              >
-                <Text style={styles.avatarText}>
-                  {(profile?.firstName ?? "").charAt(0)}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
-      </View>
-
-      {/* ── Next Shift Hero ── */}
-      {nextShift && (
-        <NextShiftHero
-          shift={nextShift}
-          friends={nextShiftFriends}
-          onPress={() => router.push(`/shift/${nextShift.id}` as Href)}
-        />
-      )}
-
-      {/* ── Volunteers Needed ──
-           Collapses to a slim reminder when the user already has a confirmed
-           shift coming up — they've done their part; just surface the wider
-           roster gap as an easy tap-in for picking up more. */}
-      <VolunteersNeededCard
-        shifts={upcomingAvailable}
-        marginTop={nextShift ? 20 : 0}
-        collapsible={nextShift?.status === "CONFIRMED"}
-        onShiftPress={(id) => router.push(`/shift/${id}` as Href)}
-        onBrowseDay={(dateKey) =>
-          router.push(`/(tabs)/shifts?date=${dateKey}` as Href)
+    <>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={[
+          styles.content,
+          Platform.OS === "android" && { paddingTop: insets.top },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={shiftsLoading || feedLoading}
+            onRefresh={() => {
+              refreshShifts();
+              refreshFeed();
+            }}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
+          />
         }
-        onBrowseAll={() => router.push("/(tabs)/shifts" as Href)}
-      />
-
-      {/* ── Activity Feed ── */}
-      <View style={styles.feedSection}>
-        <View style={styles.feedEyebrow}>
-          <Eyebrow>From the whānau</Eyebrow>
-        </View>
-        <ThemedText type="heading" style={styles.feedHeading}>
-          What&apos;s happening 🌿
-        </ThemedText>
-
-        {feedLoading && feedItems.length === 0 ? (
-          <FeedSkeleton colors={colors} />
-        ) : (
-          <View style={styles.feedList}>
-            {feedItems.map((item, index) => (
-              <FeedCard
-                key={item.id}
-                item={item}
-                colors={colors}
-                isLast={index === feedItems.length - 1}
-                liked={item.likedByMe}
-                onToggleLike={() => toggleLike(item)}
-                onShowSheet={() => handleOpenSheet(item)}
-                onOpenImages={openImageViewer}
-                commentCount={item.commentCount}
-                isReported={hasReported(item.id)}
-                onReport={() => openModerationSheet(item)}
-              />
-            ))}
+      >
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text
+              style={[
+                styles.greeting,
+                { color: colors.textSecondary, fontFamily: FontFamily.regular },
+              ]}
+            >
+              Kia ora 👋
+            </Text>
+            <ThemedText type="title">{profile?.firstName ?? ""}</ThemedText>
           </View>
+          <View style={styles.headerRight}>
+            <Pressable
+              onPress={() => router.push("/notifications" as Href)}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.bellButton,
+                {
+                  backgroundColor:
+                    colorScheme === "dark"
+                      ? "rgba(253, 248, 239, 0.06)"
+                      : "rgba(29, 83, 55, 0.06)",
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                unreadNotifications > 0
+                  ? `Notifications, ${unreadNotifications} unread`
+                  : "Notifications"
+              }
+            >
+              <Ionicons
+                name={
+                  unreadNotifications > 0
+                    ? "notifications"
+                    : "notifications-outline"
+                }
+                size={22}
+                color={colors.text}
+              />
+              {unreadNotifications > 0 && (
+                <View
+                  style={[
+                    styles.bellDot,
+                    {
+                      backgroundColor: Brand.accent,
+                      borderColor: colors.background,
+                    },
+                  ]}
+                />
+              )}
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/(tabs)/profile")}
+              style={({ pressed }) => [
+                styles.avatarButton,
+                { opacity: pressed ? 0.85 : 1 },
+              ]}
+              accessibilityLabel="View profile"
+            >
+              {profile?.image ? (
+                <Image
+                  source={{ uri: profile.image }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatarFallback,
+                    { backgroundColor: Brand.green },
+                  ]}
+                >
+                  <Text style={styles.avatarText}>
+                    {(profile?.firstName ?? "").charAt(0)}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
+        </View>
+
+        {/* ── Next Shift Hero ── */}
+        {nextShift && (
+          <NextShiftHero
+            shift={nextShift}
+            friends={nextShiftFriends}
+            onPress={() => router.push(`/shift/${nextShift.id}` as Href)}
+          />
         )}
-      </View>
 
-      {/* ── Likes Sheet ── */}
-      {likesSheetItem && (
-        <FeedItemSheet
-          item={likesSheetItem}
-          likers={getLikersForItem(likesSheetItem)}
-          liked={likesSheetItem.likedByMe}
-          onToggleLike={() => toggleLike(likesSheetItem)}
-          onClose={() => setLikesSheetItemId(null)}
-          colors={colors}
-          isDark={colorScheme === "dark"}
-          comments={sheetComments.comments}
-          isLoadingComments={sheetComments.isLoading}
-          onAddComment={(text) => addComment(likesSheetItem.id, text)}
-          onEditComment={(commentId, text) =>
-            editComment(likesSheetItem.id, commentId, text)
+        {/* ── Volunteers Needed ──
+             Collapses to a slim reminder when the user already has a confirmed
+             shift coming up - they've done their part; just surface the wider
+             roster gap as an easy tap-in for picking up more. */}
+        <VolunteersNeededCard
+          shifts={upcomingAvailable}
+          marginTop={nextShift ? 20 : 0}
+          collapsible={nextShift?.status === "CONFIRMED"}
+          onShiftPress={(id) => router.push(`/shift/${id}` as Href)}
+          onBrowseDay={(dateKey) =>
+            router.push(`/(tabs)/shifts?date=${dateKey}` as Href)
           }
-          onDeleteComment={(commentId) =>
-            deleteComment(likesSheetItem.id, commentId)
-          }
-          hasReportedItem={hasReported}
-          hasBlockedUser={hasBlocked}
-          onReport={reportItem}
-          onConfirmBlock={confirmBlockUser}
-          currentUserId={profile?.id ?? ""}
-          onOpenUserProfile={(userId) => {
-            if (!userId) return;
-            if (userId === profile?.id) {
-              setLikesSheetItemId(null);
-              router.push("/(tabs)/profile");
-              return;
-            }
-            setLikesSheetItemId(null);
-            router.push(`/user/${userId}` as Href);
-          }}
-          onModeratePost={
-            likesSheetItem.type === "photo_post" ||
-            likesSheetItem.type === "announcement"
-              ? () => openModerationSheet(likesSheetItem)
-              : undefined
-          }
+          onBrowseAll={() => router.push("/(tabs)/shifts" as Href)}
         />
-      )}
 
-      <ImageViewer
-        visible={viewerImages !== null}
-        images={viewerImages ?? []}
-        initialIndex={viewerIndex}
-        onClose={closeImageViewer}
-      />
+        {/* ── Activity Feed ── */}
+        <View style={styles.feedSection}>
+          <View style={styles.feedEyebrow}>
+            <Eyebrow>From the whānau</Eyebrow>
+          </View>
+          <ThemedText type="heading" style={styles.feedHeading}>
+            What&apos;s happening 🌿
+          </ThemedText>
 
-      {/* ── Footer / aroha ── */}
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-          Nāu te rourou, nāku te rourou, ka ora ai te iwi 🌱
-        </Text>
-        <Text style={[styles.footerSubtext, { color: colors.textSecondary }]}>
-          With your basket and my basket, the people will thrive
-        </Text>
-      </View>
-    </ScrollView>
+          {feedLoading && feedItems.length === 0 ? (
+            <FeedSkeleton colors={colors} />
+          ) : (
+            <View style={styles.feedList}>
+              {feedItems.map((item, index) => (
+                <FeedCard
+                  key={item.id}
+                  item={item}
+                  colors={colors}
+                  isLast={index === feedItems.length - 1}
+                  liked={item.likedByMe}
+                  onToggleLike={() => toggleLike(item)}
+                  onShowSheet={() => handleOpenSheet(item)}
+                  onOpenImages={openImageViewer}
+                  commentCount={item.commentCount}
+                  isReported={hasReported(item.id)}
+                  onReport={() => openModerationSheet(item)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* ── Likes Sheet ── */}
+        {likesSheetItem && (
+          <FeedItemSheet
+            item={likesSheetItem}
+            likers={getLikersForItem(likesSheetItem)}
+            liked={likesSheetItem.likedByMe}
+            onToggleLike={() => toggleLike(likesSheetItem)}
+            onClose={() => setLikesSheetItemId(null)}
+            colors={colors}
+            isDark={colorScheme === "dark"}
+            comments={sheetComments.comments}
+            isLoadingComments={sheetComments.isLoading}
+            onAddComment={(text) => addComment(likesSheetItem.id, text)}
+            onEditComment={(commentId, text) =>
+              editComment(likesSheetItem.id, commentId, text)
+            }
+            onDeleteComment={(commentId) =>
+              deleteComment(likesSheetItem.id, commentId)
+            }
+            hasReportedItem={hasReported}
+            hasBlockedUser={hasBlocked}
+            onReport={reportItem}
+            onConfirmBlock={confirmBlockUser}
+            currentUserId={profile?.id ?? ""}
+            onOpenUserProfile={(userId) => {
+              if (!userId) return;
+              if (userId === profile?.id) {
+                setLikesSheetItemId(null);
+                router.push("/(tabs)/profile");
+                return;
+              }
+              setLikesSheetItemId(null);
+              router.push(`/user/${userId}` as Href);
+            }}
+            onModeratePost={
+              likesSheetItem.type === "photo_post" ||
+              likesSheetItem.type === "announcement"
+                ? () => openModerationSheet(likesSheetItem)
+                : undefined
+            }
+          />
+        )}
+
+        <ImageViewer
+          visible={viewerImages !== null}
+          images={viewerImages ?? []}
+          initialIndex={viewerIndex}
+          onClose={closeImageViewer}
+        />
+
+        {/* ── Footer / aroha ── */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            Nāu te rourou, nāku te rourou, ka ora ai te iwi 🌱
+          </Text>
+          <Text style={[styles.footerSubtext, { color: colors.textSecondary }]}>
+            With your basket and my basket, the people will thrive
+          </Text>
+        </View>
+      </ScrollView>
+      <StatusBarScrim />
+    </>
   );
 }
 

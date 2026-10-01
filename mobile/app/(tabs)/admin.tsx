@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -179,6 +180,7 @@ export default function AdminScreen() {
           </View>
         </View>
       </ScrollView>
+      <StatusBarScrim color={paperTint.paper} />
     </View>
   );
 }

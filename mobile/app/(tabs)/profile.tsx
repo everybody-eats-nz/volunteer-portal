@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFriends } from "@/hooks/use-friends";
@@ -775,6 +776,7 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
+      <StatusBarScrim />
 
       {selectedAchievement && (
         <AchievementSheet
