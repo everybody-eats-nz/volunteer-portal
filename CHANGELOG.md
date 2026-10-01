@@ -1,3 +1,9 @@
+## [0.175.1] - 2026-10-01
+
+### Changes
+- fix(flaky): should delete an admin note with confirmation dialog ([#1295](https://github.com/everybody-eats-nz/volunteer-portal/pull/1295)) by @malinmalliyawadu
+
+
 ## [0.175.0] - 2026-10-01
 
 ### Changes
