@@ -53,6 +53,7 @@ const createStaggerItemVariants = (): Variants => ({
 });
 import { formatInNZT } from "@/lib/timezone";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -629,6 +630,7 @@ function UnregisteredVolunteerGroup({
 }
 
 export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftCardsProps) {
+  const router = useRouter();
   // Determine column count based on screen size (we'll use a simple approach)
   const [columnCount, setColumnCount] = useState(1);
 
@@ -877,7 +879,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                                 const params = new URLSearchParams({ deleted: '1' });
                                 if (date) params.set('date', date);
                                 if (location) params.set('location', location);
-                                window.location.href = `/admin/shifts?${params.toString()}`;
+                                router.push(`/admin/shifts?${params.toString()}`);
                               }}
                             >
                               <Button

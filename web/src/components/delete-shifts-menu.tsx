@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarX2, ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ export function DeleteShiftsMenu({
   dateString,
   location,
 }: DeleteShiftsMenuProps) {
+  const router = useRouter();
   const [dayDialogOpen, setDayDialogOpen] = useState(false);
   const [rangeDialogOpen, setRangeDialogOpen] = useState(false);
 
@@ -40,7 +42,7 @@ export function DeleteShiftsMenu({
       date: dateString,
       location,
     });
-    window.location.href = `/admin/shifts?${params.toString()}`;
+    router.push(`/admin/shifts?${params.toString()}`);
   };
 
   const handleDeleteDay = async () => {

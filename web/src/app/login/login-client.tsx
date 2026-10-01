@@ -208,30 +208,24 @@ export default function LoginClient({ providers }: LoginClientProps) {
 
     const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
-    const res = await signIn("credentials", {
+    // With `redirect: true`, next-auth owns the post-login navigation and
+    // signIn never resolves with a result. On success it does a full-page
+    // load of callbackUrl, so the server render picks up the new session
+    // cookie. On failure it full-page loads /login?error=..., which
+    // `initialMessages` and the `showReactivation` initializer turn into the
+    // error banner or the reactivation prompt. Navigating here as well would
+    // reintroduce the duplicate post-login navigation fixed in #1123, and
+    // resetting the loading state would flash the form before the unload.
+    //
+    // Unverified emails do NOT block login: the credentials provider signs
+    // them in, EmailVerificationBanner (root layout) prompts them to verify,
+    // and shift signup enforces the hard gate.
+    await signIn("credentials", {
       email,
       password,
       redirect: true,
       callbackUrl,
     });
-
-    setIsLoading(false);
-
-    if (res?.error) {
-      // Note: unverified emails do NOT block login. The credentials provider
-      // signs unverified users in, and EmailVerificationBanner (root layout)
-      // prompts them to verify; shift signup enforces the hard gate.
-      if (res.error === "AccountArchived") {
-        setShowReactivation(true);
-        return;
-      }
-
-      setError("Invalid credentials");
-    } else if (res?.ok) {
-      // Add a small delay to ensure session is established
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      window.location.href = "/";
-    }
   }
 
   async function handleReactivate() {
