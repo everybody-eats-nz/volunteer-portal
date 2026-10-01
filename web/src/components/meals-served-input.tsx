@@ -525,7 +525,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
               value={form.protein || undefined}
               onValueChange={(v) => set("protein", v)}
             >
-              <SelectTrigger id="protein" className="h-9 w-full">
+              <SelectTrigger id="protein" size="md" className="w-full">
                 <SelectValue placeholder="Select protein" />
               </SelectTrigger>
               <SelectContent>

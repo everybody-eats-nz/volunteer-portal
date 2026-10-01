@@ -782,7 +782,11 @@ export function NotificationsContent({
                   value={filterLocation}
                   onValueChange={setFilterLocation}
                 >
-                  <SelectTrigger id="location" data-testid="location-filter">
+                  <SelectTrigger
+                    id="location"
+                    size="md"
+                    data-testid="location-filter"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -802,7 +806,11 @@ export function NotificationsContent({
                   value={filterShiftType}
                   onValueChange={setFilterShiftType}
                 >
-                  <SelectTrigger id="shiftType" data-testid="shift-type-filter">
+                  <SelectTrigger
+                    id="shiftType"
+                    size="md"
+                    data-testid="shift-type-filter"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -871,7 +879,7 @@ export function NotificationsContent({
 
               <div className="flex gap-2">
                 <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger size="md" className="w-[200px]">
                     <SelectValue
                       placeholder={
                         notificationGroups.length === 0

@@ -410,6 +410,7 @@ export function EngagementVolunteerTable({
           }}
         >
           <SelectTrigger
+            size="md"
             className="w-[180px]"
             data-testid="engagement-status-filter"
           >
@@ -511,7 +512,7 @@ export function EngagementVolunteerTable({
                 navigate({ pageSize: val, page: "1" });
               }}
             >
-              <SelectTrigger className="h-8 w-[70px]" size="sm">
+              <SelectTrigger className="w-[70px]" size="sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -561,7 +561,7 @@ export function UsersDataTable({
               onValueChange={handlePageSizeChange}
             >
               <SelectTrigger
-                className="h-8 w-[70px]"
+                className="w-[70px]"
                 size="sm"
                 data-testid="page-size-selector"
               >
