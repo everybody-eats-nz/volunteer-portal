@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Platform } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
@@ -58,7 +59,14 @@ export default function TabLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
-      <NativeTabs>
+      {/* NativeTabs ignores the navigation theme's `primary`, so without an
+          explicit tint iOS paints the active tab system blue. Android keeps
+          its Material You defaults. */}
+      <NativeTabs
+        tintColor={
+          Platform.OS === 'ios' ? Colors[colorScheme ?? 'light'].tint : undefined
+        }
+      >
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
