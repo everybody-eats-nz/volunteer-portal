@@ -2,10 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -14,6 +12,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import {
   openBrowserAsync,
@@ -25,6 +24,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useKeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
 import { useAuth } from "@/lib/auth";
 import { API_URL, ApiError } from "@/lib/api";
 import { isPasskeySupported, signInWithPasskey } from "@/lib/passkey-client";
@@ -67,6 +67,12 @@ export default function LoginScreen({
   >(null);
   const [passkeyReady, setPasskeyReady] = useState(false);
   const passwordRef = useRef<TextInput>(null);
+  // Focusing either field lifts both clear of the keyboard, so moving from
+  // email to password does not shift the sheet (see useKeyboardAwareScroll).
+  // The Sign in button is left out on purpose: bringing it up as well would
+  // push the sheet's title under the status bar.
+  const credentialsRef = useRef<View>(null);
+  const keyboardScroll = useKeyboardAwareScroll();
   const [googleRequest, googleResponse, promptGoogle] = useGoogleAuth();
   // On native, the Google provider uses the auth-code flow and exchanges the
   // code for tokens in a post-prompt effect — so `promptAsync` resolves before
@@ -285,134 +291,131 @@ export default function LoginScreen({
         </View>
       </View>
 
-      <KeyboardAvoidingView
+      <Animated.ScrollView
+        {...keyboardScroll.scrollProps}
         style={{ flex: 1 }}
-        behavior="padding"
-        keyboardVerticalOffset={0}
+        contentContainerStyle={{
+          paddingTop: heroHeight - 40, // overlap with hero
+          paddingBottom: insets.bottom + 24,
+          minHeight: windowHeight,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingTop: heroHeight - 40, // overlap with hero
-            paddingBottom: insets.bottom + 24,
-            minHeight: windowHeight,
-          }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: cardSurface,
+              borderColor: cardStroke,
+            },
+          ]}
         >
+          {/* Little grab handle to reinforce the "sheet rising" metaphor */}
           <View
             style={[
-              styles.card,
+              styles.grabHandle,
               {
-                backgroundColor: cardSurface,
-                borderColor: cardStroke,
+                backgroundColor: isDark
+                  ? "rgba(253,248,239,0.18)"
+                  : "rgba(29,83,55,0.20)",
               },
             ]}
+          />
+
+          <ThemedText
+            type="display"
+            style={styles.cardTitle}
+            lightColor={Brand.green}
+            darkColor={colors.text}
           >
-            {/* Little grab handle to reinforce the "sheet rising" metaphor */}
-            <View
-              style={[
-                styles.grabHandle,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(253,248,239,0.18)"
-                    : "rgba(29,83,55,0.20)",
-                },
-              ]}
-            />
-
-            <ThemedText
-              type="display"
-              style={styles.cardTitle}
-              lightColor={Brand.green}
-              darkColor={colors.text}
-            >
-              Sign in to{" "}
-              <ThemedText type="accent" style={styles.cardTitleAccent}>
-                volunteer
-              </ThemedText>
+            Sign in to{" "}
+            <ThemedText type="accent" style={styles.cardTitleAccent}>
+              volunteer
             </ThemedText>
+          </ThemedText>
 
-            {/* Passkey — primary path when supported */}
-            {passkeyReady && (
-              <View style={{ marginTop: 22 }}>
-                <Pressable
-                  onPress={handlePasskey}
-                  disabled={anyBusy}
-                  style={({ pressed }) => [
-                    styles.primaryBtn,
-                    {
-                      backgroundColor: Brand.green,
-                      opacity: pressed || anyBusy ? 0.9 : 1,
-                      transform: [{ scale: pressed ? 0.985 : 1 }],
-                    },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Sign in with passkey"
-                  accessibilityState={{ busy: busyProvider === "passkey" }}
-                >
-                  <Ionicons
-                    name="finger-print"
-                    size={22}
-                    color={Brand.accent}
-                  />
-                  <ThemedText style={styles.primaryBtnText}>
-                    {busyProvider === "passkey"
-                      ? "Authenticating…"
-                      : "Sign in with passkey"}
-                  </ThemedText>
-                </Pressable>
-              </View>
-            )}
-
-            {/* Divider: "or continue with" */}
-            <View style={styles.divider}>
-              <View
-                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-              />
-              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
-                {passkeyReady ? "or continue with" : "continue with"}
-              </ThemedText>
-              <View
-                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-              />
-            </View>
-
-            {/* OAuth row — icon-only circles */}
-            <View style={styles.oauthRow}>
-              {Platform.OS === "ios" && (
-                <OAuthCircle
-                  provider="apple"
-                  isBusy={busyProvider === "apple"}
-                  disabled={anyBusy}
-                  onPress={handleApple}
-                  isDark={isDark}
+          {/* Passkey — primary path when supported */}
+          {passkeyReady && (
+            <View style={{ marginTop: 22 }}>
+              <Pressable
+                onPress={handlePasskey}
+                disabled={anyBusy}
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  {
+                    backgroundColor: Brand.green,
+                    opacity: pressed || anyBusy ? 0.9 : 1,
+                    transform: [{ scale: pressed ? 0.985 : 1 }],
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with passkey"
+                accessibilityState={{ busy: busyProvider === "passkey" }}
+              >
+                <Ionicons
+                  name="finger-print"
+                  size={22}
+                  color={Brand.accent}
                 />
-              )}
+                <ThemedText style={styles.primaryBtnText}>
+                  {busyProvider === "passkey"
+                    ? "Authenticating…"
+                    : "Sign in with passkey"}
+                </ThemedText>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Divider: "or continue with" */}
+          <View style={styles.divider}>
+            <View
+              style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+            />
+            <ThemedText style={[styles.dividerText, { color: mutedText }]}>
+              {passkeyReady ? "or continue with" : "continue with"}
+            </ThemedText>
+            <View
+              style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+            />
+          </View>
+
+          {/* OAuth row — icon-only circles */}
+          <View style={styles.oauthRow}>
+            {Platform.OS === "ios" && (
               <OAuthCircle
-                provider="google"
-                isBusy={busyProvider === "google"}
-                disabled={anyBusy || !googleRequest}
-                onPress={handleGoogle}
+                provider="apple"
+                isBusy={busyProvider === "apple"}
+                disabled={anyBusy}
+                onPress={handleApple}
                 isDark={isDark}
               />
-            </View>
+            )}
+            <OAuthCircle
+              provider="google"
+              isBusy={busyProvider === "google"}
+              disabled={anyBusy || !googleRequest}
+              onPress={handleGoogle}
+              isDark={isDark}
+            />
+          </View>
 
-            {/* Divider before email */}
-            <View style={[styles.divider, { marginTop: 22 }]}>
-              <View
-                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-              />
-              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
-                or use email
-              </ThemedText>
-              <View
-                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-              />
-            </View>
+          {/* Divider before email */}
+          <View style={[styles.divider, { marginTop: 22 }]}>
+            <View
+              style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+            />
+            <ThemedText style={[styles.dividerText, { color: mutedText }]}>
+              or use email
+            </ThemedText>
+            <View
+              style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+            />
+          </View>
 
-            {/* Email + password form */}
-            <View style={{ marginTop: 16, gap: 12 }}>
+          {/* Email + password form */}
+          <View style={{ marginTop: 16, gap: 12 }}>
+            <View ref={credentialsRef} style={styles.credentials}>
               <View
                 style={[
                   styles.inputShell,
@@ -438,6 +441,7 @@ export default function LoginScreen({
                   returnKeyType="next"
                   editable={!anyBusy}
                   onSubmitEditing={() => passwordRef.current?.focus()}
+                  {...keyboardScroll.inputProps(credentialsRef)}
                   style={[styles.input, { color: colors.text }]}
                 />
               </View>
@@ -467,6 +471,7 @@ export default function LoginScreen({
                   returnKeyType="go"
                   editable={!anyBusy}
                   onSubmitEditing={handleEmailLogin}
+                  {...keyboardScroll.inputProps(credentialsRef)}
                   style={[styles.input, { color: colors.text }]}
                 />
                 <Pressable
@@ -483,90 +488,91 @@ export default function LoginScreen({
                   />
                 </Pressable>
               </View>
+            </View>
 
-              <View style={styles.forgotRow}>
-                <Pressable
-                  onPress={openForgotPassword}
-                  disabled={anyBusy}
-                  hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
-                  accessibilityRole="link"
-                  accessibilityLabel="Forgot password? Reset it on the website"
-                  style={({ pressed }) => [
-                    styles.forgotBtn,
-                    { opacity: anyBusy ? 0.5 : pressed ? 0.6 : 1 },
-                  ]}
-                >
-                  <ThemedText style={styles.forgotText}>
-                    Forgot password?
-                  </ThemedText>
-                </Pressable>
-              </View>
-
+            <View style={styles.forgotRow}>
               <Pressable
-                onPress={handleEmailLogin}
-                disabled={anyBusy || !email.trim() || !password.trim()}
+                onPress={openForgotPassword}
+                disabled={anyBusy}
+                hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                accessibilityRole="link"
+                accessibilityLabel="Forgot password? Reset it on the website"
                 style={({ pressed }) => [
-                  styles.primaryBtn,
-                  styles.signInBtn,
-                  {
-                    backgroundColor: Brand.greenHover,
-                    opacity:
-                      anyBusy || !email.trim() || !password.trim()
-                        ? 0.5
-                        : pressed
-                        ? 0.9
-                        : 1,
-                    transform: [{ scale: pressed ? 0.985 : 1 }],
-                  },
+                  styles.forgotBtn,
+                  { opacity: anyBusy ? 0.5 : pressed ? 0.6 : 1 },
                 ]}
-                accessibilityRole="button"
-                accessibilityState={{ busy: isSubmitting, disabled: anyBusy }}
               >
-                <ThemedText style={styles.primaryBtnText}>
-                  {isSubmitting ? "Signing in…" : "Sign in"}
+                <ThemedText style={styles.forgotText}>
+                  Forgot password?
                 </ThemedText>
               </Pressable>
             </View>
 
-            {/* Footer */}
-            <View style={styles.footer}>
-              <ThemedText style={[styles.footerText, { color: mutedText }]}>
-                New here?
-              </ThemedText>
-              <Pressable
-                hitSlop={8}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  if (onNavigateToRegister) {
-                    onNavigateToRegister();
-                  } else {
-                    // Fallback for any context that renders LoginScreen without
-                    // the in-app register flow wired up.
-                    openBrowserAsync(
-                      "https://volunteers.everybodyeats.nz/register",
-                      {
-                        presentationStyle:
-                          WebBrowserPresentationStyle.AUTOMATIC,
-                      }
-                    );
-                  }
-                }}
-              >
-                <ThemedText style={styles.footerLink}>
-                  Join our whānau
-                </ThemedText>
-              </Pressable>
-            </View>
-
-            <ThemedText
-              style={[styles.ngaMihi, { color: mutedText }]}
-              accessible={false}
+            <Pressable
+              onPress={handleEmailLogin}
+              disabled={anyBusy || !email.trim() || !password.trim()}
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                styles.signInBtn,
+                {
+                  backgroundColor: Brand.greenHover,
+                  opacity:
+                    anyBusy || !email.trim() || !password.trim()
+                      ? 0.5
+                      : pressed
+                      ? 0.9
+                      : 1,
+                  transform: [{ scale: pressed ? 0.985 : 1 }],
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ busy: isSubmitting, disabled: anyBusy }}
             >
-              Ngā mihi
-            </ThemedText>
+              <ThemedText style={styles.primaryBtnText}>
+                {isSubmitting ? "Signing in…" : "Sign in"}
+              </ThemedText>
+            </Pressable>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <ThemedText style={[styles.footerText, { color: mutedText }]}>
+              New here?
+            </ThemedText>
+            <Pressable
+              hitSlop={8}
+              onPress={() => {
+                Haptics.selectionAsync();
+                if (onNavigateToRegister) {
+                  onNavigateToRegister();
+                } else {
+                  // Fallback for any context that renders LoginScreen without
+                  // the in-app register flow wired up.
+                  openBrowserAsync(
+                    "https://volunteers.everybodyeats.nz/register",
+                    {
+                      presentationStyle:
+                        WebBrowserPresentationStyle.AUTOMATIC,
+                    }
+                  );
+                }
+              }}
+            >
+              <ThemedText style={styles.footerLink}>
+                Join our whānau
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          <ThemedText
+            style={[styles.ngaMihi, { color: mutedText }]}
+            accessible={false}
+          >
+            Ngā mihi
+          </ThemedText>
+        </View>
+        <Animated.View style={keyboardScroll.spacerStyle} />
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -773,6 +779,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
+  },
+  credentials: {
+    gap: 12,
   },
   inputShell: {
     flexDirection: "row",
