@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { keyboardRevealOffset } from "@/lib/keyboard-reveal";
+import { isSameRevealTarget, keyboardRevealOffset } from "@/lib/keyboard-reveal";
 
 const GAP = 16;
 const TOP_INSET = 62;
@@ -64,5 +64,46 @@ describe("keyboardRevealOffset", () => {
     expect(keyboardRevealOffset(input, 540, GAP, TOP_INSET)).toBe(
       752 + GAP - 540
     );
+  });
+
+  it("asks for more scroll when the group grows under the focused input", () => {
+    // Register: the password rules appear between the two password fields on
+    // the first keystroke and push the confirmation field down.
+    const before = { top: 700, bottom: 752, groupBottom: 816 };
+    const after = { top: 700, bottom: 752, groupBottom: 946 };
+    expect(
+      keyboardRevealOffset(after, 540, GAP, TOP_INSET) -
+        keyboardRevealOffset(before, 540, GAP, TOP_INSET)
+    ).toBe(130);
+  });
+
+  it("covers an error message under a field that is its own group", () => {
+    // Profile edit: the field's container ends below the input once a
+    // validation message is showing.
+    const field = { top: 700, bottom: 745, groupBottom: 768 };
+    expect(keyboardRevealOffset(field, 540, GAP, TOP_INSET)).toBe(
+      768 + GAP - 540
+    );
+  });
+});
+
+describe("isSameRevealTarget", () => {
+  const target = { top: 700, bottom: 752, groupBottom: 816 };
+
+  it("is false before anything has been measured", () => {
+    expect(isSameRevealTarget(null, target)).toBe(false);
+  });
+
+  it("is true for an unchanged measurement", () => {
+    expect(isSameRevealTarget(target, { ...target })).toBe(true);
+  });
+
+  it("is false when the input or its group has moved", () => {
+    expect(isSameRevealTarget(target, { ...target, groupBottom: 946 })).toBe(
+      false
+    );
+    expect(
+      isSameRevealTarget(target, { top: 723, bottom: 775, groupBottom: 839 })
+    ).toBe(false);
   });
 });

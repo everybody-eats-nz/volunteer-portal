@@ -4,13 +4,12 @@ import * as ImagePicker from "expo-image-picker";
 import * as Notifications from "expo-notifications";
 import { Stack, useFocusEffect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
@@ -21,6 +20,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -32,6 +32,10 @@ import {
   useAgreementPolicies,
 } from "@/hooks/use-agreement-policies";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  type KeyboardAwareScroll,
+  useKeyboardAwareScroll,
+} from "@/hooks/use-keyboard-aware-scroll";
 import { useProfile } from "@/hooks/use-profile";
 import { api, ApiError, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -251,6 +255,10 @@ export default function EditProfileScreen() {
   const [newsletterListOptions, setNewsletterListOptions] = useState<
     NewsletterList[]
   >([]);
+
+  // The form is far taller than the space above the keyboard, so each field
+  // is brought clear of it on its own (see useKeyboardAwareScroll).
+  const keyboardScroll = useKeyboardAwareScroll();
 
   // Fetch shift types and newsletter lists
   useEffect(() => {
@@ -647,10 +655,7 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen
         options={{
           headerRight: () => (
@@ -680,7 +685,8 @@ export default function EditProfileScreen() {
           ),
         }}
       />
-      <ScrollView
+      <Animated.ScrollView
+        {...keyboardScroll.scrollProps}
         style={{ flex: 1 }}
         contentContainerStyle={[
           s.content,
@@ -758,6 +764,7 @@ export default function EditProfileScreen() {
             autoCapitalize="words"
             required
             error={errors.firstName}
+            keyboardScroll={keyboardScroll}
           />
           <FormField
             label="Last Name"
@@ -767,6 +774,7 @@ export default function EditProfileScreen() {
             colors={colors}
             isDark={isDark}
             autoCapitalize="words"
+            keyboardScroll={keyboardScroll}
           />
           <FormField
             label="Phone"
@@ -778,6 +786,7 @@ export default function EditProfileScreen() {
             keyboardType="phone-pad"
             required
             error={errors.phone}
+            keyboardScroll={keyboardScroll}
           />
           {profile.dateOfBirth ? (
             <View style={s.fieldContainer}>
@@ -815,26 +824,22 @@ export default function EditProfileScreen() {
               </Text>
             </View>
           ) : (
-            <View style={s.fieldContainer}>
-              <FormField
-                label="Date of Birth"
-                value={form.dateOfBirth}
-                onChangeText={(v) =>
-                  updateField("dateOfBirth", formatDobInput(v))
-                }
-                onBlur={handleDobBlur}
-                placeholder="DD/MM/YYYY"
-                colors={colors}
-                isDark={isDark}
-                keyboardType="number-pad"
-                required
-                error={errors.dateOfBirth}
-              />
-              <Text style={[s.fieldHint, { color: colors.textSecondary }]}>
-                We ask so we can look after volunteers under 16. It can only be
-                set once.
-              </Text>
-            </View>
+            <FormField
+              label="Date of Birth"
+              value={form.dateOfBirth}
+              onChangeText={(v) =>
+                updateField("dateOfBirth", formatDobInput(v))
+              }
+              onBlur={handleDobBlur}
+              placeholder="DD/MM/YYYY"
+              colors={colors}
+              isDark={isDark}
+              keyboardType="number-pad"
+              required
+              error={errors.dateOfBirth}
+              hint="We ask so we can look after volunteers under 16. It can only be set once."
+              keyboardScroll={keyboardScroll}
+            />
           )}
           <FormField
             label="Pronouns"
@@ -843,6 +848,7 @@ export default function EditProfileScreen() {
             placeholder="e.g. she/her, he/him, they/them"
             colors={colors}
             isDark={isDark}
+            keyboardScroll={keyboardScroll}
           />
         </View>
 
@@ -929,6 +935,7 @@ export default function EditProfileScreen() {
             autoCapitalize="words"
             required
             error={errors.emergencyContactName}
+            keyboardScroll={keyboardScroll}
           />
           <FormField
             label="Relationship"
@@ -938,6 +945,7 @@ export default function EditProfileScreen() {
             colors={colors}
             isDark={isDark}
             autoCapitalize="words"
+            keyboardScroll={keyboardScroll}
           />
           <FormField
             label="Contact Phone"
@@ -949,6 +957,7 @@ export default function EditProfileScreen() {
             keyboardType="phone-pad"
             required
             error={errors.emergencyContactPhone}
+            keyboardScroll={keyboardScroll}
           />
         </View>
 
@@ -969,6 +978,7 @@ export default function EditProfileScreen() {
             colors={colors}
             isDark={isDark}
             multiline
+            keyboardScroll={keyboardScroll}
           />
         </View>
 
@@ -1527,7 +1537,8 @@ export default function EditProfileScreen() {
             </Pressable>
           </View>
         </View>
-      </ScrollView>
+        <Animated.View style={keyboardScroll.spacerStyle} />
+      </Animated.ScrollView>
 
       {activeAgreement && (
         <AgreementModal
@@ -1563,7 +1574,7 @@ export default function EditProfileScreen() {
         isDark={isDark}
         colors={colors}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -1734,6 +1745,8 @@ function FormField({
   multiline,
   required,
   error,
+  hint,
+  keyboardScroll,
 }: {
   label: string;
   value: string;
@@ -1748,9 +1761,17 @@ function FormField({
   required?: boolean;
   /** Validation message shown below the input; also tints the border. */
   error?: string;
+  /** Helper text shown below the input (and below the error, if any). */
+  hint?: string;
+  keyboardScroll: KeyboardAwareScroll;
 }) {
+  // The field is its own keyboard group: focusing the input brings its error
+  // and hint clear of the keyboard with it, not just the input box.
+  const fieldRef = useRef<View>(null);
+  const reveal = keyboardScroll.inputProps(fieldRef);
+
   return (
-    <View style={s.fieldContainer}>
+    <View ref={fieldRef} style={s.fieldContainer}>
       <Text style={[s.fieldLabel, { color: colors.text }]}>
         {label}
         {required && (
@@ -1769,7 +1790,11 @@ function FormField({
         ]}
         value={value}
         onChangeText={onChangeText}
-        onBlur={onBlur}
+        onFocus={reveal.onFocus}
+        onBlur={(event) => {
+          reveal.onBlur(event);
+          onBlur?.();
+        }}
         placeholder={placeholder}
         placeholderTextColor={colors.textSecondary}
         keyboardType={keyboardType ?? "default"}
@@ -1791,6 +1816,11 @@ function FormField({
             {error}
           </Text>
         </View>
+      )}
+      {hint && (
+        <Text style={[s.fieldHint, { color: colors.textSecondary }]}>
+          {hint}
+        </Text>
       )}
     </View>
   );
