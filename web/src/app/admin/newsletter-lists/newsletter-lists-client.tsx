@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import NewsletterListDialog from "./newsletter-list-dialog";
+import { NewsletterListsSkeleton } from "./newsletter-lists-skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,17 +138,13 @@ export default function NewsletterListsClient() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading newsletter lists...</p>
-      </div>
-    );
+    return <NewsletterListsSkeleton />;
   }
 
   return (
     <>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             Manage newsletter lists for volunteer subscriptions. Lists are integrated with Campaign Monitor.
           </p>
@@ -172,10 +169,10 @@ export default function NewsletterListsClient() {
             {lists.map((list) => (
               <Card key={list.id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <GripVertical className="h-5 w-5 text-muted-foreground mt-1 cursor-move" />
-                      <div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <GripVertical className="h-5 w-5 shrink-0 text-muted-foreground mt-1 cursor-move" />
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <CardTitle className="text-lg">{list.name}</CardTitle>
                           <Badge variant={list.active ? "default" : "secondary"}>
@@ -192,7 +189,7 @@ export default function NewsletterListsClient() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2 pl-8 sm:pl-0">
                       <Button
                         variant="outline"
                         size="sm"

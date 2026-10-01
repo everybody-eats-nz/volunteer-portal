@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, type ReactNode } from "react";
+import { Component, type ComponentProps, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { ArrowDownRight, ArrowUpRight, Info, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,27 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-/** Single dynamic ApexCharts import reused by every card. */
-export const ApexChart = dynamic(() => import("react-apexcharts"), {
+const LazyApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
-  loading: () => <ChartSkeleton />,
+  // Fills the wrapper below, which reserves the chart's own height.
+  loading: () => (
+    <div className="min-h-[inherit] w-full animate-pulse rounded-lg bg-muted/40" />
+  ),
 });
+
+/**
+ * Single dynamic ApexCharts import reused by every chart. The wrapper reserves
+ * the chart's height so the placeholder matches it (a 40px sparkline must not
+ * flash a 300px block) and nothing jumps when the chunk arrives.
+ */
+export function ApexChart(props: ComponentProps<typeof LazyApexChart>) {
+  const { height = 300 } = props;
+  return (
+    <div style={{ minHeight: height }}>
+      <LazyApexChart {...props} />
+    </div>
+  );
+}
 
 /**
  * Isolates a single chart/section so a render error in one ApexCharts instance

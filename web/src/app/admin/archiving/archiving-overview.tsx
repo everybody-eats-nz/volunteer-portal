@@ -44,14 +44,16 @@ type RunReport = {
 };
 
 export function ArchivingOverview({
+  initialStats,
   refreshKey,
   onRunComplete,
 }: {
+  initialStats: Stats;
   refreshKey: number;
   onRunComplete: () => void;
 }) {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(initialStats);
+  const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastReport, setLastReport] = useState<RunReport | null>(null);
 
@@ -71,8 +73,9 @@ export function ArchivingOverview({
     }
   }, []);
 
+  // The server renders the first stats; only refetch after a mutation.
   useEffect(() => {
-    fetchStats();
+    if (refreshKey > 0) fetchStats();
   }, [fetchStats, refreshKey]);
 
   const runAll = useCallback(async () => {

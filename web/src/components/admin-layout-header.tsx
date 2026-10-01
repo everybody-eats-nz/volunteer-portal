@@ -10,10 +10,11 @@ export function AdminLayoutHeader() {
   const { title, description, actions } = useAdminHeader();
 
   return (
-    <header className="flex min-h-16 shrink-0 items-center gap-2 border-b px-4 bg-background rounded-t-xl">
+    <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2 bg-background rounded-t-xl">
       <SidebarTrigger data-testid="admin-sidebar-toggle" />
       <div className="h-4 w-px bg-border mx-2" />
-      <div className="flex-1">
+      {/* basis-48: once actions no longer fit beside the title, they wrap to their own row */}
+      <div className="min-w-0 flex-1 basis-48">
         <h1 data-testid="admin-page-header" className="text-lg font-semibold">
           {title}
         </h1>
@@ -21,7 +22,7 @@ export function AdminLayoutHeader() {
           <p className="hidden md:block text-sm text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
         <AdminCommandPalette>
           <Button 
             variant="outline" 

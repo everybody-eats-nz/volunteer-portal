@@ -1,5 +1,6 @@
 "use client";
 
+import { ApexChart } from "@/app/admin/analytics/_components/primitives";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -27,7 +28,6 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { formatInNZT } from "@/lib/timezone";
-import dynamic from "next/dynamic";
 import {
   Tooltip,
   TooltipContent,
@@ -50,7 +50,6 @@ import {
 } from "@/lib/milestone-segment-types";
 import { MilestoneUsersDialog } from "./milestone-users-dialog";
 
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface Props {
   data: MilestoneData;
@@ -366,7 +365,7 @@ export function MilestoneAnalyticsClient({
               </CardHeader>
               <CardContent>
                 {hitsAnyValue ? (
-                  <Chart
+                  <ApexChart
                     options={{
                       chart: {
                         type: "bar" as const,
@@ -497,7 +496,7 @@ export function MilestoneAnalyticsClient({
               </CardHeader>
               <CardContent>
                 {distCounts.some((v) => v > 0) ? (
-                  <Chart
+                  <ApexChart
                     options={{
                       chart: {
                         type: "bar" as const,
@@ -673,7 +672,7 @@ export function MilestoneAnalyticsClient({
             </CardHeader>
             <CardContent>
               {projHasAdditional ? (
-                <Chart
+                <ApexChart
                   options={{
                     chart: {
                       type: "bar" as const,
@@ -843,12 +842,12 @@ export function MilestoneAnalyticsClient({
               {selectedProjection &&
               selectedProjection.approaching.length > 0 ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground pb-1">
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground pb-1">
                     <span className="flex-1">Volunteer</span>
-                    <span className="w-24 text-right">Shifts</span>
-                    <span className="w-24 text-right">Still needed</span>
-                    <span className="w-28 text-right">Rate / month</span>
-                    <span className="w-28 text-right">Est. arrival</span>
+                    <span className="w-14 sm:w-24 text-right">Shifts</span>
+                    <span className="hidden sm:block w-24 text-right">Still needed</span>
+                    <span className="hidden sm:block w-28 text-right">Rate / month</span>
+                    <span className="w-20 sm:w-28 text-right">Est. arrival</span>
                     <span className="w-8" />
                   </div>
                   {selectedProjection.approaching.map((v) => {
@@ -858,7 +857,7 @@ export function MilestoneAnalyticsClient({
                     return (
                       <div
                         key={v.userId}
-                        className="flex items-center gap-4 py-2 border-b last:border-0"
+                        className="flex items-center gap-3 sm:gap-4 py-2 border-b last:border-0"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-2 min-w-0">
@@ -879,16 +878,16 @@ export function MilestoneAnalyticsClient({
                             />
                           </div>
                         </div>
-                        <span className="w-24 text-right text-sm tabular-nums font-medium">
+                        <span className="w-14 sm:w-24 text-right text-sm tabular-nums font-medium">
                           {v.totalShifts}
                         </span>
-                        <span className="w-24 text-right text-sm tabular-nums text-muted-foreground">
+                        <span className="hidden sm:block w-24 text-right text-sm tabular-nums text-muted-foreground">
                           {v.shiftsNeeded}
                         </span>
-                        <span className="w-28 text-right text-sm tabular-nums text-muted-foreground">
+                        <span className="hidden sm:block w-28 text-right text-sm tabular-nums text-muted-foreground">
                           {v.monthlyRate > 0 ? `${v.monthlyRate}/mo` : "—"}
                         </span>
-                        <span className="w-28 text-right text-sm">
+                        <span className="w-20 sm:w-28 text-right text-sm">
                           {v.projectedMonths != null ? (
                             <Badge
                               variant={
@@ -985,11 +984,11 @@ export function MilestoneAnalyticsClient({
             <CardContent>
               {filteredRecentAchievements.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground pb-1">
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground pb-1">
                     <span className="flex-1">Volunteer</span>
                     <span className="w-28">Milestone</span>
-                    <span className="w-20 text-right">Total</span>
-                    <span className="w-32 text-right">Achieved</span>
+                    <span className="hidden sm:block w-20 text-right">Total</span>
+                    <span className="w-24 sm:w-32 text-right">Achieved</span>
                     <span className="w-8" />
                   </div>
                   {filteredRecentAchievements.map((a) => {
@@ -1005,7 +1004,7 @@ export function MilestoneAnalyticsClient({
                     return (
                       <div
                         key={`${a.userId}-${a.threshold}`}
-                        className="flex items-center gap-4 py-2 border-b last:border-0"
+                        className="flex items-center gap-3 sm:gap-4 py-2 border-b last:border-0"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-2 min-w-0">
@@ -1029,12 +1028,12 @@ export function MilestoneAnalyticsClient({
                             {a.threshold} shifts
                           </span>
                         </span>
-                        <span className="w-20 text-right text-sm tabular-nums font-medium">
+                        <span className="hidden sm:block w-20 text-right text-sm tabular-nums font-medium">
                           {a.totalShifts}
                         </span>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="w-32 text-right text-sm text-muted-foreground tabular-nums cursor-default">
+                            <span className="w-24 sm:w-32 text-right text-sm text-muted-foreground tabular-nums cursor-default">
                               {relative}
                             </span>
                           </TooltipTrigger>

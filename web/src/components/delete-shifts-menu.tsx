@@ -42,7 +42,12 @@ export function DeleteShiftsMenu({
       date: dateString,
       location,
     });
-    router.push(`/admin/shifts?${params.toString()}`);
+    const target = `/admin/shifts?${params.toString()}`;
+    if (target === `${window.location.pathname}${window.location.search}`) {
+      router.refresh();
+    } else {
+      router.push(target);
+    }
   };
 
   const handleDeleteDay = async () => {
