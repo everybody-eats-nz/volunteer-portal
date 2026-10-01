@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTeamUnreadCount } from "@/hooks/use-team-unread";
@@ -182,6 +183,7 @@ export default function HelpScreen() {
           </View>
         </View>
       </ScrollView>
+      <StatusBarScrim color={paperTint.paper} />
     </View>
   );
 }

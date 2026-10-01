@@ -156,6 +156,43 @@ Always use `useSafeAreaInsets()` from `react-native-safe-area-context`:
 const insets = useSafeAreaInsets();
 ```
 
+### Status bar scrim
+
+Tab screens scroll edge to edge, so without protection their content slides
+straight under the clock, wifi and battery glyphs. Every screen whose scroll
+view reaches the top of the display renders `StatusBarScrim` **after the scroll
+view**, so it paints on top:
+
+```tsx
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
+
+<>
+  <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    {/* ... */}
+  </ScrollView>
+  <StatusBarScrim />
+</>
+```
+
+- It is solid page background over the status bar glyphs and fades out over the
+  last few points, finishing exactly at the safe-area edge. Content at rest is
+  never tinted, and because it matches the page it is invisible until
+  something scrolls beneath it.
+- It follows the theme (`colors.background`). Pass `color` only when the screen
+  sits on a different paper colour.
+- Home and Shifts get their top inset from the native tabs, which adjust the
+  scroll view only when it is the screen's root element. Use a fragment there,
+  as above. Wrapping the scroll view in a `View` makes the screen open with its
+  header already under the status bar.
+- Screens that pad their own content with `insets.top` (Help, Drive, Admin,
+  Profile) can keep their wrapping `View` and add the scrim as its last child.
+- Skip it on screens with a navigation header, and on screens with a full-bleed
+  hero image or panel behind the status bar.
+
+The iOS 26 native scroll edge effect is not an option here. Set to `hard` on a
+tab screen it drew nothing, because these screens have no navigation bar for it
+to sit under, and it does not exist on Android or older iOS.
+
 ### Spacing
 
 - Page horizontal padding: `20px`

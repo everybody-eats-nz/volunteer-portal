@@ -168,6 +168,10 @@ export default function RootLayout() {
 
   const appTree = (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
+      {/* App-wide default. Keep it above AuthGate: when several StatusBars
+          are mounted the last one to mount wins, and screens that set their
+          own style (the login photo needs light glyphs) must mount after it. */}
+      <StatusBar style="auto" />
       <AuthGate>
         <OnboardingFlow />
         <AchievementCelebration />
@@ -223,7 +227,6 @@ export default function RootLayout() {
           <Stack.Screen name="van/trips" options={{ headerShown: false }} />
         </Stack>
       </AuthGate>
-      <StatusBar style="auto" />
     </ThemeProvider>
   );
 
