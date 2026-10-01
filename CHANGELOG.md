@@ -1,3 +1,9 @@
+## [0.175.0] - 2026-10-01
+
+### Changes
+- Add diner feedback spotlight to shift recaps ([#1296](https://github.com/everybody-eats-nz/volunteer-portal/pull/1296)) by @malinmalliyawadu
+
+
 ## [0.174.2] - 2026-09-27
 
 ### Changes
