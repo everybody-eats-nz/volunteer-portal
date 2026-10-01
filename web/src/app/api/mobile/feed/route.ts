@@ -14,9 +14,14 @@ import {
 import { userMatchesTargetLocations } from "@/lib/user-locations";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import {
+  getRecentCmsDinerFeedback,
   getRecentCmsJournalPosts,
   getUpcomingCmsEvents,
+  type CmsDinerFeedback,
 } from "@/lib/services/marketing-cms";
+
+/** Most diner notes attached to a single recap; keeps the payload bounded. */
+const MAX_RECAP_DINER_NOTES = 10;
 
 function parseCriteriaShiftTypeId(criteria: string): string | undefined {
   try {
@@ -35,7 +40,8 @@ function parseCriteriaShiftTypeId(criteria: string): string | undefined {
  * - Admin announcements (targeted to the requesting user; admins see all)
  * - Recent achievement unlocks (friends + own)
  * - Friend signups (friends signing up for shifts)
- * - Shift recaps (aggregate stats for completed shifts at user's locations)
+ * - Shift recaps (aggregate stats for completed shifts at user's locations,
+ *   plus published diner feedback left via pay-at-table in the marketing CMS)
  * - New shifts published for the user's default location
  * - Daily menus published for the user's default location
  * - Community events and journal posts from the marketing CMS
@@ -73,6 +79,7 @@ export async function GET(request: Request) {
   // resolve to [] when the CMS is unconfigured or unreachable.
   const cmsEventsPromise = getUpcomingCmsEvents();
   const cmsJournalPostsPromise = getRecentCmsJournalPosts();
+  const cmsDinerFeedbackPromise = getRecentCmsDinerFeedback();
 
   // Get the user's profile, friendships, blocks, and active signup shift IDs
   // in parallel. The signup shift IDs are used to match announcements that
@@ -308,9 +315,10 @@ export async function GET(request: Request) {
       : Promise.resolve([]),
   ]);
 
-  const [cmsEvents, cmsJournalPosts] = await Promise.all([
+  const [cmsEvents, cmsJournalPosts, cmsDinerFeedback] = await Promise.all([
     cmsEventsPromise,
     cmsJournalPostsPromise,
+    cmsDinerFeedbackPromise,
   ]);
 
   type FeedItem = {
@@ -777,7 +785,29 @@ export async function GET(request: Request) {
       }
     }
 
+    // Diner notes left via pay-at-table on the marketing site, grouped by
+    // portal location + NZ service day so each recap can quote the guests
+    // who ate that night. The CMS only serves published notes (positive
+    // sentiment + diner consent, staff-overridable), so they're safe to show.
+    const dinerFeedbackByDay = new Map<string, CmsDinerFeedback[]>();
+    for (const note of cmsDinerFeedback) {
+      if (!note.location) continue;
+      const dayKey = `${note.location}-${formatInNZT(note.createdAt, "yyyy-MM-dd")}`;
+      const notes = dinerFeedbackByDay.get(dayKey) ?? [];
+      notes.push(note);
+      dinerFeedbackByDay.set(dayKey, notes);
+    }
+
     for (const [key, recap] of recapGroups) {
+      const dinerFeedback = (dinerFeedbackByDay.get(key) ?? [])
+        .slice(0, MAX_RECAP_DINER_NOTES)
+        .map((note) => ({
+          id: note.id,
+          message: note.message,
+          name: note.name,
+          rating: note.rating,
+          createdAt: note.createdAt,
+        }));
       items.push({
         type: "shift_recap",
         id: `shift-recap-${key}`,
@@ -785,6 +815,7 @@ export async function GET(request: Request) {
         date: recap.displayDate,
         mealsServed: recap.mealsServed,
         volunteerCount: recap.volunteerCount,
+        dinerFeedback,
         timestamp: recap.latestStart.toISOString(),
         likeCount: 0,
         likedByMe: false,

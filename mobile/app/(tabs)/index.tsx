@@ -56,6 +56,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useHomeShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
   getShiftThemeByName,
+  type DinerFeedbackNote,
   type FeedComment,
   type FeedItem,
   type LikeUser,
@@ -2048,37 +2049,90 @@ function FeedAvatar({
   );
 }
 
-const RECAP_TEMPLATES = [
-  (meals: number, volunteers: number) =>
-    `${meals} meals served by ${volunteers} volunteers 💚`,
-  (meals: number, volunteers: number) =>
-    `${meals} people fed — ${volunteers} of the whānau showed up with aroha 🌿`,
-  (meals: number, volunteers: number) =>
-    `Another beautiful night — ${volunteers} volunteers, ${meals} meals out the door ✨`,
-  (meals: number, volunteers: number) =>
-    `${meals} plates, ${volunteers} volunteers, one big whānau 🍽️`,
-  (meals: number, volunteers: number) =>
-    `${volunteers} volunteers, ${meals} full bellies — ngā mihi nui 🙌`,
-  (meals: number, volunteers: number) =>
-    `The whānau showed up! ${volunteers} volunteers served ${meals} meals 💪`,
-  (meals: number, volunteers: number) =>
-    `Ka pai! ${volunteers} volunteers, ${meals} people served with community love 🌱`,
-  (meals: number, volunteers: number) =>
-    `${meals} meals, ${volunteers} volunteers, endless aroha — that's Everybody Eats 💚`,
-];
+/** "1 meal" / "1,240 meals" - recap counts read as plain facts. */
+function countLabel(count: number, noun: string): string {
+  return `${count.toLocaleString("en-NZ")} ${noun}${count === 1 ? "" : "s"}`;
+}
 
-function getRecapMessage(
-  meals: number,
-  volunteers: number,
-  id: string
-): string {
-  // Use id as a stable seed so the same recap always shows the same message
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  }
-  const index = Math.abs(hash) % RECAP_TEMPLATES.length;
-  return RECAP_TEMPLATES[index](meals, volunteers);
+/**
+ * A guest's pay-at-table note, set as a quiet pull quote. Only positive,
+ * consented notes ever reach the app (the marketing CMS gates publication),
+ * so they are always safe to show.
+ *
+ * `preview` is the feed row: one clamped note behind a hairline rule, with
+ * the rest counted in the byline. The detail sheet shows each note in full.
+ */
+function GuestQuote({
+  note,
+  colors,
+  preview = false,
+  moreCount = 0,
+}: {
+  note: DinerFeedbackNote;
+  colors: (typeof Colors)["light"];
+  preview?: boolean;
+  /** Further notes from the same night, counted in the preview byline. */
+  moreCount?: number;
+}) {
+  const name = note.name?.trim() || "A guest";
+  const more =
+    moreCount > 0 ? ` · ${moreCount} more ${moreCount === 1 ? "note" : "notes"}` : "";
+  return (
+    <View
+      style={[
+        styles.guestQuote,
+        preview && [styles.guestQuotePreview, { borderLeftColor: colors.border }],
+      ]}
+    >
+      <Text
+        style={[
+          styles.guestQuoteText,
+          preview && styles.guestQuoteTextPreview,
+          { color: colors.text },
+        ]}
+        numberOfLines={preview ? 3 : undefined}
+      >
+        “{note.message}”
+      </Text>
+      <Text
+        style={[styles.guestQuoteByline, { color: colors.textSecondary }]}
+        numberOfLines={1}
+      >
+        {name}
+        {more}
+      </Text>
+    </View>
+  );
+}
+
+/** One of the recap sheet's headline numbers. */
+function RecapStat({
+  value,
+  noun,
+  suffix = "",
+  colors,
+}: {
+  value: number;
+  noun: string;
+  /** Trailing words after the pluralised noun, e.g. " served". */
+  suffix?: string;
+  colors: (typeof Colors)["light"];
+}) {
+  const label = `${noun}${value === 1 ? "" : "s"}${suffix}`;
+  return (
+    <View
+      style={sheet.recapStat}
+      accessible
+      accessibilityLabel={`${value} ${label}`}
+    >
+      <Text style={[sheet.recapStatValue, { color: colors.text }]}>
+        {value.toLocaleString("en-NZ")}
+      </Text>
+      <Text style={[sheet.recapStatLabel, { color: colors.textSecondary }]}>
+        {label}
+      </Text>
+    </View>
+  );
 }
 
 /** Human label for a marketing CMS journal category slug. */
@@ -2528,6 +2582,7 @@ function FeedCard({
     }
 
     if (item.type === "shift_recap") {
+      const guestNotes = item.dinerFeedback ?? [];
       return (
         <>
           <View style={[styles.feedIcon, { backgroundColor: "#d1fae5" }]}>
@@ -2535,13 +2590,23 @@ function FeedCard({
           </View>
           <View style={styles.feedBody}>
             <Text style={[styles.feedTitle, { color: colors.text }]}>
-              {item.location} — {formatNZT(new Date(item.date), "EEEE d MMM")}
+              {countLabel(item.mealsServed, "meal")} served at {item.location}
             </Text>
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
+              numberOfLines={1}
             >
-              {getRecapMessage(item.mealsServed, item.volunteerCount, item.id)}
+              {formatNZT(new Date(item.date), "EEEE d MMM")} ·{" "}
+              {countLabel(item.volunteerCount, "volunteer")}
             </Text>
+            {guestNotes.length > 0 && (
+              <GuestQuote
+                note={guestNotes[0]}
+                moreCount={guestNotes.length - 1}
+                colors={colors}
+                preview
+              />
+            )}
             <View style={styles.feedFooter}>
               <Text
                 style={[styles.feedMetaText, { color: colors.textSecondary }]}
@@ -2676,43 +2741,65 @@ function FeedCard({
             <Text style={styles.feedIconEmoji}>🎟️</Text>
           </View>
           <View style={styles.feedBody}>
-            {isToday && (
-              <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
-                <Text style={[styles.feedTodayPillText, { color: "#6d28d9" }]}>
-                  Happening today
+            <View style={styles.feedThumbRow}>
+              <View style={styles.feedThumbText}>
+                {isToday && (
+                  <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
+                    <Text style={[styles.feedTodayPillText, { color: "#6d28d9" }]}>
+                      Happening today
+                    </Text>
+                  </View>
+                )}
+                {countdown && (
+                  <View style={[styles.feedTodayPill, { backgroundColor: "#fef3c7" }]}>
+                    <Text
+                      accessibilityLabel={`Happening ${countdown.toLowerCase()}`}
+                      style={[styles.feedTodayPillText, { color: "#b45309" }]}
+                    >
+                      {countdown}
+                    </Text>
+                  </View>
+                )}
+                <Text style={[styles.feedTitle, { color: colors.text }]}>
+                  {item.title}
                 </Text>
-              </View>
-            )}
-            {countdown && (
-              <View style={[styles.feedTodayPill, { backgroundColor: "#fef3c7" }]}>
                 <Text
-                  accessibilityLabel={`Happening ${countdown.toLowerCase()}`}
-                  style={[styles.feedTodayPillText, { color: "#b45309" }]}
+                  style={[styles.feedDescription, { color: colors.textSecondary }]}
+                  numberOfLines={1}
                 >
-                  {countdown}
+                  {metaParts.join(" · ")}
                 </Text>
+                {item.description ? (
+                  <Text
+                    style={[
+                      styles.feedDescription,
+                      { color: colors.textSecondary },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {item.description}
+                  </Text>
+                ) : null}
               </View>
-            )}
-            <Text style={[styles.feedTitle, { color: colors.text }]}>
-              {item.title}
-            </Text>
-            <Text
-              style={[styles.feedDescription, { color: colors.textSecondary }]}
-              numberOfLines={1}
-            >
-              {metaParts.join(" · ")}
-            </Text>
-            {item.description ? (
-              <Text
-                style={[
-                  styles.feedDescription,
-                  { color: colors.textSecondary },
-                ]}
-                numberOfLines={2}
-              >
-                {item.description}
-              </Text>
-            ) : null}
+              {showThumb && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onOpenImages([item.imageUrl!], 0);
+                  }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                  accessibilityLabel="View event poster"
+                  accessibilityRole="imagebutton"
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={[styles.feedThumb, { backgroundColor: colors.border }]}
+                    resizeMode="cover"
+                    onError={() => setHeroImageFailed(true)}
+                  />
+                </Pressable>
+              )}
+            </View>
             <View style={styles.feedFooter}>
               <Text
                 style={[styles.feedMetaText, { color: colors.textSecondary }]}
@@ -2722,24 +2809,6 @@ function FeedCard({
               {socialButtons}
             </View>
           </View>
-          {showThumb && (
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                onOpenImages([item.imageUrl!], 0);
-              }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-              accessibilityLabel="View event poster"
-              accessibilityRole="imagebutton"
-            >
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={[styles.feedThumb, { backgroundColor: colors.border }]}
-                resizeMode="cover"
-                onError={() => setHeroImageFailed(true)}
-              />
-            </Pressable>
-          )}
         </>
       );
     }
@@ -2752,20 +2821,42 @@ function FeedCard({
             <Text style={styles.feedIconEmoji}>📖</Text>
           </View>
           <View style={styles.feedBody}>
-            <Text style={[styles.feedTitle, { color: colors.text }]}>
-              {item.title}
-            </Text>
-            {item.summary ? (
-              <Text
-                style={[
-                  styles.feedDescription,
-                  { color: colors.textSecondary },
-                ]}
-                numberOfLines={3}
-              >
-                {item.summary}
-              </Text>
-            ) : null}
+            <View style={styles.feedThumbRow}>
+              <View style={styles.feedThumbText}>
+                <Text style={[styles.feedTitle, { color: colors.text }]}>
+                  {item.title}
+                </Text>
+                {item.summary ? (
+                  <Text
+                    style={[
+                      styles.feedDescription,
+                      { color: colors.textSecondary },
+                    ]}
+                    numberOfLines={3}
+                  >
+                    {item.summary}
+                  </Text>
+                ) : null}
+              </View>
+              {showThumb && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onOpenImages([item.imageUrl!], 0);
+                  }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                  accessibilityLabel="View journal image"
+                  accessibilityRole="imagebutton"
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={[styles.feedThumb, { backgroundColor: colors.border }]}
+                    resizeMode="cover"
+                    onError={() => setHeroImageFailed(true)}
+                  />
+                </Pressable>
+              )}
+            </View>
             <View style={styles.feedFooter}>
               <View
                 style={[
@@ -2789,24 +2880,6 @@ function FeedCard({
               {socialButtons}
             </View>
           </View>
-          {showThumb && (
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                onOpenImages([item.imageUrl!], 0);
-              }}
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-              accessibilityLabel="View journal image"
-              accessibilityRole="imagebutton"
-            >
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={[styles.feedThumb, { backgroundColor: colors.border }]}
-                resizeMode="cover"
-                onError={() => setHeroImageFailed(true)}
-              />
-            </Pressable>
-          )}
         </>
       );
     }
@@ -3175,11 +3248,8 @@ function FeedItemSheet({
       "EEEE d MMM"
     )}`;
   } else if (item.type === "shift_recap") {
-    title = `${item.location} — ${formatNZT(
-      new Date(item.date),
-      "EEEE d MMM"
-    )}`;
-    body = getRecapMessage(item.mealsServed, item.volunteerCount, item.id);
+    title = item.location;
+    body = formatNZT(new Date(item.date), "EEEE d MMMM");
   } else if (item.type === "new_shift") {
     title =
       item.count === 1
@@ -3416,36 +3486,33 @@ function FeedItemSheet({
                 </Text>
               )}
 
-              {/* Meta pills */}
-              <View style={sheet.metaRow}>
-                {item.type === "announcement" && (
+              {/* Recaps lead with the night's numbers; the date is already
+                  the subtitle, so they skip the meta pills. */}
+              {item.type === "shift_recap" ? (
+                <View
+                  style={[sheet.recapStats, { borderTopColor: colors.border }]}
+                >
+                  <RecapStat
+                    value={item.mealsServed}
+                    noun="meal"
+                    suffix=" served"
+                    colors={colors}
+                  />
                   <View
                     style={[
-                      sheet.metaPill,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255,255,255,0.05)"
-                          : colors.surfaceSoft,
-                      },
+                      sheet.recapStatDivider,
+                      { backgroundColor: colors.border },
                     ]}
-                  >
-                    <Ionicons
-                      name="person"
-                      size={11}
-                      color={colors.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        sheet.metaPillText,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {item.author}
-                    </Text>
-                  </View>
-                )}
-                {item.type === "photo_post" && (
-                  <>
+                  />
+                  <RecapStat
+                    value={item.volunteerCount}
+                    noun="volunteer"
+                    colors={colors}
+                  />
+                </View>
+              ) : (
+                <View style={sheet.metaRow}>
+                  {item.type === "announcement" && (
                     <View
                       style={[
                         sheet.metaPill,
@@ -3457,7 +3524,7 @@ function FeedItemSheet({
                       ]}
                     >
                       <Ionicons
-                        name="location"
+                        name="person"
                         size={11}
                         color={colors.textSecondary}
                       />
@@ -3467,39 +3534,12 @@ function FeedItemSheet({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {item.location}
+                        {item.author}
                       </Text>
                     </View>
-                    <View
-                      style={[
-                        sheet.metaPill,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.05)"
-                            : colors.surfaceSoft,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="calendar"
-                        size={11}
-                        color={colors.textSecondary}
-                      />
-                      <Text
-                        style={[
-                          sheet.metaPillText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {formatNZT(new Date(item.shiftDate), "d MMM")}{" "}
-                        {item.period}
-                      </Text>
-                    </View>
-                  </>
-                )}
-                {item.type === "community_event" && (
-                  <>
-                    {item.location ? (
+                  )}
+                  {item.type === "photo_post" && (
+                    <>
                       <View
                         style={[
                           sheet.metaPill,
@@ -3524,35 +3564,6 @@ function FeedItemSheet({
                           {item.location}
                         </Text>
                       </View>
-                    ) : null}
-                    <View
-                      style={[
-                        sheet.metaPill,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.05)"
-                            : colors.surfaceSoft,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="calendar"
-                        size={11}
-                        color={colors.textSecondary}
-                      />
-                      <Text
-                        style={[
-                          sheet.metaPillText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {item.pinned
-                          ? "Today"
-                          : formatNZT(new Date(item.eventDate), "EEE d MMM")}
-                        {item.displayTime ? ` · ${item.displayTime}` : ""}
-                      </Text>
-                    </View>
-                    {item.priceLabel ? (
                       <View
                         style={[
                           sheet.metaPill,
@@ -3564,7 +3575,7 @@ function FeedItemSheet({
                         ]}
                       >
                         <Ionicons
-                          name="pricetag"
+                          name="calendar"
                           size={11}
                           color={colors.textSecondary}
                         />
@@ -3574,39 +3585,40 @@ function FeedItemSheet({
                             { color: colors.textSecondary },
                           ]}
                         >
-                          {item.priceLabel}
+                          {formatNZT(new Date(item.shiftDate), "d MMM")}{" "}
+                          {item.period}
                         </Text>
                       </View>
-                    ) : null}
-                  </>
-                )}
-                {item.type === "journal_post" && (
-                  <>
-                    <View
-                      style={[
-                        sheet.metaPill,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(255,255,255,0.05)"
-                            : colors.surfaceSoft,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name="bookmark"
-                        size={11}
-                        color={colors.textSecondary}
-                      />
-                      <Text
-                        style={[
-                          sheet.metaPillText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {journalCategoryLabel(item.category)}
-                      </Text>
-                    </View>
-                    {item.author ? (
+                    </>
+                  )}
+                  {item.type === "community_event" && (
+                    <>
+                      {item.location ? (
+                        <View
+                          style={[
+                            sheet.metaPill,
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(255,255,255,0.05)"
+                                : colors.surfaceSoft,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name="location"
+                            size={11}
+                            color={colors.textSecondary}
+                          />
+                          <Text
+                            style={[
+                              sheet.metaPillText,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {item.location}
+                          </Text>
+                        </View>
+                      ) : null}
                       <View
                         style={[
                           sheet.metaPill,
@@ -3618,7 +3630,7 @@ function FeedItemSheet({
                         ]}
                       >
                         <Ionicons
-                          name="person"
+                          name="calendar"
                           size={11}
                           color={colors.textSecondary}
                         />
@@ -3628,38 +3640,160 @@ function FeedItemSheet({
                             { color: colors.textSecondary },
                           ]}
                         >
-                          {item.author}
+                          {item.pinned
+                            ? "Today"
+                            : formatNZT(new Date(item.eventDate), "EEE d MMM")}
+                          {item.displayTime ? ` · ${item.displayTime}` : ""}
                         </Text>
                       </View>
-                    ) : null}
-                  </>
-                )}
-                <View
-                  style={[
-                    sheet.metaPill,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.05)"
-                        : colors.surfaceSoft,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name="time"
-                    size={11}
-                    color={colors.textSecondary}
-                  />
-                  <Text
+                      {item.priceLabel ? (
+                        <View
+                          style={[
+                            sheet.metaPill,
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(255,255,255,0.05)"
+                                : colors.surfaceSoft,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name="pricetag"
+                            size={11}
+                            color={colors.textSecondary}
+                          />
+                          <Text
+                            style={[
+                              sheet.metaPillText,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {item.priceLabel}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </>
+                  )}
+                  {item.type === "journal_post" && (
+                    <>
+                      <View
+                        style={[
+                          sheet.metaPill,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : colors.surfaceSoft,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="bookmark"
+                          size={11}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            sheet.metaPillText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {journalCategoryLabel(item.category)}
+                        </Text>
+                      </View>
+                      {item.author ? (
+                        <View
+                          style={[
+                            sheet.metaPill,
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(255,255,255,0.05)"
+                                : colors.surfaceSoft,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name="person"
+                            size={11}
+                            color={colors.textSecondary}
+                          />
+                          <Text
+                            style={[
+                              sheet.metaPillText,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {item.author}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </>
+                  )}
+                  <View
                     style={[
-                      sheet.metaPillText,
-                      { color: colors.textSecondary },
+                      sheet.metaPill,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.05)"
+                          : colors.surfaceSoft,
+                      },
                     ]}
                   >
-                    {timeAgo}
-                  </Text>
+                    <Ionicons
+                      name="time"
+                      size={11}
+                      color={colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        sheet.metaPillText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {timeAgo}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              )}
             </View>
+
+            {/* ── Guest notes from pay-at-table (shift recap) ── */}
+            {item.type === "shift_recap" &&
+            item.dinerFeedback &&
+            item.dinerFeedback.length > 0 ? (
+              <View
+                style={[
+                  sheet.guestCard,
+                  {
+                    backgroundColor: colors.card,
+                    shadowColor: isDark ? "#000" : "#64748b",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    sheet.shiftListHeader,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  From our guests
+                </Text>
+                {item.dinerFeedback.map((note, idx) => (
+                  <View
+                    key={note.id}
+                    style={[
+                      sheet.guestRow,
+                      {
+                        borderTopWidth:
+                          idx === 0 ? 0 : StyleSheet.hairlineWidth,
+                        borderTopColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <GuestQuote note={note} colors={colors} />
+                  </View>
+                ))}
+              </View>
+            ) : null}
 
             {/* ── Achievement criteria card ── */}
             {item.type === "achievement" && item.criteria ? (
@@ -4717,6 +4851,9 @@ const styles = StyleSheet.create({
   },
   feedCardColumn: {
     flexDirection: "column",
+    // Stretch, not the row's flex-start: shrink-wrapped children leave the
+    // full-width hero image with no width and pull the footer off the edge.
+    alignItems: "stretch",
     gap: 0,
   },
   reportBtn: {
@@ -4735,6 +4872,17 @@ const styles = StyleSheet.create({
     height: ANNOUNCEMENT_IMAGE_HEIGHT,
     borderRadius: 10,
     marginBottom: ANNOUNCEMENT_IMAGE_GAP,
+  },
+  // Text beside a thumbnail. The footer sits below this row so its like and
+  // comment counts still reach the card's right edge.
+  feedThumbRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  feedThumbText: {
+    flex: 1,
+    gap: 3,
   },
   feedThumb: {
     width: 64,
@@ -4884,6 +5032,29 @@ const styles = StyleSheet.create({
   feedMetaText: {
     fontSize: 12,
     fontFamily: FontFamily.regular,
+  },
+  guestQuote: {
+    gap: 6,
+  },
+  guestQuotePreview: {
+    marginTop: 6,
+    marginBottom: 2,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    gap: 4,
+  },
+  guestQuoteText: {
+    fontSize: 18,
+    lineHeight: 26,
+    fontFamily: FontFamily.displayItalic,
+  },
+  guestQuoteTextPreview: {
+    fontSize: 16,
+    lineHeight: 23,
+  },
+  guestQuoteByline: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
   },
   feedDot: {
     fontSize: 12,
@@ -5070,6 +5241,49 @@ const sheet = StyleSheet.create({
   metaPillText: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
+  },
+
+  // Shift recap: headline numbers + guest notes
+  recapStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  recapStat: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  recapStatValue: {
+    fontSize: 40,
+    lineHeight: 46,
+    fontFamily: FontFamily.display,
+    letterSpacing: -0.5,
+  },
+  recapStatLabel: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+  },
+  recapStatDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+  },
+  guestCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  guestRow: {
+    paddingVertical: 16,
   },
 
   // Achievement criteria card (shown in achievement sheet)

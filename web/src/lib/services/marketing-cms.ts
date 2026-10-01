@@ -1,6 +1,6 @@
 /**
  * Marketing CMS service — read-only client for the Everybody Eats marketing
- * site's Payload CMS REST API (events and journal posts).
+ * site's Payload CMS REST API (events, journal posts and diner feedback).
  *
  * The CMS lives in the marketing-cms repo (Payload 3 inside Next.js) and
  * exposes public read endpoints at {MARKETING_CMS_URL}/api/<collection>.
@@ -11,6 +11,13 @@
  * CMS events carry a relationship to the CMS `locations` collection, whose
  * `menuLocationName` field holds the exact portal location name (the same
  * join key the marketing site already uses to pull menus from this portal).
+ *
+ * Diner feedback (the optional note guests leave after paying at the table)
+ * is served by the CMS's public `/api/public/feedback` route, which only ever
+ * returns published notes: positive sentiment AND the diner consented to
+ * public display, with staff able to override. Notes are tagged with the CMS
+ * location slug, so we resolve slugs to portal location names through the
+ * `locations` collection.
  */
 
 import { isSameDayInNZT } from "@/lib/timezone";
@@ -97,6 +104,47 @@ export interface CmsJournalPost {
   /** Public marketing site page for the post. */
   url: string;
 }
+
+interface CmsLocationListDoc {
+  id: number;
+  name?: string | null;
+  slug?: string | null;
+  menuLocationName?: string | null;
+}
+
+interface CmsPublicFeedbackItem {
+  id: number;
+  message?: string | null;
+  name?: string | null;
+  rating?: number | null;
+  locationSlug?: string | null;
+  locationName?: string | null;
+  createdAt?: string | null;
+}
+
+export interface CmsDinerFeedback {
+  id: number;
+  /** The diner's note, whitespace-collapsed. */
+  message: string;
+  /** First name the diner chose to share, or null when left blank. */
+  name: string | null;
+  /** Optional 1–5 star rating. */
+  rating: number | null;
+  /** CMS location slug the note was left for (e.g. "onehunga"). */
+  locationSlug: string | null;
+  /**
+   * Portal location name resolved from the CMS location (menuLocationName,
+   * falling back to the CMS display name), or null when the slug is unknown
+   * to the CMS (e.g. "special-events").
+   */
+  location: string | null;
+  /** When the diner left the note (ISO) — the night they dined. */
+  createdAt: string;
+}
+
+/** How far back to pull diner feedback; matches the mobile feed's window. */
+const DINER_FEEDBACK_WINDOW_DAYS = 14;
+const DINER_FEEDBACK_LIMIT = 200;
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8000;
@@ -319,4 +367,91 @@ export async function getCmsEventsForShift(
     (event) =>
       event.location === shiftLocation && isSameDayInNZT(event.date, date)
   );
+}
+
+/**
+ * Published CMS locations as a slug → portal location name map. Uses the same
+ * join rule as events: `menuLocationName` when set, else the CMS display name.
+ */
+async function getCmsLocationSlugMap(
+  baseUrl: string
+): Promise<Map<string, string>> {
+  const docs = await fetchCollection<CmsLocationListDoc>(baseUrl, "locations", {
+    depth: "0",
+    limit: "100",
+  });
+  const map = new Map<string, string>();
+  for (const doc of docs) {
+    const slug = normalizeText(doc.slug);
+    const portalName = resolveLocationName(doc);
+    if (slug && portalName) map.set(slug, portalName);
+  }
+  return map;
+}
+
+function mapDinerFeedback(
+  item: CmsPublicFeedbackItem,
+  slugMap: Map<string, string>
+): CmsDinerFeedback | null {
+  const message = normalizeText(item.message);
+  const createdAt = normalizeText(item.createdAt);
+  if (!message || !createdAt || Number.isNaN(new Date(createdAt).getTime())) {
+    return null;
+  }
+  const rating =
+    typeof item.rating === "number" && item.rating >= 1 && item.rating <= 5
+      ? Math.round(item.rating)
+      : null;
+  const locationSlug = normalizeText(item.locationSlug);
+  return {
+    id: item.id,
+    message,
+    name: normalizeText(item.name),
+    rating,
+    locationSlug,
+    location: locationSlug ? (slugMap.get(locationSlug) ?? null) : null,
+    createdAt,
+  };
+}
+
+/**
+ * Published diner feedback from the last two weeks, newest first, with CMS
+ * location slugs resolved to portal location names.
+ * Returns [] when the CMS is not configured or unreachable with no cached data.
+ */
+export async function getRecentCmsDinerFeedback(): Promise<CmsDinerFeedback[]> {
+  const baseUrl = getCmsBaseUrl();
+  if (!baseUrl) return [];
+  try {
+    return await getCached("diner-feedback", async () => {
+      const since = new Date();
+      since.setUTCDate(since.getUTCDate() - DINER_FEEDBACK_WINDOW_DAYS);
+      const search = new URLSearchParams({
+        since: since.toISOString(),
+        limit: String(DINER_FEEDBACK_LIMIT),
+      });
+      const [feedbackResponse, slugMap] = await Promise.all([
+        fetch(`${baseUrl}/api/public/feedback?${search.toString()}`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+          headers: { Accept: "application/json" },
+        }),
+        getCmsLocationSlugMap(baseUrl),
+      ]);
+      if (!feedbackResponse.ok) {
+        throw new Error(
+          `Marketing CMS request failed: public/feedback ${feedbackResponse.status}`
+        );
+      }
+      const body = (await feedbackResponse.json()) as {
+        feedback?: CmsPublicFeedbackItem[];
+      };
+      const items = Array.isArray(body.feedback) ? body.feedback : [];
+      return items
+        .map((item) => mapDinerFeedback(item, slugMap))
+        .filter((note): note is CmsDinerFeedback => note !== null);
+    });
+  } catch {
+    return [];
+  }
 }
