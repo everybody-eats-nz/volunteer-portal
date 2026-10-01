@@ -1,3 +1,9 @@
+## [0.175.2] - 2026-10-01
+
+### Changes
+- Drop the eyebrow hairline and remove redundant eyebrows (web + mobile) ([#1300](https://github.com/everybody-eats-nz/volunteer-portal/pull/1300)) by @malinmalliyawadu
+
+
 ## [0.175.1] - 2026-10-01
 
 ### Changes
