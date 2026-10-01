@@ -156,7 +156,7 @@ export function AudienceBuilder({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-forest-500/15 dark:border-white/10">
+      <div className="overflow-hidden rounded-xl border border-border">
         {/* Location */}
         <FilterGroup
           icon={<MapPin className="h-4 w-4" />}
@@ -218,7 +218,7 @@ export function AudienceBuilder({
 
           {draft.activityEnabled && (
             <div
-              className="mt-3 space-y-4 rounded-lg border border-forest-500/15 bg-cream-50/60 p-3 dark:border-white/10 dark:bg-white/[0.03]"
+              className="mt-3 space-y-4 rounded-lg border border-border bg-cream-50/60 p-3 dark:bg-white/[0.03]"
               data-testid="announcement-activity-filters"
             >
               {locations.length > 0 && (
@@ -584,7 +584,7 @@ function FilterGroup({
       onOpenChange={setOpen}
       className={cn(
         "bg-card",
-        !last && "border-b border-forest-500/10 dark:border-white/[0.07]"
+        !last && "border-b border-border/70"
       )}
     >
       <CollapsibleTrigger asChild>

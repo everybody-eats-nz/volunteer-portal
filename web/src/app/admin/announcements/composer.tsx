@@ -350,7 +350,7 @@ export function Composer({
                     placeholder="Title — e.g. Kitchen closed this Friday"
                     maxLength={200}
                     required
-                    className="h-12 border-forest-500/20 text-base font-medium placeholder:font-normal md:text-base dark:border-white/15"
+                    className="h-12 text-base font-medium placeholder:font-normal md:text-base"
                     data-testid="announcement-title"
                   />
                 </div>
@@ -363,7 +363,7 @@ export function Composer({
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Write the announcement… it lands in the feed exactly as the preview shows."
-                    className="min-h-[220px] resize-y border-forest-500/20 font-mono text-sm leading-relaxed dark:border-white/15"
+                    className="min-h-[220px] resize-y font-mono text-sm leading-relaxed"
                     required
                     data-testid="announcement-body"
                   />
@@ -675,7 +675,7 @@ function ChannelCard({
         "flex flex-col gap-2 rounded-xl border p-3.5 transition-colors",
         active
           ? "border-primary-text/45 bg-primary-text/[0.05]"
-          : "border-forest-500/15 hover:border-forest-500/35 dark:border-white/10 dark:hover:border-white/25",
+          : "border-border hover:border-forest-500/35 dark:hover:border-white/25",
         locked ? "cursor-default" : "cursor-pointer"
       )}
     >
@@ -917,7 +917,7 @@ function RecipientListToggle({
   const capped = result.total > result.recipients.length;
 
   return (
-    <div className="mt-3 border-t border-forest-500/10 pt-2 dark:border-white/[0.07]">
+    <div className="mt-3 border-t border-border/70 pt-2">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -936,7 +936,7 @@ function RecipientListToggle({
 
       {open && (
         <div
-          className="mt-1.5 max-h-60 overflow-y-auto rounded-lg border border-forest-500/10 dark:border-white/[0.07]"
+          className="mt-1.5 max-h-60 overflow-y-auto rounded-lg border border-border/70"
           data-testid="announcement-recipient-list"
         >
           {loading ? (
@@ -975,7 +975,7 @@ function RecipientListToggle({
             </ul>
           )}
           {!loading && capped && (
-            <p className="border-t border-forest-500/10 px-3 py-1.5 text-[11px] text-muted-foreground dark:border-white/[0.07]">
+            <p className="border-t border-border/70 px-3 py-1.5 text-[11px] text-muted-foreground">
               Showing the first {result.recipients.length} of {result.total}.
             </p>
           )}

@@ -42,6 +42,7 @@ import { type CustomLabel } from "@/generated/client";
 import { CustomLabelDialog } from "./custom-label-dialog";
 import { LabelMembersDialog } from "./label-members-dialog";
 import { getLabelTheme } from "./label-colors";
+import { KpiTile } from "@/components/admin/kpi-tile";
 
 export interface PreviewUser {
   id: string;
@@ -600,82 +601,6 @@ function LabelCard({
             </div>
           )}
         </div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  KPI tile                                                                   */
-/* -------------------------------------------------------------------------- */
-
-type Tone = "forest" | "blue" | "violet" | "amber" | "neutral";
-
-const TONE_STYLES: Record<Tone, { iconWrap: string; value: string }> = {
-  forest: {
-    iconWrap:
-      "bg-primary-light text-primary-text",
-    value: "text-primary-text",
-  },
-  blue: {
-    iconWrap: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
-    value: "text-blue-700 dark:text-blue-200",
-  },
-  violet: {
-    iconWrap: "bg-violet-500/10 text-violet-600 dark:text-violet-300",
-    value: "text-violet-700 dark:text-violet-200",
-  },
-  amber: {
-    iconWrap: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
-    value: "text-amber-600 dark:text-amber-400",
-  },
-  neutral: {
-    iconWrap: "bg-muted text-muted-foreground",
-    value: "text-foreground",
-  },
-};
-
-function KpiTile({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone: Tone;
-}) {
-  const styles = TONE_STYLES[tone];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="rounded-xl border bg-card p-4 shadow-sm"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </span>
-        <span
-          className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg",
-            styles.iconWrap
-          )}
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="mt-3">
-        <span
-          className={cn(
-            "font-accent text-3xl font-semibold tabular-nums leading-none",
-            styles.value
-          )}
-        >
-          {value}
-        </span>
       </div>
     </motion.div>
   );

@@ -94,7 +94,7 @@ export function AnnouncementList({
   return (
     <div className="space-y-6">
       {/* Pulse strip */}
-      <div className="grid grid-cols-1 divide-y rounded-xl border bg-card shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-white/[0.07] dark:border-white/10">
+      <div className="grid grid-cols-1 divide-y rounded-xl border bg-card shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <PulseStat
           label="Live in the feed"
           value={String(liveTotal)}
@@ -126,7 +126,7 @@ export function AnnouncementList({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search announcements…"
-          className="h-9 border-forest-500/20 pl-9 dark:border-white/15"
+          className="h-9 pl-9"
           data-testid="announcement-search"
         />
       </div>
@@ -285,8 +285,8 @@ function AnnouncementRow({
       className={cn(
         "group rounded-xl border shadow-sm transition-colors",
         expired
-          ? "border-forest-500/10 bg-card/50 dark:border-white/[0.06] dark:bg-card/40"
-          : "border-forest-500/15 bg-card shadow-[0_1px_2px_rgb(29_83_55/0.06)] dark:border-white/10"
+          ? "border-border/70 bg-card/50 dark:bg-card/40"
+          : "border-border bg-card shadow-[0_1px_2px_rgb(29_83_55/0.06)]"
       )}
       data-testid="announcement-row"
     >
@@ -296,7 +296,7 @@ function AnnouncementRow({
           className={cn(
             "flex w-12 shrink-0 flex-col items-center rounded-xl border py-1.5",
             expired
-              ? "border-forest-500/10 text-muted-foreground dark:border-white/[0.06]"
+              ? "border-border/70 text-muted-foreground"
               : "border-[#b45309]/15 bg-[#fef9c3]/60 text-[#7c4a10] dark:border-amber-400/15 dark:bg-[#fef9c3]/10 dark:text-amber-300"
           )}
           aria-hidden="true"
@@ -392,7 +392,7 @@ function AnnouncementRow({
               </StatusChip>
             )}
             {expired ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-forest-500/15 px-2 py-0.5 text-[11px] font-medium text-muted-foreground dark:border-white/10">
+              <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 Expired{" "}
                 {formatDistanceToNow(new Date(ann.expiresAt!), {
@@ -405,7 +405,7 @@ function AnnouncementRow({
                   "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
                   expiresSoon
                     ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                    : "border-forest-500/15 text-muted-foreground dark:border-white/10"
+                    : "border-border text-muted-foreground"
                 )}
               >
                 <Clock className="h-3 w-3" />
@@ -419,7 +419,7 @@ function AnnouncementRow({
 
           {/* Expanded detail */}
           {expanded && (
-            <div className="mt-3 space-y-3 border-t border-forest-500/10 pt-3 dark:border-white/[0.07]">
+            <div className="mt-3 space-y-3 border-t border-border/70 pt-3">
               {ann.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

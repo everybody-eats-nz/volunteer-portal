@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { AlertTriangle, BellOff, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { KpiTile } from "@/components/admin/kpi-tile";
 
 interface CoverageOverviewProps {
   totalLocations: number;
@@ -141,82 +142,5 @@ export function CoverageOverview({
         />
       </div>
     </div>
-  );
-}
-
-type Tone = "forest" | "amber" | "rose" | "neutral";
-
-const TONE_STYLES: Record<
-  Tone,
-  { iconWrap: string; value: string }
-> = {
-  forest: {
-    iconWrap: "bg-primary-light text-primary-text",
-    value: "text-primary-text",
-  },
-  amber: {
-    iconWrap: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
-    value: "text-amber-600 dark:text-amber-400",
-  },
-  rose: {
-    iconWrap: "bg-destructive/12 text-destructive",
-    value: "text-destructive",
-  },
-  neutral: {
-    iconWrap: "bg-muted text-muted-foreground",
-    value: "text-foreground",
-  },
-};
-
-function KpiTile({
-  icon,
-  label,
-  value,
-  suffix,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  suffix?: string;
-  tone: Tone;
-}) {
-  const styles = TONE_STYLES[tone];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="rounded-xl border bg-card p-4 shadow-sm"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </span>
-        <span
-          className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg",
-            styles.iconWrap
-          )}
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="mt-3 flex items-baseline gap-1">
-        <span
-          className={cn(
-            "font-accent text-3xl font-semibold tabular-nums leading-none",
-            styles.value
-          )}
-        >
-          {value}
-        </span>
-        {suffix && (
-          <span className="text-sm font-medium text-muted-foreground">
-            {suffix}
-          </span>
-        )}
-      </div>
-    </motion.div>
   );
 }
