@@ -868,7 +868,7 @@ export function ChatGuidesContent({
       </Card>
 
       {/* System Prompt & Suggested Questions */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">System Prompt</CardTitle>
@@ -951,9 +951,9 @@ export function ChatGuidesContent({
 
       {/* Resource list */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold">Chat Context Resources</h3>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setAddDialogOpen(true)} disabled={availableResources.length === 0}>
               <Plus className="mr-2 h-4 w-4" />
               Add Existing Resource

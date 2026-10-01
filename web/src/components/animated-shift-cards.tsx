@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { useEffect, useRef, useState, createContext, useContext } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getDisplayGradeInfo } from "@/lib/volunteer-grades";
 import type { VolunteerGrade } from "@/generated/client";
@@ -628,18 +629,24 @@ function UnregisteredVolunteerGroup({
   );
 }
 
+// xl: 3 columns for large desktop, lg: 2 for desktop with sidebar, else 1.
+// Keep in sync with the container's grid classes below.
+function getColumnCount() {
+  if (typeof window === "undefined") return 1;
+  if (window.innerWidth >= 1280) return 3;
+  if (window.innerWidth >= 1024) return 2;
+  return 1;
+}
+
 export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftCardsProps) {
-  // Determine column count based on screen size (we'll use a simple approach)
-  const [columnCount, setColumnCount] = useState(1);
+  // Only feeds the masonry effect (never the markup), so reading the window
+  // during the first client render is hydration-safe and avoids a 1-column
+  // layout pass before the real one.
+  const router = useRouter();
+  const [columnCount, setColumnCount] = useState(getColumnCount);
 
   useEffect(() => {
-    const updateColumnCount = () => {
-      if (window.innerWidth >= 1280) setColumnCount(3); // xl: 3 columns for large desktop
-      else if (window.innerWidth >= 1024) setColumnCount(2); // lg: 2 columns for desktop with sidebar
-      else setColumnCount(1); // md and below: 1 column for tablet/mobile with sidebar
-    };
-
-    updateColumnCount();
+    const updateColumnCount = () => setColumnCount(getColumnCount());
     window.addEventListener("resize", updateColumnCount);
     return () => window.removeEventListener("resize", updateColumnCount);
   }, []);
@@ -654,7 +661,9 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
     <LayoutUpdateContext.Provider value={triggerLayoutUpdate}>
       <motion.div
         ref={containerRef}
-        className="relative"
+        // The grid lays cards out correctly before hydration; the masonry
+        // effect then absolutely positions them (gap-6 = its 24px gap).
+        className="relative grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3"
         style={{ minHeight: "200px" }}
         initial="hidden"
         animate="visible"
@@ -877,7 +886,12 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                                 const params = new URLSearchParams({ deleted: '1' });
                                 if (date) params.set('date', date);
                                 if (location) params.set('location', location);
-                                window.location.href = `/admin/shifts?${params.toString()}`;
+                                const target = `/admin/shifts?${params.toString()}`;
+                                if (target === `${window.location.pathname}${window.location.search}`) {
+                                  router.refresh();
+                                } else {
+                                  router.push(target);
+                                }
                               }}
                             >
                               <Button

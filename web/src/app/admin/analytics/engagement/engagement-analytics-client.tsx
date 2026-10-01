@@ -1,5 +1,6 @@
 "use client";
 
+import { ApexChart } from "@/app/admin/analytics/_components/primitives";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -26,7 +27,6 @@ import {
   CalendarDays,
   Info,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import {
   Tooltip,
   TooltipContent,
@@ -51,7 +51,6 @@ import type {
   ShiftTypeEngagement,
 } from "@/lib/engagement";
 
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface Props {
   data: EngagementSummaryData;
@@ -580,7 +579,7 @@ export function EngagementAnalyticsClient({
                 {breakdownView === "overall" ? (
                   data.breakdown.some((b) => b.value > 0) ? (
                     <div>
-                      <Chart
+                      <ApexChart
                         options={{
                           chart: {
                             type: "donut" as const,
@@ -689,7 +688,7 @@ export function EngagementAnalyticsClient({
                     </div>
                   )
                 ) : shiftTypeData.length > 0 ? (
-                  <Chart
+                  <ApexChart
                     options={{
                       chart: {
                         type: "bar" as const,
@@ -898,7 +897,7 @@ export function EngagementAnalyticsClient({
               </CardHeader>
               <CardContent>
                 {currTrendData.length > 0 ? (
-                  <Chart
+                  <ApexChart
                     options={{
                       chart: {
                         type: "area" as const,
@@ -1054,7 +1053,7 @@ export function EngagementAnalyticsClient({
                 </div>
               </CardHeader>
               <CardContent>
-                <Chart
+                <ApexChart
                   options={{
                     chart: {
                       type: "heatmap" as const,

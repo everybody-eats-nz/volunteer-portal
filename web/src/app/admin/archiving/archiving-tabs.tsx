@@ -16,7 +16,7 @@ import {
 import { ArchivingOverview } from "./archiving-overview";
 import { PendingCategory } from "./pending-category";
 import { ArchivingLog } from "./archiving-log";
-import type { ArchiveCategory } from "@/lib/archive-service";
+import type { ArchiveCategory, ArchiveStats } from "@/lib/archive-service";
 
 const TABS = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -86,7 +86,7 @@ const CATEGORY_ACTIONS: Record<
   },
 };
 
-export function ArchivingTabs() {
+export function ArchivingTabs({ initialStats }: { initialStats: ArchiveStats }) {
   const [activeTab, setActiveTab] = useState<TabValue>("overview");
   const [overviewRefreshKey, setOverviewRefreshKey] = useState(0);
 
@@ -131,6 +131,7 @@ export function ArchivingTabs() {
         data-testid="tab-content-overview"
       >
         <ArchivingOverview
+          initialStats={initialStats}
           refreshKey={overviewRefreshKey}
           onRunComplete={bumpOverview}
         />

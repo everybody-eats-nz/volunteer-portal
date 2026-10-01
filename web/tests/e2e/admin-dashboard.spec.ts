@@ -428,10 +428,10 @@ test.describe("Admin Dashboard Page", () => {
       const statNumbers = page.locator(
         '[class*="text-2xl"][class*="font-bold"]'
       );
-      const count = await statNumbers.count();
 
-      // Should have exactly 4 stat cards
-      expect(count).toBe(4);
+      // Should have exactly 4 stat cards (they stream in after the skeleton)
+      await expect(statNumbers).toHaveCount(4, { timeout: 15000 });
+      const count = await statNumbers.count();
 
       for (let i = 0; i < count; i++) {
         const statNumber = statNumbers.nth(i);
