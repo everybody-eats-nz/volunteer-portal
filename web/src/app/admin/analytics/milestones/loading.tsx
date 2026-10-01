@@ -53,7 +53,7 @@ function ListCard({
         <CardTitleBar width={titleWidth} />
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-11 w-36" />
+          <Skeleton className="h-9 w-36" />
         </div>
       </div>
       <div className={cn("px-6", rowGap)}>
@@ -116,7 +116,7 @@ export default function MilestoneAnalyticsLoading() {
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
                 <Skeleton className="h-3.5 w-24" />
-                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             ))}
           </div>
