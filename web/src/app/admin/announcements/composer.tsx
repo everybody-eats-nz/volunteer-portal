@@ -500,7 +500,7 @@ export function Composer({
               />
             </div>
 
-            <div className="rounded-2xl border border-forest-500/15 bg-card p-4 dark:border-white/10">
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
               <RailEyebrow>Reach</RailEyebrow>
               <div className="flex items-baseline gap-2">
                 <motion.span
@@ -508,7 +508,7 @@ export function Composer({
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.18 }}
-                  className="font-accent text-4xl font-semibold tabular-nums leading-none text-forest-500 dark:text-[#86d99b]"
+                  className="font-accent text-4xl font-semibold tabular-nums leading-none text-primary-text"
                   data-testid="announcement-recipient-count"
                 >
                   {counting || recipientCount === null ? (
@@ -527,7 +527,7 @@ export function Composer({
                   Everyone with a volunteer account.
                 </p>
               ) : (
-                <ul className="mt-3 space-y-1.5 border-l-2 border-forest-500/20 pl-3 dark:border-[#86d99b]/25">
+                <ul className="mt-3 space-y-1.5 border-l-2 border-primary-text/20 pl-3">
                   {conditions.map((c, i) => (
                     <li key={c} className="text-sm leading-snug">
                       {i > 0 && (
@@ -554,7 +554,7 @@ export function Composer({
               />
             </div>
 
-            <div className="rounded-2xl border border-forest-500/15 bg-card p-4 dark:border-white/10">
+            <div className="rounded-xl border bg-card p-4 shadow-sm">
               <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Users className="h-3.5 w-3.5" />
                 Goes out via {channelSummary}
@@ -565,7 +565,7 @@ export function Composer({
               <Button
                 type="submit"
                 disabled={isSubmitting || !canPublish}
-                className="h-11 w-full gap-2 bg-forest-500 text-white hover:bg-forest-600 dark:bg-[#86d99b] dark:text-[#0f1114] dark:hover:bg-[#9be3ae]"
+                className="h-11 w-full gap-2"
                 data-testid="announcement-publish"
               >
                 <Upload className="h-4 w-4" />
@@ -631,7 +631,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-forest-500/15 bg-card p-5 dark:border-white/10">
+    <section className="rounded-xl border bg-card p-5 shadow-sm">
       <header className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
         <h2 className="font-accent text-lg font-semibold leading-none">
           {eyebrow}
@@ -645,7 +645,7 @@ function Section({
 
 function RailEyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-forest-500/70 dark:text-[#86d99b]/70">
+    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-text/70">
       {children}
     </p>
   );
@@ -674,7 +674,7 @@ function ChannelCard({
       className={cn(
         "flex flex-col gap-2 rounded-xl border p-3.5 transition-colors",
         active
-          ? "border-forest-500/45 bg-forest-500/[0.05] dark:border-[#86d99b]/40 dark:bg-[#86d99b]/[0.06]"
+          ? "border-primary-text/45 bg-primary-text/[0.05]"
           : "border-forest-500/15 hover:border-forest-500/35 dark:border-white/10 dark:hover:border-white/25",
         locked ? "cursor-default" : "cursor-pointer"
       )}
@@ -684,14 +684,14 @@ function ChannelCard({
           className={cn(
             "flex h-8 w-8 items-center justify-center rounded-lg",
             active
-              ? "bg-forest-500 text-white dark:bg-[#86d99b] dark:text-[#0f1114]"
-              : "bg-forest-500/[0.07] text-forest-500 dark:bg-white/[0.06] dark:text-[#86d99b]"
+              ? "bg-primary-text text-background"
+              : "bg-primary-text/[0.07] text-primary-text"
           )}
         >
           {icon}
         </span>
         {locked ? (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-forest-500/70 dark:text-[#86d99b]/70">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-text/70">
             Always on
           </span>
         ) : (
@@ -922,7 +922,7 @@ function RecipientListToggle({
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
-        className="flex w-full cursor-pointer items-center justify-between gap-2 py-1 text-xs font-medium text-forest-500 transition-colors hover:text-forest-600 dark:text-[#86d99b] dark:hover:text-[#9be3ae]"
+        className="flex w-full cursor-pointer items-center justify-between gap-2 py-1 text-xs font-medium text-primary-text transition-colors hover:opacity-80"
         data-testid="announcement-recipient-list-toggle"
       >
         {open ? "Hide the list" : "See exactly who"}

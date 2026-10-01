@@ -15,7 +15,7 @@ const STAGES = [
 function CardTitleBar({ width }: { width: string }) {
   return (
     <div className="flex items-center gap-2 px-6 pb-2">
-      <Skeleton className="size-4 rounded" />
+      <Skeleton className="size-7 rounded-lg" />
       <Skeleton className={cn("h-4", width)} />
     </div>
   );
@@ -28,8 +28,8 @@ export default function VolunteerRecruitmentLoading() {
       description="New registrations, onboarding conversion, and time-to-first-shift metrics"
     >
       {/* Filters */}
-      <SkeletonCard className="py-6">
-        <div className="flex flex-col items-end gap-4 px-6 py-4 sm:flex-row">
+      <SkeletonCard className="p-4">
+        <div className="flex flex-col items-end gap-4 sm:flex-row">
           <div className="grid w-full flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
@@ -47,7 +47,7 @@ export default function VolunteerRecruitmentLoading() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {["registrations", "conversion", "time-to-first", "completed"].map(
             (key) => (
-              <SkeletonCard key={key} className="border-0 py-6">
+              <SkeletonCard key={key} className="border-0">
                 <div className="flex items-center gap-4 px-6 py-5">
                   <Skeleton className="size-10 shrink-0 rounded-full" />
                   <div className="min-w-0 space-y-1.5">

@@ -171,7 +171,7 @@ function ConversionRow({ conversion: c }: { conversion: ShortageConversion }) {
     <li>
       <Link
         href={`/admin/volunteers/${c.userId}`}
-        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-zinc-900/60 transition-colors group"
+        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50 transition-colors group"
       >
         <Avatar className="h-8 w-8 shadow-sm">
           <AvatarImage src={c.profilePhotoUrl ?? ""} alt={c.name} />

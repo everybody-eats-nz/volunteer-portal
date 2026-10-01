@@ -35,10 +35,10 @@ export default function RestaurantManagersTable({
   if (managers.length === 0) {
     return (
       <div
-        className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[#1d5337]/20 bg-[#fdf8ef] px-6 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]"
+        className="flex flex-col items-center gap-2 rounded-xl border border-dashed bg-background px-6 py-12 text-center"
         data-testid="empty-managers-state"
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-200">
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-light text-primary-text">
           <Users className="h-5 w-5" />
         </span>
         <p className="font-medium">No recipients yet</p>
@@ -78,7 +78,7 @@ export default function RestaurantManagersTable({
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
                     muted
                       ? "bg-muted text-muted-foreground"
-                      : "bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-200"
+                      : "bg-primary-light text-primary-text"
                   )}
                 >
                   {getInitials(manager.user)}
@@ -99,7 +99,7 @@ export default function RestaurantManagersTable({
                   manager.locations.map((location) => (
                     <span
                       key={location}
-                      className="inline-flex items-center gap-1 rounded-full bg-[#eef4ef] px-2 py-0.5 text-xs font-medium text-[#1d5337] dark:bg-white/10 dark:text-emerald-100"
+                      className="inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-xs font-medium text-primary-text"
                     >
                       <MapPin className="h-3 w-3 opacity-60" />
                       {location}
@@ -124,13 +124,13 @@ export default function RestaurantManagersTable({
                     )
                   }
                   data-testid={`notification-toggle-${manager.id}`}
-                  className="data-[state=checked]:bg-[#1d5337]"
+                  className="data-[state=checked]:bg-primary"
                   aria-label={`Toggle venue alerts for ${getUserDisplayName(manager.user)}`}
                 />
                 <span
                   className={cn(
                     "text-xs font-medium sm:hidden",
-                    muted ? "text-muted-foreground" : "text-[#1d5337]"
+                    muted ? "text-muted-foreground" : "text-primary-text"
                   )}
                 >
                   {muted ? "Muted" : "On"}

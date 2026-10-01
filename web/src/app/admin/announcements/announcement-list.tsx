@@ -69,7 +69,7 @@ export function AnnouncementList({
 
   if (announcements.length === 0) {
     return (
-      <div className="rounded-2xl border border-forest-500/15 bg-card px-6 py-20 text-center dark:border-white/10">
+      <div className="rounded-xl border bg-card px-6 py-20 text-center shadow-sm">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fef9c3] dark:bg-[#fef9c3]/15">
           <Megaphone className="h-6 w-6 text-[#b45309] dark:text-amber-400" />
         </div>
@@ -82,7 +82,7 @@ export function AnnouncementList({
         </p>
         <Button
           onClick={onCompose}
-          className="mt-5 gap-2 bg-forest-500 text-white hover:bg-forest-600 dark:bg-[#86d99b] dark:text-[#0f1114] dark:hover:bg-[#9be3ae]"
+          className="mt-5 gap-2"
         >
           <Megaphone className="h-4 w-4" />
           Write the first announcement
@@ -94,7 +94,7 @@ export function AnnouncementList({
   return (
     <div className="space-y-6">
       {/* Pulse strip */}
-      <div className="grid grid-cols-1 divide-y divide-forest-500/10 rounded-2xl border border-forest-500/15 bg-card sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-white/[0.07] dark:border-white/10">
+      <div className="grid grid-cols-1 divide-y rounded-xl border bg-card shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-white/[0.07] dark:border-white/10">
         <PulseStat
           label="Live in the feed"
           value={String(liveTotal)}
@@ -190,11 +190,11 @@ function PulseStat({
 }) {
   return (
     <div className="px-5 py-4">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-forest-500/70 dark:text-[#86d99b]/70">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-text/70">
         {live && (
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-forest-500 opacity-40 motion-reduce:animate-none dark:bg-[#86d99b]" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-forest-500 dark:bg-[#86d99b]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-text opacity-40 motion-reduce:animate-none" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-text" />
           </span>
         )}
         {label}
@@ -217,7 +217,7 @@ function SectionHeading({
   return (
     <h2 className="mb-2.5 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
       {live && (
-        <span className="h-2 w-2 rounded-full bg-forest-500 dark:bg-[#86d99b]" />
+        <span className="h-2 w-2 rounded-full bg-primary-text" />
       )}
       {children}
     </h2>
@@ -283,7 +283,7 @@ function AnnouncementRow({
   return (
     <article
       className={cn(
-        "group rounded-2xl border transition-colors",
+        "group rounded-xl border shadow-sm transition-colors",
         expired
           ? "border-forest-500/10 bg-card/50 dark:border-white/[0.06] dark:bg-card/40"
           : "border-forest-500/15 bg-card shadow-[0_1px_2px_rgb(29_83_55/0.06)] dark:border-white/10"
@@ -460,7 +460,7 @@ function StatusChip({
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
         sent
-          ? "border-forest-500/25 bg-forest-500/[0.07] text-forest-500 dark:border-[#86d99b]/25 dark:bg-[#86d99b]/10 dark:text-[#86d99b]"
+          ? "border-primary-text/25 bg-primary-text/[0.07] text-primary-text"
           : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
       )}
     >

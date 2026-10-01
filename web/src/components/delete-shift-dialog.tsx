@@ -75,12 +75,12 @@ export function DeleteShiftDialog({
 
         <div className="space-y-4">
           {/* Shift Details */}
-          <div className="rounded-lg border p-4 bg-slate-50 dark:bg-slate-900/50">
+          <div className="rounded-lg border bg-muted/40 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarIcon className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{shiftName}</span>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               {shiftDate}
             </p>
           </div>

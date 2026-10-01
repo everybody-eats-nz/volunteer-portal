@@ -238,9 +238,9 @@ export function LocationsContent({ initialVenues }: LocationsContentProps) {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card/50 px-6 py-14 text-center"
+              className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/50 px-6 py-14 text-center"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-300">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-primary-text">
                 <MapPin className="h-6 w-6" />
               </span>
               <div>

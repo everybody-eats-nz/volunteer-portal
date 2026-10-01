@@ -686,7 +686,7 @@ export function NotificationsContent({
                   No shifts with shortages found for this date and location
                 </div>
               ) : (
-                <div className="border rounded-md divide-y max-h-[300px] overflow-y-auto">
+                <div className="max-h-[300px] divide-y overflow-y-auto rounded-lg border">
                   {filteredShifts.map((shift) => {
                     const { shortage, percentFilled } =
                       getShiftShortageInfo(shift);
@@ -759,7 +759,7 @@ export function NotificationsContent({
 
             {/* Prompt to select date and location */}
             {(!filterShiftDate || filterShiftLocation === "all") && (
-              <div className="text-center py-8 text-muted-foreground border rounded-md">
+              <div className="rounded-lg border py-8 text-center text-muted-foreground">
                 Please select a date and location to view available shifts
               </div>
             )}

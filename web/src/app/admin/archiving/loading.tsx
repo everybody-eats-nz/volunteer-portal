@@ -19,7 +19,7 @@ function StatsGridSkeleton({
       <Skeleton className="mb-3 h-6 w-44" />
       <div className={cn("grid grid-cols-1 gap-4", className)}>
         {Array.from({ length: count }).map((_, i) => (
-          <SkeletonCard key={i} className="rounded-2xl p-5">
+          <SkeletonCard key={i} className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 space-y-2">
                 <Skeleton className="h-8 w-12" />

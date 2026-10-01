@@ -64,7 +64,7 @@ export function StatsCard({
   return (
     <Card
       className={cn(
-        "grain relative overflow-hidden rounded-2xl border border-forest-500/10 bg-card p-5 shadow-sm dark:border-cream-50/10",
+        "grain relative overflow-hidden rounded-xl border bg-card p-5 shadow-sm",
         className
       )}
       data-testid={testId}

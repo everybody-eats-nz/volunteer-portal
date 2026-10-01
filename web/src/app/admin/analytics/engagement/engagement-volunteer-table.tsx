@@ -219,7 +219,7 @@ export function EngagementVolunteerTable({
           <Button
             variant="ghost"
             onClick={() => handleSort("user")}
-            className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="p-0 h-auto font-medium cursor-pointer"
           >
             User
             {isSorted && sortOrder === "asc" ? (
@@ -270,7 +270,7 @@ export function EngagementVolunteerTable({
           <Button
             variant="ghost"
             onClick={() => handleSort("lastShiftDate")}
-            className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="p-0 h-auto font-medium cursor-pointer"
           >
             Last Shift
             {isSorted && sortOrder === "asc" ? (
@@ -305,7 +305,7 @@ export function EngagementVolunteerTable({
           <Button
             variant="ghost"
             onClick={() => handleSort("totalShifts")}
-            className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="p-0 h-auto font-medium cursor-pointer"
           >
             Total
             {isSorted && sortOrder === "asc" ? (
@@ -332,7 +332,7 @@ export function EngagementVolunteerTable({
           <Button
             variant="ghost"
             onClick={() => handleSort("shiftsInPeriod")}
-            className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="p-0 h-auto font-medium cursor-pointer"
           >
             In Period
             {isSorted && sortOrder === "asc" ? (
@@ -426,7 +426,7 @@ export function EngagementVolunteerTable({
       </div>
 
       {/* Table with loading overlay */}
-      <div className="relative rounded-md border dark:border-zinc-800 shadow-sm bg-card">
+      <div className="relative overflow-hidden rounded-lg border">
         {isPending && (
           <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10 rounded-md">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -454,7 +454,7 @@ export function EngagementVolunteerTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() =>
                     router.push(`/admin/volunteers/${row.original.id}`)
                   }

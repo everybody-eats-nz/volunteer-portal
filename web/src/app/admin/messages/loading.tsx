@@ -31,7 +31,7 @@ export default function MessagesLoading() {
         </div>
 
         <div className="grid min-h-[70vh] grid-cols-1 gap-4 lg:grid-cols-[340px_1fr] xl:grid-cols-[360px_1fr]">
-          <div className="bg-card flex max-h-[78vh] flex-col overflow-hidden rounded-lg border">
+          <div className="bg-card flex max-h-[78vh] flex-col overflow-hidden rounded-xl border shadow-sm">
             <ul className="flex-1 divide-y overflow-hidden">
               {THREAD_PREVIEW_WIDTHS.map((width, i) => (
                 <li key={i} className="flex items-start gap-3 px-4 py-3">
@@ -48,7 +48,7 @@ export default function MessagesLoading() {
               ))}
             </ul>
           </div>
-          <div className="bg-card flex max-h-[78vh] min-h-[60vh] flex-col overflow-hidden rounded-lg border">
+          <div className="bg-card flex max-h-[78vh] min-h-[60vh] flex-col overflow-hidden rounded-xl border shadow-sm">
             <div className="flex flex-1 items-center justify-center px-6 py-16">
               <div className="flex flex-col items-center gap-2">
                 <Skeleton className="h-5 w-52" />

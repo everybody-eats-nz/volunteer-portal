@@ -120,7 +120,7 @@ export function AnnouncementsContent({
       {/* Page header row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-accent text-2xl font-semibold leading-tight">
+          <h2 className="font-accent text-xl font-semibold leading-tight">
             {composerOpen ? (
               <>
                 New <em>announcement</em>
@@ -130,7 +130,7 @@ export function AnnouncementsContent({
                 What&apos;s <em>live</em> right now
               </>
             )}
-          </h1>
+          </h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {composerOpen
               ? "It lands in volunteers' feeds the moment you publish."
@@ -154,7 +154,7 @@ export function AnnouncementsContent({
               setPrefill(null);
               setComposerOpen(true);
             }}
-            className="gap-2 bg-forest-500 text-white hover:bg-forest-600 dark:bg-[#86d99b] dark:text-[#0f1114] dark:hover:bg-[#9be3ae]"
+            className="gap-2"
             data-testid="announcement-new"
           >
             <Megaphone className="h-4 w-4" />

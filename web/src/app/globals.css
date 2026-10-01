@@ -144,6 +144,7 @@
   --color-primary: var(--ee-primary);
   --color-primary-700: var(--ee-primary-700);
   --color-primary-light: var(--ee-primary-light);
+  --color-primary-text: var(--ee-primary-text);
   --color-accent: var(--ee-accent);
   --color-accent-subtle: var(--ee-accent-subtle);
   --color-muted: var(--ee-muted);

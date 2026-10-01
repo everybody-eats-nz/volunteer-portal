@@ -44,9 +44,8 @@ export default function VanExceptionsLoading() {
 
             <ul className="mt-2.5 space-y-2">
               {Array.from({ length: group.items }).map((_, i) => (
-                // Real cards keep Card's py-6 around a p-4 body.
                 <li key={i}>
-                  <SkeletonCard className="py-6">
+                  <SkeletonCard>
                     <div className="flex flex-wrap items-start gap-3 p-4">
                       <Skeleton className="mt-0.5 size-8 shrink-0 rounded-full" />
                       <div className="min-w-0 flex-1">

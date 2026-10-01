@@ -34,7 +34,7 @@ export default async function ModerationPage() {
         <div className="space-y-6">
           {/* Stats */}
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
               <div className="flex items-center justify-between pb-2">
                 <h3 className="text-sm font-medium tracking-tight">
                   Pending Reports
@@ -49,7 +49,7 @@ export default async function ModerationPage() {
               </p>
             </div>
 
-            <div className="rounded-lg border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
               <div className="flex items-center justify-between pb-2">
                 <h3 className="text-sm font-medium tracking-tight">
                   Resolved Reports
@@ -61,7 +61,7 @@ export default async function ModerationPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border bg-card p-6">
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
               <div className="flex items-center justify-between pb-2">
                 <h3 className="text-sm font-medium tracking-tight">
                   Active Blocks

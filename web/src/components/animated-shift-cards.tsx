@@ -188,7 +188,7 @@ function getGradeInfo(grade: string | null | undefined, completedShifts: number)
   // Map to the format expected by this component
   if (!displayInfo) {
     return {
-      color: "bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700",
+      color: "bg-muted text-muted-foreground border border-border",
       icon: null,
       label: "No grade",
     };
@@ -212,7 +212,7 @@ function getGradeInfo(grade: string | null | undefined, completedShifts: number)
   };
 
   return {
-    color: colorMap[displayInfo.label] || "bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700",
+    color: colorMap[displayInfo.label] || "bg-muted text-muted-foreground border border-border",
     icon: iconMap[displayInfo.icon] || Shield,
     label: displayInfo.label,
   };
@@ -365,7 +365,7 @@ function VolunteerStatusGroups({
                 return (
                   <div
                     key={signup.id}
-                    className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl min-w-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
+                    className="flex min-w-0 items-start gap-3 rounded-lg border bg-card p-3 transition-colors duration-200 hover:bg-muted/40"
                   >
                     <Link
                       href={`/admin/volunteers/${signup.user.id}`}
@@ -373,7 +373,7 @@ function VolunteerStatusGroups({
                       data-testid={`volunteer-avatar-link-${signup.id}`}
                     >
                       <Avatar
-                        className="h-12 w-12 border-2 border-white dark:border-slate-700 shadow-md hover:scale-105 transition-transform ring-2 ring-slate-100 dark:ring-slate-800"
+                        className="h-12 w-12 border-2 border-card shadow-md hover:scale-105 transition-transform ring-2 ring-border"
                         data-testid={`volunteer-avatar-${signup.id}`}
                       >
                         <AvatarImage
@@ -407,7 +407,7 @@ function VolunteerStatusGroups({
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <Link
                           href={`/admin/volunteers/${signup.user.id}`}
-                          className="text-sm font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-24 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                          className="text-sm font-semibold text-foreground truncate flex-1 min-w-24 hover:text-primary-text transition-colors"
                           data-testid={`volunteer-name-link-${signup.id}`}
                         >
                           {signup.user.name ||
@@ -521,13 +521,13 @@ function VolunteerStatusGroups({
                         )}
                       </div>
                       {signup.note && (
-                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-1 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">
-                          <span className="font-semibold text-blue-700 dark:text-blue-300">Note: </span>
+                        <div className="text-xs text-foreground/80 mt-1 p-3 bg-muted/50 border-l-2 border-primary-text/40 rounded">
+                          <span className="font-semibold text-primary-text">Note: </span>
                           {signup.note}
                         </div>
                       )}
                       {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
-                        <div className="flex items-center gap-1 mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+                        <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
                           <ArrowRightLeft className="h-3 w-3 flex-shrink-0" />
                           <span>
                             Backup: {signup.backupForShiftIds
@@ -572,7 +572,7 @@ function UnregisteredVolunteerGroup({
           return (
             <div
               key={placeholder.id}
-              className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/50 border border-dashed border-amber-300 dark:border-amber-700 rounded-xl min-w-0 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors"
+              className="flex items-start gap-3 p-3 bg-card border border-dashed border-amber-300 dark:border-amber-700 rounded-lg min-w-0 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors"
               data-testid={`unregistered-volunteer-${placeholder.id}`}
             >
               <div
@@ -584,7 +584,7 @@ function UnregisteredVolunteerGroup({
               <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-center gap-2 mb-1">
                   <span
-                    className="text-sm font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-0"
+                    className="text-sm font-semibold text-foreground truncate flex-1 min-w-0"
                     data-testid={`unregistered-name-${placeholder.id}`}
                   >
                     {placeholder.name}
@@ -598,7 +598,7 @@ function UnregisteredVolunteerGroup({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-slate-500 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40"
                         aria-label={`Edit unregistered volunteer ${placeholder.name}`}
                         data-testid={`unregistered-edit-${placeholder.id}`}
                       >
@@ -613,7 +613,7 @@ function UnregisteredVolunteerGroup({
                   </div>
                 </div>
                 {placeholder.notes && (
-                  <div className="text-xs text-slate-700 dark:text-slate-300 mt-1 p-3 bg-amber-50/60 dark:bg-amber-900/10 border-l-2 border-amber-400 dark:border-amber-600 rounded">
+                  <div className="text-xs text-foreground/80 mt-1 p-3 bg-amber-50/60 dark:bg-amber-900/10 border-l-2 border-amber-400 dark:border-amber-600 rounded">
                     <span className="font-semibold text-amber-700 dark:text-amber-300">
                       Notes:{" "}
                     </span>
@@ -679,7 +679,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
             const confirmed = getEffectiveConfirmedCount(confirmedSignups, unregisteredCount);
             const isCompleted = isShiftCompleted(shift.end);
             const staffingStatus = isCompleted
-              ? { color: "bg-slate-400 dark:bg-slate-600", text: "Completed", icon: CheckCircle2 }
+              ? { color: "bg-muted-foreground/60", text: "Completed", icon: CheckCircle2 }
               : getStaffingStatus(confirmed, shift.capacity);
 
             const shiftTheme = getShiftTheme(shift.shiftType.name);
@@ -696,21 +696,21 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
               >
                 <Card
                   data-testid={`shift-card-${shift.id}`}
-                  className="w-full relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 hover:shadow-lg py-0"
+                  className="w-full relative overflow-hidden py-0 transition-all duration-200 hover:border-foreground/20 hover:shadow-lg"
                 >
                   <CardContent className="p-0">
                     {/* Modern Header with colored accent */}
-                    <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="px-4 py-3 border-b bg-muted/40">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1">
                           <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${shiftTheme.fullGradient} flex items-center justify-center text-2xl shadow-sm`}>
                             {shiftTheme.emoji}
                           </div>
                           <div className="flex-1">
-                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">
+                            <h3 className="font-bold text-lg text-foreground mb-1">
                               {shift.shiftType.name}
                             </h3>
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Clock className="h-4 w-4" />
                               <span className="font-medium">
                                 {formatInNZT(shift.start, "h:mm a")} - {formatInNZT(shift.end, "h:mm a")}
@@ -726,7 +726,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                             {`${confirmed}/${shift.capacity}`}
                           </Badge>
                           {!isCompleted && (
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                               {staffingStatus.text}
                             </span>
                           )}
@@ -743,10 +743,10 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                       {shift.signups.length === 0 && shift.placeholders.length === 0 ? (
                         <div
                           data-testid={`no-volunteers-${shift.id}`}
-                          className="py-8 text-center bg-slate-50 dark:bg-slate-800/70 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg"
+                          className="py-8 text-center bg-muted/40 border-2 border-dashed rounded-lg"
                         >
-                          <Users className="h-10 w-10 text-slate-400 dark:text-slate-400 mx-auto mb-3" />
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                          <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                          <p className="text-sm font-medium text-foreground/80">
                             No volunteers yet
                           </p>
                         </div>
@@ -770,7 +770,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                               { status: "CONFIRMED", label: isCompleted ? "Attended" : "Confirmed", icon: CheckCircle2, color: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100" },
                               { status: "WAITLISTED", label: "Waitlisted", icon: AlertCircle, color: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-100" },
                               { status: "NO_SHOW", label: "No Show", icon: UserX, color: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100" },
-                              { status: "CANCELED", label: "Canceled", icon: X, color: "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" },
+                              { status: "CANCELED", label: "Canceled", icon: X, color: "bg-muted/40 border-border text-muted-foreground" },
                             ];
 
                             return (
@@ -796,7 +796,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                     </div>
 
                     {/* Action Buttons Footer */}
-                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
+                    <div className="px-4 py-3 bg-muted/30 border-t">
                       <div className="flex flex-col gap-2">
                         {/* Unregistered volunteer quick-add */}
                         <UnregisteredVolunteerDialog shiftId={shift.id} mode="create">
@@ -825,7 +825,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full bg-green-50 dark:bg-green-900/60 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-800/60 border-green-300 dark:border-green-700"
+                            className="w-full border-primary-text/30 bg-primary-light text-primary-text hover:bg-primary-light/70 hover:text-primary-text dark:border-primary-text/30 dark:bg-primary-light dark:hover:bg-primary-light/70"
                             data-testid={`assign-volunteer-button-${shift.id}`}
                           >
                             <UserPlus className="h-4 w-4 mr-2" />
@@ -840,7 +840,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                               asChild
                               variant="outline"
                               size="sm"
-                              className="flex-1 bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800/60 border-blue-300 dark:border-blue-700"
+                              className="flex-1"
                               data-testid={`edit-shift-button-${shift.id}`}
                             >
                               <Link

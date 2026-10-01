@@ -17,7 +17,7 @@ export default function SurveyResponsesLoading() {
     <AdminPageSkeleton title="Survey Responses">
       <Skeleton className="-ml-2 h-8 w-40" />
 
-      <SkeletonCard className="overflow-hidden rounded-2xl">
+      <SkeletonCard className="overflow-hidden">
         <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-5">
             <Skeleton className="size-[104px] shrink-0 rounded-full" />

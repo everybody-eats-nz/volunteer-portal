@@ -1,6 +1,6 @@
 "use client";
 
-import { ApexChart } from "@/app/admin/analytics/_components/primitives";
+import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
@@ -325,8 +325,8 @@ export function RecruitmentSection({ data, months, location }: Props) {
             <motion.div key={card.label} variants={staggerItem}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Card className={`${card.bg} border-0 cursor-help`}>
-                    <CardContent className="flex items-center gap-4 py-5">
+                  <Card className={`${card.bg} border-0 py-5 cursor-help`}>
+                    <CardContent className="flex items-center gap-4">
                       <div
                         className={`p-2.5 rounded-full shrink-0 ${card.iconBg}`}
                       >
@@ -361,8 +361,8 @@ export function RecruitmentSection({ data, months, location }: Props) {
         <motion.div variants={staggerItem}>
           <Card className="h-full">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-blue-500" />
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <ChartIcon icon={TrendingUp} accent="text-blue-500" />
                 New Registrations
                 <InfoDialog
                   title="New Registrations Over Time"
@@ -498,8 +498,8 @@ export function RecruitmentSection({ data, months, location }: Props) {
         <motion.div variants={staggerItem}>
           <Card className="h-full">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4 text-violet-500" />
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <ChartIcon icon={Users} accent="text-violet-500" />
                 Onboarding Funnel
                 <InfoDialog
                   title="Onboarding Funnel"
@@ -662,8 +662,8 @@ export function RecruitmentSection({ data, months, location }: Props) {
         <motion.div variants={staggerItem}>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <ChartIcon icon={Clock} accent="text-emerald-500" />
                 Time to First Shift Distribution
                 <InfoDialog
                   title="Time to First Shift"

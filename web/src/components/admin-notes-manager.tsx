@@ -230,8 +230,8 @@ export function AdminNotesManager({ volunteerId }: AdminNotesManagerProps) {
           Add Admin Note
         </Button>
       ) : (
-        <Card className="border-orange-200">
-          <CardContent className="pt-4">
+        <Card className="rounded-lg border-orange-200 py-0 shadow-none dark:border-orange-800/50">
+          <CardContent className="p-4">
             <div className="space-y-3">
               <Textarea
                 value={newNoteContent}
@@ -280,12 +280,13 @@ export function AdminNotesManager({ volunteerId }: AdminNotesManagerProps) {
             <Card 
               key={note.id} 
               className={cn(
-                "transition-all duration-200",
-                editingNoteId === note.id && "border-orange-200 shadow-sm"
+                "rounded-lg py-0 shadow-none transition-all duration-200",
+                editingNoteId === note.id &&
+                  "border-orange-200 shadow-sm dark:border-orange-800/50"
               )}
               data-testid={`note-${note.id}`}
             >
-              <CardContent className="pt-4">
+              <CardContent className="p-4">
                 {editingNoteId === note.id ? (
                   /* Edit Mode */
                   <div className="space-y-3">

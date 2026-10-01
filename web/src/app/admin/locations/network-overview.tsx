@@ -42,16 +42,16 @@ export function NetworkOverview({ venues }: NetworkOverviewProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className={cn(
-            "relative overflow-hidden rounded-2xl border p-5 sm:p-6",
+            "relative overflow-hidden rounded-xl border p-5 shadow-sm sm:p-6",
             healthy
-              ? "border-[#1d5337]/15 bg-gradient-to-br from-[#1d5337] to-[#2e6438] text-white"
+              ? "border-forest-500 bg-gradient-to-br from-forest-500 to-forest-400 text-white"
               : "border-amber-300/50 bg-gradient-to-br from-amber-50 to-yellow-50 dark:border-amber-300/25 dark:from-amber-950/30 dark:to-yellow-950/20"
           )}
         >
           {healthy && (
             <div
               aria-hidden
-              className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[#f8fb69]/20 blur-2xl"
+              className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-sun-200/20 blur-2xl"
             />
           )}
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -60,7 +60,7 @@ export function NetworkOverview({ venues }: NetworkOverviewProps) {
                 className={cn(
                   "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
                   healthy
-                    ? "bg-white/15 text-[#f8fb69]"
+                    ? "bg-white/15 text-sun-200"
                     : "bg-amber-400/20 text-amber-600 dark:text-amber-400"
                 )}
               >
@@ -148,26 +148,22 @@ type Tone = "forest" | "amber" | "sun" | "neutral";
 
 const TONE_STYLES: Record<
   Tone,
-  { ring: string; iconWrap: string; value: string }
+  { iconWrap: string; value: string }
 > = {
   forest: {
-    ring: "ring-[#1d5337]/12",
     iconWrap:
-      "bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-300",
-    value: "text-[#1d5337] dark:text-emerald-200",
+      "bg-primary-light text-primary-text",
+    value: "text-primary-text",
   },
   amber: {
-    ring: "ring-amber-400/30",
     iconWrap: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
     value: "text-amber-600 dark:text-amber-400",
   },
   sun: {
-    ring: "ring-[#d3d84a]/50 dark:ring-[#f8fb69]/20",
-    iconWrap: "bg-[#f8fb69]/60 text-[#4a4d20] dark:bg-[#f8fb69]/15 dark:text-[#f8fb69]",
+    iconWrap: "bg-sun-200/60 text-forest-700 dark:bg-sun-200/15 dark:text-sun-200",
     value: "text-foreground",
   },
   neutral: {
-    ring: "ring-border",
     iconWrap: "bg-muted text-muted-foreground",
     value: "text-foreground",
   },
@@ -192,10 +188,7 @@ function KpiTile({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className={cn(
-        "rounded-2xl bg-card p-4 shadow-sm ring-1 dark:bg-white/[0.02]",
-        styles.ring
-      )}
+      className="rounded-xl border bg-card p-4 shadow-sm"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

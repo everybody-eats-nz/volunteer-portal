@@ -496,7 +496,7 @@ export function AudienceBuilder({
                       "inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
                       label.color,
                       pressed
-                        ? "ring-2 ring-forest-500 ring-offset-1 ring-offset-background dark:ring-[#86d99b]"
+                        ? "ring-2 ring-primary-text ring-offset-1 ring-offset-background"
                         : "opacity-75 hover:opacity-100"
                     )}
                     data-testid={`audience-label-${label.id}`}
@@ -598,8 +598,8 @@ function FilterGroup({
             className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
               active
-                ? "bg-forest-500 text-white dark:bg-[#86d99b] dark:text-[#0f1114]"
-                : "bg-forest-500/[0.07] text-forest-500 dark:bg-white/[0.06] dark:text-[#86d99b]"
+                ? "bg-primary-text text-background"
+                : "bg-primary-text/[0.07] text-primary-text"
             )}
           >
             {icon}
@@ -612,7 +612,7 @@ function FilterGroup({
               className={cn(
                 "block truncate text-xs leading-tight",
                 active
-                  ? "font-medium text-forest-500 dark:text-[#86d99b]"
+                  ? "font-medium text-primary-text"
                   : "text-muted-foreground"
               )}
             >
@@ -656,7 +656,7 @@ function Chip({
       className={cn(
         "inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-all",
         pressed
-          ? "border-forest-500 bg-forest-500 font-medium text-white dark:border-[#86d99b] dark:bg-[#86d99b] dark:text-[#0f1114]"
+          ? "border-primary-text bg-primary-text font-medium text-background"
           : "border-forest-500/25 bg-transparent text-foreground hover:border-forest-500/60 hover:bg-forest-500/[0.05] dark:border-white/15 dark:hover:border-white/30 dark:hover:bg-white/[0.04]"
       )}
       {...rest}
@@ -776,7 +776,7 @@ function SpecificUsersPicker({
                       </span>
                     </span>
                     {isSelected && (
-                      <Check className="h-4 w-4 shrink-0 text-forest-500 dark:text-[#86d99b]" />
+                      <Check className="h-4 w-4 shrink-0 text-primary-text" />
                     )}
                   </button>
                 );
@@ -947,7 +947,7 @@ function SpecificShiftsPicker({
                           </span>
                         </span>
                         {isSelected && (
-                          <Check className="h-4 w-4 shrink-0 text-forest-500 dark:text-[#86d99b]" />
+                          <Check className="h-4 w-4 shrink-0 text-primary-text" />
                         )}
                       </button>
                     );

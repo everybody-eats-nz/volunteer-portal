@@ -65,7 +65,7 @@ export default function VolunteerProfileLoading() {
           </Button>
           <Button variant="outline" size="sm" className="gap-2" disabled>
             <ChevronLeft className="h-4 w-4" />
-            Back to Shifts
+            Back to shifts
           </Button>
         </div>
       }
@@ -122,7 +122,7 @@ export default function VolunteerProfileLoading() {
           <ProfileCard titleWidth="w-28" className="space-y-3">
             <Skeleton className="h-8 w-28" />
             {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="space-y-2 rounded-sm border p-4">
+              <div key={i} className="space-y-2 rounded-lg border p-4">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-3 w-32" />

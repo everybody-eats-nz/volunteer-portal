@@ -51,7 +51,7 @@ export function LocationFilterTabs({
         onValueChange={handleLocationChange}
       >
         <SelectTrigger
-          className="w-[180px] h-9 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+          className="h-9 w-[180px] bg-card"
           data-testid="location-filter-all"
         >
           <SelectValue />

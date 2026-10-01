@@ -22,7 +22,7 @@ export default function AdminUsersLoading() {
       {/* Quick stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-hidden="true">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-lg border p-3">
+          <div key={i} className="bg-card rounded-xl border p-3 shadow-sm">
             <div className="flex items-center gap-2">
               <Skeleton className="size-5 rounded" />
               <div className="space-y-1.5 py-0.5">
@@ -45,7 +45,7 @@ export default function AdminUsersLoading() {
           <Skeleton className="h-8 w-22" />
           <Skeleton className="h-8 w-24" />
           <Skeleton className="h-8 w-18" />
-          <div className="ml-auto flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 sm:ml-auto">
             <Skeleton className="h-8 w-16" />
             <Skeleton className="h-8 w-24" />
             <Skeleton className="h-8 w-20" />
@@ -62,18 +62,17 @@ export default function AdminUsersLoading() {
           actions
           headerClassName="h-11"
           rowClassName="min-h-[65px]"
-          className="rounded-md"
         />
-        <div className="flex items-center justify-between gap-4 py-4">
-          <div className="flex flex-1 items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
+          <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-2">
             <Skeleton className="h-4 w-44" />
-            <div className="hidden items-center gap-2 sm:flex">
+            <div className="flex items-center gap-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-8 w-[70px]" />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Skeleton className="hidden h-4 w-20 sm:block" />
+            <Skeleton className="h-4 w-20" />
             <Skeleton className="h-8 w-20" />
             <Skeleton className="h-8 w-14" />
           </div>

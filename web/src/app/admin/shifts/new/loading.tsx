@@ -1,3 +1,4 @@
+import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AdminPageSkeleton } from "@/components/admin/admin-skeletons";
@@ -19,7 +20,7 @@ function PlannerSectionSkeleton({
   return (
     <section
       aria-hidden="true"
-      className="rounded-2xl border border-border bg-card shadow-sm"
+      className="rounded-xl border bg-card shadow-sm"
     >
       <header className="space-y-2 border-b border-border px-5 py-4 sm:px-6">
         <Skeleton className="h-3 w-12" />
@@ -39,7 +40,8 @@ export default function CreateShiftsLoading() {
       className="space-y-2"
       actions={
         <Button variant="outline" size="sm" disabled>
-          ← Back to shifts
+          <ChevronLeft className="h-4 w-4" />
+          Back to shifts
         </Button>
       }
     >
@@ -96,7 +98,7 @@ export default function CreateShiftsLoading() {
           {/* Run sheet */}
           <div
             aria-hidden="true"
-            className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+            className="overflow-hidden rounded-xl border bg-card shadow-sm"
           >
             <div className="space-y-3 border-b border-dashed border-border px-5 pt-4 pb-7">
               <Skeleton className="h-3 w-20" />

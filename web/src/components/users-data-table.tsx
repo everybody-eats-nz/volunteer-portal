@@ -121,7 +121,7 @@ export const columns: ColumnDef<User>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="p-0 h-auto font-medium cursor-pointer"
         >
           User
           {isSorted === "asc" ? (
@@ -248,7 +248,7 @@ export const columns: ColumnDef<User>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="p-0 h-auto font-medium cursor-pointer"
         >
           Shifts
           {isSorted === "asc" ? (
@@ -289,7 +289,7 @@ export const columns: ColumnDef<User>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="p-0 h-auto font-medium cursor-pointer"
         >
           Joined
           {isSorted === "asc" ? (
@@ -329,7 +329,7 @@ export const columns: ColumnDef<User>[] = [
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                className="h-8 w-8 p-0"
                 data-testid={`user-actions-${user.id}`}
               >
                 <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
@@ -476,7 +476,7 @@ export function UsersDataTable({
 
   return (
     <div className="w-full" data-testid="users-datatable">
-      <div className="rounded-md border dark:border-zinc-800 shadow-sm dark:shadow-lg dark:shadow-zinc-900/20 bg-card">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         {isLoading ? (
           <div className="p-4" data-testid="users-table-loading">
             <TableSkeleton rows={pageSize} />
@@ -507,7 +507,7 @@ export function UsersDataTable({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
+                    className="cursor-pointer hover:bg-muted/50"
                     data-testid={`user-row-${row.original.id}`}
                     onClick={() =>
                       router.push(`/admin/volunteers/${row.original.id}`)
@@ -539,8 +539,8 @@ export function UsersDataTable({
         )}
       </div>
 
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex-1 flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4">
+        <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-2">
           <div className="text-sm text-muted-foreground">
             {totalCount > 0 ? (
               <>
