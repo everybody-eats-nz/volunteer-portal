@@ -50,7 +50,7 @@ export default function ShortageNotificationsLoading() {
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
                 <Skeleton className="h-3.5 w-24" />
-                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             ))}
           </div>

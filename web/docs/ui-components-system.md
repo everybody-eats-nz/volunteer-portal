@@ -82,6 +82,12 @@ npx shadcn@latest add dialog
 - Extend shadcn components rather than replacing them
 - Use component composition for complex UI patterns
 
+**Control heights:**
+- `Input` and `Button` default to 36px (`h-9`).
+- `SelectTrigger` defaults to 44px (`h-11`), a touch-friendly height for volunteer-facing forms.
+- In admin toolbars and filter bars, use `<SelectTrigger size="md">` (36px) so selects line up with inputs and buttons. `size="sm"` is 32px, for compact controls like table page-size pickers.
+- Route `loading.tsx` skeletons mirror these heights, so update them when a control's size changes.
+
 **Example:**
 ```tsx
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
