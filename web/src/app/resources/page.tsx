@@ -46,14 +46,11 @@ function SearchPanelSkeleton() {
   );
 }
 
-/** Mirrors the results layout — count rule, then a grid of cream cards. */
+/** Mirrors the results layout — count kicker, then a grid of cream cards. */
 function ResourcesGridSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-px w-8" />
-        <Skeleton className="h-3.5 w-40 rounded-full" />
-      </div>
+      <Skeleton className="h-3.5 w-40 rounded-full" />
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div
@@ -122,10 +119,6 @@ export default async function ResourcesPage({
             className="pointer-events-none absolute -bottom-12 -right-8 w-72 opacity-15 sm:w-96"
           />
           <div className="relative max-w-2xl">
-            <p className="eyebrow mb-6 flex items-center gap-3 text-sun-200/90">
-              <span className="inline-block h-px w-8 bg-sun-200/50" />
-              Kia ora · The volunteer library
-            </p>
             <h1 className="display text-4xl leading-[1.02] tracking-tight sm:text-6xl">
               Resource <em>Hub</em>
             </h1>

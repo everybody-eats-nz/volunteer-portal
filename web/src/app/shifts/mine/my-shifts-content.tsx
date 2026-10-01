@@ -46,8 +46,6 @@ const pillGhost = `${pill} border border-forest-500/30 text-forest-700 hover:bg-
 
 const eyebrowLight =
   "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
-const eyebrowRule =
-  "inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40";
 
 async function fetchMonthShifts(
   userId: string,
@@ -393,18 +391,12 @@ export async function MyShiftsContent({
       >
         {/* Month header + navigation */}
         <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p data-testid="month-description" className={`${eyebrowLight} mb-3`}>
-              <span className={eyebrowRule} />
-              Your volunteer schedule
-            </p>
-            <h2
-              data-testid="month-title"
-              className="display text-3xl tracking-tight text-forest-700 sm:text-4xl dark:text-cream-50"
-            >
-              {format(viewMonth, "MMMM")} <em>{format(viewMonth, "yyyy")}</em>
-            </h2>
-          </div>
+          <h2
+            data-testid="month-title"
+            className="display text-3xl tracking-tight text-forest-700 sm:text-4xl dark:text-cream-50"
+          >
+            {format(viewMonth, "MMMM")} <em>{format(viewMonth, "yyyy")}</em>
+          </h2>
           <div
             className="flex items-center gap-2"
             data-testid="month-navigation"
@@ -465,7 +457,6 @@ export async function MyShiftsContent({
             {!isPastMonth && (
               <div className="space-y-3" data-testid="upcoming-section">
                 <p className={eyebrowLight}>
-                  <span className={eyebrowRule} />
                   Coming up
                   {upcoming.length > 0 && (
                     <span className="text-forest-500/60 dark:text-cream-50/45">
@@ -504,7 +495,6 @@ export async function MyShiftsContent({
             {past.length > 0 && (
               <div className="space-y-3" data-testid="past-section">
                 <p className={eyebrowLight}>
-                  <span className={eyebrowRule} />
                   {isPastMonth ? "Completed shifts" : "Earlier this month"}
                   <span className="text-forest-500/60 dark:text-cream-50/45">
                     · {past.length}
@@ -529,8 +519,7 @@ export async function MyShiftsContent({
             data-testid="open-days"
             className="grain relative mt-8 overflow-hidden rounded-2xl bg-sun-100/70 p-5 ring-1 ring-forest-500/10 sm:p-6 dark:bg-sun-200/10 dark:ring-cream-50/10"
           >
-            <p className="eyebrow flex items-center gap-3 text-forest-600/80 dark:text-sun-200/80">
-              <span className="inline-block h-px w-8 bg-forest-500/40 dark:bg-sun-200/40" />
+            <p className="eyebrow text-forest-600/80 dark:text-sun-200/80">
               More mahi this month
             </p>
             <p className="mt-2 text-sm leading-relaxed text-forest-700/80 dark:text-cream-50/75">

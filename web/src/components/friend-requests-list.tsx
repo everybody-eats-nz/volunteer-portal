@@ -55,7 +55,6 @@ export function FriendRequestsList({
   return (
     <div className="space-y-4">
       <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-        <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
         Waiting on you
         <span className="text-forest-500/60 dark:text-cream-50/45">
           · {pendingRequests.length}

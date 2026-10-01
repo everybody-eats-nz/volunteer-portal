@@ -69,8 +69,7 @@ function Sparkle({ className }: { className?: string }) {
   );
 }
 
-const eyebrowLight =
-  "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
+const eyebrowLight = "eyebrow text-forest-500/80 dark:text-cream-50/60";
 
 interface ShiftSummary {
   id: string;
@@ -323,11 +322,6 @@ export default async function ShiftsCalendarPage({
         <div className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center py-10 text-center sm:py-16">
           {/* ============ Hero ============ */}
           <div className="flex flex-col items-center">
-            <p className={`${eyebrowLight} mb-6 justify-center`}>
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-              Kia ora · Where to, whānau?
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-            </p>
             <div className="relative mb-6">
               <span className="grain flex h-16 w-16 items-center justify-center rounded-2xl bg-forest-500 text-cream-50 shadow-lg dark:bg-forest-600">
                 <MapPin className="h-8 w-8" />
@@ -357,7 +351,6 @@ export default async function ShiftsCalendarPage({
             {userPreferredLocations.length > 1 && (
               <div className="space-y-3">
                 <p className={eyebrowLight}>
-                  <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
                   Your preferred spots
                 </p>
                 <div className="grid gap-3">
@@ -401,7 +394,6 @@ export default async function ShiftsCalendarPage({
             <div className="space-y-3">
               {userPreferredLocations.length > 1 && (
                 <p className={eyebrowLight}>
-                  <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
                   Other locations
                 </p>
               )}
@@ -498,7 +490,6 @@ export default async function ShiftsCalendarPage({
             title itself opens the location menu (styled to match, below). */}
         <div className="pb-2">
           <p className={`${eyebrowLight} mb-4`}>
-            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
             Browse volunteer shifts
           </p>
           <h1

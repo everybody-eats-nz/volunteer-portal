@@ -50,7 +50,6 @@ export default async function ResetPasswordPage({
       <AuthShell
         testid="reset-password-page"
         cardTestid="invalid-token-card"
-        brandEyebrow="Kia ora"
         brandHeading={
           <>
             Need a fresh <em>link</em>?

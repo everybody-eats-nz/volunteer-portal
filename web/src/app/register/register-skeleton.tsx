@@ -24,10 +24,6 @@ export function RegisterSkeleton() {
       <div className="mx-auto max-w-4xl space-y-8">
         {/* Branded header */}
         <div>
-          <div className="mb-4 flex items-center gap-3">
-            <span className="inline-block h-px w-8 bg-forest-500/30 dark:bg-cream-50/20" />
-            <Bar className="h-3 w-40" />
-          </div>
           <Bar className="h-11 w-80 max-w-full sm:h-14" />
           <div className="mt-4 space-y-2">
             <Bar className="h-4 w-full max-w-2xl" />

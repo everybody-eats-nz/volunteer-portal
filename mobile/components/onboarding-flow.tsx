@@ -23,7 +23,6 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Eyebrow } from '@/components/ui/eyebrow';
 import { Brand, Colors, FontFamily, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/lib/api';
@@ -441,9 +440,6 @@ function WelcomeStep({
         emoji="🌿"
         ring={[Brand.accent, Brand.greenLight]}
       />
-      <View style={styles.eyebrowWrap}>
-        <Eyebrow color={colors.textSecondary}>Kia ora</Eyebrow>
-      </View>
       <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
         Welcome,{' '}
         <ThemedText type="accent" style={styles.title}>
@@ -513,9 +509,6 @@ function BookingStep({ isDark, colors }: StepCommon) {
         emoji="🍽️"
         ring={[Brand.green, Brand.greenLight]}
       />
-      <View style={styles.eyebrowWrap}>
-        <Eyebrow color={colors.textSecondary}>Step by step</Eyebrow>
-      </View>
       <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
         Booking a{' '}
         <ThemedText type="accent" style={styles.title}>
@@ -622,9 +615,6 @@ function FeedStep({ isDark, colors }: StepCommon) {
         emoji="📢"
         ring={[Brand.green, Brand.greenLight]}
       />
-      <View style={styles.eyebrowWrap}>
-        <Eyebrow color={colors.textSecondary}>Your Home tab</Eyebrow>
-      </View>
       <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
         Stay in the{' '}
         <ThemedText type="accent" style={styles.title}>
@@ -702,9 +692,6 @@ function CalendarStep({
         emoji="📅"
         ring={[Brand.green, Brand.accent]}
       />
-      <View style={styles.eyebrowWrap}>
-        <Eyebrow color={colors.textSecondary}>Stay on schedule</Eyebrow>
-      </View>
       <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
         Never miss a{' '}
         <ThemedText type="accent" style={styles.title}>
@@ -752,9 +739,6 @@ function NotificationsStep({
         emoji="🔔"
         ring={[Brand.green, Brand.accent]}
       />
-      <View style={styles.eyebrowWrap}>
-        <Eyebrow color={colors.textSecondary}>Tap on the shoulder</Eyebrow>
-      </View>
       <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
         Get the important{' '}
         <ThemedText type="accent" style={styles.title}>
@@ -790,9 +774,6 @@ function TermsStep({ isDark, colors }: StepCommon) {
           emoji="💚"
           ring={[Brand.accent, Brand.greenLight]}
         />
-        <View style={styles.eyebrowWrap}>
-          <Eyebrow color={colors.textSecondary}>One last thing</Eyebrow>
-        </View>
         <ThemedText
           type="display"
           style={[styles.title, { color: colors.text }]}
@@ -1075,9 +1056,6 @@ const styles = StyleSheet.create({
   },
   heroEmoji: {
     fontSize: 52,
-  },
-  eyebrowWrap: {
-    alignItems: 'center',
   },
   title: {
     fontSize: 32,

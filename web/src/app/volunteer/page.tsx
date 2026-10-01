@@ -19,7 +19,6 @@ export const metadata: Metadata = buildPageMetadata({
 const pill =
   "inline-flex items-center justify-center rounded-full px-7 py-3.5 text-sm font-medium transition-all duration-200";
 const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0`;
-const eyebrowLight = "eyebrow text-forest-500/80 dark:text-cream-50/60";
 
 function Arrow({ className }: { className?: string }) {
   return (
@@ -36,10 +35,6 @@ export default function VolunteerIndexPage() {
       <section className="grain relative overflow-hidden pb-12 pt-10 sm:pb-16 sm:pt-16">
         <div className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:px-12">
           <HeroContent className="max-w-3xl">
-            <p className={`${eyebrowLight} mb-6 flex items-center gap-3`}>
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-              Everybody Eats · Volunteering
-            </p>
             <h1 className="display text-5xl leading-[0.98] tracking-tight text-forest-700 sm:text-6xl lg:text-7xl dark:text-cream-50">
               Volunteer across <em>Aotearoa</em>
             </h1>

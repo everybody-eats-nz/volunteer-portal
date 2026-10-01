@@ -97,11 +97,6 @@ test.describe("My Shifts Page", () => {
       const titleText = await monthTitle.textContent();
       expect(titleText).toMatch(/^\w+ \d{4}$/); // Format: "Month Year"
 
-      // Check panel eyebrow / description
-      const monthDescription = vis(page, "month-description");
-      await expect(monthDescription).toBeVisible();
-      await expect(monthDescription).toContainText("Your volunteer schedule");
-
       // Check navigation section
       await expect(vis(page, "month-navigation")).toBeVisible();
 

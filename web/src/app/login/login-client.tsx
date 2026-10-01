@@ -457,7 +457,6 @@ export default function LoginClient({ providers }: LoginClientProps) {
     <AuthShell
       testid="login-page"
       cardTestid="login-form-card"
-      brandEyebrow="Kia ora"
       brandHeading={
         <>
           Good to have you <em>back</em>

@@ -87,7 +87,7 @@ export default async function FriendsStatsPage() {
 
   return (
     <PageContainer testid="friends-stats-page">
-      {/* Branded header — eyebrow + Fraunces display treatment, matching the
+      {/* Branded header — Fraunces display treatment, matching the
           friends page (new.everybodyeats.nz). */}
       <header className="pb-8">
         <Link
@@ -97,10 +97,6 @@ export default async function FriendsStatsPage() {
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
           Back to Friends
         </Link>
-        <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-          <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-          Ngā mihi · Your connections
-        </p>
         <h1 className="display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50">
           <span>
             Friendship <em>Statistics</em>

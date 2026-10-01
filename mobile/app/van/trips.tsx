@@ -43,7 +43,7 @@ export default function TripHistoryScreen() {
 
         {days.map((day) => (
           <View key={day.key} style={styles.day}>
-            <Eyebrow color={colors.textSecondary} rule={false}>
+            <Eyebrow color={colors.textSecondary}>
               {day.label}
             </Eyebrow>
             {day.trips.map((trip) => (

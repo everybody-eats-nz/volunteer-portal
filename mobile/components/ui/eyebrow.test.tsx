@@ -18,16 +18,9 @@ describe('Eyebrow', () => {
     expect(text.props.accessibilityRole).toBe('header');
   });
 
-  it('renders the leading hairline rule by default', () => {
+  it('renders only the kicker text, with no leading rule', () => {
     const tree = render(<Eyebrow>Kicker</Eyebrow>);
-    // Outer row View + the rule View == two Views.
-    expect(tree.root.findAllByType(View)).toHaveLength(2);
-  });
-
-  it('omits the rule when rule={false}', () => {
-    const tree = render(<Eyebrow rule={false}>Kicker</Eyebrow>);
-    // Only the outer row View remains.
-    expect(tree.root.findAllByType(View)).toHaveLength(1);
+    expect(tree.root.findAllByType(View)).toHaveLength(0);
   });
 
   it('uses the theme tint colour by default', () => {

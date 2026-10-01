@@ -3,15 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function AchievementsListSkeleton() {
   return (
     <section>
-      {/* Section header skeleton — eyebrow + display title + toggle pill */}
+      {/* Section header skeleton — display title + toggle pill */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="mb-3 flex items-center gap-3">
-            <span className="inline-block h-px w-8 bg-forest-500/30 dark:bg-cream-50/25" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-          <Skeleton className="h-9 w-64 sm:h-10" />
-        </div>
+        <Skeleton className="h-9 w-64 sm:h-10" />
         <Skeleton className="h-9 w-36 rounded-full" />
       </div>
 

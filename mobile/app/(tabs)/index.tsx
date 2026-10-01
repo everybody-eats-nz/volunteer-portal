@@ -508,9 +508,6 @@ export default function HomeScreen() {
 
         {/* ── Activity Feed ── */}
         <View style={styles.feedSection}>
-          <View style={styles.feedEyebrow}>
-            <Eyebrow>From the whānau</Eyebrow>
-          </View>
           <ThemedText type="heading" style={styles.feedHeading}>
             What&apos;s happening 🌿
           </ThemedText>
@@ -4834,9 +4831,6 @@ const styles = StyleSheet.create({
   feedSection: {
     marginTop: 28,
     paddingHorizontal: 20,
-  },
-  feedEyebrow: {
-    marginBottom: 8,
   },
   feedHeading: {
     marginBottom: 14,

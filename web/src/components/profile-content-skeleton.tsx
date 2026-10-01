@@ -13,7 +13,6 @@ export function ProfileContentSkeleton() {
         <div className="flex flex-col items-center gap-8 md:flex-row md:items-center">
           <Skeleton className="h-28 w-28 shrink-0 rounded-full bg-cream-50/15 sm:h-36 sm:w-36" />
           <div className="flex w-full flex-1 flex-col items-center gap-3 md:items-start">
-            <Skeleton className="h-3 w-24 bg-cream-50/15" />
             <Skeleton className="h-9 w-56 bg-cream-50/15" />
             <Skeleton className="h-4 w-44 bg-cream-50/15" />
             <div className="mt-1 flex gap-2">
