@@ -141,16 +141,21 @@ export function useKeyboardAwareScroll({
       // result holds wherever the form is currently scrolled to.
       event.currentTarget.measureLayout(content, (_x, y, _width, height) => {
         const input = { top: y, bottom: y + height };
+        const revealAlone = () =>
+          reveal({ ...input, groupBottom: input.bottom });
         const group = groupRef?.current;
         if (!group) {
-          reveal({ ...input, groupBottom: input.bottom });
+          revealAlone();
           return;
         }
         group.measureLayout(
           content,
           (_groupX, groupY, _groupWidth, groupHeight) => {
             reveal({ ...input, groupBottom: groupY + groupHeight });
-          }
+          },
+          // A group that cannot be measured (say, one that is not inside this
+          // scroll view) must not cost the input its own reveal.
+          revealAlone
         );
       });
     },
@@ -212,7 +217,9 @@ export function useKeyboardAwareScroll({
       }
       // Only ever scroll further down, and only once per distance: never pull
       // back a form the volunteer has scrolled past the keyboard themselves.
-      if (offset <= Math.max(scrollOffset.value, goal.value)) return;
+      // The floor of zero matters while iOS is rubber-banding past the top,
+      // where the scroll offset is negative.
+      if (offset <= Math.max(scrollOffset.value, goal.value, 0)) return;
       goal.value = offset;
       // Pick up from wherever the form is, or from a glide already under way.
       glide.value = gliding.value ? glide.value : scrollOffset.value;
