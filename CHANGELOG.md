@@ -1,3 +1,9 @@
+## [0.175.5] - 2026-10-01
+
+### Changes
+- fix(admin): align Select height with Input and Button in admin toolbars ([#1303](https://github.com/everybody-eats-nz/volunteer-portal/pull/1303)) by @malinmalliyawadu
+
+
 ## [0.175.4] - 2026-10-01
 
 ### Changes

@@ -246,7 +246,7 @@ export function MilestoneAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
-                  <SelectTrigger id="months">
+                  <SelectTrigger id="months" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -261,7 +261,7 @@ export function MilestoneAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger id="location">
+                  <SelectTrigger id="location" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -821,7 +821,7 @@ export function MilestoneAnalyticsClient({
                     value={String(selectedMilestone)}
                     onValueChange={(v) => setSelectedMilestone(Number(v))}
                   >
-                    <SelectTrigger id="milestone-select" className="w-36">
+                    <SelectTrigger id="milestone-select" size="md" className="w-36">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -962,6 +962,7 @@ export function MilestoneAnalyticsClient({
                   >
                     <SelectTrigger
                       id="recent-threshold-select"
+                      size="md"
                       className="w-36"
                     >
                       <SelectValue />

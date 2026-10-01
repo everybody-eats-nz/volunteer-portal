@@ -36,7 +36,7 @@ export default function VanVehiclesLoading() {
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <Skeleton className="h-9 w-full lg:max-w-xs" />
-        <Skeleton className="h-11 w-full lg:w-44" />
+        <Skeleton className="h-9 w-full lg:w-44" />
         <Skeleton className="h-9 w-full rounded-full lg:ml-auto lg:w-28" />
       </div>
 

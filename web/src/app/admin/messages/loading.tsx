@@ -23,7 +23,7 @@ export default function MessagesLoading() {
           <Skeleton className="h-9 min-w-[220px] max-w-md flex-1" />
           <Skeleton className="h-9 w-[140px]" />
           <Skeleton className="h-9 w-[170px]" />
-          <Skeleton className="h-8 w-[70px]" />
+          <Skeleton className="h-9 w-[70px]" />
           <div className="ml-auto flex items-center gap-2">
             <Skeleton className="h-8 w-9 sm:w-28" />
             <Skeleton className="h-8 w-36" />

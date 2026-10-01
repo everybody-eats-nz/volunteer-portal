@@ -42,14 +42,14 @@ export default function VolunteerEngagementLoading() {
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
                 <Skeleton className="h-3.5 w-24" />
-                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             ))}
             <div className="space-y-2">
               <Skeleton className="h-3.5 w-24" />
               <div className="flex flex-wrap gap-1">
                 {DAYS.map((day) => (
-                  <Skeleton key={day} className="h-[30px] w-[38px]" />
+                  <Skeleton key={day} className="h-9 w-[38px]" />
                 ))}
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function VolunteerEngagementLoading() {
                 <Skeleton className="h-9 flex-1" />
                 <Skeleton className="h-9 w-[4.5rem]" />
               </div>
-              <Skeleton className="h-11 w-[180px]" />
+              <Skeleton className="h-9 w-[180px]" />
             </div>
 
             <div className="overflow-hidden rounded-lg border">

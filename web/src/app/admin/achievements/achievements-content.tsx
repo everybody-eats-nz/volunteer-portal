@@ -501,6 +501,7 @@ export function AchievementsContent({
                 onValueChange={setCategoryFilter}
               >
                 <SelectTrigger
+                  size="md"
                   className="w-[160px]"
                   aria-label="Filter by category"
                   data-testid="achievements-category-filter"
@@ -518,6 +519,7 @@ export function AchievementsContent({
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger
+                  size="md"
                   className="w-[140px]"
                   aria-label="Filter by status"
                   data-testid="achievements-status-filter"

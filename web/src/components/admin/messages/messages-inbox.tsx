@@ -261,7 +261,7 @@ export function MessagesInbox({
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger size="md" className="w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -274,7 +274,7 @@ export function MessagesInbox({
           value={locationFilter || "ALL"}
           onValueChange={(v) => setLocationFilter(v === "ALL" ? "" : v)}
         >
-          <SelectTrigger className="w-[170px]">
+          <SelectTrigger size="md" className="w-[170px]">
             <SelectValue placeholder="All locations" />
           </SelectTrigger>
           <SelectContent>
@@ -288,7 +288,6 @@ export function MessagesInbox({
         </Select>
         <Button
           variant={unreadOnly ? "default" : "outline"}
-          size="sm"
           onClick={() => setUnreadOnly((v) => !v)}
         >
           Unread

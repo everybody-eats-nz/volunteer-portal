@@ -30,14 +30,14 @@ export default function ShiftCoverageLoading() {
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
                 <Skeleton className="h-3.5 w-24" />
-                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             ))}
             <div className="space-y-2">
               <Skeleton className="h-3.5 w-24" />
               <div className="flex flex-wrap gap-1">
                 {DAYS.map((day) => (
-                  <Skeleton key={day} className="h-[30px] w-[38px]" />
+                  <Skeleton key={day} className="h-9 w-[38px]" />
                 ))}
               </div>
             </div>

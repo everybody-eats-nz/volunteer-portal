@@ -168,7 +168,8 @@ export function AdminUsersSearch({
             onValueChange={handleLocationChange}
           >
             <SelectTrigger
-              className="w-[180px] h-9"
+              size="md"
+              className="w-[180px]"
               data-testid="location-filter-select"
             >
               <SelectValue placeholder="All Locations" />

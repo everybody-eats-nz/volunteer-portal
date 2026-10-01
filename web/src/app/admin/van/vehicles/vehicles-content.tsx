@@ -311,6 +311,7 @@ export function VanVehiclesContent({
         {cities.length > 1 && (
           <Select value={city} onValueChange={setCity}>
             <SelectTrigger
+              size="md"
               className="w-full lg:w-44"
               aria-label="Filter by depot"
               data-testid="van-vehicle-city-filter"
