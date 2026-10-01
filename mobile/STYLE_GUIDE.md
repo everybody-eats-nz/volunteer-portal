@@ -255,6 +255,9 @@ const fieldsRef = useRef<View>(null);
   transparent header does (Profile edit). If something sits below the scroll
   view, such as a fixed footer, give the hook a bottom offset option rather
   than compensating in the screen.
+- The clearance above the keyboard is 16pt. A screen that needs more or less
+  passes `useKeyboardAwareScroll({ gap })`; keep the default unless the design
+  calls for it, so forms feel the same across the app.
 - Do not use it inside an RN `Modal`: the modal's own window still resizes for
   the keyboard.
 
