@@ -8,7 +8,7 @@ function Sparkle({ className }: { className?: string }) {
 }
 
 /**
- * Page-local branded header for the achievements flow — eyebrow + Fraunces
+ * Page-local branded header for the achievements flow — Fraunces
  * display treatment, matching the shifts and dashboard pages
  * (new.everybodyeats.nz). Shared by the page and its loading state so the two
  * never drift. The accessible heading name keeps the word "Achievements" that
@@ -17,10 +17,6 @@ function Sparkle({ className }: { className?: string }) {
 export function AchievementsPageHeader() {
   return (
     <header className="pb-2">
-      <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-        <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-        Ngā tohu · Your volunteer milestones
-      </p>
       <h1
         className="display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50"
         data-testid="achievements-page-heading"

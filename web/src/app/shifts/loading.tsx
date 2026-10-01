@@ -11,8 +11,6 @@ export default function ShiftsLoading() {
   return (
     <PageContainer>
       <div className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center py-10 text-center sm:py-16">
-        {/* Eyebrow */}
-        <Skeleton className="mb-6 h-3 w-56" />
         {/* Icon tile */}
         <Skeleton className="mb-6 h-16 w-16 rounded-2xl" />
         {/* Heading */}

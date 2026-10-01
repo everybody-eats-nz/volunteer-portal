@@ -212,7 +212,6 @@ export default async function VolunteerLocationPage({
           <div className="mx-auto grid max-w-[88rem] items-end gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12">
             <HeroContent className="relative z-10 lg:col-span-7">
               <p className={`${eyebrowLight} mb-6 flex items-center gap-3`}>
-                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
                 <Link href="/volunteer" className="hover:underline">
                   Volunteer
                 </Link>
@@ -305,8 +304,7 @@ export default async function VolunteerLocationPage({
           data-testid="volunteer-roles"
         >
           <div className="mb-12">
-            <p className={`${eyebrowLight} mb-4 flex items-center gap-3`}>
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+            <p className={`${eyebrowLight} mb-4`}>
               {upcomingShifts.length > 0 ? "What's coming up" : "Ways to help"}
             </p>
             <h2 className="display max-w-3xl text-4xl tracking-tight text-forest-700 sm:text-6xl dark:text-cream-50">
@@ -368,10 +366,6 @@ export default async function VolunteerLocationPage({
           data-testid="volunteer-faq"
         >
           <div className="mb-12">
-            <p className={`${eyebrowLight} mb-4 flex items-center gap-3`}>
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-              Good to know
-            </p>
             <h2 className="display text-4xl tracking-tight text-forest-700 sm:text-6xl dark:text-cream-50">
               Questions, <em>answered</em>
             </h2>

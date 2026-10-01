@@ -240,7 +240,7 @@ function OpenTripPanel({
         ]}
       >
         <View style={styles.panelHeadBody}>
-          <Eyebrow color={Palette.sun200} rule={false}>
+          <Eyebrow color={Palette.sun200}>
             On a trip
           </Eyebrow>
           <Text style={[styles.panelTitle, { color: colors.panelText }]}>

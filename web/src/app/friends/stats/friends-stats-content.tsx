@@ -18,10 +18,6 @@ function Sparkle({ className }: { className?: string }) {
   );
 }
 
-const eyebrowLight =
-  "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
-const eyebrowRule =
-  "inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40";
 
 /* Pill links — shared brand system with the marketing site. */
 const pillGhost =
@@ -208,10 +204,6 @@ export async function FriendsStatsContent() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Recent friendships */}
         <section className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
-          <p className={`${eyebrowLight} mb-3`}>
-            <span className={eyebrowRule} />
-            Newest connections
-          </p>
           <h2 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
             Recent <em>friendships</em>
           </h2>
@@ -302,10 +294,6 @@ export async function FriendsStatsContent() {
             aria-hidden
           />
           <div className="relative">
-            <p className="eyebrow mb-3 flex items-center gap-3 text-sun-200/90">
-              <span className="inline-block h-px w-8 bg-sun-200/50" />
-              Busy in the kitchen
-            </p>
             <h2 className="display text-2xl tracking-tight sm:text-3xl">
               Most active <em>friend</em>
             </h2>
@@ -399,10 +387,6 @@ export async function FriendsStatsContent() {
       {/* Friends' upcoming activity */}
       {Object.keys(friendsUpcomingShifts).length > 0 && (
         <section className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
-          <p className={`${eyebrowLight} mb-3`}>
-            <span className={eyebrowRule} />
-            Out on the floor soon
-          </p>
           <h2 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
             Friends&apos; upcoming <em>activity</em>
           </h2>

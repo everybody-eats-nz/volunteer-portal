@@ -89,7 +89,6 @@ export function FriendsList({
       {/* Section kicker + search results indicator */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-          <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
           Your whānau
           <span className="text-forest-500/60 dark:text-cream-50/45">
             · {filteredFriends.length}{" "}

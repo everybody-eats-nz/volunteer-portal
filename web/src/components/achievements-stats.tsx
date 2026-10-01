@@ -119,8 +119,7 @@ export async function AchievementsStats({ userId, skipUnlockCheck }: Achievement
         />
 
         <div className="relative">
-          <p className="eyebrow mb-8 flex items-center gap-3 text-sun-200/90">
-            <span className="inline-block h-px w-8 bg-sun-200/50" />
+          <p className="eyebrow mb-8 text-sun-200/90">
             Tō pātaka tohu · Your trophy cabinet
           </p>
 

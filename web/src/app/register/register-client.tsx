@@ -682,10 +682,6 @@ export default function RegisterClient({
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Branded header */}
         <div>
-          <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-            Nau mai, haere mai
-          </p>
           <h1
             className="display text-4xl tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50"
             data-testid="register-heading"

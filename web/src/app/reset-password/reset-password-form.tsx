@@ -95,7 +95,6 @@ export function ResetPasswordForm({ token }: { token: string }) {
     <AuthShell
       testid="reset-password-page"
       cardTestid="reset-password-form-card"
-      brandEyebrow="Kia ora"
       brandHeading={
         <>
           Almost <em>there</em>

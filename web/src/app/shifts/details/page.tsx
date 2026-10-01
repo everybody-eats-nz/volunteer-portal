@@ -227,8 +227,7 @@ export default async function ShiftDetailsPage({
       </div>
 
       <div className="mb-8">
-        <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-          <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+        <p className="eyebrow mb-4 text-forest-500/80 dark:text-cream-50/60">
           Pick a shift · join the mahi
         </p>
         <h1

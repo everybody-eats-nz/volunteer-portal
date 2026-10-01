@@ -8,10 +8,7 @@ export function AchievementsStatsSkeleton() {
       <section className="grain relative overflow-hidden rounded-[2.5rem] bg-forest-700 px-6 py-10 sm:px-12 sm:py-14">
         <div className="relative">
           {/* Eyebrow */}
-          <div className="mb-8 flex items-center gap-3">
-            <span className="inline-block h-px w-8 bg-sun-200/30" />
-            <Skeleton className="h-3 w-44 bg-cream-50/10" />
-          </div>
+          <Skeleton className="mb-8 h-3 w-44 bg-cream-50/10" />
 
           <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
             {/* Hero points figure */}

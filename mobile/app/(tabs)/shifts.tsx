@@ -35,7 +35,6 @@ import { Image } from "expo-image";
 
 import { ShiftMonthCalendar } from "@/components/shift-month-calendar";
 import { ThemedText } from "@/components/themed-text";
-import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -457,7 +456,6 @@ export default function ShiftsScreen() {
         <View style={styles.header}>
           <View style={styles.headerTitleRow}>
             <View style={{ flex: 1, gap: 8 }}>
-              <Eyebrow>Find your mahi</Eyebrow>
               <ThemedText type="title">
                 Your <ThemedText type="accent">shifts</ThemedText>
               </ThemedText>

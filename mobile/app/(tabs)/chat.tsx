@@ -122,10 +122,6 @@ export default function HelpScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Eyebrow color={paperTint.eyebrow} style={styles.eyebrowSpacing}>
-          Everybody Eats help
-        </Eyebrow>
-
         <View style={styles.heroBlock}>
           <Text style={styles.heroLine}>
             <Text style={[styles.hero, { color: paperTint.ink }]}>Kia </Text>
@@ -177,7 +173,7 @@ export default function HelpScreen() {
             ]}
           />
           <View style={styles.footerEyebrow}>
-            <Eyebrow color={colors.textSecondary} rule={false}>
+            <Eyebrow color={colors.textSecondary}>
               Ngā mihi · we&apos;re here to help
             </Eyebrow>
           </View>
@@ -304,9 +300,6 @@ function OptionRow({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: 24 },
-  eyebrowSpacing: {
-    marginBottom: 20,
-  },
   channelEyebrow: {
     marginTop: 28,
     marginBottom: 16,

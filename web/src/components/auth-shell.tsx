@@ -20,7 +20,6 @@ export interface AuthShellProps {
   /** data-testid for the form panel (the right column) */
   cardTestid: string;
   /** Forest brand panel (left, desktop only) */
-  brandEyebrow: string;
   brandHeading: ReactNode;
   brandCopy: string;
   brandPoints?: string[];
@@ -28,8 +27,6 @@ export interface AuthShellProps {
   /** Form-side heading (the visible h1) and supporting description */
   heading: ReactNode;
   description?: ReactNode;
-  /** Eyebrow shown above the form heading on mobile (brand panel is hidden). Defaults to brandEyebrow. */
-  mobileEyebrow?: string;
   children: ReactNode;
 }
 
@@ -39,7 +36,7 @@ const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
  * Shared auth-page shell — a forest/cream editorial split panel matching the
  * marketing site (new.everybodyeats.nz). A forest-green brand panel (grain,
  * sun glow, kawakawa, te reo) sits beside the form on cream paper; on mobile
- * the brand panel collapses and the form leads with a "Kia ora" eyebrow.
+ * the brand panel collapses and the form leads with its own heading.
  *
  * Used by the login, forgot-password and reset-password pages so they read as
  * one cohesive system. See `home-landing.tsx` for the canonical style.
@@ -47,14 +44,12 @@ const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 export function AuthShell({
   testid,
   cardTestid,
-  brandEyebrow,
   brandHeading,
   brandCopy,
   brandPoints,
   brandFooter,
   heading,
   description,
-  mobileEyebrow,
   children,
 }: AuthShellProps) {
   return (
@@ -87,10 +82,6 @@ export function AuthShell({
             />
 
             <div className="relative">
-              <p className="eyebrow mb-6 flex items-center gap-3 text-sun-200/90">
-                <span className="inline-block h-px w-8 bg-sun-200/50" />
-                {brandEyebrow}
-              </p>
               <h2 className="display text-4xl leading-[1.02] tracking-tight xl:text-5xl">
                 {brandHeading}
               </h2>
@@ -123,10 +114,6 @@ export function AuthShell({
             data-testid={cardTestid}
           >
             <div className="mb-8">
-              <p className="eyebrow mb-3 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60 lg:hidden">
-                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-                {mobileEyebrow ?? brandEyebrow}
-              </p>
               <h1 className="display text-4xl tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50">
                 {heading}
               </h1>

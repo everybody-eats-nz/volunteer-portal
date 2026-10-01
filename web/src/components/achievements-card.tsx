@@ -287,8 +287,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
             {/* Recent Achievements */}
             {recentAchievements.length > 0 && (
               <div>
-                <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-forest-700/70 dark:text-cream-50/65">
-                  <span className="inline-block h-px w-6 bg-forest-500/40 dark:bg-cream-50/30" />
+                <h4 className="mb-3 text-sm font-medium text-forest-700/70 dark:text-cream-50/65">
                   Recent Achievements
                 </h4>
                 <motion.div
@@ -350,8 +349,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
           {/* Next Achievements */}
           {nextAchievements.length > 0 && (
             <div>
-              <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-forest-700/70 dark:text-cream-50/65">
-                <span className="inline-block h-px w-6 bg-forest-500/40 dark:bg-cream-50/30" />
+              <h4 className="mb-3 text-sm font-medium text-forest-700/70 dark:text-cream-50/65">
                 Next Goals
               </h4>
               <motion.div

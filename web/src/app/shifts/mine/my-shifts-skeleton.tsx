@@ -16,10 +16,7 @@ export function MyShiftsContentSkeleton() {
       {/* Schedule panel skeleton */}
       <div className="rounded-[2rem] border border-forest-500/10 bg-card p-5 sm:p-8 dark:border-cream-50/10">
         <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="h-3 w-40 animate-pulse rounded bg-muted" />
-            <div className="mt-3 h-9 w-48 animate-pulse rounded-lg bg-muted sm:h-10" />
-          </div>
+          <div className="h-9 w-48 animate-pulse rounded-lg bg-muted sm:h-10" />
           <div className="flex items-center gap-2">
             <div className="h-8 w-20 animate-pulse rounded-full bg-muted" />
             <div className="h-8 w-20 animate-pulse rounded-full bg-muted" />

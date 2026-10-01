@@ -7,9 +7,8 @@ import { MyShiftsContentSkeleton } from "./my-shifts-skeleton";
 export default function MyShiftsLoading() {
   return (
     <PageContainer>
-      {/* Header skeleton — eyebrow + display heading + description */}
+      {/* Header skeleton — display heading + description */}
       <div className="pb-4">
-        <Skeleton className="mb-4 h-3 w-48" />
         <Skeleton className="h-11 w-56 sm:h-13 sm:w-72" />
         <Skeleton className="mt-4 h-5 w-72 max-w-full" />
       </div>

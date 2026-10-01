@@ -170,8 +170,7 @@ export async function HomeLanding() {
       >
         <div className="mx-auto grid max-w-[88rem] items-end gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12">
           <HeroContent className="relative z-10 lg:col-span-7">
-            <p className={`${eyebrowLight} mb-6 flex items-center gap-3`}>
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+            <p className={`${eyebrowLight} mb-6`}>
               Everybody Eats · Volunteer portal
             </p>
             <h1
@@ -266,8 +265,7 @@ export async function HomeLanding() {
         data-testid="stats-section"
       >
         <div className="mb-12">
-          <p className={`${eyebrowLight} mb-4 flex items-center gap-3`}>
-            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+          <p className={`${eyebrowLight} mb-4`}>
             Our impact so far
           </p>
           <h2 className="display text-4xl tracking-tight text-forest-700 sm:text-6xl dark:text-cream-50">
@@ -298,8 +296,7 @@ export async function HomeLanding() {
         data-testid="features-section"
       >
         <div className="mb-12">
-          <p className={`${eyebrowLight} mb-4 flex items-center gap-3`}>
-            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+          <p className={`${eyebrowLight} mb-4`}>
             Why volunteer
           </p>
           <h2 className="display max-w-3xl text-4xl tracking-tight text-forest-700 sm:text-6xl dark:text-cream-50">
@@ -361,8 +358,7 @@ export async function HomeLanding() {
           />
           <div className="relative grid items-center gap-12 lg:grid-cols-12">
             <div className="lg:col-span-7">
-              <p className="eyebrow mb-6 flex items-center gap-3 text-sun-200/90">
-                <span className="inline-block h-px w-8 bg-sun-200/50" />
+              <p className="eyebrow mb-6 text-sun-200/90">
                 New · iOS &amp; Android
               </p>
               <h2

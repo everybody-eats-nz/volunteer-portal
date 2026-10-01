@@ -488,9 +488,6 @@ export default function ProfileScreen() {
 
         {/* ── Whānau ── */}
         <View style={styles.section}>
-          <View style={styles.sectionEyebrow}>
-            <Eyebrow>Your people</Eyebrow>
-          </View>
           <SectionHeader
             title="Whānau"
             subtitle={`${friends.length} ${
@@ -586,9 +583,6 @@ export default function ProfileScreen() {
 
         {/* ── Achievements ── */}
         <View style={styles.section}>
-          <View style={styles.sectionEyebrow}>
-            <Eyebrow>Milestones</Eyebrow>
-          </View>
           <SectionHeader
             title="Achievements"
             subtitle={`${unlocked.length} unlocked · ${totalPoints} points`}
@@ -2236,10 +2230,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: FontFamily.heading,
     letterSpacing: -0.3,
-  },
-  sectionEyebrow: {
-    marginBottom: 8,
-    paddingLeft: 2,
   },
   settingsEyebrow: {
     marginBottom: 14,

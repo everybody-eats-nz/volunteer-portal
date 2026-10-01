@@ -141,7 +141,7 @@ export default function TripScreen() {
             <Ionicons name="checkmark" size={34} color={Palette.cream50} />
           </View>
           <View style={styles.doneEyebrow}>
-            <Eyebrow color={colors.textSecondary} rule={false}>
+            <Eyebrow color={colors.textSecondary}>
               Trip logged
             </Eyebrow>
           </View>
@@ -285,7 +285,7 @@ function TripDetailView({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.detailEyebrow}>
-            <Eyebrow color={colors.textSecondary} rule={false}>
+            <Eyebrow color={colors.textSecondary}>
               {open
                 ? justStarted
                   ? "Trip started"

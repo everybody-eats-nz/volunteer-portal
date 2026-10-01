@@ -348,8 +348,7 @@ export default async function ShiftDetailPage({
           className="pointer-events-none absolute -right-10 -top-10 w-72 opacity-20 sm:w-96"
         />
         <div className="relative">
-          <p className="eyebrow mb-6 flex items-center gap-3 text-sun-200/90">
-            <span className="inline-block h-px w-8 bg-sun-200/50" />
+          <p className="eyebrow mb-6 text-sun-200/90">
             Volunteer shift{shift.location ? ` · ${shift.location}` : ""}
           </p>
           <div className="flex items-start gap-5">
@@ -407,8 +406,7 @@ export default async function ShiftDetailPage({
             <div className="grain overflow-hidden rounded-3xl border border-forest-500/10 bg-card dark:border-cream-50/10">
               <div className="flex items-start justify-between gap-4 p-6 sm:p-7">
                 <div className="min-w-0 space-y-1">
-                  <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-                    <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+                  <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
                     Where
                   </p>
                   <p className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
@@ -452,8 +450,7 @@ export default async function ShiftDetailPage({
           {/* Special events on this day, from the marketing CMS */}
           {cmsEvents.length > 0 && (
             <div className="space-y-3" data-testid="shift-cms-events">
-              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+              <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
                 Special event at {shift.location} on this day
               </p>
               {cmsEvents.map((event) => (
@@ -505,11 +502,7 @@ export default async function ShiftDetailPage({
           {/* Who's coming */}
           {(friendSignups.length > 0 || otherVolunteersCount > 0) && (
             <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-7 dark:border-cream-50/10">
-              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-                Who&apos;s coming
-              </p>
-              <h3 className="mt-1 display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+              <h3 className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
                 {friendSignups.length > 0
                   ? `${friendSignups.length} friend${
                       friendSignups.length !== 1 ? "s" : ""
@@ -539,8 +532,7 @@ export default async function ShiftDetailPage({
           {/* Calendar + share */}
           {!isPastShift && (
             <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-7 dark:border-cream-50/10">
-              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+              <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
                 Don&apos;t miss it
               </p>
               <div className="mt-5 grid gap-6 sm:grid-cols-2">
@@ -598,8 +590,7 @@ export default async function ShiftDetailPage({
         <aside className="lg:col-span-5">
           <div className="lg:sticky lg:top-24">
             <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
-              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
-                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+              <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
                 Your spot
               </p>
 
