@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import {
@@ -27,26 +27,16 @@ import { calculateAge } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { EmailPreviewDialog } from "@/components/email-preview-dialog";
+import type { ParentalConsentUser } from "@/lib/parental-consent";
 
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  parentalConsentReceived: boolean;
-  parentalConsentReceivedAt: string | null;
-  parentalConsentApprovedBy: string | null;
-  profileCompleted: boolean;
-  createdAt: string;
-  phone: string | null;
-  emergencyContactName: string | null;
-  emergencyContactPhone: string | null;
-}
+type User = ParentalConsentUser;
 
-export function ParentalConsentTable() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+export function ParentalConsentTable({
+  initialUsers,
+}: {
+  initialUsers: ParentalConsentUser[];
+}) {
+  const [users, setUsers] = useState<User[]>(initialUsers);
   const [approving, setApproving] = useState<string | null>(null);
   const [approveDialog, setApproveDialog] = useState<{
     isOpen: boolean;
@@ -73,14 +63,8 @@ export function ParentalConsentTable() {
         description: "Failed to load users requiring parental consent",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   }, [toast]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
 
   const handleApprove = (user: User) => {
     setApproveDialog({ isOpen: true, user });
@@ -104,7 +88,11 @@ export function ParentalConsentTable() {
       if (response.ok) {
         toast({
           title: "Success",
-          description: `Parental consent approved for ${approveDialog.user.firstName} ${approveDialog.user.lastName}`,
+          description: `Parental consent approved for ${
+            [approveDialog.user.firstName, approveDialog.user.lastName]
+              .filter(Boolean)
+              .join(" ") || approveDialog.user.email
+          }`,
         });
         fetchUsers(); // Refresh the list
       } else {
@@ -123,13 +111,8 @@ export function ParentalConsentTable() {
     }
   };
 
-  const getAge = (dateOfBirth: string) => {
-    return calculateAge(new Date(dateOfBirth));
-  };
-
-  if (loading) {
-    return <div className="text-center py-8">Loading...</div>;
-  }
+  const formatAge = (dateOfBirth: string | null) =>
+    dateOfBirth ? `${calculateAge(new Date(dateOfBirth))} years` : "Age unknown";
 
   const pendingUsers = users.filter(u => !u.parentalConsentReceived);
   const approvedUsers = users.filter(u => u.parentalConsentReceived);
@@ -187,7 +170,7 @@ export function ParentalConsentTable() {
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className="text-orange-600 border-orange-300">
-                            {getAge(user.dateOfBirth)} years
+                            {formatAge(user.dateOfBirth)}
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
@@ -298,7 +281,7 @@ export function ParentalConsentTable() {
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className="text-green-600 border-green-300">
-                            {getAge(user.dateOfBirth)} years
+                            {formatAge(user.dateOfBirth)}
                           </Badge>
                         </td>
                         <td className="px-4 py-3">

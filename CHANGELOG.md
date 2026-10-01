@@ -1,3 +1,9 @@
+## [0.175.3] - 2026-10-01
+
+### Changes
+- fix(admin): give every admin route a skeleton that matches its page ([#1302](https://github.com/everybody-eats-nz/volunteer-portal/pull/1302)) by @malinmalliyawadu
+
+
 ## [0.175.2] - 2026-10-01
 
 ### Changes

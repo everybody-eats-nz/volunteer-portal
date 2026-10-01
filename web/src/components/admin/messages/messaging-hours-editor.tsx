@@ -132,7 +132,7 @@ export function MessagingHoursEditor({
                 return (
                   <li
                     key={idx}
-                    className="grid grid-cols-[120px_70px_1fr_auto_1fr] items-center gap-3 py-2 border-b last:border-b-0"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 py-2 border-b last:border-b-0 sm:grid-cols-[120px_88px_1fr_auto_1fr]"
                   >
                     <span className="text-sm font-medium">{label}</span>
                     <div className="flex items-center gap-2">
@@ -147,36 +147,39 @@ export function MessagingHoursEditor({
                         className={cn(
                           "text-xs",
                           day.isOpen
-                            ? "text-emerald-700"
+                            ? "text-emerald-700 dark:text-emerald-400"
                             : "text-muted-foreground"
                         )}
                       >
                         {day.isOpen ? "Open" : "Closed"}
                       </span>
                     </div>
-                    <Input
-                      type="time"
-                      value={day.openTime}
-                      onChange={(e) =>
-                        updateDay(loc.location, idx, {
-                          openTime: e.target.value,
-                        })
-                      }
-                      disabled={!day.isOpen}
-                      className="w-32"
-                    />
-                    <span className="text-xs text-muted-foreground">to</span>
-                    <Input
-                      type="time"
-                      value={day.closeTime}
-                      onChange={(e) =>
-                        updateDay(loc.location, idx, {
-                          closeTime: e.target.value,
-                        })
-                      }
-                      disabled={!day.isOpen}
-                      className="w-32"
-                    />
+                    {/* Own row on phones; dissolves into the grid from sm up */}
+                    <div className="col-span-2 flex items-center gap-2 sm:contents">
+                      <Input
+                        type="time"
+                        value={day.openTime}
+                        onChange={(e) =>
+                          updateDay(loc.location, idx, {
+                            openTime: e.target.value,
+                          })
+                        }
+                        disabled={!day.isOpen}
+                        className="min-w-0 flex-1 sm:w-32 sm:flex-none"
+                      />
+                      <span className="text-xs text-muted-foreground">to</span>
+                      <Input
+                        type="time"
+                        value={day.closeTime}
+                        onChange={(e) =>
+                          updateDay(loc.location, idx, {
+                            closeTime: e.target.value,
+                          })
+                        }
+                        disabled={!day.isOpen}
+                        className="min-w-0 flex-1 sm:w-32 sm:flex-none"
+                      />
+                    </div>
                   </li>
                 );
               })}

@@ -88,10 +88,10 @@ export function ShiftHistoryPaginated({
       {currentSignups.map((signup) => (
         <div
           key={signup.id}
-          className="flex items-center justify-between p-4 bg-muted/30 dark:bg-muted/20 rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors"
+          className="flex flex-col gap-3 p-4 bg-muted/30 dark:bg-muted/20 rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors sm:flex-row sm:items-center sm:justify-between"
         >
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <h4 className="font-semibold">{signup.shift.shiftType.name}</h4>
               {signup.shift.location && (
                 <Badge variant="outline">
@@ -100,7 +100,7 @@ export function ShiftHistoryPaginated({
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
                 {formatInNZT(signup.shift.start, "EEE dd MMM yyyy")}
@@ -112,7 +112,7 @@ export function ShiftHistoryPaginated({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge
               variant={
                 signup.status === "CONFIRMED"

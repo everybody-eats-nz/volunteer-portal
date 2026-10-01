@@ -16,6 +16,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/admin/admin-skeletons";
 
 interface Reporter {
   id: string;
@@ -176,9 +178,13 @@ export function ModerationContent() {
       <TabsContent value="reports" className="mt-4">
         <div className="rounded-lg border">
           <div className="flex items-center justify-between px-4 py-3 border-b">
-            <p className="text-sm text-muted-foreground">
-              {reports.length} total report{reports.length !== 1 ? "s" : ""}
-            </p>
+            {loadingReports && reports.length === 0 ? (
+              <Skeleton className="h-4 w-28" />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {reports.length} total report{reports.length !== 1 ? "s" : ""}
+              </p>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -191,9 +197,17 @@ export function ModerationContent() {
             </Button>
           </div>
 
-          {loadingReports ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-              Loading reports…
+          {loadingReports && reports.length === 0 ? (
+            <div aria-busy="true">
+              <span className="sr-only" role="status">
+                Loading reports
+              </span>
+              <TableSkeleton
+                card={false}
+                rows={6}
+                columns={["w-32", "w-16", "w-24", "w-32", "w-16", "w-20"]}
+                actions
+              />
             </div>
           ) : reports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
@@ -298,9 +312,13 @@ export function ModerationContent() {
       <TabsContent value="blocks" className="mt-4">
         <div className="rounded-lg border">
           <div className="flex items-center justify-between px-4 py-3 border-b">
-            <p className="text-sm text-muted-foreground">
-              {blocks.length} active block{blocks.length !== 1 ? "s" : ""}
-            </p>
+            {loadingBlocks && blocks.length === 0 ? (
+              <Skeleton className="h-4 w-24" />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {blocks.length} active block{blocks.length !== 1 ? "s" : ""}
+              </p>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -313,9 +331,16 @@ export function ModerationContent() {
             </Button>
           </div>
 
-          {loadingBlocks ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-              Loading blocks…
+          {loadingBlocks && blocks.length === 0 ? (
+            <div aria-busy="true">
+              <span className="sr-only" role="status">
+                Loading blocks
+              </span>
+              <TableSkeleton
+                card={false}
+                rows={6}
+                columns={["w-40", "w-40", "w-24"]}
+              />
             </div>
           ) : blocks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
