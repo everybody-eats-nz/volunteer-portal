@@ -1,3 +1,9 @@
+## [0.176.0] - 2026-10-02
+
+### Changes
+- feat(mobile): answer surveys natively in the app ([#1312](https://github.com/everybody-eats-nz/volunteer-portal/pull/1312)) by @malinmalliyawadu
+
+
 ## [0.175.10] - 2026-10-02
 
 ### Changes
