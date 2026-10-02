@@ -1,3 +1,9 @@
+## [0.175.10] - 2026-10-02
+
+### Changes
+- chore(deps): bump @grpc/grpc-js from 1.14.4 to 1.14.5 in /web ([#1305](https://github.com/everybody-eats-nz/volunteer-portal/pull/1305)) by @dependabot[bot]
+
+
 ## [0.175.9] - 2026-10-02
 
 ### Changes
