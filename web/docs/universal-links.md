@@ -37,6 +37,20 @@ the browser by design. **Keep these three places in sync:**
 | `/friends/:id`   | `/user/[id]`        |
 | `/achievements*` | `/(tabs)/profile`   |
 
+### `/surveys/*` is deliberately not claimed yet
+
+The app has a native survey screen (`/survey/[token]`), and
+`mapDeepLinkToRoute` already maps `/surveys/:token` to it, but the path is
+left out of the AASA and the Android `intentFilters` on purpose. A claim in the
+AASA takes effect for every installed build as soon as the website deploys, and
+builds from before the survey screen existed would open an emailed survey link
+on a route they don't have, instead of the web page that works for everyone.
+Until then a survey reaches the app through its push notification and the home
+tab card, and the emailed link opens the web survey (which needs no login).
+
+Add `/surveys/*` to the AASA and the Android `intentFilters` once the builds
+without the survey screen have aged out (check `$app_build` in PostHog).
+
 The three places: the AASA `components`, the Android `intentFilters` `data`
 list, and the `mapDeepLinkToRoute` matcher in
 [`mobile/lib/deep-link-routing.ts`](../../mobile/lib/deep-link-routing.ts)

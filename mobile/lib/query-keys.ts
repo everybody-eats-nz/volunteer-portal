@@ -30,6 +30,14 @@ export const queryKeys = {
     all: ['notifications'] as const,
     list: () => [...queryKeys.notifications.all, 'list'] as const,
   },
+  surveys: {
+    all: ['surveys'] as const,
+    /** Surveys waiting on the volunteer, for the home tab's survey card. */
+    pending: () => [...queryKeys.surveys.all, 'pending'] as const,
+    /** One survey, opened by its token. */
+    detail: (token: string) =>
+      [...queryKeys.surveys.all, 'detail', token] as const,
+  },
   team: {
     all: ['team'] as const,
     unreadCount: () => [...queryKeys.team.all, 'unread-count'] as const,

@@ -10,24 +10,14 @@ export function generateSurveyToken(): string {
 }
 
 /**
- * Create and save a survey token for an assignment
- * Tokens never expire by default (expiresAt is null)
+ * Why a survey token was turned away. Sent to clients as `code` so they can
+ * pick the right screen without matching on the wording of `message`.
  */
-export async function createSurveyToken(
-  assignmentId: string
-): Promise<SurveyToken> {
-  const token = generateSurveyToken();
-
-  const surveyToken = await prisma.surveyToken.create({
-    data: {
-      token,
-      assignmentId,
-      // expiresAt is omitted (null) - tokens never expire
-    },
-  });
-
-  return surveyToken;
-}
+export type SurveyTokenRejection =
+  | "missing"
+  | "invalid"
+  | "completed"
+  | "inactive";
 
 /**
  * Validate a survey token and return the assignment details
@@ -35,6 +25,8 @@ export async function createSurveyToken(
 export interface ValidateTokenResult {
   valid: boolean;
   message: string;
+  /** Set whenever `valid` is false. */
+  reason?: SurveyTokenRejection;
   assignment?: SurveyAssignment & {
     survey: {
       id: string;
@@ -56,7 +48,11 @@ export async function validateSurveyToken(
   token: string
 ): Promise<ValidateTokenResult> {
   if (!token) {
-    return { valid: false, message: "Survey token is required" };
+    return {
+      valid: false,
+      message: "Survey token is required",
+      reason: "missing",
+    };
   }
 
   const surveyToken = await prisma.surveyToken.findUnique({
@@ -86,24 +82,36 @@ export async function validateSurveyToken(
   });
 
   if (!surveyToken) {
-    return { valid: false, message: "Invalid survey token" };
+    return { valid: false, message: "Invalid survey token", reason: "invalid" };
   }
 
   // Note: Expiry check removed - tokens never expire
 
   // Check if token was already used
   if (surveyToken.usedAt) {
-    return { valid: false, message: "Survey has already been completed" };
+    return {
+      valid: false,
+      message: "Survey has already been completed",
+      reason: "completed",
+    };
   }
 
   // Check if assignment is already completed
   if (surveyToken.assignment.status === "COMPLETED") {
-    return { valid: false, message: "Survey has already been completed" };
+    return {
+      valid: false,
+      message: "Survey has already been completed",
+      reason: "completed",
+    };
   }
 
   // Check if survey is still active
   if (!surveyToken.assignment.survey.isActive) {
-    return { valid: false, message: "This survey is no longer available" };
+    return {
+      valid: false,
+      message: "This survey is no longer available",
+      reason: "inactive",
+    };
   }
 
   return {

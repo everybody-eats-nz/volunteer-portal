@@ -28,9 +28,14 @@ vi.mock("@/lib/achievements", () => ({
   }),
 }));
 
+vi.mock("@/lib/survey-triggers", () => ({
+  checkAndAssignSurveys: vi.fn().mockResolvedValue([]),
+}));
+
 import { GET, PUT } from "./route";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/prisma";
+import { checkAndAssignSurveys } from "@/lib/survey-triggers";
 
 const mockRequireMobileUser = requireMobileUser as ReturnType<typeof vi.fn>;
 const mockPrisma = prisma as unknown as {
@@ -153,6 +158,25 @@ describe("GET /api/mobile/profile", () => {
     expect(json.stats.shiftsCompleted).toBe(5);
     expect(json.totalVolunteers).toBe(10);
     expect(json.achievements).toEqual([]);
+  });
+
+  it("assigns any milestone surveys the volunteer is due", async () => {
+    mockRequireMobileUser.mockResolvedValue({
+      user: { id: "user-1" },
+      userId: "user-1",
+    });
+    mockPrisma.user.findUnique.mockResolvedValue(MOCK_USER);
+    mockPrisma.signup.count.mockResolvedValue(5);
+    mockPrisma.signup.findMany.mockResolvedValue([]);
+    mockPrisma.user.count.mockResolvedValue(10);
+    mockPrisma.friendship.findMany.mockResolvedValue([]);
+    mockPrisma.userAchievement.groupBy.mockResolvedValue([]);
+    mockPrisma.location.findMany.mockResolvedValue([]);
+
+    const response = await GET(makeRequest());
+
+    expect(response.status).toBe(200);
+    expect(checkAndAssignSurveys).toHaveBeenCalledWith("user-1");
   });
 
   it("returns notification and newsletter preferences", async () => {

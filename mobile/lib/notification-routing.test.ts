@@ -6,19 +6,13 @@ import { navigateToNotificationTarget } from "@/lib/notification-routing";
 // these stubs instead of the real expo-router / web-browser / store.
 const pushMock = vi.fn();
 const setPendingIdMock = vi.fn();
-const openBrowserMock = vi.fn();
 
 vi.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => pushMock(...args) } }));
-vi.mock("expo-web-browser", () => ({
-  openBrowserAsync: (...args: unknown[]) => openBrowserMock(...args),
-  WebBrowserPresentationStyle: { AUTOMATIC: "AUTOMATIC" },
-}));
 vi.mock("@/hooks/use-pending-feed-item", () => ({
   usePendingFeedItemStore: {
     getState: () => ({ setPendingId: setPendingIdMock }),
   },
 }));
-vi.mock("@/lib/api", () => ({ API_URL: "https://volunteers.everybodyeats.nz" }));
 
 describe("navigateToNotificationTarget", () => {
   beforeEach(() => {
@@ -108,12 +102,17 @@ describe("navigateToNotificationTarget", () => {
       expect(pushMock).toHaveBeenCalledWith("/(tabs)");
     });
 
-    it("hands surveys off to the in-app browser", () => {
+    it("opens a survey on its own screen, carrying the token across", () => {
       navigateToNotificationTarget("/surveys/tok123");
-      expect(openBrowserMock).toHaveBeenCalledWith(
-        "https://volunteers.everybodyeats.nz/surveys/tok123",
-        expect.anything()
-      );
+      expect(pushMock).toHaveBeenCalledWith({
+        pathname: "/survey/[token]",
+        params: { token: "tok123" },
+      });
+    });
+
+    it("ignores a survey link with no token", () => {
+      navigateToNotificationTarget("/surveys/");
+      expect(pushMock).not.toHaveBeenCalled();
     });
 
     it("routes admin shift links to the approvals queue", () => {

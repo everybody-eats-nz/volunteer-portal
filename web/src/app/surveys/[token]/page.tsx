@@ -28,7 +28,7 @@ export default async function SurveyPage({ params }: PageProps) {
   if (!result.valid || !result.assignment) {
     // Show appropriate error message
     const isExpired = result.message.includes("expired");
-    const isCompleted = result.message.includes("already been completed");
+    const isCompleted = result.reason === "completed";
 
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">

@@ -151,7 +151,8 @@ The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`).
 - `/api/notifications` — Notification system with SSE
 - `/api/passkey/*` — WebAuthn/Passkey registration and authentication
 - `/api/resources` — Resource hub content
-- `/api/surveys/*` — Survey system
+- `/api/surveys/*` - Survey system (the token routes are public and shared by the web survey page and the mobile survey screen)
+- `/api/mobile/surveys` - Pending surveys for the mobile home tab (also assigns due milestone surveys) and dismissal
 - `/api/site-settings` — Dynamic site configuration
 - `/api/newsletter-lists` — Newsletter subscription management
 - `/api/admin/*` — Admin operations (protected, 25+ sub-routes)
@@ -301,6 +302,7 @@ File-based routing via expo-router (paths relative to `mobile/`):
 - `app/(auth)/` — Login screen
 - `app/shift/[id].tsx` — Shift detail screen
 - `app/friend/[id].tsx` — Friend profile screen
+- `app/survey/[token].tsx` - Survey screen (opened from the home tab's survey card or a survey notification)
 - Root layout uses `AuthGate` + `Slot` pattern (not `Stack` with explicit screens)
 
 ### Data Fetching
@@ -312,6 +314,8 @@ Custom hooks in `mobile/hooks/` call the web API via `mobile/lib/api.ts`:
 - `useFriends()` — Friends list
 - `useFriendProfile(id)` — Individual friend profile
 - `useFeed()` — Activity feed
+- `usePendingSurveys()` - Surveys waiting on the volunteer (home tab card)
+- `useSurvey(token)` / `useSubmitSurvey(token)` - Load and submit one survey
 
 ## Testing Guidelines
 

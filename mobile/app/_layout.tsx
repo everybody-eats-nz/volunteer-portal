@@ -213,6 +213,15 @@ export default function RootLayout() {
               title: '',
             }}
           />
+          <Stack.Screen
+            name="survey/[token]"
+            options={{
+              headerShown: true,
+              headerTransparent: true,
+              headerBackTitle: 'Back',
+              title: '',
+            }}
+          />
           <Stack.Screen name="help/ai" options={{ headerShown: false }} />
           <Stack.Screen name="help/team" options={{ headerShown: false }} />
           <Stack.Screen name="admin/messages/index" options={{ headerShown: false }} />

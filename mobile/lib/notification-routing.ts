@@ -1,11 +1,6 @@
 import { router } from "expo-router";
-import {
-  openBrowserAsync,
-  WebBrowserPresentationStyle,
-} from "expo-web-browser";
 
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
-import { API_URL } from "./api";
 
 /**
  * Translate a web-app URL (from a notification's actionUrl) to a mobile
@@ -43,13 +38,12 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
-  // /surveys/:token -> open the web survey page in an in-app browser.
-  // Surveys aren't implemented natively on mobile, so we hand off to the
-  // web experience rather than no-op.
-  if (pathname.startsWith("/surveys/")) {
-    openBrowserAsync(`${API_URL}${actionUrl}`, {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-    });
+  // /surveys/:token -> the survey screen. The token is the whole credential
+  // (the web page behind the same link needs no login either), so it is
+  // carried across as-is.
+  const survey = pathname.match(/^\/surveys\/([^/]+)$/);
+  if (survey) {
+    router.push({ pathname: "/survey/[token]", params: { token: survey[1] } });
     return;
   }
 
