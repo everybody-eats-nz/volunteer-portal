@@ -414,14 +414,20 @@ test.describe("Backup Shift Signup Feature", () => {
     // Click confirm move (button text is "Move Volunteer")
     const confirmButton = page.getByRole("button", { name: /move volunteer/i });
     await expect(confirmButton).toBeVisible({ timeout: 5000 });
-    await confirmButton.click();
 
-    // Wait for success
-    await page.waitForTimeout(2000);
+    // Wait for the move itself rather than a fixed delay: the route awaits the
+    // confirmation email before responding, so a reload on a timer can abort
+    // the request or land before the move commits.
+    const moveResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/admin/volunteer-movement") &&
+        response.request().method() === "POST"
+    );
+    await confirmButton.click();
+    expect((await moveResponse).ok()).toBe(true);
 
     // Reload the page to see changes
     await page.reload();
-    await page.waitForTimeout(2000);
 
     // Find the FOH shift card (backup shift 1)
     // .first() avoids strict-mode violation: shift cards render twice (mobile + desktop)
