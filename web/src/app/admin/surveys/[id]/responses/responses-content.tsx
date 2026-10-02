@@ -569,7 +569,7 @@ export function ResponsesContent({
                 value={sortKey}
                 onValueChange={(v) => setSortKey(v as SortKey)}
               >
-                <SelectTrigger className="h-9 w-[180px] text-sm">
+                <SelectTrigger size="md" className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1045,8 +1045,9 @@ function FilterSelect({
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger
+        size="md"
         className={cn(
-          "h-9 w-auto gap-1.5 text-sm",
+          "w-auto gap-1.5",
           isActive &&
             "border-[var(--ee-primary-text)]/40 bg-[var(--ee-primary-light)]"
         )}

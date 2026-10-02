@@ -1,3 +1,15 @@
+## [0.175.5] - 2026-10-01
+
+### Changes
+- fix(admin): align Select height with Input and Button in admin toolbars ([#1303](https://github.com/everybody-eats-nz/volunteer-portal/pull/1303)) by @malinmalliyawadu
+
+
+## [0.175.4] - 2026-10-01
+
+### Changes
+- chore(deps-dev): bump brace-expansion from 1.1.18 to 1.1.21 in /web ([#1301](https://github.com/everybody-eats-nz/volunteer-portal/pull/1301)) by @dependabot[bot]
+
+
 ## [0.175.3] - 2026-10-01
 
 ### Changes

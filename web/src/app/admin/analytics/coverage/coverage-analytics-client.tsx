@@ -200,7 +200,7 @@ export function CoverageAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
-                  <SelectTrigger id="months">
+                  <SelectTrigger id="months" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -214,7 +214,7 @@ export function CoverageAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger id="location">
+                  <SelectTrigger id="location" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
