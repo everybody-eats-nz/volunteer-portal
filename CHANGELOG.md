@@ -1,3 +1,9 @@
+## [0.175.6] - 2026-10-02
+
+### Changes
+- fix(web): remove dead post-login navigation and fix two flaky e2e tests ([#1304](https://github.com/everybody-eats-nz/volunteer-portal/pull/1304)) by @malinmalliyawadu
+
+
 ## [0.175.5] - 2026-10-01
 
 ### Changes

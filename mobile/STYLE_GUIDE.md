@@ -193,6 +193,74 @@ The iOS 26 native scroll edge effect is not an option here. Set to `hard` on a
 tab screen it drew nothing, because these screens have no navigation bar for it
 to sit under, and it does not exist on Android or older iOS.
 
+### Keyboard and scrolling forms
+
+A focused input must sit fully above the keyboard, with breathing room, on both
+platforms. `KeyboardAvoidingView` does not do this: it only resizes on iOS
+(leaving the field flush against, or under, the keyboard) and does nothing on
+Android, which is edge-to-edge and no longer resizes the window. Scrolling
+forms use `useKeyboardAwareScroll` instead:
+
+```tsx
+import Animated from "react-native-reanimated";
+import { useKeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
+
+const keyboardScroll = useKeyboardAwareScroll();
+const fieldsRef = useRef<View>(null);
+
+<Animated.ScrollView {...keyboardScroll.scrollProps} keyboardShouldPersistTaps="handled">
+  <View ref={fieldsRef}>
+    <TextInput {...keyboardScroll.inputProps(fieldsRef)} />
+    <TextInput {...keyboardScroll.inputProps(fieldsRef)} />
+  </View>
+  {/* ... */}
+  <Animated.View style={keyboardScroll.spacerStyle} />
+</Animated.ScrollView>
+```
+
+- The spacer is the last child of the scroll content. It makes room for the
+  keyboard, so the scroll view itself is never resized.
+- Give inputs that belong together (email and password) the same group ref.
+  The whole group is lifted when it fits, so moving between them does not
+  shift the screen. Leave the ref out to reveal an input on its own.
+- Keep the group small enough that lifting it does not push the screen's title
+  under the status bar. On the login sheet that means the two fields, not the
+  Sign in button.
+- On a long form, reveal each input on its own: call `inputProps()` once with
+  no ref and spread the result on every input. Group only inputs that sit
+  together and belong together. On Register that is the two password fields,
+  with the live password rules between them.
+- A group can also be one input with its own messages. Profile edit's
+  `FormField` passes the ref of its own container, so the error and hint under
+  a focused field are kept clear of the keyboard along with the box.
+- Content that changes size under a focused input (a validation message, the
+  password rules, a multiline field growing) is followed without any wiring:
+  the form glides on if the input or its group now sits lower.
+- If an input has its own `onFocus` or `onBlur`, call the hook's handlers from
+  yours instead of spreading over them:
+
+  ```tsx
+  const reveal = keyboardScroll.inputProps();
+
+  <TextInput
+    onFocus={reveal.onFocus}
+    onBlur={(event) => {
+      reveal.onBlur(event);
+      validate();
+    }}
+  />
+  ```
+
+- The scroll view must reach the bottom of the screen. A stack screen with a
+  transparent header does (Profile edit). If something sits below the scroll
+  view, such as a fixed footer, give the hook a bottom offset option rather
+  than compensating in the screen.
+- The clearance above the keyboard is 16pt. A screen that needs more or less
+  passes `useKeyboardAwareScroll({ gap })`; keep the default unless the design
+  calls for it, so forms feel the same across the app.
+- Do not use it inside an RN `Modal`: the modal's own window still resizes for
+  the keyboard.
+
 ### Spacing
 
 - Page horizontal padding: `20px`
