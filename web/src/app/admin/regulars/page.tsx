@@ -11,6 +11,7 @@ import {
   PauseIcon,
   CalendarIcon,
   CircleSlashIcon,
+  ChevronLeft,
 } from "lucide-react";
 import { RegularsTable } from "./regulars-table";
 import { RegularVolunteerForm } from "./regular-volunteer-form";
@@ -143,7 +144,10 @@ export default async function RegularVolunteersPage({
       description="Manage volunteers with recurring shift assignments"
       actions={
         <Button asChild variant="outline" size="sm">
-          <Link href="/admin">← Back to admin</Link>
+          <Link href="/admin">
+            <ChevronLeft className="h-4 w-4" />
+            Back to admin
+          </Link>
         </Button>
       }
     >
@@ -153,7 +157,7 @@ export default async function RegularVolunteersPage({
           {statCards.map(({ label, value, icon: Icon, iconClass }) => (
             <div
               key={label}
-              className="bg-card dark:bg-card/50 backdrop-blur-sm p-5 rounded-lg shadow-sm border dark:border-zinc-800"
+              className="rounded-xl border bg-card p-5 shadow-sm"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">

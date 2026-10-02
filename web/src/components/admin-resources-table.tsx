@@ -142,7 +142,7 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

@@ -289,10 +289,10 @@ export default async function AdminShiftsPage({
           </Alert>
         )}
         {params.updated && (
-          <Alert className="mb-6 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+          <Alert className="mb-6 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
             <AlertDescription
               data-testid="shift-updated-message"
-              className="text-blue-800 dark:text-blue-200"
+              className="text-green-800 dark:text-green-200"
             >
               Shift updated successfully!
             </AlertDescription>
@@ -414,7 +414,7 @@ export default async function AdminShiftsPage({
 
         {/* Shifts Display */}
         {shifts.length === 0 ? (
-          <div className="text-center py-12 bg-card dark:bg-card/50 rounded-lg border">
+          <div className="rounded-xl border bg-card py-12 text-center shadow-sm">
             <div className="h-12 w-12 bg-muted dark:bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-4">
               <Plus className="h-6 w-6 text-muted-foreground" />
             </div>

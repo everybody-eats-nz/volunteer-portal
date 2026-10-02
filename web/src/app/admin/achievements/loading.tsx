@@ -10,7 +10,7 @@ export default function AchievementsLoading() {
       {/* Stats cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-2xl border p-5 shadow-sm">
+          <div key={i} className="bg-card rounded-xl border p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 space-y-2">
                 <Skeleton className="h-8 w-14" />
@@ -24,7 +24,7 @@ export default function AchievementsLoading() {
       </div>
 
       {/* Search, filters and create button */}
-      <div className="bg-card rounded-lg border p-3 sm:p-4" aria-hidden="true">
+      <div className="bg-card rounded-xl border p-3 shadow-sm sm:p-4" aria-hidden="true">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <Skeleton className="h-9 flex-1 sm:max-w-sm" />
@@ -39,7 +39,7 @@ export default function AchievementsLoading() {
       </div>
 
       {/* Achievements table */}
-      <div className="bg-card overflow-hidden rounded-lg border" aria-hidden="true">
+      <div className="bg-card overflow-hidden rounded-xl border shadow-sm" aria-hidden="true">
         <div className="bg-muted/40 flex h-10 items-center gap-6 border-b px-4">
           <Skeleton className="size-4 shrink-0 rounded-[4px]" />
           <div className="flex-1">

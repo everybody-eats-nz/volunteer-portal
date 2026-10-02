@@ -65,29 +65,29 @@ export default async function AdminParentalConsentPage() {
         <div className="space-y-6">
           {/* Summary Cards */}
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-lg border bg-card text-card-foreground p-6">
+            <div className="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <h3 className="tracking-tight text-sm font-medium">
                   Pending Approval
                 </h3>
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                 {pendingApproval}
               </div>
             </div>
 
-            <div className="rounded-lg border bg-card text-card-foreground p-6">
+            <div className="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <h3 className="tracking-tight text-sm font-medium">Approved</h3>
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {approved}
               </div>
             </div>
 
-            <div className="rounded-lg border bg-card text-card-foreground p-6">
+            <div className="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <h3 className="tracking-tight text-sm font-medium">
                   Total Under 16
@@ -99,14 +99,14 @@ export default async function AdminParentalConsentPage() {
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          <div className="rounded-lg border bg-primary-light p-4">
+            <div className="flex items-start gap-3">
+              <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary-text" />
               <div>
-                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                <h4 className="text-sm font-semibold text-primary-text">
                   How Parental Consent Works
                 </h4>
-                <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                <div className="mt-1 text-sm text-foreground/80">
                   <ol className="list-decimal list-inside space-y-1">
                     <li>
                       Volunteers under 16 see a notice during registration to

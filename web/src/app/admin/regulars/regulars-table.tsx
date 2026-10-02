@@ -208,7 +208,7 @@ export function RegularsTable({
 
   return (
     <>
-      <div className="bg-card dark:bg-card/50 backdrop-blur-sm rounded-lg shadow-sm border dark:border-zinc-800">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         {/* The page header already names this section — repeating the title
             here just pushed the table further down the page. */}
         <div className="p-4 sm:px-6 border-b">

@@ -332,7 +332,7 @@ export function ResponsesContent({
       </Button>
 
       {/* Hero */}
-      <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-5">
             <CompletionRing

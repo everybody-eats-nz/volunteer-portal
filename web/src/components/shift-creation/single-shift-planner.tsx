@@ -163,7 +163,7 @@ export function SingleShiftPlanner({
     >
       <div className="space-y-6">
         {templates.length > 0 && (
-          <div className="rounded-2xl border border-dashed border-forest-200 bg-forest-500/[0.04] px-5 py-4 sm:px-6 dark:border-forest-300/40 dark:bg-forest-500/10">
+          <div className="rounded-xl border border-dashed border-forest-200 bg-forest-500/[0.04] px-5 py-4 sm:px-6 dark:border-forest-300/40 dark:bg-forest-500/10">
             <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
               <SparklesIcon className="h-4 w-4 text-forest-400 dark:text-forest-200" />
               Quick start from a template

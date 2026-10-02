@@ -116,14 +116,7 @@ export function ChartCard({
     >
       <header className="flex items-center justify-between gap-2 px-4 pt-4 pb-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
-          <span
-            className={cn(
-              "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/60",
-              accent
-            )}
-          >
-            <Icon className="h-4 w-4" />
-          </span>
+          <ChartIcon icon={Icon} accent={accent} />
           <span className="truncate">{title}</span>
           {info && (
             <InfoHint
@@ -139,6 +132,31 @@ export function ChartCard({
         <ChartErrorBoundary>{children}</ChartErrorBoundary>
       </div>
     </section>
+  );
+}
+
+/**
+ * The tinted icon chip that leads every chart card title. Shared so cards
+ * built on shadcn `Card` (coverage, engagement, milestones) read the same as
+ * `ChartCard`.
+ */
+export function ChartIcon({
+  icon: Icon,
+  accent,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  /** Tailwind text-* colour class for the icon, e.g. "text-emerald-500" */
+  accent: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/60",
+        accent
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </span>
   );
 }
 

@@ -266,7 +266,7 @@ export function AchievementDialog({
               className="text-2xl h-12"
               data-testid="achievement-icon-input"
             />
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Quick select or paste any emoji above
             </p>
             <div className="grid grid-cols-11 gap-1">
@@ -276,9 +276,9 @@ export function AchievementDialog({
                   type="button"
                   onClick={() => setIcon(emoji)}
                   className={`
-                    p-2 text-2xl hover:bg-slate-100 rounded transition-colors
+                    p-2 text-2xl hover:bg-muted rounded transition-colors
                     ${
-                      icon === emoji ? "bg-slate-200 ring-2 ring-slate-400" : ""
+                      icon === emoji ? "bg-muted ring-2 ring-ring" : ""
                     }
                   `}
                   data-testid={`icon-option-${emoji}`}
@@ -358,21 +358,21 @@ export function AchievementDialog({
 
           <div className="space-y-2">
             <Label>Preview</Label>
-            <Card>
-              <CardContent className="py-4">
+            <Card className="py-4">
+              <CardContent>
                 <div className="flex items-start gap-4">
                   <div className="text-4xl">{icon}</div>
                   <div>
                     <h4 className="font-semibold text-lg">
                       {name.trim() || "Achievement Name"}
                     </h4>
-                    <p className="text-slate-600 text-sm mt-1">
+                    <p className="text-muted-foreground text-sm mt-1">
                       {description.trim() || "Achievement description"}
                     </p>
-                    <p className="text-slate-500 text-xs mt-2">
+                    <p className="text-muted-foreground text-xs mt-2">
                       {getCriteriaDescription() || "Criteria description"}
                     </p>
-                    <div className="mt-2 text-sm text-slate-500">
+                    <div className="mt-2 text-sm text-muted-foreground">
                       <span className="font-medium">{points || 0}</span> points
                     </div>
                   </div>

@@ -159,8 +159,8 @@ export default async function ChatLogsPage({ searchParams }: ChatLogsPageProps) 
 
         {/* Logs */}
         {logs.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
+          <Card className="py-12">
+            <CardContent className="flex flex-col items-center justify-center">
               <MessageSquare className="h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-lg font-medium">No conversations yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -180,7 +180,7 @@ export default async function ChatLogsPage({ searchParams }: ChatLogsPageProps) 
               return (
                 <details
                   key={log.id}
-                  className="group rounded-lg border bg-card transition-colors hover:bg-muted/30 open:bg-muted/30"
+                  className="group rounded-xl border bg-card shadow-sm transition-colors hover:bg-muted/30 open:bg-muted/30"
                 >
                   <summary className="flex cursor-pointer list-none items-start gap-3 p-4">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">

@@ -6,16 +6,16 @@ export default function CustomLabelsLoading() {
     <AdminPageSkeleton title="Custom Labels">
       {/* Hero */}
       <div
-        className="bg-card ring-border rounded-2xl p-6 shadow-sm ring-1 sm:p-8"
+        className="rounded-xl border border-forest-500 bg-gradient-to-br from-forest-500 to-forest-400 p-6 shadow-sm sm:p-8"
         aria-hidden="true"
       >
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="w-full max-w-xl space-y-3">
-            <Skeleton className="h-8 w-full max-w-md sm:h-9" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-7 w-full max-w-md bg-white/15 sm:h-8" />
+            <Skeleton className="h-4 w-full bg-white/15" />
+            <Skeleton className="h-4 w-2/3 bg-white/15" />
           </div>
-          <Skeleton className="h-10 w-32 shrink-0" />
+          <Skeleton className="h-10 w-32 shrink-0 rounded-full bg-sun-200/40" />
         </div>
       </div>
 
@@ -24,7 +24,7 @@ export default function CustomLabelsLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="bg-card ring-border rounded-2xl p-4 shadow-sm ring-1"
+            className="bg-card rounded-xl border p-4 shadow-sm"
           >
             <div className="flex items-center justify-between">
               <Skeleton className="h-3.5 w-24" />
@@ -49,7 +49,7 @@ export default function CustomLabelsLoading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="bg-card ring-border flex flex-col rounded-2xl p-5 shadow-sm ring-1"
+            className="bg-card flex flex-col rounded-xl border p-5 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">

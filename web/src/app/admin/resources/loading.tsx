@@ -21,14 +21,14 @@ export default function AdminResourcesLoading() {
     >
       <div aria-hidden="true" className="grid gap-4 md:grid-cols-3">
         {["w-28", "w-20", "w-14"].map((width, i) => (
-          <div key={i} className="bg-card rounded-lg border p-6">
+          <div key={i} className="bg-card rounded-xl border p-6 shadow-sm">
             <Skeleton className={`h-4 ${width}`} />
             <Skeleton className="mt-3 h-8 w-12" />
           </div>
         ))}
       </div>
 
-      <div aria-hidden="true" className="rounded-md border">
+      <div aria-hidden="true" className="bg-card overflow-hidden rounded-xl border shadow-sm">
         <TableSkeleton
           card={false}
           rows={8}

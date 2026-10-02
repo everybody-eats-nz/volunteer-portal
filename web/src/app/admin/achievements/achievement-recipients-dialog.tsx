@@ -95,19 +95,19 @@ export function AchievementRecipientsDialog({
         <div className="mt-2">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : error ? (
             <p className="text-center text-sm text-destructive py-8">
               {error}
             </p>
           ) : recipients.length === 0 ? (
-            <p className="text-center text-sm text-slate-500 py-8">
+            <p className="text-center text-sm text-muted-foreground py-8">
               No one has unlocked this achievement yet.
             </p>
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto">
-              <p className="text-sm text-slate-500 mb-3">
+              <p className="text-sm text-muted-foreground mb-3">
                 {recipients.length} volunteer{recipients.length !== 1 && "s"}{" "}
                 unlocked this achievement
               </p>
@@ -115,7 +115,7 @@ export function AchievementRecipientsDialog({
                 <Link
                   key={recipient.userId}
                   href={`/admin/volunteers/${recipient.userId}`}
-                  className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage
@@ -130,11 +130,11 @@ export function AchievementRecipientsDialog({
                     <p className="text-sm font-medium truncate">
                       {recipient.name || "Unknown"}
                     </p>
-                    <p className="text-xs text-slate-500 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       {recipient.email}
                     </p>
                   </div>
-                  <span className="text-xs text-slate-400 shrink-0">
+                  <span className="text-xs text-muted-foreground shrink-0">
                     {formatDate(recipient.unlockedAt)}
                   </span>
                 </Link>

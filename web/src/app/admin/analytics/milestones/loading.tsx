@@ -11,7 +11,7 @@ const ROWS = ["a", "b", "c", "d", "e", "f"];
 function CardTitleBar({ width }: { width: string }) {
   return (
     <div className="flex items-center gap-2">
-      <Skeleton className="size-4 rounded" />
+      <Skeleton className="size-7 rounded-lg" />
       <Skeleton className={cn("h-4", width)} />
     </div>
   );
@@ -110,8 +110,8 @@ export default function MilestoneAnalyticsLoading() {
       description="Track when volunteers hit key shift milestones and project future recognition opportunities"
     >
       {/* Filters */}
-      <SkeletonCard className="py-6">
-        <div className="flex flex-col items-end gap-4 px-6 py-4 sm:flex-row">
+      <SkeletonCard className="p-4">
+        <div className="flex flex-col items-end gap-4 sm:flex-row">
           <div className="grid w-full flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
@@ -128,7 +128,7 @@ export default function MilestoneAnalyticsLoading() {
         {/* Milestone summary cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {THRESHOLDS.map((threshold) => (
-            <SkeletonCard key={threshold} className="overflow-hidden border-0 py-6">
+            <SkeletonCard key={threshold} className="overflow-hidden">
               <div className="p-5">
                 <div className="mb-3 flex items-start justify-between">
                   <Skeleton className="size-8 rounded-lg" />

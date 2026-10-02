@@ -33,7 +33,7 @@ export function DayOfWeekFilter({ value, onChange }: DayOfWeekFilterProps) {
   return (
     <div className="space-y-2">
       <Label>Day of Week</Label>
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-1">
         {DAYS.map((day) => (
           <button
             key={day.value}

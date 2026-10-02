@@ -251,7 +251,7 @@ export function RestaurantManagersContent({
       {/* 2 — Coverage by location: who hears about a cancellation, where */}
       <section ref={coverageRef} className="scroll-mt-6 space-y-3">
         <div className="flex items-center gap-2">
-          <MapPinned className="h-5 w-5 text-[#1d5337] dark:text-emerald-300" />
+          <MapPinned className="h-5 w-5 text-primary-text" />
           <h2 className="font-accent text-xl font-semibold">
             Coverage by location
           </h2>
@@ -274,7 +274,7 @@ export function RestaurantManagersContent({
           <p className="text-sm text-muted-foreground">
             Every admin receiving venue alerts and the locations they cover.
           </p>
-          <div className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border dark:bg-white/[0.02] sm:p-5">
+          <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5">
             <RestaurantManagersTable
               managers={managers}
               editingId={editingId}
@@ -293,7 +293,7 @@ export function RestaurantManagersContent({
         >
           <div className="flex items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 font-accent text-xl font-semibold">
-              <UserPlus className="h-5 w-5 text-[#1d5337] dark:text-emerald-300" />
+              <UserPlus className="h-5 w-5 text-primary-text" />
               {existingForUser ? "Edit assignment" : "Assign recipient"}
             </h2>
             <EmailPreviewDialog
@@ -306,7 +306,7 @@ export function RestaurantManagersContent({
             Assign admins to restaurant locations to receive cancellation and
             approval alerts.
           </p>
-          <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border dark:bg-white/[0.02]">
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
             <RestaurantManagerForm
               adminUsers={adminUsers}
               locations={locations}

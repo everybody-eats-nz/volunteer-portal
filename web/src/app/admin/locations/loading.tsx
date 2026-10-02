@@ -10,8 +10,8 @@ const VENUES = [
   { name: "w-36", address: "w-60" },
 ];
 
-/** Same surface as the venue rows and KPI tiles (rounded-2xl, ring, shadow). */
-const SURFACE = "rounded-2xl bg-card shadow-sm ring-1 ring-border";
+/** Same surface as the venue rows and KPI tiles (rounded-xl, border, shadow). */
+const SURFACE = "rounded-xl border bg-card shadow-sm";
 
 export default function LocationsLoading() {
   return (
@@ -22,7 +22,7 @@ export default function LocationsLoading() {
     >
       {/* Network overview: status banner + KPI tiles */}
       <div aria-hidden="true" className="space-y-4">
-        <div className="rounded-2xl border bg-card p-5 sm:p-6">
+        <div className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-4">
             <Skeleton className="size-12 shrink-0 rounded-xl" />
             <div className="min-w-0 flex-1">

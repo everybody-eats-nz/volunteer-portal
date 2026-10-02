@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
-import { PlusIcon, CalendarDaysIcon, LayersIcon } from "lucide-react";
+import { PlusIcon, CalendarDaysIcon, LayersIcon, ChevronLeft } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { RedirectFeedback } from "@/components/shift-creation/redirect-feedback";
 import { ShiftTypeManager } from "@/components/shift-creation/shift-type-manager";
@@ -702,7 +702,10 @@ export default async function NewShiftPage({
       description="Plan whole weeks from templates, or add a one-off shift."
       actions={
         <Button asChild variant="outline" size="sm">
-          <Link href="/admin/shifts">← Back to shifts</Link>
+          <Link href="/admin/shifts">
+            <ChevronLeft className="h-4 w-4" />
+            Back to shifts
+          </Link>
         </Button>
       }
     >

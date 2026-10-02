@@ -318,7 +318,7 @@ export default async function AdminVolunteerPage({
           >
             <Link href="/admin/shifts">
               <ChevronLeft className="h-4 w-4" />
-              Back to Shifts
+              Back to shifts
             </Link>
           </Button>
         </div>
@@ -935,8 +935,8 @@ export default async function AdminVolunteerPage({
                               )
                             ) : (
                               <>
-                                <PauseCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                <PauseCircle className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm text-muted-foreground">
                                   Inactive
                                 </span>
                               </>

@@ -70,8 +70,8 @@ export default async function VanExceptionsPage() {
     >
       <PageContainer testid="van-exceptions-page">
         {exceptions.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+          <Card className="py-14">
+            <CardContent className="flex flex-col items-center gap-3 text-center">
               <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary dark:text-forest-200">
                 <Check className="size-6" aria-hidden />
               </span>
@@ -116,7 +116,7 @@ export default async function VanExceptionsPage() {
                         : null;
                       return (
                         <li key={item.id}>
-                          <Card>
+                          <Card className="py-0">
                             <CardContent className="flex flex-wrap items-start gap-3 p-4">
                               <span
                                 className={cn(

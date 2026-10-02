@@ -107,7 +107,7 @@ export default function VanTripsLoading() {
         </div>
       </section>
 
-      <div aria-hidden="true" className="overflow-hidden rounded-2xl border bg-card">
+      <div aria-hidden="true" className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b">

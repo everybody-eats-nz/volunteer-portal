@@ -50,14 +50,14 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
       data-testid={`venue-row-${venue.id}`}
-      className="group relative list-none overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border transition-shadow hover:shadow-md dark:bg-white/[0.02]"
+      className="group relative list-none overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md"
     >
       {/* Status spine */}
       <span
         aria-hidden
         className={cn(
           "absolute inset-y-0 left-0 w-1",
-          isLive ? "bg-[#1d5337]" : "bg-amber-500"
+          isLive ? "bg-primary-text" : "bg-amber-500"
         )}
       />
 
@@ -72,20 +72,20 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
               className={cn(
                 "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold",
                 isLive
-                  ? "bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-200"
+                  ? "bg-primary-light text-primary-text"
                   : "bg-amber-400/20 text-amber-700 dark:text-amber-300"
               )}
             >
               <span
                 className={cn(
                   "h-1.5 w-1.5 rounded-full",
-                  isLive ? "bg-[#1d5337] dark:bg-emerald-300" : "bg-amber-500"
+                  isLive ? "bg-primary-text" : "bg-amber-500"
                 )}
               />
               {isLive ? "Open to volunteers" : "Awaiting shifts"}
             </span>
             {venue.isPopup && (
-              <span className="inline-flex shrink-0 items-center rounded-full bg-[#f8fb69]/60 px-2.5 py-0.5 text-xs font-semibold text-[#4a4d20] dark:bg-[#f8fb69]/15 dark:text-[#f8fb69]">
+              <span className="inline-flex shrink-0 items-center rounded-full bg-sun-200/60 px-2.5 py-0.5 text-xs font-semibold text-forest-700 dark:bg-sun-200/15 dark:text-sun-200">
                 Pop-up
               </span>
             )}
@@ -110,7 +110,7 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
                           "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold ring-2 ring-card",
                           manager.muted
                             ? "bg-muted text-muted-foreground"
-                            : "bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/20 dark:text-emerald-200"
+                            : "bg-primary-light text-primary-text"
                         )}
                       >
                         {manager.initials}

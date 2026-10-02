@@ -204,7 +204,7 @@ function UserRow({
     <li>
       <Link
         href={`/admin/volunteers/${user.id}`}
-        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-zinc-900/60 transition-colors group"
+        className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/50 transition-colors group"
       >
         <Avatar className="h-8 w-8 shadow-sm">
           <AvatarImage src={user.profilePhotoUrl ?? ""} alt={displayName} />
@@ -224,7 +224,7 @@ function UserRow({
         <div className="flex items-center gap-2 shrink-0">
           <Badge
             variant="outline"
-            className="text-xs tabular-nums bg-slate-50 dark:bg-zinc-900/40"
+            className="text-xs tabular-nums bg-muted/50"
           >
             {user.totalShifts.toLocaleString()} shifts
           </Badge>

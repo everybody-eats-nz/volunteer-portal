@@ -176,7 +176,7 @@ export function ModerationContent() {
 
       {/* ── Reports ── */}
       <TabsContent value="reports" className="mt-4">
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b">
             {loadingReports && reports.length === 0 ? (
               <Skeleton className="h-4 w-28" />
@@ -310,7 +310,7 @@ export function ModerationContent() {
 
       {/* ── Blocks ── */}
       <TabsContent value="blocks" className="mt-4">
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b">
             {loadingBlocks && blocks.length === 0 ? (
               <Skeleton className="h-4 w-24" />

@@ -15,7 +15,7 @@ export default function ModerationLoading() {
     >
       <div aria-hidden="true" className="grid gap-4 md:grid-cols-3">
         {[true, false, true].map((caption, i) => (
-          <div key={i} className="bg-card rounded-lg border p-6">
+          <div key={i} className="bg-card rounded-xl border p-6 shadow-sm">
             <div className="flex items-center justify-between pb-2">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="size-4 rounded" />
@@ -28,7 +28,7 @@ export default function ModerationLoading() {
 
       <div aria-hidden="true">
         <TabsSkeleton tabs={["w-28", "w-24"]} />
-        <div className="mt-4 rounded-lg border">
+        <div className="bg-card mt-4 overflow-hidden rounded-xl border shadow-sm">
           <div className="flex items-center justify-between border-b px-4 py-3">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-8 w-24" />

@@ -102,13 +102,13 @@ export default async function AdminResourcesPage({
       <div className="space-y-6">
         {/* Stats Overview */}
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
             <div className="text-sm font-medium text-muted-foreground">
               Total Resources
             </div>
             <div className="mt-2 text-3xl font-bold">{stats.total}</div>
           </div>
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
             <div className="text-sm font-medium text-muted-foreground">
               Published
             </div>
@@ -116,7 +116,7 @@ export default async function AdminResourcesPage({
               {stats.published}
             </div>
           </div>
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
             <div className="text-sm font-medium text-muted-foreground">
               Drafts
             </div>

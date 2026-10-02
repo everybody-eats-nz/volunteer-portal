@@ -589,7 +589,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
       // Check back button (scope to the visible copy — see note above)
-      const backButton = page.locator("text=← Back to shifts").locator("visible=true");
+      const backButton = page.getByRole("link", { name: "Back to shifts" }).locator("visible=true");
       await expect(backButton).toBeVisible();
 
       // Should navigate back to the shift's own day and restaurant

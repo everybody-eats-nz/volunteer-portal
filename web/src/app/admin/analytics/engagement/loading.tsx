@@ -21,7 +21,7 @@ function CardTitleBar({
   return (
     <div className="flex items-center justify-between px-6 pb-2">
       <div className="flex items-center gap-2">
-        {icon && <Skeleton className="size-4 rounded" />}
+        {icon && <Skeleton className="size-7 rounded-lg" />}
         <Skeleton className={cn("h-4", width)} />
       </div>
       {action && <Skeleton className={cn("h-[30px]", action)} />}
@@ -36,9 +36,9 @@ export default function VolunteerEngagementLoading() {
       description="Track volunteer activity levels, engagement trends, and retention metrics"
     >
       {/* Filters */}
-      <SkeletonCard className="py-6">
-        <div className="flex flex-col items-end gap-4 px-6 py-4 sm:flex-row">
-          <div className="grid w-full flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
+      <SkeletonCard className="p-4">
+        <div className="flex flex-col items-end gap-4 sm:flex-row">
+          <div className="grid w-full flex-1 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
                 <Skeleton className="h-3.5 w-24" />
@@ -47,7 +47,7 @@ export default function VolunteerEngagementLoading() {
             ))}
             <div className="space-y-2">
               <Skeleton className="h-3.5 w-24" />
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 {DAYS.map((day) => (
                   <Skeleton key={day} className="h-9 w-[38px]" />
                 ))}
@@ -88,7 +88,7 @@ export default function VolunteerEngagementLoading() {
         {/* Category stat cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {["highly-active", "active", "inactive", "never"].map((key) => (
-            <SkeletonCard key={key} className="border-0 py-6">
+            <SkeletonCard key={key} className="border-0">
               <div className="flex items-center gap-4 px-6 py-5">
                 <Skeleton className="size-[52px] shrink-0 rounded-full" />
                 <div className="min-w-0 space-y-1.5">
@@ -155,7 +155,7 @@ export default function VolunteerEngagementLoading() {
               <Skeleton className="h-9 w-[180px]" />
             </div>
 
-            <div className="overflow-hidden rounded-md border">
+            <div className="overflow-hidden rounded-lg border">
               <div className="overflow-x-auto">
                 <div className="min-w-[760px]">
                   <div className="flex items-center gap-4 border-b px-4 py-3">

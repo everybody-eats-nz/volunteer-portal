@@ -92,8 +92,8 @@ export function MessagingHoursEditor({
 
   if (locations.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center text-sm text-muted-foreground">
+      <Card className="py-12">
+        <CardContent className="text-center text-sm text-muted-foreground">
           No active locations. Configure locations under Restaurants →
           Restaurant Locations first.
         </CardContent>
