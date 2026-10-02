@@ -99,6 +99,14 @@ export function mapDeepLinkToRoute(rawPath: string): string {
     return "/(tabs)/drive";
   }
 
+  // /surveys/:token -> the survey screen. Not claimed as a universal link yet
+  // (see web/docs/universal-links.md): the claim is served by the website and
+  // takes effect at once, and builds from before this screen existed would
+  // open the email's link on a route they don't have. This mapping is here so
+  // that today's builds are ready when the claim is added.
+  const survey = pathname.match(/^\/surveys\/([^/]+)$/);
+  if (survey) return `/survey/${survey[1]}`;
+
   // /friends/:id -> unified user profile screen
   const friendProfile = pathname.match(/^\/friends\/([^/]+)$/);
   if (friendProfile) return `/user/${friendProfile[1]}`;

@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { calculateUserProgress, type UserProgress } from "./achievements";
-import { createSurveyToken, generateSurveyToken, getSurveyUrl } from "./survey-tokens";
+import { generateSurveyToken, getSurveyUrl } from "./survey-tokens";
 import { createNotification } from "./notifications";
 import { sendSurveyNotification } from "./email-service";
 import { Prisma, type SurveyTriggerType } from "@/generated/client";
@@ -108,22 +108,6 @@ export async function checkAndAssignSurveys(userId: string): Promise<string[]> {
       return assignedSurveys;
     }
 
-    // Get user's progress
-    const progress = await calculateUserProgress(userId);
-
-    // Get user's first completed shift date
-    const firstShift = await prisma.signup.findFirst({
-      where: {
-        userId,
-        status: "CONFIRMED",
-        shift: { end: { lt: new Date() } },
-      },
-      orderBy: { shift: { start: "asc" } },
-      include: { shift: true },
-    });
-
-    const firstShiftDate = firstShift?.shift.start || null;
-
     // Get active surveys the user hasn't been assigned yet
     const existingAssignments = await prisma.surveyAssignment.findMany({
       where: { userId },
@@ -142,6 +126,28 @@ export async function checkAndAssignSurveys(userId: string): Promise<string[]> {
       },
     });
 
+    // Nothing left to evaluate - the usual case, and this runs on every app
+    // open, so stop before the progress queries below.
+    if (eligibleSurveys.length === 0) {
+      return assignedSurveys;
+    }
+
+    // Get user's progress
+    const progress = await calculateUserProgress(userId);
+
+    // Get user's first completed shift date
+    const firstShift = await prisma.signup.findFirst({
+      where: {
+        userId,
+        status: "CONFIRMED",
+        shift: { end: { lt: new Date() } },
+      },
+      orderBy: { shift: { start: "asc" } },
+      include: { shift: true },
+    });
+
+    const firstShiftDate = firstShift?.shift.start || null;
+
     // Evaluate each survey's trigger conditions
     for (const survey of eligibleSurveys) {
       const result = evaluateTrigger(
@@ -153,48 +159,70 @@ export async function checkAndAssignSurveys(userId: string): Promise<string[]> {
         firstShiftDate
       );
 
-      if (result.triggered) {
-        // Create assignment
-        const assignment = await prisma.surveyAssignment.create({
+      if (!result.triggered) continue;
+
+      // The assignment and its token are created together: an assignment
+      // without a token can never be opened, and (surveyId, userId) is unique,
+      // so it could never be assigned again either.
+      let assignment;
+      try {
+        assignment = await prisma.surveyAssignment.create({
           data: {
             surveyId: survey.id,
             userId,
             status: "PENDING",
+            token: {
+              create: {
+                token: generateSurveyToken(),
+                // expiresAt omitted - tokens never expire
+              },
+            },
           },
+          include: { token: true },
         });
-
-        // Create token for email link
-        const token = await createSurveyToken(assignment.id);
-        const surveyUrl = getSurveyUrl(token.token);
-
-        // Create notification
-        await createNotification({
-          userId,
-          type: "SURVEY_ASSIGNED",
-          title: "New Survey Available",
-          message: `We'd love your feedback! Please complete the "${survey.title}" survey.`,
-          actionUrl: `/surveys/${token.token}`,
-          relatedId: assignment.id,
-        });
-
-        // Send email notification
-        try {
-          await sendSurveyNotification({
-            email: user.email,
-            userName: user.name || "Volunteer",
-            surveyTitle: survey.title,
-            surveyUrl,
-          });
-        } catch (emailError) {
-          console.error(
-            `Failed to send survey email to ${user.email}:`,
-            emailError
-          );
-          // Continue even if email fails - they can still see it on dashboard
+      } catch (error) {
+        // Two requests can evaluate the same user at once (the web dashboard,
+        // or the mobile home tab loading its profile and its surveys). The
+        // unique constraint lets one of them win; the other has nothing to do.
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          continue;
         }
-
-        assignedSurveys.push(survey.title);
+        throw error;
       }
+
+      const token = assignment.token!.token;
+      const surveyUrl = getSurveyUrl(token);
+
+      // Create notification
+      await createNotification({
+        userId,
+        type: "SURVEY_ASSIGNED",
+        title: "New Survey Available",
+        message: `We'd love your feedback! Please complete the "${survey.title}" survey.`,
+        actionUrl: `/surveys/${token}`,
+        relatedId: assignment.id,
+      });
+
+      // Send email notification
+      try {
+        await sendSurveyNotification({
+          email: user.email,
+          userName: user.name || "Volunteer",
+          surveyTitle: survey.title,
+          surveyUrl,
+        });
+      } catch (emailError) {
+        console.error(
+          `Failed to send survey email to ${user.email}:`,
+          emailError
+        );
+        // Continue even if email fails - they can still see it on dashboard
+      }
+
+      assignedSurveys.push(survey.title);
     }
   } catch (error) {
     console.error("Error checking survey triggers:", error);

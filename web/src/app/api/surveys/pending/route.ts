@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { getOpenSurveyAssignments } from "@/lib/survey-assignments";
 
 // GET /api/surveys/pending - Get pending surveys for current user
 export async function GET() {
@@ -21,43 +22,10 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get pending and dismissed assignments (not completed or expired)
-    const assignments = await prisma.surveyAssignment.findMany({
-      where: {
-        userId: user.id,
-        status: { in: ["PENDING", "DISMISSED"] },
-        survey: { isActive: true },
-      },
-      include: {
-        survey: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-          },
-        },
-        token: {
-          select: {
-            token: true,
-            expiresAt: true,
-          },
-        },
-      },
-      orderBy: { assignedAt: "desc" },
-    });
+    // Pending and dismissed assignments (not completed or expired)
+    const assignments = await getOpenSurveyAssignments(user.id);
 
-    // Note: Expiry check removed - tokens never expire
-    const validAssignments = assignments.map((assignment) => ({
-      id: assignment.id,
-      status: assignment.status,
-      assignedAt: assignment.assignedAt,
-      dismissedAt: assignment.dismissedAt,
-      survey: assignment.survey,
-      token: assignment.token?.token,
-      expiresAt: assignment.token?.expiresAt,
-    }));
-
-    return NextResponse.json(validAssignments);
+    return NextResponse.json(assignments);
   } catch (error) {
     console.error("Error fetching pending surveys:", error);
     return NextResponse.json(

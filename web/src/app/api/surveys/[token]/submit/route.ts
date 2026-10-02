@@ -21,7 +21,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!result.valid || !result.assignment) {
       return NextResponse.json(
-        { error: result.message, success: false },
+        { error: result.message, code: result.reason, success: false },
         { status: result.message.includes("expired") ? 410 : 404 }
       );
     }

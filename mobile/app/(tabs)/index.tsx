@@ -45,6 +45,7 @@ import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ImageViewer } from "@/components/image-viewer";
 import { RichText } from "@/components/rich-text";
+import { SurveyCard } from "@/components/survey-card";
 import { useFeed } from "@/hooks/use-feed";
 import {
   useFeedComments,
@@ -52,9 +53,11 @@ import {
 } from "@/hooks/use-feed-interactions";
 import { useNotifications } from "@/hooks/use-notifications";
 import { openExternalLink } from "@/lib/external-links";
+import { posthog } from "@/lib/posthog";
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
 import { useHomeShifts, type PeriodFriend } from "@/hooks/use-shifts";
+import { usePendingSurveys } from "@/hooks/use-surveys";
 import {
   getShiftThemeByName,
   type DinerFeedbackNote,
@@ -86,7 +89,13 @@ export default function HomeScreen() {
     updateItem: updateFeedItem,
     removeItemsByUser,
   } = useFeed();
-  const { unreadCount: unreadNotifications } = useNotifications();
+  const { unreadCount: unreadNotifications, refresh: refreshNotifications } =
+    useNotifications();
+  const {
+    surveys: pendingSurveys,
+    refresh: refreshSurveys,
+    dismiss: dismissSurvey,
+  } = usePendingSurveys();
 
   const {
     toggleLike: apiToggleLike,
@@ -312,6 +321,25 @@ export default function HomeScreen() {
     [blockUser, removeCommentsByUser, removeItemsByUser]
   );
 
+  const nextSurvey = pendingSurveys[0] ?? null;
+
+  const handleDismissSurvey = useCallback(
+    async (assignmentId: string) => {
+      Haptics.selectionAsync();
+      posthog?.capture("survey_dismissed", { assignment_id: assignmentId });
+      try {
+        await dismissSurvey(assignmentId);
+      } catch {
+        // The card has already come back; say why.
+        Alert.alert(
+          "Couldn't do that",
+          "We couldn't hide this survey just now. Please try again."
+        );
+      }
+    },
+    [dismissSurvey]
+  );
+
   const openModerationSheet = useCallback(
     (item: FeedItem) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -391,6 +419,10 @@ export default function HomeScreen() {
             onRefresh={() => {
               refreshShifts();
               refreshFeed();
+              refreshSurveys();
+              // A newly assigned survey arrives with a notification, so the
+              // bell is refreshed alongside the card it belongs to.
+              refreshNotifications();
             }}
             tintColor={colors.tint}
             colors={[colors.tint]}
@@ -491,13 +523,45 @@ export default function HomeScreen() {
           />
         )}
 
+        {/* ── Survey ──
+             Under the next shift, which is what people open the app for, and
+             above everything they only browse. One at a time, newest first:
+             the next takes its place once this one is answered or dismissed,
+             so a volunteer who is due several is asked, not buried. */}
+        {nextSurvey && (
+          <View
+            style={[styles.surveys, { marginTop: nextShift ? 20 : 0 }]}
+          >
+            <SurveyCard
+              key={nextSurvey.assignmentId}
+              survey={nextSurvey}
+              onTake={() =>
+                router.push({
+                  pathname: "/survey/[token]",
+                  params: { token: nextSurvey.token },
+                })
+              }
+              onDismiss={() => handleDismissSurvey(nextSurvey.assignmentId)}
+            />
+            {pendingSurveys.length > 1 && (
+              <Text
+                style={[styles.surveysMore, { color: colors.textSecondary }]}
+              >
+                {pendingSurveys.length === 2
+                  ? "1 more survey after this one"
+                  : `${pendingSurveys.length - 1} more surveys after this one`}
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* ── Volunteers Needed ──
              Collapses to a slim reminder when the user already has a confirmed
              shift coming up - they've done their part; just surface the wider
              roster gap as an easy tap-in for picking up more. */}
         <VolunteersNeededCard
           shifts={upcomingAvailable}
-          marginTop={nextShift ? 20 : 0}
+          marginTop={nextShift || nextSurvey ? 20 : 0}
           collapsible={nextShift?.status === "CONFIRMED"}
           onShiftPress={(id) => router.push(`/shift/${id}` as Href)}
           onBrowseDay={(dateKey) =>
@@ -4825,6 +4889,18 @@ const styles = StyleSheet.create({
     color: Palette.cream50,
     fontSize: 20,
     fontFamily: FontFamily.bold,
+  },
+
+  // Survey
+  surveys: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  surveysMore: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: "center",
   },
 
   // Feed

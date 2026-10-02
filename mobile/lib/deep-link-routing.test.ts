@@ -73,6 +73,18 @@ describe("mapDeepLinkToRoute", () => {
     });
   });
 
+  describe("surveys", () => {
+    it("maps /surveys/:token to the survey screen", () => {
+      expect(mapDeepLinkToRoute("/surveys/tok123")).toBe("/survey/tok123");
+    });
+
+    it("maps a full survey link from an email", () => {
+      expect(
+        mapDeepLinkToRoute("https://volunteers.everybodyeats.nz/surveys/tok123")
+      ).toBe("/survey/tok123");
+    });
+  });
+
   describe("friends", () => {
     it("maps /friends/:id to the unified user profile screen", () => {
       expect(mapDeepLinkToRoute("/friends/u42")).toBe("/user/u42");

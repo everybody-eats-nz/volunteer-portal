@@ -60,6 +60,9 @@ const PERSISTED_KEYS: readonly (readonly string[])[] = [
   ['feed', 'list'],
   ['profile', 'me'],
   ['notifications', 'list'],
+  // Tiny, and it decides whether the home tab has a survey card: restoring it
+  // keeps the card from pushing the feed down a moment after launch.
+  ['surveys', 'pending'],
 ];
 
 const persister = createAsyncStoragePersister({

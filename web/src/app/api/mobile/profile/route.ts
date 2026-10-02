@@ -9,6 +9,7 @@ import {
   type UserProgress,
 } from "@/lib/achievements";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
+import { checkAndAssignSurveys } from "@/lib/survey-triggers";
 import { isProfileComplete } from "@/lib/profile-completion";
 import { isUserUnder16, autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { getEmailService } from "@/lib/email-service";
@@ -129,6 +130,13 @@ export async function GET(request: Request) {
 
     // Fetch achievements
     await checkAndUnlockAchievements(userId);
+
+    // Assign any milestone surveys this volunteer has become due for, as the
+    // web does alongside its achievements check. /api/mobile/surveys does the
+    // same for the home tab's survey card; it is repeated here because app
+    // builds from before that card existed only ever load the profile, and
+    // they still get the push notification and email this sends.
+    await checkAndAssignSurveys(userId);
     const [userAchievements, availableAchievements, totalVolunteers, locationRows] =
       await Promise.all([
         getUserAchievements(userId),
