@@ -17,7 +17,7 @@ export default function VanVehiclesLoading() {
       {/* Fleet board: four segmented tiles sharing one rounded frame. */}
       <div
         aria-hidden="true"
-        className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl bg-border ring-1 ring-border lg:grid-cols-4"
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border shadow-sm lg:grid-cols-4"
       >
         {TILES.map((width, i) => (
           <div key={i} className="bg-card px-5 py-5 sm:px-7 sm:py-6">
@@ -36,7 +36,7 @@ export default function VanVehiclesLoading() {
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <Skeleton className="h-9 w-full lg:max-w-xs" />
-        <Skeleton className="h-11 w-full lg:w-44" />
+        <Skeleton className="h-9 w-full lg:w-44" />
         <Skeleton className="h-9 w-full rounded-full lg:ml-auto lg:w-28" />
       </div>
 
@@ -47,7 +47,7 @@ export default function VanVehiclesLoading() {
       <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {NAMES.map((width, i) => (
           <li key={i}>
-            <SkeletonCard className="flex h-full flex-col overflow-hidden rounded-2xl">
+            <SkeletonCard className="flex h-full flex-col overflow-hidden">
               <div className="relative">
                 <Skeleton className="aspect-[16/9] w-full rounded-none" />
                 <span className="absolute left-3 top-3 h-6 w-28 rounded-full bg-card/80 shadow-sm" />

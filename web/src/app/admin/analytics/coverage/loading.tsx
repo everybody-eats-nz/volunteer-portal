@@ -11,7 +11,7 @@ const COLUMNS = ["shifts", "positions", "filled", "rate", "unfilled", "empty", "
 function CardTitleBar({ width }: { width: string }) {
   return (
     <div className="flex items-center gap-2 px-6 pb-2">
-      <Skeleton className="size-4 rounded" />
+      <Skeleton className="size-7 rounded-lg" />
       <Skeleton className={cn("h-4", width)} />
     </div>
   );
@@ -24,20 +24,20 @@ export default function ShiftCoverageLoading() {
       description="Shifts run, positions filled, and understaffing by restaurant"
     >
       {/* Filters */}
-      <SkeletonCard className="py-6">
-        <div className="flex flex-col items-end gap-4 px-6 py-4 sm:flex-row">
-          <div className="grid w-full flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
+      <SkeletonCard className="p-4">
+        <div className="flex flex-col items-end gap-4 sm:flex-row">
+          <div className="grid w-full flex-1 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
             {["period", "location"].map((key) => (
               <div key={key} className="space-y-2">
                 <Skeleton className="h-3.5 w-24" />
-                <Skeleton className="h-11 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
             ))}
             <div className="space-y-2">
               <Skeleton className="h-3.5 w-24" />
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 {DAYS.map((day) => (
-                  <Skeleton key={day} className="h-[30px] w-[38px]" />
+                  <Skeleton key={day} className="h-9 w-[38px]" />
                 ))}
               </div>
             </div>
@@ -76,7 +76,7 @@ export default function ShiftCoverageLoading() {
         {/* Stat cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {["filled", "unfilled", "understaffed", "critical"].map((key) => (
-            <SkeletonCard key={key} className="border-0 py-6">
+            <SkeletonCard key={key} className="border-0">
               <div className="flex items-center gap-4 px-6 py-5">
                 <Skeleton className="size-12 shrink-0 rounded-full" />
                 <div className="min-w-0 space-y-1.5">

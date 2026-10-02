@@ -2,8 +2,7 @@ import { AdminPageSkeleton } from "@/components/admin/admin-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-// These sections use the page's ring-1 rounded-2xl surface rather than <Card>.
-const SURFACE = "rounded-2xl bg-card shadow-sm ring-1 ring-border dark:bg-white/[0.02]";
+const SURFACE = "rounded-xl border bg-card shadow-sm";
 
 // Recipients per location card, so the grid reads as real data.
 const LOCATION_RECIPIENTS = [2, 1, 3, 1, 2, 1];
@@ -37,7 +36,7 @@ export default function RestaurantManagersLoading() {
     >
       {/* Coverage health banner + KPI tiles */}
       <div aria-hidden="true" className="space-y-4">
-        <div className="rounded-2xl border bg-card p-5 sm:p-6">
+        <div className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-4">
             <Skeleton className="size-12 shrink-0 rounded-xl" />
             <div className="min-w-0 flex-1 space-y-2">

@@ -130,7 +130,7 @@ export function CustomLabelDialog({
                     className={cn(
                       "group flex flex-col items-center gap-1.5 rounded-xl border p-2.5 transition-all",
                       selected
-                        ? "border-transparent ring-2 ring-[#1d5337] ring-offset-2 ring-offset-background dark:ring-emerald-400"
+                        ? "border-transparent ring-2 ring-primary-text ring-offset-2 ring-offset-background"
                         : "border-border hover:border-foreground/20 hover:bg-muted/50"
                     )}
                     data-testid={`color-option-${option.name.toLowerCase()}`}
@@ -162,7 +162,7 @@ export function CustomLabelDialog({
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded-lg border text-muted-foreground transition-colors",
                   icon === ""
-                    ? "border-[#1d5337] bg-[#1d5337]/10 text-[#1d5337] dark:border-emerald-400 dark:text-emerald-300"
+                    ? "border-primary-text bg-primary-light text-primary-text"
                     : "border-border hover:bg-muted"
                 )}
                 data-testid="icon-option-none"
@@ -177,7 +177,7 @@ export function CustomLabelDialog({
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-all",
                     icon === emoji
-                      ? "border-[#1d5337] bg-[#1d5337]/10 ring-1 ring-[#1d5337] dark:border-emerald-400 dark:ring-emerald-400"
+                      ? "border-primary-text bg-primary-light ring-1 ring-primary-text"
                       : "border-border hover:scale-105 hover:bg-muted"
                   )}
                   data-testid={`icon-option-${emoji}`}
@@ -207,7 +207,6 @@ export function CustomLabelDialog({
             <Button
               type="submit"
               disabled={!name.trim() || isSubmitting}
-              className="bg-[#1d5337] text-white hover:bg-[#1d5337]/90"
               data-testid="save-label-button"
             >
               {isSubmitting

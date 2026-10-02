@@ -1,3 +1,21 @@
+## [0.175.7] - 2026-10-02
+
+### Changes
+- fix(admin): unify card surfaces, padding and colour tokens across admin pages ([#1308](https://github.com/everybody-eats-nz/volunteer-portal/pull/1308)) by @malinmalliyawadu
+
+
+## [0.175.6] - 2026-10-02
+
+### Changes
+- fix(web): remove dead post-login navigation and fix two flaky e2e tests ([#1304](https://github.com/everybody-eats-nz/volunteer-portal/pull/1304)) by @malinmalliyawadu
+
+
+## [0.175.5] - 2026-10-01
+
+### Changes
+- fix(admin): align Select height with Input and Button in admin toolbars ([#1303](https://github.com/everybody-eats-nz/volunteer-portal/pull/1303)) by @malinmalliyawadu
+
+
 ## [0.175.4] - 2026-10-01
 
 ### Changes

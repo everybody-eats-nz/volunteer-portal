@@ -48,7 +48,7 @@ export default function ShiftShortageNotificationsLoading() {
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-8 w-24" />
               </div>
-              <div className="divide-y rounded-md border">
+              <div className="divide-y rounded-lg border">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-3 p-3">
                     <Skeleton className="size-4 shrink-0 rounded-[4px]" />
@@ -105,7 +105,7 @@ export default function ShiftShortageNotificationsLoading() {
             </div>
             <TableSkeleton
               card={false}
-              className="overflow-hidden rounded-md border"
+              className="overflow-hidden rounded-lg border"
               rows={10}
               columns={["w-40", "w-20", "w-28", "w-32", "w-12", "w-16"]}
             />

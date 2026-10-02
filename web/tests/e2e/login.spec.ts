@@ -305,14 +305,14 @@ test.describe("Login Page", () => {
 
   test.describe("Navigation and Links", () => {
     test("should navigate to register page", async ({ page }) => {
-      const registerLink = page.getByTestId("register-link");
-
-      // Retry the click until navigation happens - under parallel load the
-      // first click can land before React hydration attaches the Link handler.
-      await expect(async () => {
-        await registerLink.click();
-        await expect(page).toHaveURL(/\/register/, { timeout: 2000 });
-      }).toPass({ timeout: 15000 });
+      // Under parallel load the dev server can take well over 2s to compile
+      // /register, so click once and give the navigation room to finish.
+      // Re-clicking on a short timer restarted the navigation each time and
+      // could keep the page on /login indefinitely. The link is a
+      // server-rendered <a href>, so a click before hydration still navigates.
+      test.setTimeout(45_000);
+      await page.getByTestId("register-link").click();
+      await expect(page).toHaveURL(/\/register/, { timeout: 30_000 });
 
       // Verify register page loaded
       const registerPage = page.getByTestId("register-page");

@@ -42,6 +42,7 @@ import { type CustomLabel } from "@/generated/client";
 import { CustomLabelDialog } from "./custom-label-dialog";
 import { LabelMembersDialog } from "./label-members-dialog";
 import { getLabelTheme } from "./label-colors";
+import { KpiTile } from "@/components/admin/kpi-tile";
 
 export interface PreviewUser {
   id: string;
@@ -246,11 +247,11 @@ export function CustomLabelsContent({
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="relative overflow-hidden rounded-2xl border border-[#1d5337]/15 bg-gradient-to-br from-[#1d5337] to-[#2e6438] p-6 text-white sm:p-8"
+        className="relative overflow-hidden rounded-xl border border-forest-500 bg-gradient-to-br from-forest-500 to-forest-400 p-6 text-white sm:p-8"
       >
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-[#f8fb69]/20 blur-3xl"
+          className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-sun-200/20 blur-3xl"
         />
         <div
           aria-hidden
@@ -258,9 +259,9 @@ export function CustomLabelsContent({
         />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-xl">
-            <h1 className="font-accent text-2xl font-semibold leading-tight sm:text-3xl">
+            <h2 className="font-accent text-xl font-semibold leading-tight sm:text-2xl">
               Group your whānau with custom labels
-            </h1>
+            </h2>
             <p className="mt-2 text-sm text-white/80 sm:text-base">
               Tag volunteers to segment announcements, spotlight specialists,
               and keep your community organised at a glance.
@@ -269,7 +270,7 @@ export function CustomLabelsContent({
           <Button
             onClick={openCreateDialog}
             size="lg"
-            className="shrink-0 self-start bg-[#f8fb69] font-semibold text-[#1d3a26] shadow-sm hover:bg-[#f8fb69]/90 sm:self-auto"
+            className="shrink-0 self-start bg-sun-200 font-semibold text-forest-700 shadow-sm hover:bg-sun-200/90 sm:self-auto"
             data-testid="create-label-button"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -329,7 +330,7 @@ export function CustomLabelsContent({
                 className={cn(
                   "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                   sort === s.key
-                    ? "bg-[#1d5337] text-white shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 )}
                 data-testid={`sort-${s.key}`}
@@ -345,7 +346,7 @@ export function CustomLabelsContent({
       {labels.length === 0 ? (
         <EmptyState onCreate={openCreateDialog} />
       ) : visibleLabels.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/50 py-16 text-center">
+        <div className="rounded-xl border border-dashed bg-card/50 py-16 text-center">
           <p className="font-medium">No labels match “{query}”.</p>
           <Button
             variant="link"
@@ -462,7 +463,7 @@ function LabelCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, delay: Math.min(index * 0.04, 0.32) }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm ring-1 transition-shadow hover:shadow-md",
+        "group relative flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md",
         theme.ring
       )}
       data-testid={`label-card-${label.id}`}
@@ -495,7 +496,7 @@ function LabelCard({
                       asChild
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-[#1d5337] dark:hover:text-emerald-300"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary-text"
                     >
                       <Link
                         href={`/admin/announcements?labels=${label.id}`}
@@ -606,90 +607,6 @@ function LabelCard({
 }
 
 /* -------------------------------------------------------------------------- */
-/*  KPI tile                                                                   */
-/* -------------------------------------------------------------------------- */
-
-type Tone = "forest" | "blue" | "violet" | "amber" | "neutral";
-
-const TONE_STYLES: Record<Tone, { ring: string; iconWrap: string; value: string }> = {
-  forest: {
-    ring: "ring-[#1d5337]/12",
-    iconWrap:
-      "bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-300",
-    value: "text-[#1d5337] dark:text-emerald-200",
-  },
-  blue: {
-    ring: "ring-blue-400/20",
-    iconWrap: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
-    value: "text-blue-700 dark:text-blue-200",
-  },
-  violet: {
-    ring: "ring-violet-400/20",
-    iconWrap: "bg-violet-500/10 text-violet-600 dark:text-violet-300",
-    value: "text-violet-700 dark:text-violet-200",
-  },
-  amber: {
-    ring: "ring-amber-400/30",
-    iconWrap: "bg-amber-400/15 text-amber-600 dark:text-amber-400",
-    value: "text-amber-600 dark:text-amber-400",
-  },
-  neutral: {
-    ring: "ring-border",
-    iconWrap: "bg-muted text-muted-foreground",
-    value: "text-foreground",
-  },
-};
-
-function KpiTile({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone: Tone;
-}) {
-  const styles = TONE_STYLES[tone];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={cn(
-        "rounded-2xl bg-card p-4 shadow-sm ring-1 dark:bg-white/[0.02]",
-        styles.ring
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </span>
-        <span
-          className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg",
-            styles.iconWrap
-          )}
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="mt-3">
-        <span
-          className={cn(
-            "font-accent text-3xl font-semibold tabular-nums leading-none",
-            styles.value
-          )}
-        >
-          {value}
-        </span>
-      </div>
-    </motion.div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
 /*  Empty state                                                               */
 /* -------------------------------------------------------------------------- */
 
@@ -699,9 +616,9 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center"
+      className="rounded-xl border border-dashed bg-card/50 px-6 py-16 text-center"
     >
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-300">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-light text-primary-text">
         <Tags className="h-7 w-7" />
       </div>
       <h3 className="mt-4 font-accent text-xl font-semibold">
@@ -713,7 +630,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       </p>
       <Button
         onClick={onCreate}
-        className="mt-6 bg-[#1d5337] text-white hover:bg-[#1d5337]/90"
+        className="mt-6"
         data-testid="create-first-label-button"
       >
         <Plus className="mr-2 h-4 w-4" />

@@ -2,10 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -27,6 +24,7 @@ import { AgreementGate, AgreementModal } from "@/components/agreement-modal";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useKeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import {
@@ -99,6 +97,14 @@ export default function RegisterScreen({
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
+
+  // The form is taller than the space above the keyboard, so each field is
+  // brought clear of it on its own (see useKeyboardAwareScroll). Only the two
+  // password fields travel together.
+  const keyboardScroll = useKeyboardAwareScroll();
+  const revealOnFocus = keyboardScroll.inputProps();
+  const passwordsRef = useRef<View>(null);
+  const revealPasswords = keyboardScroll.inputProps(passwordsRef);
 
   const passwordChecks = useMemo(
     () => PASSWORD_RULES.map((r) => ({ label: r.label, passed: r.test(password) })),
@@ -226,156 +232,159 @@ export default function RegisterScreen({
         </Animated.View>
       </View>
 
-      <KeyboardAvoidingView
+      <Animated.ScrollView
+        {...keyboardScroll.scrollProps}
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+        contentContainerStyle={{
+          paddingTop: heroHeight - 40,
+          paddingBottom: insets.bottom + 32,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingTop: heroHeight - 40,
-            paddingBottom: insets.bottom + 32,
-          }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <Animated.View
+          entering={FadeInUp.duration(600)
+            .delay(200)
+            .easing(Easing.out(Easing.cubic))}
+          style={[
+            styles.card,
+            { backgroundColor: cardSurface, borderColor: cardStroke },
+          ]}
         >
-          <Animated.View
-            entering={FadeInUp.duration(600)
-              .delay(200)
-              .easing(Easing.out(Easing.cubic))}
+          <View
             style={[
-              styles.card,
-              { backgroundColor: cardSurface, borderColor: cardStroke },
+              styles.grabHandle,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.15)"
+                  : "rgba(14,58,35,0.18)",
+              },
             ]}
+          />
+
+          <ThemedText
+            type="heading"
+            style={styles.cardTitle}
+            lightColor={Brand.green}
+            darkColor={colors.text}
           >
-            <View
-              style={[
-                styles.grabHandle,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.15)"
-                    : "rgba(14,58,35,0.18)",
-                },
-              ]}
+            Create your account
+          </ThemedText>
+          <ThemedText style={[styles.cardSubtitle, { color: mutedText }]}>
+            A few details and you&apos;re ready to volunteer
+          </ThemedText>
+
+          {/* Quick sign-up with a provider */}
+          <View style={{ marginTop: 20 }}>
+            <OAuthButtons
+              busyProvider={busyProvider}
+              googleReady={googleReady}
+              disabled={isSubmitting || oauthBusy}
+              onApple={handleApple}
+              onGoogle={handleGoogle}
+              isDark={isDark}
             />
+          </View>
 
-            <ThemedText
-              type="heading"
-              style={styles.cardTitle}
-              lightColor={Brand.green}
-              darkColor={colors.text}
-            >
-              Create your account
+          {/* Divider before the email form */}
+          <View style={styles.divider}>
+            <View
+              style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+            />
+            <ThemedText style={[styles.dividerText, { color: mutedText }]}>
+              or sign up with email
             </ThemedText>
-            <ThemedText style={[styles.cardSubtitle, { color: mutedText }]}>
-              A few details and you&apos;re ready to volunteer
-            </ThemedText>
+            <View
+              style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+            />
+          </View>
 
-            {/* Quick sign-up with a provider */}
-            <View style={{ marginTop: 20 }}>
-              <OAuthButtons
-                busyProvider={busyProvider}
-                googleReady={googleReady}
-                disabled={isSubmitting || oauthBusy}
-                onApple={handleApple}
-                onGoogle={handleGoogle}
-                isDark={isDark}
-              />
-            </View>
-
-            {/* Divider before the email form */}
-            <View style={styles.divider}>
-              <View
-                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-              />
-              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
-                or sign up with email
-              </ThemedText>
-              <View
-                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-              />
-            </View>
-
-            <View style={{ marginTop: 4, gap: 12 }}>
-              {/* Name row */}
-              <View style={styles.nameRow}>
-                <View
-                  style={[
-                    styles.inputShell,
-                    styles.nameField,
-                    { backgroundColor: inputBg, borderColor: inputStroke },
-                  ]}
-                >
-                  <TextInput
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    placeholder="First name"
-                    placeholderTextColor={mutedText}
-                    autoCapitalize="words"
-                    autoComplete="given-name"
-                    textContentType="givenName"
-                    returnKeyType="next"
-                    editable={!isSubmitting}
-                    onSubmitEditing={() => lastNameRef.current?.focus()}
-                    style={[styles.input, { color: colors.text }]}
-                  />
-                </View>
-                <View
-                  style={[
-                    styles.inputShell,
-                    styles.nameField,
-                    { backgroundColor: inputBg, borderColor: inputStroke },
-                  ]}
-                >
-                  <TextInput
-                    ref={lastNameRef}
-                    value={lastName}
-                    onChangeText={setLastName}
-                    placeholder="Last name"
-                    placeholderTextColor={mutedText}
-                    autoCapitalize="words"
-                    autoComplete="family-name"
-                    textContentType="familyName"
-                    returnKeyType="next"
-                    editable={!isSubmitting}
-                    onSubmitEditing={() => emailRef.current?.focus()}
-                    style={[styles.input, { color: colors.text }]}
-                  />
-                </View>
-              </View>
-
-              {/* Email */}
+          <View style={{ marginTop: 4, gap: 12 }}>
+            {/* Name row */}
+            <View style={styles.nameRow}>
               <View
                 style={[
                   styles.inputShell,
+                  styles.nameField,
                   { backgroundColor: inputBg, borderColor: inputStroke },
                 ]}
               >
-                <Ionicons
-                  name="mail-outline"
-                  size={18}
-                  color={mutedText}
-                  style={styles.inputIcon}
-                />
                 <TextInput
-                  ref={emailRef}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="you@example.com"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="First name"
                   placeholderTextColor={mutedText}
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
+                  autoCapitalize="words"
+                  autoComplete="given-name"
+                  textContentType="givenName"
                   returnKeyType="next"
                   editable={!isSubmitting}
-                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  onSubmitEditing={() => lastNameRef.current?.focus()}
+                  {...revealOnFocus}
                   style={[styles.input, { color: colors.text }]}
                 />
               </View>
+              <View
+                style={[
+                  styles.inputShell,
+                  styles.nameField,
+                  { backgroundColor: inputBg, borderColor: inputStroke },
+                ]}
+              >
+                <TextInput
+                  ref={lastNameRef}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Last name"
+                  placeholderTextColor={mutedText}
+                  autoCapitalize="words"
+                  autoComplete="family-name"
+                  textContentType="familyName"
+                  returnKeyType="next"
+                  editable={!isSubmitting}
+                  onSubmitEditing={() => emailRef.current?.focus()}
+                  {...revealOnFocus}
+                  style={[styles.input, { color: colors.text }]}
+                />
+              </View>
+            </View>
 
+            {/* Email */}
+            <View
+              style={[
+                styles.inputShell,
+                { backgroundColor: inputBg, borderColor: inputStroke },
+              ]}
+            >
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color={mutedText}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                ref={emailRef}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.com"
+                placeholderTextColor={mutedText}
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                returnKeyType="next"
+                editable={!isSubmitting}
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                {...revealOnFocus}
+                style={[styles.input, { color: colors.text }]}
+              />
+            </View>
+
+            {/* Both passwords and the rules between them are kept clear of the
+                keyboard together, so the rules can be read while typing and
+                the confirmation field is already in view. */}
+            <View ref={passwordsRef} style={styles.passwords}>
               {/* Password */}
               <View
                 style={[
@@ -403,6 +412,7 @@ export default function RegisterScreen({
                   returnKeyType="next"
                   editable={!isSubmitting}
                   onSubmitEditing={() => confirmRef.current?.focus()}
+                  {...revealPasswords}
                   style={[styles.input, { color: colors.text }]}
                 />
                 <Pressable
@@ -484,6 +494,7 @@ export default function RegisterScreen({
                   returnKeyType="go"
                   editable={!isSubmitting}
                   onSubmitEditing={handleRegister}
+                  {...revealPasswords}
                   style={[styles.input, { color: colors.text }]}
                 />
                 {confirmPassword.length > 0 && (
@@ -502,70 +513,71 @@ export default function RegisterScreen({
                 </ThemedText>
               )}
             </View>
+          </View>
 
-            {/* Agreements — must be opened and read before they can be accepted */}
-            <View style={{ marginTop: 18, gap: 10 }}>
-              <ThemedText style={[styles.agreementsLabel, { color: mutedText }]}>
-                Please read and agree to continue
-              </ThemedText>
-              <AgreementGate
-                title="Volunteer Agreement"
-                agreed={agreeVolunteer}
-                onPress={() => openAgreement("volunteer")}
-                inputBg={inputBg}
-                inputStroke={inputStroke}
-                mutedText={mutedText}
-                textColor={colors.text}
-              />
-              <AgreementGate
-                title="Health & Safety Policy"
-                agreed={agreeSafety}
-                onPress={() => openAgreement("safety")}
-                inputBg={inputBg}
-                inputStroke={inputStroke}
-                mutedText={mutedText}
-                textColor={colors.text}
-              />
-            </View>
+          {/* Agreements — must be opened and read before they can be accepted */}
+          <View style={{ marginTop: 18, gap: 10 }}>
+            <ThemedText style={[styles.agreementsLabel, { color: mutedText }]}>
+              Please read and agree to continue
+            </ThemedText>
+            <AgreementGate
+              title="Volunteer Agreement"
+              agreed={agreeVolunteer}
+              onPress={() => openAgreement("volunteer")}
+              inputBg={inputBg}
+              inputStroke={inputStroke}
+              mutedText={mutedText}
+              textColor={colors.text}
+            />
+            <AgreementGate
+              title="Health & Safety Policy"
+              agreed={agreeSafety}
+              onPress={() => openAgreement("safety")}
+              inputBg={inputBg}
+              inputStroke={inputStroke}
+              mutedText={mutedText}
+              textColor={colors.text}
+            />
+          </View>
 
-            {/* Submit */}
+          {/* Submit */}
+          <Pressable
+            onPress={handleRegister}
+            disabled={!canSubmit}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              {
+                backgroundColor: Brand.green,
+                opacity: !canSubmit ? 0.5 : pressed ? 0.9 : 1,
+                transform: [{ scale: pressed ? 0.985 : 1 }],
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isSubmitting, disabled: !canSubmit }}
+          >
+            <ThemedText style={styles.primaryBtnText}>
+              {isSubmitting ? "Creating account…" : "Create account"}
+            </ThemedText>
+          </Pressable>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <ThemedText style={[styles.footerText, { color: mutedText }]}>
+              Already volunteering?
+            </ThemedText>
             <Pressable
-              onPress={handleRegister}
-              disabled={!canSubmit}
-              style={({ pressed }) => [
-                styles.primaryBtn,
-                {
-                  backgroundColor: Brand.green,
-                  opacity: !canSubmit ? 0.5 : pressed ? 0.9 : 1,
-                  transform: [{ scale: pressed ? 0.985 : 1 }],
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ busy: isSubmitting, disabled: !canSubmit }}
+              hitSlop={8}
+              onPress={() => {
+                Haptics.selectionAsync();
+                onBackToLogin?.();
+              }}
             >
-              <ThemedText style={styles.primaryBtnText}>
-                {isSubmitting ? "Creating account…" : "Create account"}
-              </ThemedText>
+              <ThemedText style={styles.footerLink}>Sign in</ThemedText>
             </Pressable>
-
-            {/* Footer */}
-            <View style={styles.footer}>
-              <ThemedText style={[styles.footerText, { color: mutedText }]}>
-                Already volunteering?
-              </ThemedText>
-              <Pressable
-                hitSlop={8}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  onBackToLogin?.();
-                }}
-              >
-                <ThemedText style={styles.footerLink}>Sign in</ThemedText>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </View>
+        </Animated.View>
+        <Animated.View style={keyboardScroll.spacerStyle} />
+      </Animated.ScrollView>
 
       {/* Agreement readers — gated on scroll-to-end before they can be accepted */}
       {activeAgreement && (
@@ -685,6 +697,9 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     fontSize: 16,
     paddingVertical: 14,
+  },
+  passwords: {
+    gap: 12,
   },
   requirements: {
     gap: 6,

@@ -481,7 +481,7 @@ export function AchievementsContent({
       </div>
 
       {/* Toolbar */}
-      <div className="rounded-lg border bg-card p-3 sm:p-4">
+      <div className="rounded-xl border bg-card p-3 shadow-sm sm:p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1 sm:max-w-sm">
@@ -501,6 +501,7 @@ export function AchievementsContent({
                 onValueChange={setCategoryFilter}
               >
                 <SelectTrigger
+                  size="md"
                   className="w-[160px]"
                   aria-label="Filter by category"
                   data-testid="achievements-category-filter"
@@ -518,6 +519,7 @@ export function AchievementsContent({
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger
+                  size="md"
                   className="w-[140px]"
                   aria-label="Filter by status"
                   data-testid="achievements-status-filter"
@@ -630,7 +632,7 @@ export function AchievementsContent({
           </Button>
         </div>
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">

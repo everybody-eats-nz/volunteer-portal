@@ -686,7 +686,7 @@ export function NotificationsContent({
                   No shifts with shortages found for this date and location
                 </div>
               ) : (
-                <div className="border rounded-md divide-y max-h-[300px] overflow-y-auto">
+                <div className="max-h-[300px] divide-y overflow-y-auto rounded-lg border">
                   {filteredShifts.map((shift) => {
                     const { shortage, percentFilled } =
                       getShiftShortageInfo(shift);
@@ -759,7 +759,7 @@ export function NotificationsContent({
 
             {/* Prompt to select date and location */}
             {(!filterShiftDate || filterShiftLocation === "all") && (
-              <div className="text-center py-8 text-muted-foreground border rounded-md">
+              <div className="rounded-lg border py-8 text-center text-muted-foreground">
                 Please select a date and location to view available shifts
               </div>
             )}
@@ -782,7 +782,11 @@ export function NotificationsContent({
                   value={filterLocation}
                   onValueChange={setFilterLocation}
                 >
-                  <SelectTrigger id="location" data-testid="location-filter">
+                  <SelectTrigger
+                    id="location"
+                    size="md"
+                    data-testid="location-filter"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -802,7 +806,11 @@ export function NotificationsContent({
                   value={filterShiftType}
                   onValueChange={setFilterShiftType}
                 >
-                  <SelectTrigger id="shiftType" data-testid="shift-type-filter">
+                  <SelectTrigger
+                    id="shiftType"
+                    size="md"
+                    data-testid="shift-type-filter"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -871,7 +879,10 @@ export function NotificationsContent({
 
               <div className="flex w-full gap-2 sm:w-auto">
                 <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                  <SelectTrigger className="min-w-0 flex-1 sm:w-[200px] sm:flex-none">
+                  <SelectTrigger
+                    size="md"
+                    className="min-w-0 flex-1 sm:w-[200px] sm:flex-none"
+                  >
                     <SelectValue
                       placeholder={
                         notificationGroups.length === 0

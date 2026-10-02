@@ -33,13 +33,13 @@ export function DayOfWeekFilter({ value, onChange }: DayOfWeekFilterProps) {
   return (
     <div className="space-y-2">
       <Label>Day of Week</Label>
-      <div className="flex gap-1">
+      <div className="flex flex-wrap gap-1">
         {DAYS.map((day) => (
           <button
             key={day.value}
             type="button"
             onClick={() => toggle(day.value)}
-            className={`px-2 py-1.5 text-xs font-medium rounded-md border transition-colors ${
+            className={`h-9 px-2 text-xs font-medium rounded-md border transition-colors ${
               selected.has(day.value)
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-background text-muted-foreground border-input hover:bg-muted"

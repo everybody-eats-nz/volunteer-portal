@@ -1,6 +1,6 @@
 "use client";
 
-import { ApexChart } from "@/app/admin/analytics/_components/primitives";
+import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -193,14 +193,14 @@ export function CoverageAnalyticsClient({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card>
-        <CardContent className="py-4">
+      <Card className="py-4">
+        <CardContent className="px-4">
           <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
-                  <SelectTrigger id="months">
+                  <SelectTrigger id="months" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -214,7 +214,7 @@ export function CoverageAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger id="location">
+                  <SelectTrigger id="location" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -330,8 +330,8 @@ export function CoverageAnalyticsClient({
               <motion.div key={stat.label} variants={staggerItem}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Card className={`${stat.bg} border-0 cursor-help`}>
-                      <CardContent className="flex items-center gap-4 py-5">
+                    <Card className={`${stat.bg} border-0 py-5 cursor-help`}>
+                      <CardContent className="flex items-center gap-4">
                         <div
                           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-background/70 ${stat.fg}`}
                         >
@@ -364,8 +364,8 @@ export function CoverageAnalyticsClient({
         <motion.div variants={staggerItem}>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <ChartIcon icon={BarChart3} accent="text-emerald-500" />
                 Staffing by Restaurant
               </CardTitle>
             </CardHeader>
@@ -438,8 +438,8 @@ export function CoverageAnalyticsClient({
         <motion.div variants={staggerItem}>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Info className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <ChartIcon icon={Info} accent="text-muted-foreground" />
                 Per-Restaurant Breakdown
               </CardTitle>
             </CardHeader>

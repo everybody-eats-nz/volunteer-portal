@@ -204,7 +204,7 @@ export function CoverageTab({ options }: { options: AdminOptions }) {
             <div className="space-y-1.5">
               <Label htmlFor="coverage-shift-type">Shift type</Label>
               <Select value={shiftTypeId} onValueChange={setShiftTypeId}>
-                <SelectTrigger id="coverage-shift-type">
+                <SelectTrigger id="coverage-shift-type" size="md">
                   <SelectValue placeholder="Pick a shift type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -220,7 +220,7 @@ export function CoverageTab({ options }: { options: AdminOptions }) {
             <div className="space-y-1.5">
               <Label htmlFor="coverage-location">Location</Label>
               <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger id="coverage-location">
+                <SelectTrigger id="coverage-location" size="md">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,7 +237,7 @@ export function CoverageTab({ options }: { options: AdminOptions }) {
             <div className="space-y-1.5">
               <Label htmlFor="coverage-lead-time">Shift starts</Label>
               <Select value={daysInAdvance} onValueChange={setDaysInAdvance}>
-                <SelectTrigger id="coverage-lead-time">
+                <SelectTrigger id="coverage-lead-time" size="md">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -491,6 +491,7 @@ export function CoverageResults({
           }
         >
           <SelectTrigger
+            size="md"
             className="w-auto min-w-40"
             aria-label="Filter by outcome"
           >

@@ -168,7 +168,8 @@ export function AdminUsersSearch({
             onValueChange={handleLocationChange}
           >
             <SelectTrigger
-              className="w-[180px] h-9"
+              size="md"
+              className="w-[180px]"
               data-testid="location-filter-select"
             >
               <SelectValue placeholder="All Locations" />
@@ -216,104 +217,64 @@ export function AdminUsersSearch({
 
       {/* Role Filter Buttons */}
       <div className="flex flex-wrap gap-2 mt-4" data-testid="main-role-filter-buttons">
-        <Link href={buildFilterUrl(undefined, locationFilter)}>
-          <Button
-            variant={!roleFilter ? "default" : "outline"}
-            size="sm"
-            className={
-              !roleFilter ? "btn-primary shadow-sm" : "hover:bg-slate-50"
-            }
-            data-testid="filter-all-roles"
-          >
-            All Roles
-          </Button>
-        </Link>
-        <Link href={buildFilterUrl("VOLUNTEER", locationFilter)}>
-          <Button
-            variant={roleFilter === "VOLUNTEER" ? "default" : "outline"}
-            size="sm"
-            className={
-              roleFilter === "VOLUNTEER"
-                ? "btn-primary shadow-sm"
-                : "hover:bg-slate-50"
-            }
-            data-testid="filter-volunteers"
-          >
-            Volunteers
-          </Button>
-        </Link>
-        <Link href={buildFilterUrl("ADMIN", locationFilter)}>
-          <Button
-            variant={roleFilter === "ADMIN" ? "default" : "outline"}
-            size="sm"
-            className={
-              roleFilter === "ADMIN"
-                ? "btn-primary shadow-sm"
-                : "hover:bg-slate-50"
-            }
-            data-testid="filter-admins"
-          >
-            Admins
-          </Button>
-        </Link>
+        <FilterLink
+          href={buildFilterUrl(undefined, locationFilter)}
+          active={!roleFilter}
+          testId="filter-all-roles"
+        >
+          All Roles
+        </FilterLink>
+        <FilterLink
+          href={buildFilterUrl("VOLUNTEER", locationFilter)}
+          active={roleFilter === "VOLUNTEER"}
+          testId="filter-volunteers"
+        >
+          Volunteers
+        </FilterLink>
+        <FilterLink
+          href={buildFilterUrl("ADMIN", locationFilter)}
+          active={roleFilter === "ADMIN"}
+          testId="filter-admins"
+        >
+          Admins
+        </FilterLink>
         <div
-          className="ml-auto flex flex-wrap gap-2"
+          className="flex flex-wrap gap-2 sm:ml-auto"
           data-testid="archived-filter-buttons"
         >
-          <Link href={buildFilterUrl(roleFilter, locationFilter, "active")}>
-            <Button
-              variant={archivedFilter === "active" ? "default" : "outline"}
-              size="sm"
-              className={
-                archivedFilter === "active"
-                  ? "btn-primary shadow-sm"
-                  : "hover:bg-slate-50"
-              }
-              data-testid="filter-active-only"
-            >
-              Active
-            </Button>
-          </Link>
-          <Link href={buildFilterUrl(roleFilter, locationFilter, "archived")}>
-            <Button
-              variant={archivedFilter === "archived" ? "default" : "outline"}
-              size="sm"
-              className={
-                archivedFilter === "archived"
-                  ? "btn-primary shadow-sm gap-1.5"
-                  : "hover:bg-slate-50 gap-1.5"
-              }
-              data-testid="filter-archived-only"
-            >
-              <Archive className="h-3 w-3" />
-              Archived
-              {archivedCount > 0 && (
-                <span
-                  className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                    archivedFilter === "archived"
-                      ? "bg-white/20 text-white"
-                      : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
-                  }`}
-                >
-                  {archivedCount}
-                </span>
-              )}
-            </Button>
-          </Link>
-          <Link href={buildFilterUrl(roleFilter, locationFilter, "all")}>
-            <Button
-              variant={archivedFilter === "all" ? "default" : "outline"}
-              size="sm"
-              className={
-                archivedFilter === "all"
-                  ? "btn-primary shadow-sm"
-                  : "hover:bg-slate-50"
-              }
-              data-testid="filter-show-all"
-            >
-              Show all
-            </Button>
-          </Link>
+          <FilterLink
+            href={buildFilterUrl(roleFilter, locationFilter, "active")}
+            active={archivedFilter === "active"}
+            testId="filter-active-only"
+          >
+            Active
+          </FilterLink>
+          <FilterLink
+            href={buildFilterUrl(roleFilter, locationFilter, "archived")}
+            active={archivedFilter === "archived"}
+            testId="filter-archived-only"
+          >
+            <Archive className="h-3 w-3" />
+            Archived
+            {archivedCount > 0 && (
+              <span
+                className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  archivedFilter === "archived"
+                    ? "bg-white/20 text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {archivedCount}
+              </span>
+            )}
+          </FilterLink>
+          <FilterLink
+            href={buildFilterUrl(roleFilter, locationFilter, "all")}
+            active={archivedFilter === "all"}
+            testId="filter-show-all"
+          >
+            Show all
+          </FilterLink>
         </div>
         {(initialSearch ||
           roleFilter ||
@@ -323,7 +284,7 @@ export function AdminUsersSearch({
             asChild
             variant="ghost"
             size="sm"
-            className="text-slate-500 hover:text-slate-700 gap-1"
+            className="gap-1 text-muted-foreground hover:text-foreground"
             data-testid="clear-filters-button"
           >
             <Link href="/admin/users">
@@ -334,5 +295,35 @@ export function AdminUsersSearch({
         )}
       </div>
     </section>
+  );
+}
+
+/** A filter chip that navigates: a real link styled as a button. */
+function FilterLink({
+  href,
+  active,
+  testId,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  testId: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      asChild
+      variant={active ? "default" : "outline"}
+      size="sm"
+      className={active ? "shadow-sm" : undefined}
+    >
+      <Link
+        href={href}
+        aria-current={active ? "true" : undefined}
+        data-testid={testId}
+      >
+        {children}
+      </Link>
+    </Button>
   );
 }

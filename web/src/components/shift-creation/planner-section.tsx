@@ -25,7 +25,7 @@ export function PlannerSection({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-border bg-card shadow-sm",
+        "rounded-xl border bg-card shadow-sm",
         className
       )}
     >

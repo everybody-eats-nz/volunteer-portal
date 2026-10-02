@@ -127,7 +127,7 @@ export function ParentalConsentTable({
               <Clock className="h-5 w-5 text-orange-600" />
               Pending Approval ({pendingUsers.length})
             </h3>
-            <div className="border rounded-lg">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-muted/50">
@@ -251,7 +251,7 @@ export function ParentalConsentTable({
               <CheckCircle className="h-5 w-5 text-green-600" />
               Approved ({approvedUsers.length})
             </h3>
-            <div className="border rounded-lg">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-muted/50">

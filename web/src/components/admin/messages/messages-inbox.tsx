@@ -261,7 +261,7 @@ export function MessagesInbox({
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger size="md" className="w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -274,7 +274,7 @@ export function MessagesInbox({
           value={locationFilter || "ALL"}
           onValueChange={(v) => setLocationFilter(v === "ALL" ? "" : v)}
         >
-          <SelectTrigger className="w-[170px]">
+          <SelectTrigger size="md" className="w-[170px]">
             <SelectValue placeholder="All locations" />
           </SelectTrigger>
           <SelectContent>
@@ -288,7 +288,6 @@ export function MessagesInbox({
         </Select>
         <Button
           variant={unreadOnly ? "default" : "outline"}
-          size="sm"
           onClick={() => setUnreadOnly((v) => !v)}
         >
           Unread
@@ -323,14 +322,14 @@ export function MessagesInbox({
 
       {/* Two-pane */}
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] xl:grid-cols-[360px_1fr] gap-4 min-h-[70vh]">
-        <div className="border rounded-lg bg-card overflow-hidden flex flex-col max-h-[78vh]">
+        <div className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm max-h-[78vh]">
           <ThreadList
             threads={threads}
             selectedId={selectedId}
             onSelect={handleSelect}
           />
         </div>
-        <div className="border rounded-lg bg-card overflow-hidden flex flex-col min-h-[60vh] max-h-[78vh]">
+        <div className="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm min-h-[60vh] max-h-[78vh]">
           {selectedId ? (
             <ThreadView
               key={selectedId}

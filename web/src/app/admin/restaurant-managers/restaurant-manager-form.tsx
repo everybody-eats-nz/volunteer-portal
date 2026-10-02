@@ -53,7 +53,7 @@ export default function RestaurantManagerForm({
 
   if (adminUsers.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#1d5337]/20 bg-[#fdf8ef] px-4 py-8 text-center text-sm text-muted-foreground dark:border-white/10 dark:bg-white/[0.02]">
+      <div className="rounded-xl border border-dashed bg-background px-4 py-8 text-center text-sm text-muted-foreground">
         No admin users are available to assign as recipients.
       </div>
     );
@@ -66,7 +66,7 @@ export default function RestaurantManagerForm({
         <Label
           htmlFor="user-select"
           data-testid="admin-user-label"
-          className="text-xs font-semibold uppercase tracking-wide text-[#1d5337]/70 dark:text-emerald-300/70"
+          className="text-xs font-semibold uppercase tracking-wide text-primary-text/70"
         >
           Admin recipient
         </Label>
@@ -78,7 +78,7 @@ export default function RestaurantManagerForm({
             {adminUsers.map((user) => (
               <SelectItem key={user.id} value={user.id}>
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1d5337]/10 text-[11px] font-semibold text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-200">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-light text-[11px] font-semibold text-primary-text">
                     {getInitials(user)}
                   </span>
                   <span className="flex flex-col text-left">
@@ -107,7 +107,7 @@ export default function RestaurantManagerForm({
       <div className="space-y-2">
         <Label
           data-testid="restaurant-locations-label"
-          className="text-xs font-semibold uppercase tracking-wide text-[#1d5337]/70 dark:text-emerald-300/70"
+          className="text-xs font-semibold uppercase tracking-wide text-primary-text/70"
         >
           Locations covered
         </Label>
@@ -127,7 +127,7 @@ export default function RestaurantManagerForm({
                 .map((location) => (
                   <SelectItem key={location.value} value={location.value}>
                     <span className="flex items-center gap-2">
-                      <MapPin className="h-3.5 w-3.5 text-[#1d5337]/60" />
+                      <MapPin className="h-3.5 w-3.5 text-primary-text/60" />
                       {location.label}
                     </span>
                   </SelectItem>
@@ -138,20 +138,20 @@ export default function RestaurantManagerForm({
 
         {selectedLocations.length > 0 ? (
           <div
-            className="flex flex-wrap gap-2 rounded-xl border border-[#1d5337]/12 bg-[#eef4ef]/60 p-3 dark:border-white/10 dark:bg-white/[0.03]"
+            className="flex flex-wrap gap-2 rounded-xl border bg-primary-light/60 p-3"
             data-testid="selected-locations"
           >
             {selectedLocations.map((location) => (
               <span
                 key={location}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-sm font-medium text-[#1d5337] shadow-sm ring-1 ring-[#1d5337]/12 dark:bg-white/10 dark:text-emerald-100 dark:ring-white/10"
+                className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-sm font-medium text-primary-text shadow-sm ring-1 ring-border"
               >
                 <MapPin className="h-3 w-3 opacity-70" />
                 {location}
                 <button
                   type="button"
                   onClick={() => onRemoveLocation(location)}
-                  className="ml-0.5 rounded-full p-0.5 text-[#1d5337]/50 transition-colors hover:bg-destructive/15 hover:text-destructive dark:text-emerald-200/60"
+                  className="ml-0.5 rounded-full p-0.5 text-primary-text/50 transition-colors hover:bg-destructive/15 hover:text-destructive"
                   data-testid={`remove-location-${location}`}
                   aria-label={`Remove ${location}`}
                 >
@@ -170,7 +170,7 @@ export default function RestaurantManagerForm({
       {/* Notification preference */}
       <label
         htmlFor="notifications"
-        className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#1d5337]/12 bg-white px-3.5 py-3 transition-colors hover:border-[#1d5337]/25 dark:border-white/10 dark:bg-white/[0.02]"
+        className="flex cursor-pointer items-start gap-3 rounded-xl border bg-card px-3.5 py-3 transition-colors hover:border-primary-text/25"
       >
         <Checkbox
           id="notifications"
@@ -194,7 +194,7 @@ export default function RestaurantManagerForm({
         type="submit"
         disabled={loading || !selectedUser || selectedLocations.length === 0}
         data-testid="assign-manager-button"
-        className="w-full gap-2 bg-[#1d5337] text-white hover:bg-[#163f2a]"
+        className="w-full gap-2"
       >
         {isEditingExisting ? (
           <UserCog className="h-4 w-4" />

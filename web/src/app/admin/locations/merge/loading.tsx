@@ -31,7 +31,7 @@ export default function MergeLocationsLoading() {
 
       <section
         aria-hidden="true"
-        className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border sm:p-6"
+        className="rounded-xl border bg-card p-5 shadow-sm sm:p-6"
       >
         <div className="flex h-4 items-center">
           <Skeleton className="h-2.5 w-40" />

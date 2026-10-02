@@ -13,7 +13,7 @@ export default function VanOrganisationsLoading() {
       description="Who a van can belong to, and who a volunteer drives for. Retiring one hides it from every picker without touching the trips already logged against it."
       className="space-y-4"
     >
-      <SkeletonCard className="py-6">
+      <SkeletonCard>
         <ul>
           {NAME_WIDTHS.map((width, i) => (
             <li
@@ -35,7 +35,7 @@ export default function VanOrganisationsLoading() {
         </ul>
       </SkeletonCard>
 
-      <SkeletonCard className="py-6">
+      <SkeletonCard>
         <div className="p-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-0 flex-1">

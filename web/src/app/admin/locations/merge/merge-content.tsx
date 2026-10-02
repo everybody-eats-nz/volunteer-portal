@@ -182,14 +182,14 @@ export function MergeContent({
           className="space-y-4"
           data-testid="merge-success"
         >
-          <div className="relative overflow-hidden rounded-2xl border border-[#1d5337]/15 bg-gradient-to-br from-[#1d5337] to-[#2e6438] p-5 text-white sm:p-6">
+          <div className="relative overflow-hidden rounded-xl border border-forest-500 bg-gradient-to-br from-forest-500 to-forest-400 p-5 text-white sm:p-6">
             <div
               aria-hidden
-              className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[#f8fb69]/20 blur-2xl"
+              className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-sun-200/20 blur-2xl"
             />
             <div className="relative flex flex-col gap-4">
               <div className="flex items-start gap-4">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-[#f8fb69]">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sun-200">
                   <CheckCircle2 className="h-6 w-6" />
                 </span>
                 <div className="min-w-0">
@@ -205,7 +205,7 @@ export function MergeContent({
               </div>
 
               {result.shifts.twinWarnings.length > 0 && (
-                <p className="rounded-xl bg-amber-400/20 px-4 py-3 text-sm font-medium text-[#f8fb69]">
+                <p className="rounded-xl bg-amber-400/20 px-4 py-3 text-sm font-medium text-sun-200">
                   {result.shifts.twinWarnings.length === 1
                     ? `1 moved shift with signups now sits alongside an identical shift at "${result.into}" - consolidate it on the shifts page.`
                     : `${result.shifts.twinWarnings.length} moved shifts with signups now sit alongside identical shifts at "${result.into}" - consolidate them on the shifts page.`}
@@ -216,7 +216,7 @@ export function MergeContent({
                 <Button
                   asChild
                   size="sm"
-                  className="bg-white text-[#1d5337] hover:bg-white/90"
+                  className="bg-white text-forest-500 hover:bg-white/90"
                 >
                   <Link href="/admin/locations">Back to locations</Link>
                 </Button>
@@ -232,7 +232,7 @@ export function MergeContent({
             </div>
           </div>
 
-          <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border dark:bg-white/[0.02]">
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               What moved
             </p>
@@ -249,7 +249,7 @@ export function MergeContent({
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="rounded-2xl border border-amber-300/50 bg-gradient-to-br from-amber-50 to-yellow-50 p-5 dark:border-amber-300/25 dark:from-amber-950/30 dark:to-yellow-950/20"
+          className="rounded-xl border border-amber-300/50 bg-gradient-to-br from-amber-50 to-yellow-50 p-5 dark:border-amber-300/25 dark:from-amber-950/30 dark:to-yellow-950/20"
           data-testid="merge-suggestions"
         >
           <div className="flex items-start gap-4">
@@ -279,7 +279,7 @@ export function MergeContent({
                         {suggestion.from}
                       </span>
                       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="font-semibold text-[#1d5337] dark:text-emerald-300">
+                      <span className="font-semibold text-primary-text">
                         {suggestion.into}
                       </span>
                     </button>
@@ -296,7 +296,7 @@ export function MergeContent({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border dark:bg-white/[0.02] sm:p-6"
+        className="rounded-xl border bg-card p-5 shadow-sm sm:p-6"
       >
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Step 1 · Choose the pair
@@ -366,10 +366,10 @@ export function MergeContent({
             </span>
           </div>
 
-          <div className="rounded-xl bg-[#1d5337]/[0.04] p-4 ring-1 ring-[#1d5337]/20 dark:bg-emerald-400/5 dark:ring-emerald-400/20">
+          <div className="rounded-xl bg-primary-text/[0.04] p-4 ring-1 ring-primary-text/20">
             <Label
               htmlFor="merge-into"
-              className="text-xs font-semibold uppercase tracking-wide text-[#1d5337] dark:text-emerald-300"
+              className="text-xs font-semibold uppercase tracking-wide text-primary-text"
             >
               Location to keep
             </Label>
@@ -426,7 +426,7 @@ export function MergeContent({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="rounded-2xl bg-card shadow-sm ring-1 ring-border dark:bg-white/[0.02]"
+          className="rounded-xl border bg-card shadow-sm"
           data-testid="merge-plan"
         >
           <div className="border-b border-border/60 p-5 sm:p-6 sm:pb-5">
@@ -743,7 +743,7 @@ function MergeManifest({
         <div key={row.label} className="flex items-start gap-2.5 text-sm">
           <span
             aria-hidden
-            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-300"
+            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary-light text-primary-text"
           >
             {MANIFEST_ICONS[row.label] ?? (
               <ArrowRight className="h-3.5 w-3.5" />

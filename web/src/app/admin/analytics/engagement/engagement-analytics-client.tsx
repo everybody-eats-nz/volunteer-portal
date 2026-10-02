@@ -1,6 +1,6 @@
 "use client";
 
-import { ApexChart } from "@/app/admin/analytics/_components/primitives";
+import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -218,14 +218,14 @@ export function EngagementAnalyticsClient({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card>
-        <CardContent className="py-4">
+      <Card className="py-4">
+        <CardContent className="px-4">
           <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto]">
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
-                  <SelectTrigger id="months">
+                  <SelectTrigger id="months" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -239,7 +239,7 @@ export function EngagementAnalyticsClient({
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger id="location">
+                  <SelectTrigger id="location" size="md">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -469,9 +469,9 @@ export function EngagementAnalyticsClient({
                     aria-label={`View ${stat.label} volunteers`}
                   >
                     <Card
-                      className={`${stat.bg} border-0 cursor-pointer transition-transform hover:scale-[1.01]`}
+                      className={`${stat.bg} border-0 py-5 cursor-pointer transition-transform hover:scale-[1.01]`}
                     >
-                      <CardContent className="flex items-center gap-4 py-5">
+                      <CardContent className="flex items-center gap-4">
                         <EngagementRing
                           value={stat.value}
                           max={data.summary.totalVolunteers}
@@ -507,7 +507,7 @@ export function EngagementAnalyticsClient({
             <Card className="h-full">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
                     Engagement Breakdown
                     <Dialog>
                       <Tooltip>
@@ -842,8 +842,8 @@ export function EngagementAnalyticsClient({
             <Card className="h-full">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                    <ChartIcon icon={TrendingUp} accent="text-blue-500" />
                     Active Volunteers
                     <Dialog>
                       <Tooltip>
@@ -1011,8 +1011,8 @@ export function EngagementAnalyticsClient({
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-emerald-500" />
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                    <ChartIcon icon={CalendarDays} accent="text-emerald-500" />
                     Monthly Retention
                     <Dialog>
                       <Tooltip>
@@ -1206,8 +1206,8 @@ export function EngagementAnalyticsClient({
         <motion.div variants={staggerItem}>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <ChartIcon icon={Users} accent="text-muted-foreground" />
                 Volunteers
               </CardTitle>
             </CardHeader>
