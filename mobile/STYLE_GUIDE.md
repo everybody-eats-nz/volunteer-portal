@@ -226,7 +226,38 @@ const fieldsRef = useRef<View>(null);
 - Keep the group small enough that lifting it does not push the screen's title
   under the status bar. On the login sheet that means the two fields, not the
   Sign in button.
-- The scroll view must reach the bottom of the screen.
+- On a long form, reveal each input on its own: call `inputProps()` once with
+  no ref and spread the result on every input. Group only inputs that sit
+  together and belong together. On Register that is the two password fields,
+  with the live password rules between them.
+- A group can also be one input with its own messages. Profile edit's
+  `FormField` passes the ref of its own container, so the error and hint under
+  a focused field are kept clear of the keyboard along with the box.
+- Content that changes size under a focused input (a validation message, the
+  password rules, a multiline field growing) is followed without any wiring:
+  the form glides on if the input or its group now sits lower.
+- If an input has its own `onFocus` or `onBlur`, call the hook's handlers from
+  yours instead of spreading over them:
+
+  ```tsx
+  const reveal = keyboardScroll.inputProps();
+
+  <TextInput
+    onFocus={reveal.onFocus}
+    onBlur={(event) => {
+      reveal.onBlur(event);
+      validate();
+    }}
+  />
+  ```
+
+- The scroll view must reach the bottom of the screen. A stack screen with a
+  transparent header does (Profile edit). If something sits below the scroll
+  view, such as a fixed footer, give the hook a bottom offset option rather
+  than compensating in the screen.
+- The clearance above the keyboard is 16pt. A screen that needs more or less
+  passes `useKeyboardAwareScroll({ gap })`; keep the default unless the design
+  calls for it, so forms feel the same across the app.
 - Do not use it inside an RN `Modal`: the modal's own window still resizes for
   the keyboard.
 

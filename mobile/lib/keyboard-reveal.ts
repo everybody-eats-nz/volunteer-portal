@@ -44,3 +44,21 @@ export function keyboardRevealOffset(
     : target.bottom;
   return bottom + gap - visibleHeight;
 }
+
+/**
+ * Whether a fresh measurement describes the target already being revealed.
+ * The form is measured again whenever its content changes size, which is
+ * mostly the keyboard spacer animating: nothing above it has moved, and the
+ * unchanged measurement must not restart the glide.
+ */
+export function isSameRevealTarget(
+  previous: RevealTarget | null,
+  next: RevealTarget
+): boolean {
+  return (
+    previous !== null &&
+    previous.top === next.top &&
+    previous.bottom === next.bottom &&
+    previous.groupBottom === next.groupBottom
+  );
+}

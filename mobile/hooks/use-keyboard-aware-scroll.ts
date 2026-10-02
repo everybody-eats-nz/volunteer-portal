@@ -1,5 +1,6 @@
-import { type RefObject } from "react";
+import { type RefObject, useRef } from "react";
 import {
+  type BlurEvent,
   type FocusEvent,
   type HostInstance,
   type LayoutChangeEvent,
@@ -22,7 +23,11 @@ import {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { keyboardRevealOffset, type RevealTarget } from "@/lib/keyboard-reveal";
+import {
+  isSameRevealTarget,
+  keyboardRevealOffset,
+  type RevealTarget,
+} from "@/lib/keyboard-reveal";
 
 /** Breathing room between the revealed content and the top of the keyboard. */
 const DEFAULT_GAP = 16;
@@ -67,9 +72,14 @@ type WithInnerView = { getInnerViewRef?: () => HostInstance | null };
  *    our own animation rather than a frame-by-frame copy of the keyboard,
  *    because iOS 26 reports the keyboard's final height almost at once. Where
  *    the height does arrive frame by frame, the glide simply chases it.
+ * 3. While an input has focus, anything that changes the size of the content
+ *    (a validation message, live password rules, a multiline field growing a
+ *    line) has the input and its group measured again, and the form glides on
+ *    if they now sit lower. It never glides back.
  *
  * The scroll view must reach the bottom of the screen, because the keyboard
- * height is measured from there.
+ * height is measured from there. A stack screen with a transparent header
+ * does (the content runs underneath it).
  *
  * Usage:
  *
@@ -116,6 +126,54 @@ export function useKeyboardAwareScroll({
     },
   });
 
+  /** The input that has focus, kept so it can be measured again. */
+  const focused = useRef<{
+    input: HostInstance;
+    groupRef?: RefObject<View | null>;
+  } | null>(null);
+  /** The last measurement handed on, so an unchanged one is not repeated. */
+  const measured = useRef<RevealTarget | null>(null);
+
+  /**
+   * Measures the focused input and its group, and hands the result on when it
+   * differs from the last one. Measured against the content container rather
+   * than the screen, so it holds wherever the form is currently scrolled to.
+   */
+  const measureFocused = (onChange: (revealed: RevealTarget) => void) => {
+    const current = focused.current;
+    const content = (
+      scrollRef.current as WithInnerView | null
+    )?.getInnerViewRef?.();
+    if (!current || !content) return;
+
+    const done = (revealed: RevealTarget) => {
+      // Focus may have moved on while the measurement was in flight.
+      if (focused.current !== current) return;
+      if (isSameRevealTarget(measured.current, revealed)) return;
+      measured.current = revealed;
+      onChange(revealed);
+    };
+
+    current.input.measureLayout(content, (_x, y, _width, height) => {
+      const input = { top: y, bottom: y + height };
+      const inputAlone = () => done({ ...input, groupBottom: input.bottom });
+      const group = current.groupRef?.current;
+      if (!group) {
+        inputAlone();
+        return;
+      }
+      group.measureLayout(
+        content,
+        (_groupX, groupY, _groupWidth, groupHeight) => {
+          done({ ...input, groupBottom: groupY + groupHeight });
+        },
+        // A group that cannot be measured (say, one that is not inside this
+        // scroll view) must not cost the input its own reveal.
+        inputAlone
+      );
+    });
+  };
+
   const onLayout = (event: LayoutChangeEvent) => {
     viewportHeight.set(event.nativeEvent.layout.height);
   };
@@ -123,46 +181,33 @@ export function useKeyboardAwareScroll({
   /**
    * Props for an input inside the scroll view. Pass the ref of the group that
    * should be shown with the input (say, the email and password fields
-   * together); without one the input is revealed on its own.
+   * together, or a field with its own error message); without one the input
+   * is revealed on its own, and one result can be shared by every such input.
+   * An input with its own `onFocus` or `onBlur` calls these from its handlers.
    */
   const inputProps = (groupRef?: RefObject<View | null>) => ({
     onFocus: (event: FocusEvent) => {
-      const content = (
-        scrollRef.current as WithInnerView | null
-      )?.getInnerViewRef?.();
-      if (!content) return;
-
-      const reveal = (focused: RevealTarget) => {
+      focused.current = { input: event.currentTarget, groupRef };
+      measured.current = null;
+      measureFocused((revealed) => {
         goal.set(-1);
-        target.set(focused);
-      };
-
-      // Measured against the content container rather than the screen, so the
-      // result holds wherever the form is currently scrolled to.
-      event.currentTarget.measureLayout(content, (_x, y, _width, height) => {
-        const input = { top: y, bottom: y + height };
-        const revealAlone = () =>
-          reveal({ ...input, groupBottom: input.bottom });
-        const group = groupRef?.current;
-        if (!group) {
-          revealAlone();
-          return;
-        }
-        group.measureLayout(
-          content,
-          (_groupX, groupY, _groupWidth, groupHeight) => {
-            reveal({ ...input, groupBottom: groupY + groupHeight });
-          },
-          // A group that cannot be measured (say, one that is not inside this
-          // scroll view) must not cost the input its own reveal.
-          revealAlone
-        );
+        target.set(revealed);
       });
     },
-    onBlur: () => {
+    onBlur: (event: BlurEvent) => {
+      // The next input can take focus before this one reports losing it.
+      if (focused.current?.input !== event.currentTarget) return;
+      focused.current = null;
       target.set(null);
     },
   });
+
+  // Content that changes size under a focused input moves what has to stay
+  // clear: a validation message, live password rules, a multiline field
+  // growing a line. Measure again, and glide on if the target now sits lower.
+  const onContentSizeChange = () => {
+    measureFocused((revealed) => target.set(revealed));
+  };
 
   // Reserve room for the keyboard at the end of the content.
   useAnimatedReaction(
@@ -241,8 +286,17 @@ export function useKeyboardAwareScroll({
 
   return {
     /** Spread onto the `Animated.ScrollView` that holds the form. */
-    scrollProps: { ref: scrollRef, onScroll, onLayout, scrollEventThrottle: 16 },
+    scrollProps: {
+      ref: scrollRef,
+      onScroll,
+      onLayout,
+      onContentSizeChange,
+      scrollEventThrottle: 16,
+    },
     spacerStyle,
     inputProps,
   };
 }
+
+/** What `useKeyboardAwareScroll` returns, for components that are handed it. */
+export type KeyboardAwareScroll = ReturnType<typeof useKeyboardAwareScroll>;
