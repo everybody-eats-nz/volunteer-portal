@@ -67,7 +67,7 @@ function BreakdownTable({
     <ChartCard
       title={title}
       icon={CalendarRange}
-      accent="text-slate-600 dark:text-slate-400"
+      accent="text-muted-foreground"
       bodyClassName="px-4"
     >
       <div className="max-h-[420px] overflow-auto rounded-lg border">

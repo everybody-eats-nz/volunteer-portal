@@ -1,6 +1,6 @@
 "use client";
 
-import { ApexChart } from "@/app/admin/analytics/_components/primitives";
+import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -116,7 +116,7 @@ function MilestoneCard({
 }) {
   const color = MILESTONE_COLORS[threshold] ?? "#6b7280";
   return (
-    <Card className="border-0 overflow-hidden">
+    <Card className="overflow-hidden py-0">
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div
@@ -239,8 +239,8 @@ export function MilestoneAnalyticsClient({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card>
-        <CardContent className="py-4">
+      <Card className="py-4">
+        <CardContent className="px-4">
           <div className="flex flex-col sm:flex-row items-end gap-4">
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -321,8 +321,8 @@ export function MilestoneAnalyticsClient({
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-amber-500" />
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <ChartIcon icon={Trophy} accent="text-amber-500" />
                   Milestones Hit
                   <Dialog>
                     <Tooltip>
@@ -478,8 +478,8 @@ export function MilestoneAnalyticsClient({
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-500" />
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <ChartIcon icon={Users} accent="text-blue-500" />
                   Volunteer Distribution
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -618,8 +618,8 @@ export function MilestoneAnalyticsClient({
         <motion.div variants={staggerItem}>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                <ChartIcon icon={TrendingUp} accent="text-emerald-500" />
                 12-Month Milestone Projections
                 <Dialog>
                   <Tooltip>
@@ -794,8 +794,8 @@ export function MilestoneAnalyticsClient({
           <Card>
             <CardHeader className="pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <ChartIcon icon={Trophy} accent="text-muted-foreground" />
                   Approaching Volunteers
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -933,8 +933,8 @@ export function MilestoneAnalyticsClient({
           <Card>
             <CardHeader className="pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+                  <ChartIcon icon={Sparkles} accent="text-muted-foreground" />
                   Recent Milestone Achievements
                   <Tooltip>
                     <TooltipTrigger asChild>

@@ -409,7 +409,7 @@ export default async function AdminUsersPage({
             data-testid="user-stats-grid"
           >
             <div
-              className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
+              className="rounded-xl border bg-card p-3 shadow-sm"
               data-testid="total-users-stat"
             >
               <div className="flex items-center gap-2">
@@ -429,7 +429,7 @@ export default async function AdminUsersPage({
             </div>
 
             <div
-              className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
+              className="rounded-xl border bg-card p-3 shadow-sm"
               data-testid="volunteers-stat"
             >
               <div className="flex items-center gap-2">
@@ -449,7 +449,7 @@ export default async function AdminUsersPage({
             </div>
 
             <div
-              className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
+              className="rounded-xl border bg-card p-3 shadow-sm"
               data-testid="admins-stat"
             >
               <div className="flex items-center gap-2">
@@ -467,7 +467,7 @@ export default async function AdminUsersPage({
             </div>
 
             <div
-              className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
+              className="rounded-xl border bg-card p-3 shadow-sm"
               data-testid="new-users-stat"
             >
               <div className="flex items-center gap-2">
@@ -503,13 +503,13 @@ export default async function AdminUsersPage({
         <section data-testid="users-section">
           {users.length === 0 ? (
             <div className="text-center py-16" data-testid="no-users-message">
-              <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-slate-100 to-gray-100 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center shadow-inner">
-                <Users className="h-10 w-10 text-slate-400 dark:text-zinc-400" />
+              <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center shadow-inner">
+                <Users className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
+              <h3 className="text-xl font-semibold text-foreground mb-2">
                 No users found
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
+              <p className="text-muted-foreground max-w-md mx-auto mb-6">
                 {searchQuery || roleFilter || locationFilter
                   ? "No users found matching your filters. Try adjusting your search or filter criteria."
                   : "Get started by inviting your first user to the platform."}

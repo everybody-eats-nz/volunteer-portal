@@ -52,7 +52,7 @@ export function RunSheet({
       data-testid="run-sheet"
       aria-label="Run sheet summary"
     >
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         {/* Docket header */}
         <div className="relative bg-sun-200 px-5 pt-4 pb-7">
           <p className="text-[11px] font-semibold tracking-[0.2em] text-forest-700 uppercase">

@@ -94,7 +94,7 @@ export default function ChatGuidesLoading() {
         </div>
         <div className="space-y-3">
           {[0, 1, 2, 3].map((i) => (
-            <SkeletonCard key={i} className="py-6">
+            <SkeletonCard key={i}>
               <div className="flex items-start gap-4 p-4">
                 <Skeleton className="size-10 shrink-0 rounded-lg" />
                 <div className="min-w-0 flex-1 space-y-2">

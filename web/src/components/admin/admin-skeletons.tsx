@@ -47,7 +47,7 @@ export function AdminPageSkeleton({
   );
 }
 
-/** Same surface as `<Card>` (rounded-sm, border, shadow-sm). */
+/** Same surface as `<Card>` (rounded-xl, border, shadow-sm). */
 export function SkeletonCard({
   className,
   children,
@@ -58,7 +58,7 @@ export function SkeletonCard({
   return (
     <div
       aria-hidden="true"
-      className={cn("bg-card rounded-sm border shadow-sm", className)}
+      className={cn("bg-card rounded-xl border shadow-sm", className)}
     >
       {children}
     </div>

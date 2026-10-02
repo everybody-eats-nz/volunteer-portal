@@ -36,7 +36,7 @@ export default function ChatLogsLoading() {
         {MESSAGE_WIDTHS.map((width, i) => (
           <SkeletonCard
             key={i}
-            className="flex items-start gap-3 rounded-lg p-4 shadow-none"
+            className="flex items-start gap-3 p-4"
           >
             <Skeleton className="size-9 shrink-0 rounded-full" />
             <div className="min-w-0 flex-1">

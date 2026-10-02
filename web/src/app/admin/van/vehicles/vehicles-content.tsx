@@ -566,7 +566,7 @@ function FleetBoard({
       role="radiogroup"
       aria-label="Filter vans by status"
       data-testid="van-fleet-board"
-      className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl bg-forest-500/15 ring-1 ring-forest-500/15 lg:grid-cols-4 dark:bg-cream-50/15 dark:ring-cream-50/15"
+      className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border shadow-sm lg:grid-cols-4"
     >
       {tiles.map((tile) => {
         const selected = filter === tile.key;
@@ -650,7 +650,7 @@ function VanCard({
     <li
       data-testid={`van-vehicle-card-${vehicle.id}`}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+        "group flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
         vehicle.status === "overdue" &&
           "border-red-500/40 ring-1 ring-red-500/20"
       )}
@@ -842,7 +842,7 @@ function EmptyState({
   onAdd: () => void;
 }) {
   return (
-    <div className="grain rounded-2xl border border-dashed border-forest-500/25 bg-forest-500/[0.03] px-6 py-14 text-center dark:border-cream-50/20 dark:bg-cream-50/[0.03]">
+    <div className="grain rounded-xl border border-dashed border-forest-500/25 bg-forest-500/[0.03] px-6 py-14 text-center dark:border-cream-50/20 dark:bg-cream-50/[0.03]">
       <Van
         className="mx-auto size-10 text-forest-500/30 dark:text-cream-50/25"
         aria-hidden

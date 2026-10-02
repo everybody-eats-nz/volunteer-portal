@@ -91,8 +91,8 @@ export function SurveyQuestionEditor({
   const needsRatingConfig = question.type === "rating_scale";
 
   return (
-    <Card className={cn(error && "border-red-500")}>
-      <CardContent className="pt-4">
+    <Card className={cn("py-4", error && "border-red-500")}>
+      <CardContent>
         <div className="flex items-start gap-2">
           {/* Drag handle and move buttons */}
           <div className="flex flex-col items-center gap-1 pt-1">

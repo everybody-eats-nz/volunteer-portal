@@ -40,7 +40,7 @@ export function OverviewTabSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <SkeletonCard
             key={i}
-            className="flex items-center justify-between gap-3 rounded-2xl p-5"
+            className="flex items-center justify-between gap-3 p-5"
           >
             <div className="min-w-0 space-y-2">
               <Skeleton className="h-8 w-12" />

@@ -23,6 +23,7 @@ import {
   EditIcon,
   AlertTriangleIcon,
   Trash2Icon,
+  ChevronLeft,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
@@ -286,7 +287,10 @@ export default async function EditShiftPage({
         </Button>
       </DeleteShiftDialog>
       <Button asChild variant="outline" size="sm">
-        <Link href={backToShiftsHref}>← Back to shifts</Link>
+        <Link href={backToShiftsHref}>
+          <ChevronLeft className="h-4 w-4" />
+          Back to shifts
+        </Link>
       </Button>
     </>
   );
@@ -329,7 +333,7 @@ export default async function EditShiftPage({
           </Alert>
         )}
 
-        <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+        <Card>
           <CardHeader className="pb-6">
             <CardTitle className="flex items-center gap-2 text-xl font-semibold">
               <EditIcon className="h-5 w-5" />
@@ -345,7 +349,7 @@ export default async function EditShiftPage({
               {/* Shift Type Section */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-4">
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                  <h3 className="font-medium text-foreground">
                     Shift Type
                   </h3>
                 </div>
@@ -375,7 +379,7 @@ export default async function EditShiftPage({
               {/* Date & Time Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                  <h3 className="font-medium text-foreground">
                     Schedule
                   </h3>
                 </div>
@@ -440,7 +444,7 @@ export default async function EditShiftPage({
               {/* Location & Capacity Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                  <h3 className="font-medium text-foreground">
                     Location & Capacity
                   </h3>
                 </div>
@@ -499,7 +503,7 @@ export default async function EditShiftPage({
               {/* Notes Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                  <h3 className="font-medium text-foreground">
                     Additional Information
                   </h3>
                 </div>
@@ -538,15 +542,15 @@ export default async function EditShiftPage({
               {hasSignups && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                    <h3 className="font-medium text-foreground">
                       Current Signups
                     </h3>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                  <div className="rounded-lg border bg-muted/40 p-4">
                     <div className="flex flex-wrap gap-2 mb-3">
                       <Badge
                         variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200"
+                        className="border-green-200 bg-green-50 text-green-700 dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300"
                       >
                         {
                           shift.signups.filter((s) => s.status === "CONFIRMED")
@@ -556,7 +560,7 @@ export default async function EditShiftPage({
                       </Badge>
                       <Badge
                         variant="outline"
-                        className="bg-orange-50 text-orange-700 border-orange-200"
+                        className="border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800/50 dark:bg-orange-950/30 dark:text-orange-300"
                       >
                         {
                           shift.signups.filter((s) => s.status === "PENDING")
@@ -566,7 +570,7 @@ export default async function EditShiftPage({
                       </Badge>
                       <Badge
                         variant="outline"
-                        className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                        className="border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800/50 dark:bg-yellow-950/30 dark:text-yellow-300"
                       >
                         {
                           shift.signups.filter((s) => s.status === "WAITLISTED")

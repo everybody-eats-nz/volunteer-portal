@@ -92,7 +92,7 @@ export function VanPurposesContent({
 
   return (
     <div className="space-y-4" data-testid="van-purposes-page">
-      <Card>
+      <Card className="py-0">
         <CardContent className="p-0">
           <ul>
             {purposes.map((purpose, index) => (
@@ -198,7 +198,7 @@ export function VanPurposesContent({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="py-0">
         <CardContent className="p-4">
           <form
             className="flex flex-wrap items-end gap-3"

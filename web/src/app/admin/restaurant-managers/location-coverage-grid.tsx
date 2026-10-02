@@ -15,9 +15,9 @@ interface LocationCoverageGridProps {
 const STATUS_META = {
   active: {
     label: "Covered",
-    bar: "bg-[#1d5337]",
-    pill: "bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-200",
-    dot: "bg-[#1d5337]",
+    bar: "bg-primary-text",
+    pill: "bg-primary-light text-primary-text",
+    dot: "bg-primary-text",
   },
   muted: {
     label: "Muted",
@@ -69,7 +69,7 @@ function LocationCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.4) }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm ring-1 transition-shadow hover:shadow-md dark:bg-white/[0.02]",
+        "group relative flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md",
         isGap ? "ring-destructive/25" : "ring-border"
       )}
     >
@@ -128,7 +128,7 @@ function LocationCard({
             <button
               type="button"
               onClick={onAssign}
-              className="mt-auto inline-flex items-center gap-1.5 self-start rounded-full px-2 py-1 text-xs font-semibold text-[#1d5337] opacity-70 transition-opacity hover:opacity-100 dark:text-emerald-300"
+              className="mt-auto inline-flex items-center gap-1.5 self-start rounded-full px-2 py-1 text-xs font-semibold text-primary-text opacity-70 transition-opacity hover:opacity-100"
             >
               <Plus className="h-3.5 w-3.5" />
               Add recipient
@@ -153,7 +153,7 @@ function RecipientRow({
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
           active
-            ? "bg-[#1d5337]/10 text-[#1d5337] dark:bg-emerald-400/15 dark:text-emerald-200"
+            ? "bg-primary-light text-primary-text"
             : "bg-muted text-muted-foreground"
         )}
       >
@@ -163,7 +163,7 @@ function RecipientRow({
         {getUserDisplayName(manager.user)}
       </span>
       {active ? (
-        <Bell className="h-3.5 w-3.5 shrink-0 text-[#1d5337] dark:text-emerald-400" />
+        <Bell className="h-3.5 w-3.5 shrink-0 text-primary-text" />
       ) : (
         <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
           <BellOff className="h-3.5 w-3.5" />

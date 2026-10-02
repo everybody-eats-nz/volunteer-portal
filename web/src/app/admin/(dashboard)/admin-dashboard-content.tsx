@@ -487,18 +487,18 @@ export async function AdminDashboardContent({
       {adminPasskeyCount === 0 && (
         <Alert
           data-testid="passkey-setup-notice"
-          className="border-blue-200 bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/30"
+          className="bg-primary-light"
         >
-          <ShieldAlert className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <AlertTitle className="text-blue-900 dark:text-blue-100">
+          <ShieldAlert className="h-4 w-4 !text-primary-text" />
+          <AlertTitle className="text-primary-text">
             Enhance Your Account Security
           </AlertTitle>
-          <AlertDescription className="text-blue-800 dark:text-blue-200">
+          <AlertDescription className="text-foreground/80">
             Set up passkey authentication for faster, more secure sign-ins
             using your fingerprint, face, or device PIN.{" "}
             <Link
               href="/profile/edit?step=security"
-              className="font-medium underline underline-offset-4 hover:text-blue-600 dark:hover:text-blue-300"
+              className="font-medium underline underline-offset-4 text-primary-text hover:opacity-80"
               data-testid="setup-passkey-link"
             >
               Set up passkey now

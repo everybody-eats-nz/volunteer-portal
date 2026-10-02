@@ -818,11 +818,11 @@ export function ChatGuidesContent({
       </div>
 
       {/* Info banner */}
-      <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/30">
-        <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
-        <div className="text-sm text-blue-800 dark:text-blue-300">
-          <p className="font-medium">How this works</p>
-          <p className="mt-1">
+      <div className="flex items-start gap-3 rounded-lg border bg-primary-light p-4">
+        <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary-text" />
+        <div className="text-sm">
+          <p className="font-semibold text-primary-text">How this works</p>
+          <p className="mt-1 text-foreground/80">
             Resources added here will be included as context when volunteers chat with the
             AI assistant in the mobile app. The assistant uses this content to answer
             questions about volunteering, safety, shifts, and more. Keep the total token
@@ -970,8 +970,8 @@ export function ChatGuidesContent({
         </div>
 
         {chatResources.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
+          <Card className="py-12">
+            <CardContent className="flex flex-col items-center justify-center">
               <MessageSquare className="h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-lg font-medium">No resources in chat context</p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -986,7 +986,7 @@ export function ChatGuidesContent({
         ) : (
           <div className="space-y-3">
             {chatResources.map((resource) => (
-              <Card key={resource.id}>
+              <Card key={resource.id} className="py-0">
                 <CardContent className="flex items-start gap-4 p-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                     {resource.type === "LINK" ? (

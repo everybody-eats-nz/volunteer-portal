@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Trash2Icon } from "lucide-react";
+import { Trash2Icon, ChevronLeft } from "lucide-react";
 
 import {
   AdminPageSkeleton,
@@ -52,12 +52,13 @@ export default function EditShiftLoading() {
             Delete Shift
           </Button>
           <Button variant="outline" size="sm" disabled>
-            ← Back to shifts
+            <ChevronLeft className="h-4 w-4" />
+            Back to shifts
           </Button>
         </>
       }
     >
-      <SkeletonCard className="flex flex-col gap-6 py-6 shadow-lg">
+      <SkeletonCard className="flex flex-col gap-6 py-6">
         <SkeletonCardHeader titleWidth="w-48" className="pb-6" />
         <div className="space-y-8 px-6">
           <SectionSkeleton titleWidth="w-20">

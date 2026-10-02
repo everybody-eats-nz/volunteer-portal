@@ -13,7 +13,7 @@ export default function VanPurposesLoading() {
       description="The order here is the order drivers see. Put the most common run first: it is the difference between one tap and three. Retiring a purpose hides it from drivers without touching the trips already logged against it."
       className="space-y-4"
     >
-      <SkeletonCard className="py-6">
+      <SkeletonCard>
         <ul>
           {LABEL_WIDTHS.map((width, i) => (
             <li
@@ -42,7 +42,7 @@ export default function VanPurposesLoading() {
         </ul>
       </SkeletonCard>
 
-      <SkeletonCard className="py-6">
+      <SkeletonCard>
         <div className="flex flex-wrap items-end gap-3 p-4">
           <div className="min-w-0 flex-1">
             <Skeleton className="h-3.5 w-28" />

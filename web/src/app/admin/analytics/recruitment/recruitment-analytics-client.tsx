@@ -46,8 +46,8 @@ export function RecruitmentAnalyticsClient({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card>
-        <CardContent className="py-4">
+      <Card className="py-4">
+        <CardContent className="px-4">
           <div className="flex flex-col sm:flex-row items-end gap-4">
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">

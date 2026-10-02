@@ -1,3 +1,4 @@
+import { ChevronLeft } from "lucide-react";
 import {
   AdminPageSkeleton,
   SkeletonCard,
@@ -14,7 +15,8 @@ export default function RegularsLoading() {
       description="Manage volunteers with recurring shift assignments"
       actions={
         <Button variant="outline" size="sm" disabled>
-          ← Back to admin
+          <ChevronLeft className="h-4 w-4" />
+          Back to admin
         </Button>
       }
       className="space-y-8"
@@ -22,7 +24,7 @@ export default function RegularsLoading() {
       {/* Stat tiles */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-hidden="true">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-lg border p-5 shadow-sm">
+          <div key={i} className="bg-card rounded-xl border p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 space-y-2">
                 <Skeleton className="h-4 w-24" />
@@ -44,7 +46,7 @@ export default function RegularsLoading() {
       </SkeletonCard>
 
       {/* Regulars table with toolbar */}
-      <div className="bg-card rounded-lg border shadow-sm" aria-hidden="true">
+      <div className="bg-card overflow-hidden rounded-xl border shadow-sm" aria-hidden="true">
         <div className="border-b p-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Skeleton className="h-4 w-20" />

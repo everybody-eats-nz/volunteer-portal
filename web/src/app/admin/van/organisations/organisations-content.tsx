@@ -117,7 +117,7 @@ export function VanOrganisationsContent({
 
   return (
     <div className="space-y-4" data-testid="van-organisations-page">
-      <Card>
+      <Card className="py-0">
         <CardContent className="p-0">
           <ul>
             {organisations.map((org) => (
@@ -221,7 +221,7 @@ export function VanOrganisationsContent({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="py-0">
         <CardContent className="p-4">
           <form
             className="flex flex-wrap items-end gap-3"

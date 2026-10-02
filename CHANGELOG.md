@@ -1,3 +1,27 @@
+## [0.175.10] - 2026-10-02
+
+### Changes
+- chore(deps): bump @grpc/grpc-js from 1.14.4 to 1.14.5 in /web ([#1305](https://github.com/everybody-eats-nz/volunteer-portal/pull/1305)) by @dependabot[bot]
+
+
+## [0.175.9] - 2026-10-02
+
+### Changes
+- chore(deps): bump fast-uri from 3.1.7 to 3.1.8 in /web ([#1307](https://github.com/everybody-eats-nz/volunteer-portal/pull/1307)) by @dependabot[bot]
+
+
+## [0.175.8] - 2026-10-02
+
+### Changes
+- chore(deps): bump dompurify from 3.4.13 to 3.4.16 in /web ([#1306](https://github.com/everybody-eats-nz/volunteer-portal/pull/1306)) by @dependabot[bot]
+
+
+## [0.175.7] - 2026-10-02
+
+### Changes
+- fix(admin): unify card surfaces, padding and colour tokens across admin pages ([#1308](https://github.com/everybody-eats-nz/volunteer-portal/pull/1308)) by @malinmalliyawadu
+
+
 ## [0.175.6] - 2026-10-02
 
 ### Changes
