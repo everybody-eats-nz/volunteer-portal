@@ -37,7 +37,6 @@ describe("survey-assignments", () => {
         id: "survey-1",
         title: "How was your first shift?",
         description: null,
-        questions: [{ id: "q1" }, { id: "q2" }, { id: "q3" }],
       },
       token: { token: "tok-1", expiresAt: null },
     };
@@ -58,7 +57,7 @@ describe("survey-assignments", () => {
       });
     });
 
-    it("flattens the token and counts the questions without returning them", async () => {
+    it("flattens the token, and never loads the survey's questions", async () => {
       mockAssignment.findMany.mockResolvedValue([row]);
 
       const [assignment] = await getOpenSurveyAssignments("user-1");
@@ -73,10 +72,12 @@ describe("survey-assignments", () => {
           title: "How was your first shift?",
           description: null,
         },
-        questionCount: 3,
         token: "tok-1",
         expiresAt: null,
       });
+      expect(
+        mockAssignment.findMany.mock.calls[0][0].include.survey.select
+      ).toEqual({ id: true, title: true, description: true });
     });
 
     it("copes with an assignment whose token was never created", async () => {

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   countAnswered,
   isAnswered,
-  questionCountLabel,
   ratingPoints,
   ratingRows,
   toSubmission,
@@ -172,12 +171,5 @@ describe("ratingRows", () => {
     const rows = ratingRows(scale(0, 20));
     expect(rows.flat()).toEqual(scale(0, 20));
     expect(Math.max(...rows.map((r) => r.length))).toBeLessThanOrEqual(6);
-  });
-});
-
-describe("questionCountLabel", () => {
-  it("pluralises", () => {
-    expect(questionCountLabel(1)).toBe("1 question");
-    expect(questionCountLabel(5)).toBe("5 questions");
   });
 });

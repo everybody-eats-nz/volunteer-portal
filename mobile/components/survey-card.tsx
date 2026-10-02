@@ -6,7 +6,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSurveyDraftStore } from "@/hooks/use-survey-drafts";
-import { questionCountLabel, type PendingSurvey } from "@/lib/surveys";
+import type { PendingSurvey } from "@/lib/surveys";
 
 /**
  * "We'd love your feedback."
@@ -57,9 +57,6 @@ export function SurveyCard({
           >
             {survey.title}
           </Text>
-          <Text style={[styles.meta, { color: colors.textSecondary }]}>
-            {questionCountLabel(survey.questionCount)}
-          </Text>
         </View>
       </View>
 
@@ -78,7 +75,7 @@ export function SurveyCard({
           icon="arrow-forward"
           size="sm"
           onPress={onTake}
-          accessibilityLabel={`${action}: ${survey.title}, ${questionCountLabel(survey.questionCount)}`}
+          accessibilityLabel={`${action}: ${survey.title}`}
         />
         <Pressable
           onPress={onDismiss}
@@ -134,11 +131,6 @@ const styles = StyleSheet.create({
     columnGap: 12,
     rowGap: 6,
     marginTop: 2,
-  },
-  meta: {
-    fontFamily: FontFamily.medium,
-    fontSize: 13,
-    lineHeight: 18,
   },
   dismiss: {
     minHeight: 40,

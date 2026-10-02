@@ -47,7 +47,6 @@ export type PendingSurvey = {
   token: string;
   title: string;
   description: string | null;
-  questionCount: number;
   assignedAt: string;
 };
 
@@ -151,9 +150,4 @@ export function ratingRows(points: number[]): number[][] {
     rows.push(points.slice(i, i + perRow));
   }
   return rows;
-}
-
-/** "1 question" / "5 questions", for the home card. */
-export function questionCountLabel(count: number): string {
-  return count === 1 ? "1 question" : `${count} questions`;
 }

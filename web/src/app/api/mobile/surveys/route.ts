@@ -44,7 +44,6 @@ export async function GET(request: Request) {
                 token: assignment.token,
                 title: assignment.survey.title,
                 description: assignment.survey.description,
-                questionCount: assignment.questionCount,
                 assignedAt: assignment.assignedAt,
               },
             ]

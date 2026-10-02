@@ -15,7 +15,6 @@ export interface OpenSurveyAssignment {
     title: string;
     description: string | null;
   };
-  questionCount: number;
   /** Missing only on legacy rows whose token was never created. */
   token: string | undefined;
   expiresAt: Date | null | undefined;
@@ -44,7 +43,6 @@ export async function getOpenSurveyAssignments(
           id: true,
           title: true,
           description: true,
-          questions: true,
         },
       },
       token: {
@@ -63,14 +61,7 @@ export async function getOpenSurveyAssignments(
     status: assignment.status,
     assignedAt: assignment.assignedAt,
     dismissedAt: assignment.dismissedAt,
-    survey: {
-      id: assignment.survey.id,
-      title: assignment.survey.title,
-      description: assignment.survey.description,
-    },
-    questionCount: Array.isArray(assignment.survey.questions)
-      ? assignment.survey.questions.length
-      : 0,
+    survey: assignment.survey,
     token: assignment.token?.token,
     expiresAt: assignment.token?.expiresAt,
   }));
