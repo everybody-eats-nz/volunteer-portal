@@ -1,3 +1,9 @@
+## [0.175.7] - 2026-10-02
+
+### Changes
+- fix(admin): unify card surfaces, padding and colour tokens across admin pages ([#1308](https://github.com/everybody-eats-nz/volunteer-portal/pull/1308)) by @malinmalliyawadu
+
+
 ## [0.175.6] - 2026-10-02
 
 ### Changes
