@@ -216,6 +216,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
       }),
     [form.mealsServed, form.nonPayingCount, form.cash, form.eftpos, form.stripe]
   );
+  const eftposTotal = num(form.eftpos);
 
   const filledCount = FILLABLE_KEYS.filter(
     (k) => form[k].trim() !== ""
@@ -395,9 +396,11 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
           </div>
 
         {/* Hero totals — the night's headline result, building live */}
-        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        {/* Money tiles pair up on their own row until there's room for all five */}
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-6 xl:grid-cols-5">
           <HeroStat
             featured
+            className="col-span-2 sm:col-span-3 xl:col-span-1"
             label="Total koha"
             value={
               derived.totalDonations === null
@@ -405,17 +408,26 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
                 : NZD.format(derived.totalDonations)
             }
           />
+          {/* EFTPOS is reconciled against Xero daily, so keep it on the summary */}
           <HeroStat
+            className="sm:col-span-3 xl:col-span-1"
+            label="EFTPOS"
+            value={eftposTotal === null ? "—" : NZD.format(eftposTotal)}
+          />
+          <HeroStat
+            className="sm:col-span-2 xl:col-span-1"
             label="$ per head"
             value={derived.perHead === null ? "—" : NZD.format(derived.perHead)}
           />
           <HeroStat
+            className="sm:col-span-2 xl:col-span-1"
             label="Per paying"
             value={
               derived.perPaying === null ? "—" : NZD.format(derived.perPaying)
             }
           />
           <HeroStat
+            className="sm:col-span-2 xl:col-span-1"
             label="Non-paying"
             value={
               derived.nonPayingRatio === null
@@ -658,10 +670,12 @@ function HeroStat({
   label,
   value,
   featured = false,
+  className,
 }: {
   label: string;
   value: string;
   featured?: boolean;
+  className?: string;
 }) {
   return (
     <div
@@ -669,7 +683,8 @@ function HeroStat({
         "rounded-xl border px-3.5 py-2.5",
         featured
           ? "border-amber-300/70 bg-amber-50/80 dark:border-amber-800/60 dark:bg-amber-950/30"
-          : "border-border/70 bg-card/70"
+          : "border-border/70 bg-card/70",
+        className
       )}
     >
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
