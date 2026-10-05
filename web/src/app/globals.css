@@ -610,3 +610,44 @@ h6 em,
     -webkit-print-color-adjust: exact;
   }
 }
+
+/* Printing a cash reconciliation.
+   Same approach as the van sticker: hide the admin chrome by visibility, pin
+   the reconciliation to the top-left of the page, and force dark-on-white so
+   a dark-mode screen still prints a readable sheet (browsers drop background
+   colours by default, which would leave light text on white). */
+@media print {
+  body:has(#cash-reconciliation-printable) * {
+    visibility: hidden !important;
+  }
+
+  body:has(#cash-reconciliation-printable) #cash-reconciliation-printable,
+  body:has(#cash-reconciliation-printable) #cash-reconciliation-printable * {
+    visibility: visible !important;
+  }
+
+  /* Un-position every ancestor (the sidebar inset is positioned), so the
+     sheet is laid out against the page, not beside the hidden sidebar. */
+  *:has(#cash-reconciliation-printable) {
+    position: static !important;
+    transform: none !important;
+  }
+
+  #cash-reconciliation-printable {
+    position: absolute;
+    inset: 0 0 auto 0;
+    opacity: 1 !important;
+  }
+
+  #cash-reconciliation-printable,
+  #cash-reconciliation-printable * {
+    color: #111 !important;
+    background: transparent !important;
+    border-color: #d4d4d4 !important;
+    box-shadow: none !important;
+  }
+
+  #cash-reconciliation-printable tr {
+    break-inside: avoid;
+  }
+}
