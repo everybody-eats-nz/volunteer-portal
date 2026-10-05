@@ -47,11 +47,17 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
+  announcementCategoryMeta,
+  type AnnouncementCategory,
+} from "@/lib/announcement-categories";
+import {
+  AUDIENCE_SHIFTS_GROUP_ID,
   AudienceBuilder,
   EMPTY_AUDIENCE,
   countActiveAudienceFilters,
   type AudienceDraft,
 } from "./audience-builder";
+import { CategoryPicker } from "./category";
 import { FeedPreview } from "./feed-preview";
 import {
   audienceConditions,
@@ -113,6 +119,7 @@ export function Composer({
   onPublished,
   onClose,
 }: ComposerProps) {
+  const [category, setCategory] = useState<AnnouncementCategory | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -128,6 +135,7 @@ export function Composer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [shiftsGroupOpen, setShiftsGroupOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const patchAudience = useCallback(
@@ -220,8 +228,31 @@ export function Composer({
   // The calendar rules out past days, but the time input can still land
   // earlier today — an expiry in the past publishes straight into the archive.
   const expiryInPast = isExpiryInPast(expiresAt);
-  const canPublish =
-    title.trim() !== "" && body.trim() !== "" && !expiryInPast;
+  // Shift-related is mandatory, so it must point at real shifts rather than
+  // carry general news. The API enforces the same rule.
+  const needsShifts =
+    category !== null &&
+    announcementCategoryMeta(category).requiresShifts &&
+    targeting.targetShiftIds.length === 0;
+  // Why publishing is blocked, in the order an admin would fix things.
+  const publishBlocker =
+    category === null
+      ? "Choose a category to publish."
+      : title.trim() === "" || body.trim() === ""
+        ? "Add a title and a message to publish."
+        : needsShifts
+          ? "Pick at least one shift for a shift-related announcement."
+          : expiryInPast
+            ? "Pick an expiry in the future to publish."
+            : null;
+  const canPublish = publishBlocker === null;
+
+  const revealShiftsGroup = () => {
+    setShiftsGroupOpen(true);
+    document
+      .getElementById(AUDIENCE_SHIFTS_GROUP_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const requestClose = () => {
     if (isDirty) setConfirmDiscard(true);
@@ -264,12 +295,8 @@ export function Composer({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isExpiryInPast(expiresAt)) {
-      toast.error("Expiry must be in the future");
-      return;
-    }
-    if (!canPublish) {
-      toast.error("Title and message are required");
+    if (publishBlocker !== null) {
+      toast.error(publishBlocker);
       return;
     }
     setIsSubmitting(true);
@@ -280,6 +307,7 @@ export function Composer({
         body: JSON.stringify({
           title: title.trim(),
           body: body.trim(),
+          category,
           imageUrl,
           expiresAt: expiresAt || null,
           ...targeting,
@@ -337,6 +365,33 @@ export function Composer({
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* ── Left: the inputs ── */}
           <div className="min-w-0 space-y-5">
+            <Section
+              eyebrow="Category"
+              hint="What kind of message this is, and whether volunteers can opt out of it."
+            >
+              <CategoryPicker value={category} onChange={setCategory} />
+              {needsShifts && (
+                <div
+                  className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg bg-amber-500/10 px-3 py-2"
+                  data-testid="announcement-category-needs-shifts"
+                >
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                    Shift-related announcements go to the volunteers on
+                    specific shifts. Choose at least one.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 shrink-0 rounded-full border-amber-500/40 bg-transparent text-xs text-amber-800 hover:bg-amber-500/10 dark:text-amber-300"
+                    onClick={revealShiftsGroup}
+                  >
+                    Choose shifts
+                  </Button>
+                </div>
+              )}
+            </Section>
+
             <Section eyebrow="Message" hint="What volunteers will read.">
               <div className="space-y-4">
                 <div>
@@ -456,6 +511,8 @@ export function Composer({
                 onPatch={patchAudience}
                 labels={labels}
                 locations={locations}
+                shiftsOpen={shiftsGroupOpen}
+                onShiftsOpenChange={setShiftsGroupOpen}
               />
             </Section>
 
@@ -494,6 +551,7 @@ export function Composer({
               <FeedPreview
                 title={title}
                 body={body}
+                category={category}
                 imageUrl={imageUrl}
                 authorName={authorName}
                 authorPhotoUrl={authorPhotoUrl}
@@ -571,11 +629,12 @@ export function Composer({
                 <Upload className="h-4 w-4" />
                 {publishLabel}
               </Button>
-              {!canPublish && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">
-                  {expiryInPast
-                    ? "Pick an expiry in the future to publish."
-                    : "Add a title and a message to publish."}
+              {publishBlocker && (
+                <p
+                  className="mt-2 text-center text-xs text-muted-foreground"
+                  data-testid="announcement-publish-blocker"
+                >
+                  {publishBlocker}
                 </p>
               )}
               <Button
