@@ -1,3 +1,9 @@
+## [0.177.0] - 2026-10-05
+
+### Changes
+- feat(admin): cash reconciliation view per location and date range ([#1326](https://github.com/everybody-eats-nz/volunteer-portal/pull/1326)) by @malinmalliyawadu
+
+
 ## [0.176.1] - 2026-10-05
 
 ### Changes
