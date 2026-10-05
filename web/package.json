@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.176.0",
+  "version": "0.177.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -116,10 +116,10 @@
     "@types/react-dom": "19.2.5",
     "@vitest/ui": "^4.1.11",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.11.26",
-    "csv-parse": "^7.0.2",
+    "baseline-browser-mapping": "^2.11.27",
+    "csv-parse": "^7.0.3",
     "eslint": "^9",
-    "eslint-config-next": "16.3.6",
+    "eslint-config-next": "16.3.8",
     "exceljs": "^4.4.0",
     "prisma": "^7.10.0",
     "tailwindcss": "^4",
