@@ -40,7 +40,7 @@ import { startTrip, type StartOptions, type VanPurpose } from "@/lib/van";
  *
  * A van that is already out is a handover, not an error. The reading typed
  * here closes the open trip and opens this one — one observed number, never a
- * stamped one.
+ * stamped one. That includes the driver's own trip, left open by mistake.
  */
 
 type Step = "odo" | "org" | "purpose" | "external";
@@ -196,11 +196,10 @@ export default function StartTripScreen() {
 
   /* ── Step 1: the dial ───────────────────────────────────── */
   if (step === "odo") {
-    const handover = openTrip && !openTrip.isMine ? openTrip : null;
     return (
       <DriveFlowScreen testID="van-start-odo">
         {header}
-        {handover ? (
+        {openTrip ? (
           <View
             style={[
               styles.handover,
@@ -212,8 +211,9 @@ export default function StartTripScreen() {
           >
             <Ionicons name="swap-horizontal" size={18} color={colors.tint} />
             <Text style={[styles.handoverText, { color: colors.textSecondary }]}>
-              {handover.holderFirstName} has had this van out {handover.sinceLabel}.
-              The reading you photograph closes their trip and opens yours.
+              {openTrip.isMine
+                ? `Your last trip in this van has been open ${openTrip.sinceLabel}. The reading you photograph ends it and starts this one.`
+                : `${openTrip.holderFirstName} has had this van out ${openTrip.sinceLabel}. The reading you photograph closes their trip and opens yours.`}
             </Text>
           </View>
         ) : null}
