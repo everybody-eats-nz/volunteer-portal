@@ -273,8 +273,10 @@ function KohaTrend({
             {data.hasKohaTarget && (
               <p>
                 The <span className="font-medium">dashed line</span> is the koha
-                target for the month (per-night target × service nights). Shown
-                in the stacked view only.
+                target for the month (per-night target × service nights). The
+                per-night target comes from the year&rsquo;s budget when one is
+                set, otherwise from the location settings. Shown in the stacked
+                view only.
               </p>
             )}
           </>

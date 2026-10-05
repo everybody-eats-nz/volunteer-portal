@@ -32,6 +32,7 @@ import {
   ListChecks,
   IdCard,
   Building2,
+  Target,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -79,6 +80,14 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: BarChart3,
         description: "Meals served and year-over-year comparisons",
         commandKey: "analytics",
+      },
+      {
+        title: "Budget Tracking",
+        href: "/admin/analytics/budget",
+        icon: Target,
+        description:
+          "Koha against each restaurant's annual budget, night by night",
+        commandKey: "budget",
       },
       {
         title: "Volunteer Engagement",

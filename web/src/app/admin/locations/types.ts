@@ -12,6 +12,13 @@ export interface Venue {
   address: string;
   defaultMealsServed: number;
   targetPerNight: number | null;
+  /** This year's budget, if set - its nightly target overrides targetPerNight. */
+  budget: {
+    year: number;
+    annualTarget: number;
+    plannedServiceNights: number;
+    nightlyTarget: number | null;
+  } | null;
   isActive: boolean;
   isPopup: boolean;
   /** Active venues without upcoming shifts are invisible to volunteers. */
