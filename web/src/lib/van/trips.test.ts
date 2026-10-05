@@ -1,10 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { MAX_PLAUSIBLE_KM } from "./plausibility";
-import { previewEndTrip, TripError, wouldWarn } from "./trips";
+import { previewEndTrip, startTrip, TripError, wouldWarn } from "./trips";
+
+const tx = vi.hoisted(() => ({
+  vehicle: { findUnique: vi.fn() },
+  trip: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
+  $executeRaw: vi.fn(),
+}));
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { trip: { findUnique: vi.fn() } },
+  prisma: {
+    trip: { findUnique: vi.fn() },
+    $transaction: vi.fn((fn: (client: typeof tx) => unknown) => fn(tx)),
+  },
 }));
 
 const findUnique = vi.mocked(prisma.trip.findUnique);
@@ -115,5 +124,69 @@ describe("previewEndTrip", () => {
         now: NOW,
       })
     ).rejects.toBeInstanceOf(TripError);
+  });
+});
+
+describe("startTrip", () => {
+  const input = {
+    vehicleId: "van-1",
+    driverId: "driver-1",
+    startOdo: 100_060,
+    startOdoPhotoUrl: "https://photos/dial.jpg",
+    organisationId: "org-1",
+    externalOrgName: null,
+    purposeId: "purpose-1",
+    purposeOther: null,
+  };
+
+  beforeEach(() => {
+    tx.vehicle.findUnique.mockResolvedValue({ id: "van-1", isActive: true });
+    tx.trip.create.mockResolvedValue({ id: "trip-2" });
+  });
+
+  it("opens a trip on a van nobody has out", async () => {
+    tx.trip.findFirst.mockResolvedValue(null);
+
+    await expect(startTrip(input)).resolves.toMatchObject({
+      closedTripId: null,
+    });
+    expect(tx.trip.update).not.toHaveBeenCalled();
+  });
+
+  it("closes somebody else's open trip with this reading, flagged", async () => {
+    tx.trip.findFirst.mockResolvedValue(openTrip({ driverId: "someone-else" }));
+
+    await expect(startTrip(input)).resolves.toMatchObject({
+      closedTripId: "trip-1",
+    });
+    expect(tx.trip.update).toHaveBeenCalledWith({
+      where: { id: "trip-1" },
+      data: expect.objectContaining({
+        endOdo: 100_060,
+        endOdoPhotoUrl: "https://photos/dial.jpg",
+        distanceKm: 60,
+        endedByUserId: "driver-1",
+        status: "FLAGGED",
+      }),
+    });
+  });
+
+  it("closes the driver's own forgotten trip with this reading, unflagged", async () => {
+    // What "End my trip" followed by "Start trip" would have written, from one
+    // photo of the dial instead of two.
+    tx.trip.findFirst.mockResolvedValue(openTrip());
+
+    await expect(startTrip(input)).resolves.toMatchObject({
+      closedTripId: "trip-1",
+    });
+    expect(tx.trip.update).toHaveBeenCalledWith({
+      where: { id: "trip-1" },
+      data: expect.objectContaining({
+        endOdo: 100_060,
+        distanceKm: 60,
+        endedByUserId: "driver-1",
+        status: "CLOSED",
+      }),
+    });
   });
 });
