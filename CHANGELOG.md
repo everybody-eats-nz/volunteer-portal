@@ -1,3 +1,9 @@
+## [0.181.1] - 2026-10-06
+
+### Changes
+- fix: save shortage and announcement preferences chosen at signup ([#1330](https://github.com/everybody-eats-nz/volunteer-portal/pull/1330)) by @malinmalliyawadu
+
+
 ## [0.181.0] - 2026-10-06
 
 ### Changes
