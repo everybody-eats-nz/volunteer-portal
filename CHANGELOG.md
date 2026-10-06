@@ -1,3 +1,9 @@
+## [0.180.2] - 2026-10-06
+
+### Changes
+- chore(deps): bump next to 16.3.8 and fix sitemap for cacheComponents ([#1328](https://github.com/everybody-eats-nz/volunteer-portal/pull/1328)) by @malinmalliyawadu
+
+
 ## [0.180.1] - 2026-10-06
 
 ### Changes
