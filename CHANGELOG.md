@@ -1,3 +1,9 @@
+## [0.181.0] - 2026-10-06
+
+### Changes
+- feat: let volunteers opt out of announcement categories ([#1329](https://github.com/everybody-eats-nz/volunteer-portal/pull/1329)) by @malinmalliyawadu
+
+
 ## [0.180.2] - 2026-10-06
 
 ### Changes
