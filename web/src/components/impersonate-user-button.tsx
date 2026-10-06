@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useHydrationSafeSession } from "@/hooks/use-hydration-safe-session";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { UserCog } from "lucide-react";
@@ -27,7 +27,7 @@ export function ImpersonateUserButton({
   userName,
 }: ImpersonateUserButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { data: session, update } = useSession();
+  const { data: session, update } = useHydrationSafeSession();
   const router = useRouter();
 
   // Don't show button if already impersonating or not an admin
