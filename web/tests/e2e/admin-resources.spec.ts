@@ -88,11 +88,11 @@ test.describe("Admin Resource Management", () => {
     }) => {
       await loginAsVolunteer(page);
       await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
 
-      // Should redirect to dashboard
-      expect(page.url()).not.toContain("/admin/resources");
-      expect(page.url()).toContain("/dashboard");
+      // Should redirect to dashboard. The redirect can land after "load"
+      // (Next applies streamed redirects client-side), so let the URL
+      // assertion retry instead of reading page.url() once.
+      await expect(page).toHaveURL(/\/dashboard/);
     });
 
     test("should redirect unauthenticated users to login", async ({
@@ -102,10 +102,9 @@ test.describe("Admin Resource Management", () => {
       // Create new page without authentication
       const newPage = await context.newPage();
       await newPage.goto("/admin/resources");
-      await newPage.waitForLoadState("load");
 
       // Should redirect to login
-      expect(newPage.url()).toContain("/login");
+      await expect(newPage).toHaveURL(/\/login/);
       await newPage.close();
     });
   });
@@ -125,8 +124,7 @@ test.describe("Admin Resource Management", () => {
 
     test("should display resources table or empty state", async ({ page }) => {
       // We created resources, so table should exist
-      const hasTable = (await page.locator("table").count()) > 0;
-      expect(hasTable).toBeTruthy();
+      await expect(page.locator("table").first()).toBeVisible();
     });
 
     test("should show resource statistics if resources exist", async ({
@@ -189,11 +187,11 @@ test.describe("Admin Resource Management", () => {
       await categoryTrigger.click();
 
       // Verify categories exist
-      const hasCategories =
-        (await page
+      await expect(
+        page
           .getByRole("option", { name: /training|policies|forms|guides/i })
-          .count()) > 0;
-      expect(hasCategories).toBeTruthy();
+          .first()
+      ).toBeVisible();
     });
 
     test("should have type options", async ({ page }) => {
@@ -209,11 +207,11 @@ test.describe("Admin Resource Management", () => {
       await typeTrigger.click();
 
       // Verify types exist (PDF, IMAGE, DOCUMENT, LINK, VIDEO)
-      const hasTypes =
-        (await page
+      await expect(
+        page
           .getByRole("option", { name: /pdf|image|document|link|video/i })
-          .count()) > 0;
-      expect(hasTypes).toBeTruthy();
+          .first()
+      ).toBeVisible();
     });
 
     test("should close dialog on cancel", async ({ page }) => {
@@ -243,24 +241,19 @@ test.describe("Admin Resource Management", () => {
     test("should display resource rows if resources exist", async ({
       page,
     }) => {
-      const rows = page.locator("tbody tr");
-      const rowCount = await rows.count();
-      expect(rowCount).toBeGreaterThanOrEqual(1);
+      await expect(page.locator("tbody tr").first()).toBeVisible();
     });
 
     test("should display resource metadata in table", async ({ page }) => {
       const rows = page.locator("tbody tr");
       const firstRow = rows.first();
-      const cells = firstRow.locator("td");
-      const cellCount = await cells.count();
-      expect(cellCount).toBeGreaterThan(0);
+      await expect(firstRow.locator("td").first()).toBeVisible();
     });
 
     test("should have action buttons for resources", async ({ page }) => {
       // Look for dropdown menu trigger (more actions button)
       const actionButtons = page.locator("tbody tr").first().getByRole("button");
-      const buttonCount = await actionButtons.count();
-      expect(buttonCount).toBeGreaterThan(0);
+      await expect(actionButtons.first()).toBeVisible();
     });
   });
 
@@ -382,12 +375,10 @@ test.describe("Admin Resource Management", () => {
       page,
     }) => {
       // Verify table has rows with our test data
-      const rows = page.locator("tbody tr");
-      const rowCount = await rows.count();
-      expect(rowCount).toBeGreaterThan(0);
+      await expect(page.locator("tbody tr").first()).toBeVisible();
 
       // Page loaded successfully
-      expect(page.url()).toContain("/admin/resources");
+      await expect(page).toHaveURL(/\/admin\/resources/);
     });
   });
 
