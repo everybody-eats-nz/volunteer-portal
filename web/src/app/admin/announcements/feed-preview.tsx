@@ -3,10 +3,23 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import {
+  announcementCategoryMeta,
+  type AnnouncementCategory,
+} from "@/lib/announcement-categories";
+
+/** Pill colours, matching the mobile card (mobile/lib/announcement-category.ts). */
+const CATEGORY_PILL: Record<AnnouncementCategory, string> = {
+  SHIFT_RELATED: "bg-[#dcfce7] text-[#166534]",
+  URGENT: "bg-[#fee2e2] text-[#991b1b]",
+  SHIFT_SHORTAGE: "bg-[#fef3c7] text-[#92400e]",
+  PROMOTIONAL: "bg-[#e0f2fe] text-[#075985]",
+};
 
 interface FeedPreviewProps {
   title: string;
   body: string;
+  category: AnnouncementCategory | null;
   imageUrl: string | null;
   authorName: string;
   authorPhotoUrl: string | null;
@@ -17,12 +30,14 @@ interface FeedPreviewProps {
  * Live replica of the announcement card volunteers see in the mobile feed,
  * framed in a phone silhouette. Mirrors the real rendering in
  * mobile/app/(tabs)/index.tsx: your avatar with a 📢 badge (or the yellow icon
- * tile with the 📢 emoji when you have no profile photo), title, markdown body
- * with bare URLs auto-linked, and a single author + timestamp line.
+ * tile with the 📢 emoji when you have no profile photo), category pill, title,
+ * markdown body with bare URLs auto-linked, and a single author + timestamp
+ * line.
  */
 export function FeedPreview({
   title,
   body,
+  category,
   imageUrl,
   authorName,
   authorPhotoUrl,
@@ -94,6 +109,16 @@ export function FeedPreview({
                 </div>
               )}
               <div className="min-w-0 flex-1">
+                {category && (
+                  <span
+                    className={cn(
+                      "mb-1 inline-block rounded-full px-1.5 py-[2px] text-[8.5px] font-semibold uppercase tracking-[0.04em]",
+                      CATEGORY_PILL[category]
+                    )}
+                  >
+                    {announcementCategoryMeta(category).feedLabel}
+                  </span>
+                )}
                 {empty ? (
                   <>
                     <div className="mb-1.5 h-3 w-3/4 rounded bg-[#14181c]/10 dark:bg-white/10" />

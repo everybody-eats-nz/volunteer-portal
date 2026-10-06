@@ -100,7 +100,16 @@ interface AudienceBuilderProps {
   onPatch: (patch: Partial<AudienceDraft>) => void;
   labels: LabelOption[];
   locations: string[];
+  /**
+   * Controlled open state for the "Specific shifts" row, so the composer can
+   * open it when a shift-related announcement still needs its shifts.
+   */
+  shiftsOpen?: boolean;
+  onShiftsOpenChange?: (open: boolean) => void;
 }
+
+/** DOM id of the "Specific shifts" row, for scrolling it into view. */
+export const AUDIENCE_SHIFTS_GROUP_ID = "audience-specific-shifts";
 
 /**
  * The audience section of the composer: six narrowing dimensions as
@@ -113,6 +122,8 @@ export function AudienceBuilder({
   onPatch,
   labels,
   locations,
+  shiftsOpen,
+  onShiftsOpenChange,
 }: AudienceBuilderProps) {
   const activeCount = countActiveAudienceFilters(draft);
 
@@ -543,6 +554,9 @@ export function AudienceBuilder({
               : "Any shift"
           }
           last
+          id={AUDIENCE_SHIFTS_GROUP_ID}
+          open={shiftsOpen}
+          onOpenChange={onShiftsOpenChange}
         >
           <SpecificShiftsPicker
             selected={draft.targetShifts}
@@ -567,6 +581,9 @@ function FilterGroup({
   summary,
   active,
   last,
+  id,
+  open: controlledOpen,
+  onOpenChange,
   children,
 }: {
   icon: ReactNode;
@@ -574,12 +591,22 @@ function FilterGroup({
   summary: string;
   active: boolean;
   last?: boolean;
+  id?: string;
+  /** Optional controlled open state; uncontrolled when omitted. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
 
   return (
     <Collapsible
+      id={id}
       open={open}
       onOpenChange={setOpen}
       className={cn(

@@ -394,6 +394,7 @@ export async function GET(request: Request) {
       id: `announcement-${ann.id}`,
       title: ann.title,
       body: ann.body,
+      category: ann.category,
       imageUrl: ann.imageUrl ?? undefined,
       timestamp: ann.createdAt.toISOString(),
       author: authorName,

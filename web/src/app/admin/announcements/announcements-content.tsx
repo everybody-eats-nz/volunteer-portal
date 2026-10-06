@@ -15,6 +15,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import {
+  announcementCategoryMeta,
+  type AnnouncementCategory,
+} from "@/lib/announcement-categories";
 import { AnnouncementList } from "./announcement-list";
 import { Composer, type ComposerPrefill } from "./composer";
 import {
@@ -115,6 +119,39 @@ export function AnnouncementsContent({
     }
   };
 
+  // Optimistic: the badge flips at once and reverts if the server refuses
+  // (e.g. shift-related on an announcement that targets no shifts).
+  const handleCategoryChange = async (
+    ann: Announcement,
+    category: AnnouncementCategory
+  ) => {
+    if (ann.category === category) return;
+    const setCategory = (next: AnnouncementCategory) =>
+      setAnnouncements((prev) =>
+        prev.map((a) => (a.id === ann.id ? { ...a, category: next } : a))
+      );
+    setCategory(category);
+    try {
+      const response = await fetch(`/api/admin/announcements/${ann.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to change category");
+      }
+      toast.success(
+        `Moved to ${announcementCategoryMeta(category).label.toLowerCase()}`
+      );
+    } catch (err) {
+      setCategory(ann.category);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to change category"
+      );
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Page header row */}
@@ -182,6 +219,7 @@ export function AnnouncementsContent({
           announcements={announcements}
           labels={labels}
           onDelete={setDeleteTarget}
+          onCategoryChange={handleCategoryChange}
           onCompose={() => {
             setComposerKey(`fresh-${Date.now()}`);
             setPrefill(null);
