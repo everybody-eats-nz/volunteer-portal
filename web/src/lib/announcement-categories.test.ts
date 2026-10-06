@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ANNOUNCEMENT_CATEGORIES,
   announcementCategoryMeta,
+  announcementEmailFooter,
   isAnnouncementCategory,
   isOptedOutOfAnnouncementCategory,
   LISTED_OPT_OUT_CATEGORIES,
@@ -159,5 +160,29 @@ describe("isOptedOutOfAnnouncementCategory", () => {
         "PROMOTIONAL"
       )
     ).toBe(true);
+  });
+});
+
+describe("announcementEmailFooter", () => {
+  it("tells volunteers why they got the email, for every category", () => {
+    for (const { value } of ANNOUNCEMENT_CATEGORIES) {
+      expect(announcementEmailFooter(value)).toMatch(
+        /^You are receiving this email because you are a registered volunteer at Everybody Eats\./
+      );
+    }
+  });
+
+  it("says mandatory categories can't be turned off", () => {
+    for (const c of ANNOUNCEMENT_CATEGORIES.filter((c) => c.mandatory)) {
+      expect(announcementEmailFooter(c.value)).toContain("can't be turned off");
+    }
+  });
+
+  it("says optional categories can be turned off", () => {
+    for (const c of ANNOUNCEMENT_CATEGORIES.filter((c) => !c.mandatory)) {
+      const footer = announcementEmailFooter(c.value);
+      expect(footer).toContain("optional");
+      expect(footer).toContain("turn them off");
+    }
   });
 });

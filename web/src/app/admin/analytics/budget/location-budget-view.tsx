@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import {
   budgetStatus,
+  budgetYearLabel,
   ratioToPercent,
   type BudgetProgress,
   type BudgetStatus,
@@ -83,7 +84,7 @@ export function LocationBudgetView({
         </span>
         <div>
           <p className="font-accent text-lg font-semibold">
-            No {data.year} budget for {selected.location} yet
+            No {budgetYearLabel(data.year)} budget for {selected.location} yet
           </p>
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             Enter the annual koha target and how many service nights are
@@ -92,7 +93,7 @@ export function LocationBudgetView({
         </div>
         <Button onClick={onEditBudget} data-testid="budget-set-button">
           <Target className="h-4 w-4" />
-          Set {data.year} budget
+          Set {budgetYearLabel(data.year)} budget
         </Button>
       </div>
     );
@@ -148,7 +149,7 @@ function headline(
     return {
       title:
         data.timing === "future"
-          ? `${data.year} hasn't started yet`
+          ? `${budgetYearLabel(data.year)} hasn't started yet`
           : "No service nights banked yet",
       status: null,
       label: "Not started",
@@ -213,7 +214,7 @@ function Scoreboard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {summary.location} · {data.year}{" "}
+                {summary.location} · {budgetYearLabel(data.year)}{" "}
                 {data.timing === "past" ? "full year" : "year to date"}
               </p>
               <StatusPill status={head.status} label={head.label} />
@@ -457,7 +458,7 @@ function NightlyChart({
       {held.length === 0 ? (
         <ChartEmpty
           height={300}
-          message={`No service nights banked in ${year} yet.`}
+          message={`No service nights banked in ${budgetYearLabel(year)} yet.`}
         />
       ) : (
         <ApexChart

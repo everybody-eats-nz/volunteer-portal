@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   budgetStatus,
+  budgetYearLabel,
   budgetYearOf,
   budgetYearRange,
+  budgetYearSpan,
+  currentBudgetYear,
   computeBudgetProgress,
   makeNightlyTargetLookup,
   nightlyTargetFor,
@@ -133,27 +136,46 @@ describe("computeBudgetProgress", () => {
 });
 
 describe("budget years", () => {
-  it("span the NZ calendar year", () => {
-    const { start, end } = budgetYearRange(2026);
-    // NZ midnight 1 Jan is 11:00 UTC on 31 Dec (NZDT, UTC+13)
-    expect(start.toISOString()).toBe("2025-12-31T11:00:00.000Z");
-    expect(end.toISOString()).toBe("2026-12-31T11:00:00.000Z");
+  it("span the NZ financial year, 1 April to 31 March", () => {
+    const { start, end } = budgetYearRange(2027);
+    // NZ midnight 1 Apr is 11:00 UTC on 31 Mar (NZDT, UTC+13)
+    expect(start.toISOString()).toBe("2026-03-31T11:00:00.000Z");
+    expect(end.toISOString()).toBe("2027-03-31T11:00:00.000Z");
   });
 
-  it("assign a night to its NZ year, not its UTC year", () => {
-    // Service night NZ 1 Jan 2026, stored as NZ midnight in UTC
-    expect(budgetYearOf(new Date("2025-12-31T11:00:00Z"))).toBe(2026);
-    // NZ 31 Dec 2025
-    expect(budgetYearOf(new Date("2025-12-30T11:00:00Z"))).toBe(2025);
+  it("are numbered by the March they end in", () => {
+    // NZ 31 Mar 2026 closes budget year 2026
+    expect(budgetYearOf(new Date("2026-03-30T11:00:00Z"))).toBe(2026);
+    // NZ 1 Apr 2026 opens budget year 2027
+    expect(budgetYearOf(new Date("2026-03-31T11:00:00Z"))).toBe(2027);
+    // NZ 1 Jan 2027 is still budget year 2027
+    expect(budgetYearOf(new Date("2026-12-31T11:00:00Z"))).toBe(2027);
+  });
+
+  it("assign a night to its NZ date, not its UTC date", () => {
+    // 10:30 UTC on 31 Mar 2026 is already 1 Apr in NZ
+    expect(budgetYearOf(new Date("2026-03-31T10:30:00Z"))).toBe(2026);
+    expect(budgetYearOf(new Date("2026-03-31T11:30:00Z"))).toBe(2027);
+  });
+
+  it("know which year is in progress", () => {
+    expect(currentBudgetYear(new Date("2026-10-07T00:00:00Z"))).toBe(2027);
+    expect(currentBudgetYear(new Date("2026-02-07T00:00:00Z"))).toBe(2026);
+  });
+
+  it("label a year by both calendar years it spans", () => {
+    expect(budgetYearLabel(2027)).toBe("2026/27");
+    expect(budgetYearLabel(2100)).toBe("2099/00");
+    expect(budgetYearSpan(2027)).toBe("1 Apr 2026 – 31 Mar 2027");
   });
 
   it("measure how much of the year has elapsed", () => {
-    const { start, end } = budgetYearRange(2026);
-    expect(yearElapsedRatio(2026, start)).toBe(0);
-    expect(yearElapsedRatio(2026, end)).toBe(1);
-    expect(yearElapsedRatio(2026, new Date("2024-06-01T00:00:00Z"))).toBe(0);
-    expect(yearElapsedRatio(2026, new Date("2028-06-01T00:00:00Z"))).toBe(1);
-    const mid = yearElapsedRatio(2026, new Date("2026-07-02T12:00:00Z"));
+    const { start, end } = budgetYearRange(2027);
+    expect(yearElapsedRatio(2027, start)).toBe(0);
+    expect(yearElapsedRatio(2027, end)).toBe(1);
+    expect(yearElapsedRatio(2027, new Date("2024-06-01T00:00:00Z"))).toBe(0);
+    expect(yearElapsedRatio(2027, new Date("2028-06-01T00:00:00Z"))).toBe(1);
+    const mid = yearElapsedRatio(2027, new Date("2026-09-30T12:00:00Z"));
     expect(mid).toBeGreaterThan(0.49);
     expect(mid).toBeLessThan(0.51);
   });
@@ -170,10 +192,14 @@ describe("makeNightlyTargetLookup", () => {
   ]);
 
   it("uses the budget's nightly target in a budgeted year", () => {
+    // NZ 11 Mar 2026 is in budget year 2026 (Apr 2025 - Mar 2026)
     expect(lookup("Wellington", new Date("2026-03-10T11:00:00Z"))).toBe(500);
+    expect(lookup("Wellington", new Date("2025-04-10T11:00:00Z"))).toBe(500);
   });
 
   it("falls back to the standing per-night target in other years", () => {
+    // NZ 11 Apr 2026 starts budget year 2027, which has no budget
+    expect(lookup("Wellington", new Date("2026-04-10T11:00:00Z"))).toBe(700);
     expect(lookup("Wellington", new Date("2025-03-10T11:00:00Z"))).toBe(700);
   });
 

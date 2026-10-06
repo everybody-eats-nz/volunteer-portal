@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { formatInNZT, nowInNZT } from "@/lib/timezone";
+import { formatInNZT } from "@/lib/timezone";
 import {
   budgetStatus,
   budgetYearOf,
   budgetYearRange,
   computeBudgetProgress,
+  currentBudgetYear,
   yearElapsedRatio,
   type BudgetProgress,
   type BudgetStatus,
@@ -68,7 +69,7 @@ export async function getBudgetTracking(
 ): Promise<BudgetTrackingData> {
   const { start, end } = budgetYearRange(year);
   const now = new Date();
-  const currentYear = nowInNZT().getFullYear();
+  const currentYear = currentBudgetYear(now);
 
   // Active venues, plus any disabled venue that still has a budget this year.
   const [locations, earliestNight, budgetYears] = await Promise.all([

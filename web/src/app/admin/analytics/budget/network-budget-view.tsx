@@ -6,6 +6,7 @@ import { staggerContainer, staggerItem } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import {
   budgetStatus,
+  budgetYearLabel,
   ratioToPercent,
 } from "@/lib/budget-calculations";
 import type {
@@ -45,7 +46,7 @@ export function NetworkBudgetView({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                All restaurants · {data.year}
+                All restaurants · {budgetYearLabel(data.year)}
               </p>
               <h2 className="mt-1 font-accent text-2xl font-semibold leading-tight">
                 {money0(totals.ytdActual)}{" "}
@@ -234,7 +235,7 @@ function UnbudgetedCard({
           {summary.location}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          No {year} budget yet, so nights aren&rsquo;t scored.
+          No {budgetYearLabel(year)} budget yet, so nights aren&rsquo;t scored.
         </p>
       </div>
       <Button
@@ -245,7 +246,7 @@ function UnbudgetedCard({
         data-testid={`budget-card-set-${summary.location}`}
       >
         <Target className="h-4 w-4" />
-        Set {year} budget
+        Set {budgetYearLabel(year)} budget
       </Button>
     </article>
   );
