@@ -22,9 +22,10 @@ export type AnnouncementCategoryMeta = {
  * Every category, in picker order (mandatory first). Client-safe: no Prisma
  * runtime import, so the composer and list can share it with the API.
  *
- * When opt-outs land, shift shortages will reuse the volunteer's existing
- * shortage-alert switch (`User.receiveShortageNotifications`) rather than
- * adding a second one.
+ * Volunteers opt out of the optional categories from their profile. Shift
+ * shortages reuse the existing shortage-alert switch
+ * (`User.receiveShortageNotifications`) so there's one shortage switch, not
+ * two; every other optional category is listed in `User.announcementOptOuts`.
  */
 export const ANNOUNCEMENT_CATEGORIES: readonly AnnouncementCategoryMeta[] = [
   {
@@ -105,4 +106,47 @@ export function parseAnnouncementCategory(
     };
   }
   return { ok: true, category };
+}
+
+/** A volunteer's announcement preferences, as stored on `User`. */
+export type AnnouncementPreferences = {
+  receiveShortageNotifications: boolean;
+  announcementOptOuts: readonly AnnouncementCategory[];
+};
+
+/**
+ * Optional categories that are opted out of through
+ * `User.announcementOptOuts`. Shift shortages aren't here: they follow the
+ * shortage-alert switch instead.
+ */
+export const LISTED_OPT_OUT_CATEGORIES: readonly AnnouncementCategory[] =
+  ANNOUNCEMENT_CATEGORIES.filter(
+    (c) => !c.mandatory && c.value !== "SHIFT_SHORTAGE"
+  ).map((c) => c.value);
+
+/**
+ * Coerce an untrusted `announcementOptOuts` value from a profile update into
+ * a clean list. Unknown values, duplicates and categories that can't be
+ * opted out of this way (mandatory ones, and shift shortages) are dropped,
+ * so a stale or hand-crafted client can't opt anyone out of a mandatory
+ * announcement.
+ */
+export function sanitizeAnnouncementOptOuts(
+  value: readonly unknown[]
+): AnnouncementCategory[] {
+  return LISTED_OPT_OUT_CATEGORIES.filter((c) => value.includes(c));
+}
+
+/**
+ * Has this volunteer opted out of announcements in this category? In-memory
+ * twin of the opt-out condition in announcement-targeting.ts, used by the
+ * mobile feed. Mandatory categories always reach everyone.
+ */
+export function isOptedOutOfAnnouncementCategory(
+  prefs: AnnouncementPreferences,
+  category: AnnouncementCategory
+): boolean {
+  if (announcementCategoryMeta(category).mandatory) return false;
+  if (category === "SHIFT_SHORTAGE") return !prefs.receiveShortageNotifications;
+  return prefs.announcementOptOuts.includes(category);
 }

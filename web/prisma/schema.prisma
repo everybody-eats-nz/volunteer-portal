@@ -53,6 +53,10 @@ model User {
   // Shift shortage notification preferences
   receiveShortageNotifications      Boolean  @default(true)
   excludedShortageNotificationTypes String[] @default([]) // Array of shift type IDs they DON'T want notifications for (opt-out list), empty means get all types
+  // Announcement categories this volunteer has opted out of (email, push and
+  // feed). Shift shortages aren't stored here: they follow
+  // receiveShortageNotifications so volunteers have one shortage switch.
+  announcementOptOuts               AnnouncementCategory[] @default([])
 
   // Email verification
   emailVerified                   Boolean   @default(false) // Whether email is verified
@@ -1184,8 +1188,8 @@ model Announcement {
 enum AnnouncementCategory {
   SHIFT_RELATED // Mandatory. Must target specific shifts (e.g. uniform reminder)
   URGENT // Mandatory. Operational notices such as extreme-weather closures
-  SHIFT_SHORTAGE // Opt-out; will reuse User.receiveShortageNotifications
-  PROMOTIONAL // Opt-out. Deals, event promos
+  SHIFT_SHORTAGE // Opt-out via User.receiveShortageNotifications
+  PROMOTIONAL // Opt-out via User.announcementOptOuts. Deals, event promos
 }
 
 enum ArchiveReason {

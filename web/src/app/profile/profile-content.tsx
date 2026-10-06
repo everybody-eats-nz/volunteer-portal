@@ -187,6 +187,7 @@ export async function ProfileContent() {
           notificationPreference: true,
           receiveShortageNotifications: true,
           excludedShortageNotificationTypes: true,
+          announcementOptOuts: true,
           volunteerAgreementAccepted: true,
           healthSafetyPolicyAccepted: true,
           role: true,
@@ -690,6 +691,20 @@ export async function ProfileContent() {
                   )}
                 </>
               )}
+
+              <div className="flex items-center justify-between gap-4 border-t border-forest-500/10 py-3 dark:border-cream-50/10">
+                <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+                  Promotional Announcements
+                </span>
+                <StatusPill
+                  testId="promotional-announcements-status"
+                  on={
+                    !userProfile?.announcementOptOuts?.includes("PROMOTIONAL")
+                  }
+                  onLabel="Enabled"
+                  offLabel="Disabled"
+                />
+              </div>
 
               <div className="border-t border-forest-500/10 pt-2 dark:border-cream-50/10">
                 <div className="flex items-center justify-between gap-4 py-3">

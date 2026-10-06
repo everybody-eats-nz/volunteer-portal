@@ -339,8 +339,15 @@ function AnnouncementRow({
   expired?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [matchCount, setMatchCount] = useState<number | null>(null);
+  // Remembers which category it was counted for: opt-outs depend on it, so
+  // re-categorising the announcement makes the count stale.
+  const [match, setMatch] = useState<{
+    category: AnnouncementCategory;
+    count: number;
+    optedOut: number;
+  } | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
+  const currentMatch = match?.category === ann.category ? match : null;
 
   const created = new Date(ann.createdAt);
   const expiresSoon = !expired && expiresWithin(ann, 48);
@@ -349,13 +356,15 @@ function AnnouncementRow({
     const next = !expanded;
     setExpanded(next);
     // Lazily ask how many volunteers this announcement's stored targeting
-    // matches today — same endpoint the composer preview uses.
-    if (next && matchCount === null && !matchLoading) {
+    // and category reach today — same endpoint the composer preview uses.
+    if (next && currentMatch === null && !matchLoading) {
+      const category = ann.category;
       setMatchLoading(true);
       fetch("/api/admin/announcements/recipient-count", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          category,
           targetLocations: ann.targetLocations,
           targetGrades: ann.targetGrades,
           targetLabelIds: ann.targetLabelIds,
@@ -375,7 +384,13 @@ function AnnouncementRow({
         }),
       })
         .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-        .then((data) => setMatchCount(data.count ?? null))
+        .then((data) =>
+          setMatch(
+            typeof data.count === "number"
+              ? { category, count: data.count, optedOut: data.optedOut ?? 0 }
+              : null
+          )
+        )
         .catch(() => {})
         .finally(() => setMatchLoading(false));
     }
@@ -536,8 +551,8 @@ function AnnouncementRow({
               <p className="text-xs text-muted-foreground">
                 {matchLoading
                   ? "Counting who this audience matches today…"
-                  : matchCount !== null
-                    ? `This audience matches ~${matchCount} volunteer${matchCount === 1 ? "" : "s"} today.`
+                  : currentMatch !== null
+                    ? `This audience matches ~${currentMatch.count} volunteer${currentMatch.count === 1 ? "" : "s"} today${currentMatch.optedOut > 0 ? ` (${currentMatch.optedOut} more opted out of this category)` : ""}.`
                     : null}
               </p>
             </div>
@@ -575,7 +590,7 @@ function StatusChip({
 /**
  * The row's category badge, doubling as the way to re-categorise. Existing
  * announcements were backfilled to Urgent, so admins need to be able to move
- * old promos into Promotional before opt-outs ship.
+ * old promos into Promotional, where volunteers' opt-outs apply.
  */
 function CategoryMenu({
   ann,

@@ -2,6 +2,12 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
 import { gotoSettled } from "./helpers/streaming";
+import {
+  createTestUser,
+  deleteTestUsers,
+  getUserByEmail,
+} from "./helpers/test-helpers";
+import { randomUUID } from "node:crypto";
 
 /**
  * Announcement categories (issue #1317): every announcement is classified,
@@ -137,5 +143,43 @@ test.describe("Admin announcement categories", () => {
         .filter({ hasText: title })
         .getByTestId("announcement-category-badge")
     ).toHaveText("Shift shortage");
+  });
+
+  test("leaves volunteers who opted out of a category out of the reach", async ({
+    page,
+  }) => {
+    const suffix = randomUUID();
+    const optedIn = `ann-optin-${suffix}@test.com`;
+    const optedOut = `ann-optout-${suffix}@test.com`;
+    await createTestUser(page, optedIn, "VOLUNTEER");
+    await createTestUser(page, optedOut, "VOLUNTEER", {
+      announcementOptOuts: ["PROMOTIONAL"],
+    });
+
+    try {
+      const ids = [
+        (await getUserByEmail(page, optedIn))!.id,
+        (await getUserByEmail(page, optedOut))!.id,
+      ];
+      await loginAsAdmin(page);
+      await gotoSettled(page, `/admin/announcements?userIds=${ids.join(",")}`);
+
+      const count = page.getByTestId("announcement-recipient-count");
+      const optedOutCount = page.getByTestId("announcement-opted-out-count");
+
+      // Promotional: the opted-out volunteer drops out of the reach.
+      await page.getByTestId("announcement-category-PROMOTIONAL").click();
+      await expect(count).toHaveText("~1");
+      await expect(optedOutCount).toHaveText(
+        "1 more opted out of promotional announcements"
+      );
+
+      // Urgent is mandatory, so both volunteers are reached.
+      await page.getByTestId("announcement-category-URGENT").click();
+      await expect(count).toHaveText("~2");
+      await expect(optedOutCount).toHaveCount(0);
+    } finally {
+      await deleteTestUsers(page, [optedIn, optedOut]);
+    }
   });
 });

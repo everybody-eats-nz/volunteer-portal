@@ -74,6 +74,7 @@ const MOCK_USER = {
   notificationPreference: "EMAIL",
   receiveShortageNotifications: true,
   excludedShortageNotificationTypes: [],
+  announcementOptOuts: ["PROMOTIONAL"],
   emailNewsletterSubscription: true,
   newsletterLists: [],
   createdAt: new Date("2024-06-15"),
@@ -203,6 +204,7 @@ describe("GET /api/mobile/profile", () => {
     expect(json.profile.notificationPreference).toBe("BOTH");
     expect(json.profile.emailNewsletterSubscription).toBe(false);
     expect(json.profile.newsletterLists).toEqual(["list-1", "list-2"]);
+    expect(json.profile.announcementOptOuts).toEqual(["PROMOTIONAL"]);
   });
 });
 
@@ -325,6 +327,32 @@ describe("PUT /api/mobile/profile", () => {
         data: expect.objectContaining({
           notificationPreference: "BOTH",
           receiveShortageNotifications: false,
+        }),
+      })
+    );
+  });
+
+  it("saves announcement opt-outs, dropping categories that can't be opted out of", async () => {
+    mockRequireMobileUser.mockResolvedValue({
+      user: { id: "user-1" },
+      userId: "user-1",
+    });
+    mockPrisma.user.findUnique.mockResolvedValue(MOCK_USER);
+    mockPrisma.user.update.mockResolvedValue({
+      firstName: "Aroha",
+      lastName: "Williams",
+    });
+
+    await PUT(
+      makeRequest("PUT", {
+        announcementOptOuts: ["PROMOTIONAL", "URGENT", "SHIFT_RELATED"],
+      })
+    );
+
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          announcementOptOuts: ["PROMOTIONAL"],
         }),
       })
     );

@@ -36,8 +36,9 @@ export async function GET() {
 
   const results = await Promise.all(
     announcements.map(async (ann) => {
-      const recipientCount = await countAnnouncementRecipients(
-        targetingFromAnnouncement(ann)
+      const { count: recipientCount } = await countAnnouncementRecipients(
+        targetingFromAnnouncement(ann),
+        ann.category
       );
       return {
         ...ann,
@@ -164,7 +165,10 @@ export async function POST(request: Request) {
     },
   });
 
-  const recipientCount = await countAnnouncementRecipients(targeting);
+  const { count: recipientCount } = await countAnnouncementRecipients(
+    targeting,
+    parsedCategory.category
+  );
 
   // Fire-and-forget dispatch paths — keep the admin response snappy.
   if (sendEmail) {
@@ -203,8 +207,10 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   });
   if (!ann) return;
 
+  // Volunteers who opted out of this category are left out here.
   const recipients = await findAnnouncementRecipients(
-    targetingFromAnnouncement(ann)
+    targetingFromAnnouncement(ann),
+    ann.category
   );
 
   // Wrap the rendered markdown in a container with explicit colour and font
@@ -279,8 +285,10 @@ async function dispatchAnnouncementNotifications(announcementId: string) {
   });
   if (!ann) return;
 
+  // Volunteers who opted out of this category are left out here.
   const recipients = await findAnnouncementRecipients(
-    targetingFromAnnouncement(ann)
+    targetingFromAnnouncement(ann),
+    ann.category
   );
   if (recipients.length === 0) {
     await prisma.announcement.update({

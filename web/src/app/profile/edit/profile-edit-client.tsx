@@ -146,6 +146,7 @@ export default function ProfileEditClient({
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],
+    announcementOptOuts: [],
     volunteerAgreementAccepted: false,
     healthSafetyPolicyAccepted: false,
   });
@@ -205,6 +206,7 @@ export default function ProfileEditClient({
               profileData.receiveShortageNotifications !== false,
             excludedShortageNotificationTypes:
               profileData.excludedShortageNotificationTypes || [],
+            announcementOptOuts: profileData.announcementOptOuts || [],
             volunteerAgreementAccepted:
               profileData.volunteerAgreementAccepted || false,
             healthSafetyPolicyAccepted:

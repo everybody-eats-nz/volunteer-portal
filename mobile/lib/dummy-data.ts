@@ -32,6 +32,9 @@ export type UserProfile = User & {
   notificationPreference: 'EMAIL' | 'SMS' | 'BOTH' | 'NONE';
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
+  /** Announcement categories opted out of, e.g. ['PROMOTIONAL']. Shift
+   *  shortages follow receiveShortageNotifications instead. */
+  announcementOptOuts: string[];
   emailNewsletterSubscription: boolean;
   newsletterLists: string[];
   defaultLocation: string | null;
@@ -59,6 +62,7 @@ export const DUMMY_PROFILE: UserProfile = {
   notificationPreference: 'EMAIL',
   receiveShortageNotifications: true,
   excludedShortageNotificationTypes: [],
+  announcementOptOuts: [],
   emailNewsletterSubscription: true,
   newsletterLists: [],
   defaultLocation: null,

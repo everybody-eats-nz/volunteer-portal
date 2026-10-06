@@ -14,18 +14,27 @@ vi.mock("@/lib/prisma", () => ({
 }));
 vi.mock("@/lib/announcement-targeting", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/announcement-targeting")>()),
-  countAnnouncementRecipients: vi.fn().mockResolvedValue(3),
+  countAnnouncementRecipients: vi
+    .fn()
+    .mockResolvedValue({ count: 3, optedOut: 0 }),
   findAnnouncementRecipients: vi.fn().mockResolvedValue([]),
 }));
 
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import {
+  countAnnouncementRecipients,
+  findAnnouncementRecipients,
+} from "@/lib/announcement-targeting";
 import { POST } from "./route";
 
 const mockSession = getServerSession as ReturnType<typeof vi.fn>;
 const mockPrisma = prisma as unknown as {
   user: { findUnique: ReturnType<typeof vi.fn> };
-  announcement: { create: ReturnType<typeof vi.fn> };
+  announcement: {
+    create: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+  };
 };
 
 function post(body: Record<string, unknown>) {
@@ -101,6 +110,63 @@ describe("POST /api/admin/announcements category", () => {
           targetShiftIds: ["shift-1"],
         }),
       })
+    );
+  });
+});
+
+describe("POST /api/admin/announcements opt-outs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSession.mockResolvedValue({
+      user: { role: "ADMIN", email: "admin@example.com" },
+    });
+    mockPrisma.user.findUnique.mockResolvedValue({ id: "admin-1" });
+    mockPrisma.announcement.create.mockImplementation(({ data }) =>
+      Promise.resolve({
+        id: "ann-1",
+        ...data,
+        createdAt: new Date("2026-10-06T00:00:00Z"),
+        emailSentAt: null,
+        notificationSentAt: null,
+        author: { id: "admin-1", name: null, firstName: "Admin", email: "a" },
+      })
+    );
+  });
+
+  it("reports the reach after opt-outs for the announcement's category", async () => {
+    const res = await post({ category: "PROMOTIONAL" });
+    expect(countAnnouncementRecipients).toHaveBeenCalledWith(
+      expect.objectContaining({ targetLocations: [] }),
+      "PROMOTIONAL"
+    );
+    expect((await res.json()).announcement.recipientCount).toBe(3);
+  });
+
+  it("sends push only to volunteers who haven't opted out of the category", async () => {
+    mockPrisma.announcement.findUnique.mockResolvedValue({
+      id: "ann-1",
+      title: "Kia ora",
+      body: "Hello",
+      category: "PROMOTIONAL",
+      targetLocations: [],
+      targetGrades: [],
+      targetLabelIds: [],
+      targetUserIds: [],
+      targetShiftIds: [],
+      targetActivityLocations: [],
+      targetActivityFrom: null,
+      targetActivityTo: null,
+      targetActivityMinShifts: null,
+      targetActivityMaxShifts: null,
+    });
+
+    await post({ category: "PROMOTIONAL", sendNotification: true });
+
+    await vi.waitFor(() =>
+      expect(findAnnouncementRecipients).toHaveBeenCalledWith(
+        expect.objectContaining({ targetLocations: [] }),
+        "PROMOTIONAL"
+      )
     );
   });
 });

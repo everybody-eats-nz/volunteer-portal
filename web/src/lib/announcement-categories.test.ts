@@ -3,7 +3,10 @@ import {
   ANNOUNCEMENT_CATEGORIES,
   announcementCategoryMeta,
   isAnnouncementCategory,
+  isOptedOutOfAnnouncementCategory,
+  LISTED_OPT_OUT_CATEGORIES,
   parseAnnouncementCategory,
+  sanitizeAnnouncementOptOuts,
 } from "./announcement-categories";
 
 describe("announcement category policy", () => {
@@ -73,4 +76,88 @@ describe("parseAnnouncementCategory", () => {
       });
     }
   );
+});
+
+describe("sanitizeAnnouncementOptOuts", () => {
+  it("only lists promotional; shortages use their own switch", () => {
+    expect(LISTED_OPT_OUT_CATEGORIES).toEqual(["PROMOTIONAL"]);
+  });
+
+  it("keeps promotional and drops anything that can't be opted out of here", () => {
+    expect(
+      sanitizeAnnouncementOptOuts([
+        "PROMOTIONAL",
+        "SHIFT_RELATED",
+        "URGENT",
+        "SHIFT_SHORTAGE",
+        "NEWSLETTER",
+        42,
+        "PROMOTIONAL",
+      ])
+    ).toEqual(["PROMOTIONAL"]);
+  });
+
+  it("returns an empty list when nothing is opted out", () => {
+    expect(sanitizeAnnouncementOptOuts([])).toEqual([]);
+  });
+});
+
+describe("isOptedOutOfAnnouncementCategory", () => {
+  const optedIn = {
+    receiveShortageNotifications: true,
+    announcementOptOuts: [],
+  } as const;
+  const optedOutOfEverything = {
+    receiveShortageNotifications: false,
+    // A stale row could hold mandatory categories; they must still deliver.
+    announcementOptOuts: [
+      "SHIFT_RELATED",
+      "URGENT",
+      "SHIFT_SHORTAGE",
+      "PROMOTIONAL",
+    ],
+  } as const;
+
+  it.each(["SHIFT_RELATED", "URGENT"] as const)(
+    "never opts anyone out of mandatory %s",
+    (category) => {
+      expect(
+        isOptedOutOfAnnouncementCategory(optedOutOfEverything, category)
+      ).toBe(false);
+    }
+  );
+
+  it("follows the shortage switch for shift shortages", () => {
+    expect(isOptedOutOfAnnouncementCategory(optedIn, "SHIFT_SHORTAGE")).toBe(
+      false
+    );
+    expect(
+      isOptedOutOfAnnouncementCategory(
+        { receiveShortageNotifications: false, announcementOptOuts: [] },
+        "SHIFT_SHORTAGE"
+      )
+    ).toBe(true);
+    // Listing SHIFT_SHORTAGE does nothing while the switch is on.
+    expect(
+      isOptedOutOfAnnouncementCategory(
+        {
+          receiveShortageNotifications: true,
+          announcementOptOuts: ["SHIFT_SHORTAGE"],
+        },
+        "SHIFT_SHORTAGE"
+      )
+    ).toBe(false);
+  });
+
+  it("follows the opt-out list for promotional", () => {
+    expect(isOptedOutOfAnnouncementCategory(optedIn, "PROMOTIONAL")).toBe(
+      false
+    );
+    expect(
+      isOptedOutOfAnnouncementCategory(
+        { receiveShortageNotifications: true, announcementOptOuts: ["PROMOTIONAL"] },
+        "PROMOTIONAL"
+      )
+    ).toBe(true);
+  });
 });

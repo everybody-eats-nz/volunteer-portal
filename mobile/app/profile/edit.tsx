@@ -65,6 +65,7 @@ type FormData = {
   notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
+  announcementOptOuts: string[];
   emailNewsletterSubscription: boolean;
   newsletterLists: string[];
   defaultLocation: string;
@@ -238,6 +239,7 @@ export default function EditProfileScreen() {
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],
+    announcementOptOuts: [],
     emailNewsletterSubscription: true,
     newsletterLists: [],
     defaultLocation: "",
@@ -367,6 +369,7 @@ export default function EditProfileScreen() {
         receiveShortageNotifications: profile.receiveShortageNotifications,
         excludedShortageNotificationTypes:
           profile.excludedShortageNotificationTypes,
+        announcementOptOuts: profile.announcementOptOuts,
         emailNewsletterSubscription: profile.emailNewsletterSubscription,
         newsletterLists: profile.newsletterLists,
         defaultLocation: profile.defaultLocation ?? "",
@@ -405,6 +408,11 @@ export default function EditProfileScreen() {
         return trimmed ? undefined : "Enter their phone number.";
     }
   };
+
+  // Shift-related and urgent announcements are mandatory, and shortages
+  // follow receiveShortageNotifications, so promotional is the one listed
+  // opt-out here.
+  const wantsPromotional = !form.announcementOptOuts.includes("PROMOTIONAL");
 
   const updateField = <K extends keyof FormData>(
     key: K,
@@ -604,6 +612,7 @@ export default function EditProfileScreen() {
           receiveShortageNotifications: form.receiveShortageNotifications,
           excludedShortageNotificationTypes:
             form.excludedShortageNotificationTypes,
+          announcementOptOuts: form.announcementOptOuts,
           emailNewsletterSubscription: form.emailNewsletterSubscription,
           newsletterLists: form.emailNewsletterSubscription
             ? form.newsletterLists
@@ -1060,6 +1069,83 @@ export default function EditProfileScreen() {
           })}
         </View>
 
+        {/* ── Announcements ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Announcements
+          </Text>
+          <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+            News from the Everybody Eats team, in your feed and by email or
+            push notification.
+          </Text>
+
+          <View
+            style={s.toggleRow}
+            accessible
+            accessibilityLabel="Your shifts and urgent notices. Always on."
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Your shifts & urgent notices
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Always on, because they&apos;re about shifts you&apos;re signed
+                up for or something you need to know, like a closure for
+                extreme weather.
+              </Text>
+            </View>
+            <Ionicons
+              name="lock-closed"
+              size={22}
+              color={colors.textSecondary}
+              style={{ width: 26, textAlign: "center" }}
+            />
+          </View>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              updateField(
+                "announcementOptOuts",
+                wantsPromotional
+                  ? [...form.announcementOptOuts, "PROMOTIONAL"]
+                  : form.announcementOptOuts.filter(
+                      (c) => c !== "PROMOTIONAL"
+                    )
+              );
+            }}
+            style={s.toggleRow}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: wantsPromotional }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Promotions & events
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Deals, events and other promos, like Hopper Cafe student
+                deals.
+              </Text>
+            </View>
+            <Ionicons
+              name={wantsPromotional ? "checkbox" : "square-outline"}
+              size={26}
+              color={
+                wantsPromotional
+                  ? isDark
+                    ? Palette.forest200
+                    : Brand.green
+                  : colors.textSecondary
+              }
+            />
+          </Pressable>
+
+          <Text style={[s.fieldHint, { color: colors.textSecondary }]}>
+            &ldquo;Help needed&rdquo; announcements follow your shift shortage
+            alerts below.
+          </Text>
+        </View>
+
         {/* ── Shortage Notifications ── */}
         <View style={s.section}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>
@@ -1081,7 +1167,8 @@ export default function EditProfileScreen() {
                 Receive shortage notifications
               </Text>
               <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
-                Get notified when shifts need more volunteers.
+                Get notified when shifts need more volunteers, including
+                &ldquo;help needed&rdquo; announcements.
               </Text>
             </View>
             <Ionicons
