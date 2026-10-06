@@ -11,6 +11,7 @@ import {
   ANNOUNCEMENT_SHIFT_TARGET_STATUSES,
   userMatchesActivityTargeting,
 } from "@/lib/announcement-targeting";
+import { isOptedOutOfAnnouncementCategory } from "@/lib/announcement-categories";
 import { userMatchesTargetLocations } from "@/lib/user-locations";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import {
@@ -93,6 +94,8 @@ export async function GET(request: Request) {
           defaultLocation: true,
           availableLocations: true,
           customLabels: { select: { labelId: true } },
+          receiveShortageNotifications: true,
+          announcementOptOuts: true,
         },
       }),
       prisma.friendship.findMany({
@@ -370,13 +373,25 @@ export async function GET(request: Request) {
     // shifts.
     const activityMatch = userMatchesActivityTargeting(workedShifts, ann);
 
+    // Opting out of a category hides it from the feed as well as stopping
+    // email and push, matching the recipient query used to send them.
+    const optedOut = isOptedOutOfAnnouncementCategory(
+      {
+        receiveShortageNotifications:
+          userProfile?.receiveShortageNotifications ?? true,
+        announcementOptOuts: userProfile?.announcementOptOuts ?? [],
+      },
+      ann.category
+    );
+
     const targetedAtMe =
       locationMatch &&
       gradeMatch &&
       labelMatch &&
       userMatch &&
       shiftMatch &&
-      activityMatch;
+      activityMatch &&
+      !optedOut;
 
     // Admins always see every live announcement, including ones aimed at an
     // audience they aren't part of. Volunteers can comment on announcements

@@ -151,6 +151,42 @@ test.describe("User Notification Preferences", () => {
     await expect(page.getByText("Profile saved successfully!")).toBeVisible();
   });
 
+  test("should opt out of promotional announcements", async ({ page }) => {
+    await login(page, volunteerEmail, "Test123456");
+    await page.goto("/profile");
+
+    const promoStatus = page.getByTestId("promotional-announcements-status");
+    await expect(promoStatus).toContainText("Enabled");
+
+    await page.goto("/profile/edit?step=communication");
+    const announcements = page.getByTestId("announcement-preferences");
+    await expect(announcements).toBeVisible();
+
+    // Shift-related and urgent announcements can't be switched off
+    await expect(announcements.getByTestId("announcement-mandatory")).toContainText(
+      "Always on"
+    );
+
+    const promoToggle = announcements.getByTestId(
+      "announcement-promotional-toggle"
+    );
+    await expect(promoToggle).toBeChecked();
+    await promoToggle.click();
+    await expect(promoToggle).not.toBeChecked();
+
+    await page.getByTestId("header-save-button").click();
+    await expect(page.getByText("Profile saved successfully!")).toBeVisible();
+
+    await page.goto("/profile");
+    await expect(promoStatus).toContainText("Disabled");
+
+    // The opt-out is loaded back into the form
+    await page.goto("/profile/edit?step=communication");
+    await expect(
+      page.getByTestId("announcement-promotional-toggle")
+    ).not.toBeChecked();
+  });
+
   // NOTE: The following tests are skipped as the features are not implemented:
   // - "All shift types" checkbox doesn't exist in current implementation
   // - Warning message when opting out of notifications is not implemented

@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    $queryRaw: vi.fn().mockResolvedValue([{ count: BigInt(0) }]),
+    $queryRaw: vi.fn().mockResolvedValue([{ count: BigInt(0), optedOut: BigInt(0) }]),
   },
 }));
 
@@ -60,7 +60,7 @@ function lastValues(): unknown[] {
 
 beforeEach(() => {
   queryRaw.mockClear();
-  queryRaw.mockResolvedValue([{ count: BigInt(0) }]);
+  queryRaw.mockResolvedValue([{ count: BigInt(0), optedOut: BigInt(0) }]);
 });
 
 describe("announcement-targeting", () => {
@@ -326,8 +326,13 @@ describe("announcement-targeting", () => {
 
   describe("archived volunteers", () => {
     it("excludes archived volunteers when targeting everyone", async () => {
-      queryRaw.mockResolvedValueOnce([{ count: BigInt(42) }]);
-      const count = await countAnnouncementRecipients(emptyTargeting);
+      queryRaw.mockResolvedValueOnce([
+        { count: BigInt(42), optedOut: BigInt(0) },
+      ]);
+      const { count } = await countAnnouncementRecipients(
+        emptyTargeting,
+        null
+      );
       expect(count).toBe(42);
       expect(lastSql()).toContain(`"archivedAt" IS NULL`);
     });
@@ -341,7 +346,7 @@ describe("announcement-targeting", () => {
         targetShiftIds: ["shift-1"],
         targetActivityLocations: ["Wellington"],
         targetActivityMinShifts: 2,
-      });
+      }, null);
       expect(lastSql()).toContain(`"archivedAt" IS NULL`);
       // No explicit user IDs, so no escape hatch on the archive filter.
       expect(lastSql()).not.toContain(`OR "User".id = ANY(`);
@@ -351,7 +356,7 @@ describe("announcement-targeting", () => {
       await findAnnouncementRecipients({
         ...emptyTargeting,
         targetUserIds: ["user-1", "user-2"],
-      });
+      }, null);
       const sql = lastSql().replace(/\s+/g, " ");
       expect(sql).toContain(`( "archivedAt" IS NULL OR "User".id = ANY(`);
       // The exemption reuses the same ids as the targeting condition itself.
@@ -363,7 +368,7 @@ describe("announcement-targeting", () => {
         ...emptyTargeting,
         targetUserIds: ["user-1"],
         targetGrades: ["GREEN"],
-      });
+      }, null);
       const sql = lastSql().replace(/\s+/g, " ");
       // The archive exemption widens who the id list may reach — it never
       // relaxes the other dimensions, so a named volunteer of the wrong grade
@@ -378,7 +383,7 @@ describe("announcement-targeting", () => {
       await findAnnouncementRecipients({
         ...emptyTargeting,
         targetActivityMinShifts: 1,
-      });
+      }, null);
       expect(lastSql()).toContain("EXISTS (");
       expect(lastSql()).not.toContain("COUNT(DISTINCT");
     });
@@ -387,7 +392,7 @@ describe("announcement-targeting", () => {
       await findAnnouncementRecipients({
         ...emptyTargeting,
         targetActivityMinShifts: 3,
-      });
+      }, null);
       const sql = lastSql().replace(/\s+/g, " ");
       expect(sql).toContain("COUNT(DISTINCT");
       expect(lastValues()).toContain(3);
@@ -400,7 +405,7 @@ describe("announcement-targeting", () => {
         ...emptyTargeting,
         targetActivityMinShifts: 1,
         targetActivityMaxShifts: 1,
-      });
+      }, null);
       const sql = lastSql().replace(/\s+/g, " ");
       expect(sql).not.toContain("EXISTS ( SELECT 1 FROM \"Signup\" JOIN \"Shift\"");
       expect(sql).toContain("COUNT(DISTINCT");
@@ -413,9 +418,70 @@ describe("announcement-targeting", () => {
         ...emptyTargeting,
         targetActivityMinShifts: 2,
         targetActivityMaxShifts: 5,
-      });
+      }, null);
       expect(lastSql().replace(/\s+/g, " ")).toContain("BETWEEN");
       expect(lastValues()).toEqual(expect.arrayContaining([2, 5]));
+    });
+  });
+
+  describe("category opt-outs", () => {
+    it.each([null, "SHIFT_RELATED", "URGENT"] as const)(
+      "doesn't filter anyone out for %s",
+      async (category) => {
+        await findAnnouncementRecipients(emptyTargeting, category);
+        expect(lastSql()).not.toContain("receiveShortageNotifications");
+        expect(lastSql()).not.toContain("announcementOptOuts");
+      }
+    );
+
+    it("leaves out volunteers with shortage alerts off for shift shortages", async () => {
+      await findAnnouncementRecipients(emptyTargeting, "SHIFT_SHORTAGE");
+      expect(lastSql()).toContain(`"receiveShortageNotifications" = true`);
+      expect(lastSql()).not.toContain("announcementOptOuts");
+    });
+
+    it("leaves out volunteers who opted out of promotional", async () => {
+      await findAnnouncementRecipients(emptyTargeting, "PROMOTIONAL");
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).toContain(
+        `::"AnnouncementCategory" = ANY("announcementOptOuts")) IS NOT TRUE`
+      );
+      expect(lastValues()).toContain("PROMOTIONAL");
+    });
+
+    it("applies opt-outs to hand-picked volunteers too", async () => {
+      await findAnnouncementRecipients(
+        { ...emptyTargeting, targetUserIds: ["user-1"] },
+        "PROMOTIONAL"
+      );
+      const sql = lastSql().replace(/\s+/g, " ");
+      // Naming a volunteer lifts the archive filter, but never their opt-out:
+      // the opt-out is ANDed on after every targeting condition.
+      expect(sql).toContain(`( "archivedAt" IS NULL OR "User".id = ANY(`);
+      expect(sql).toMatch(
+        /AND \(\?::"AnnouncementCategory" = ANY\("announcementOptOuts"\)\) IS NOT TRUE\s*$/
+      );
+    });
+
+    it("counts the reach and the opted-out volunteers separately", async () => {
+      queryRaw.mockResolvedValueOnce([
+        { count: BigInt(40), optedOut: BigInt(2) },
+      ]);
+      const result = await countAnnouncementRecipients(
+        emptyTargeting,
+        "PROMOTIONAL"
+      );
+      expect(result).toEqual({ count: 40, optedOut: 2 });
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).toContain("COUNT(*) FILTER (WHERE (");
+      expect(sql).toContain(`COUNT(*) FILTER (WHERE NOT ((`);
+    });
+
+    it("counts nobody as opted out of a mandatory category", async () => {
+      await countAnnouncementRecipients(emptyTargeting, "URGENT");
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).toContain("COUNT(*) FILTER (WHERE TRUE) AS count");
+      expect(sql).toContain(`COUNT(*) FILTER (WHERE NOT (TRUE)) AS "optedOut"`);
     });
   });
 });

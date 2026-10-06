@@ -1,5 +1,10 @@
-import { Prisma, SignupStatus } from "@/generated/client";
+import {
+  Prisma,
+  SignupStatus,
+  type AnnouncementCategory,
+} from "@/generated/client";
 import { prisma } from "@/lib/prisma";
+import { announcementCategoryMeta } from "@/lib/announcement-categories";
 import { createNZDate, formatInNZT } from "@/lib/timezone";
 
 /**
@@ -344,25 +349,69 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
 }
 
 /**
- * Count distinct volunteers matched by the given targeting. Used for the
- * admin form preview and for storing recipient counts on send.
+ * SQL condition that is true for volunteers who still want announcements in
+ * this category: the opt-out filter, kept apart from the targeting so the
+ * composer can say how many matched volunteers opted out. Null when nobody
+ * can opt out: a mandatory category, or no category picked yet (the
+ * composer's count before the admin chooses one).
+ *
+ * Opt-outs apply even to volunteers an admin names by user ID, unlike the
+ * archive filter. Hand-picking someone doesn't change what they asked for,
+ * and NZ's Unsolicited Electronic Messages Act requires an unsubscribe from
+ * commercial messages, such as promos, to be honoured.
+ *
+ * Keep in step with isOptedOutOfAnnouncementCategory, which the mobile feed
+ * uses.
  */
-export async function countAnnouncementRecipients(
-  t: AnnouncementTargeting
-): Promise<number> {
-  const where = buildRecipientConditions(t);
-  const result = await prisma.$queryRaw<[{ count: bigint }]>(
-    Prisma.sql`SELECT COUNT(*) AS count FROM "User" WHERE ${where}`
-  );
-  return Number(result[0].count);
+function optedInCondition(
+  category: AnnouncementCategory | null
+): Prisma.Sql | null {
+  if (category === null || announcementCategoryMeta(category).mandatory) {
+    return null;
+  }
+  // One shortage switch for volunteers: shortage announcements follow the
+  // same preference as shortage alerts.
+  if (category === "SHIFT_SHORTAGE") {
+    return Prisma.sql`"receiveShortageNotifications" = true`;
+  }
+  // IS NOT TRUE rather than NOT, so a NULL list counts as "not opted out".
+  return Prisma.sql`(${category}::"AnnouncementCategory" = ANY("announcementOptOuts")) IS NOT TRUE`;
 }
 
 /**
- * Find all volunteers matched by the given targeting, returning the fields
- * needed to send them a notification or email.
+ * Count the volunteers an announcement in this category will reach, plus how
+ * many more the targeting matched but who opted out of the category. Used for
+ * the admin form preview and for storing recipient counts on send.
+ */
+export async function countAnnouncementRecipients(
+  t: AnnouncementTargeting,
+  category: AnnouncementCategory | null
+): Promise<{ count: number; optedOut: number }> {
+  const where = buildRecipientConditions(t);
+  const optedIn = optedInCondition(category) ?? Prisma.sql`TRUE`;
+  const result = await prisma.$queryRaw<[{ count: bigint; optedOut: bigint }]>(
+    Prisma.sql`
+      SELECT
+        COUNT(*) FILTER (WHERE ${optedIn}) AS count,
+        COUNT(*) FILTER (WHERE NOT (${optedIn})) AS "optedOut"
+      FROM "User"
+      WHERE ${where}
+    `
+  );
+  return {
+    count: Number(result[0].count),
+    optedOut: Number(result[0].optedOut),
+  };
+}
+
+/**
+ * Find all volunteers who will receive an announcement in this category,
+ * leaving out anyone who opted out of it, and returning the fields needed to
+ * send them a notification or email.
  */
 export async function findAnnouncementRecipients(
-  t: AnnouncementTargeting
+  t: AnnouncementTargeting,
+  category: AnnouncementCategory | null
 ): Promise<
   Array<{
     id: string;
@@ -371,7 +420,11 @@ export async function findAnnouncementRecipients(
     name: string | null;
   }>
 > {
-  const where = buildRecipientConditions(t);
+  const targeting = buildRecipientConditions(t);
+  const optedIn = optedInCondition(category);
+  const where = optedIn
+    ? Prisma.sql`${targeting} AND ${optedIn}`
+    : targeting;
   return prisma.$queryRaw<
     Array<{
       id: string;

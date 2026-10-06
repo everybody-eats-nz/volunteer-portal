@@ -29,7 +29,9 @@ import {
   CalendarIcon,
   Eye,
   EyeOff,
+  Lock,
   Mail,
+  Megaphone,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -110,6 +112,9 @@ export interface UserProfileFormData {
   notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
+  /** Announcement categories opted out of. Profile editing only: leave it
+   *  undefined (as registration does) to hide the Announcements section. */
+  announcementOptOuts?: string[];
   volunteerAgreementAccepted: boolean;
   healthSafetyPolicyAccepted: boolean;
 }
@@ -921,6 +926,90 @@ export function AvailabilityStep({
 }
 
 /**
+ * Which announcements the volunteer wants. Shift-related and urgent ones are
+ * always delivered, so they show as locked on; promotional can be switched
+ * off. Shift shortages follow the shortage notification switch below rather
+ * than getting a second toggle here.
+ */
+function AnnouncementPreferences({
+  optOuts,
+  onChange,
+  loading,
+}: {
+  optOuts: string[];
+  onChange: (next: string[]) => void;
+  loading: boolean;
+}) {
+  const wantsPromotional = !optOuts.includes("PROMOTIONAL");
+
+  return (
+    <div className="space-y-4" data-testid="announcement-preferences">
+      <div className="space-y-1.5">
+        <h3 className={groupHeadingStyles}>
+          <Megaphone className="h-3.5 w-3.5" />
+          Announcements
+        </h3>
+        <p className={helperTextStyles}>
+          News from the Everybody Eats team, in the app and by email or push
+          notification.
+        </p>
+      </div>
+
+      <div
+        className={cn(panelStyles, "flex items-start gap-5")}
+        data-testid="announcement-mandatory"
+      >
+        <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-forest-500/70 dark:text-cream-50/60">
+          <Lock className="h-3.5 w-3.5" aria-hidden />
+        </span>
+        <div className="text-sm font-medium">
+          <span className="flex flex-wrap items-center gap-2">
+            Your shifts and urgent notices
+            <span className="rounded-full bg-forest-500/10 px-2 py-0.5 text-[11px] font-semibold text-forest-700 dark:bg-cream-50/10 dark:text-cream-50/80">
+              Always on
+            </span>
+          </span>
+          <p className={cn(helperTextStyles, "mt-1 font-normal")}>
+            We always send these, because they&apos;re about shifts
+            you&apos;re signed up for or something you need to know, like a
+            closure for extreme weather.
+          </p>
+        </div>
+      </div>
+
+      <div className={panelStyles}>
+        <Label className="flex items-start space-x-3 text-sm font-medium cursor-pointer">
+          <Checkbox
+            checked={wantsPromotional}
+            onCheckedChange={(checked) =>
+              onChange(
+                checked === true
+                  ? optOuts.filter((c) => c !== "PROMOTIONAL")
+                  : [...optOuts, "PROMOTIONAL"]
+              )
+            }
+            disabled={loading}
+            className="mt-1"
+            data-testid="announcement-promotional-toggle"
+          />
+          <div>
+            <span>Promotions and events</span>
+            <p className={cn(helperTextStyles, "mt-1 font-normal")}>
+              Deals, events and other promos, like Hopper Cafe student deals.
+            </p>
+          </div>
+        </Label>
+      </div>
+
+      <p className={helperTextStyles}>
+        &ldquo;Help needed&rdquo; announcements about short-staffed shifts
+        follow your shortage notification setting below.
+      </p>
+    </div>
+  );
+}
+
+/**
  * Communication preferences and agreements step
  */
 export function CommunicationStep({
@@ -958,7 +1047,21 @@ export function CommunicationStep({
 }) {
   return (
     <div className="space-y-6" data-testid="notification-preferences-form">
-      <div className="space-y-4">
+      {formData.announcementOptOuts && (
+        <AnnouncementPreferences
+          optOuts={formData.announcementOptOuts}
+          onChange={(next) => onInputChange("announcementOptOuts", next)}
+          loading={loading}
+        />
+      )}
+
+      <div
+        className={cn(
+          "space-y-4",
+          formData.announcementOptOuts &&
+            "border-t border-forest-500/10 pt-6 dark:border-cream-50/10"
+        )}
+      >
         <h3 className={groupHeadingStyles}>
           <Bell className="h-3.5 w-3.5" />
           Shortage Notifications
@@ -978,7 +1081,8 @@ export function CommunicationStep({
             <div>
               <span>Receive shift shortage notifications</span>
               <p className={cn(helperTextStyles, "mt-1 font-normal")}>
-                Get notified when shifts need more volunteers. You can customize
+                Get notified when shifts need more volunteers, including
+                &ldquo;help needed&rdquo; announcements. You can customize
                 which types of shifts you&apos;d like to hear about.
               </p>
             </div>

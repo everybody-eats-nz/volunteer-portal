@@ -218,7 +218,17 @@ export function Composer({
     [audience]
   );
 
-  const { count: recipientCount, counting } = useRecipientCount(targeting);
+  // The reach preview also sends the category, so volunteers who opted out
+  // of it drop out of the count and the "see exactly who" list.
+  const reachRequest: ReachRequest = useMemo(
+    () => ({ ...targeting, category }),
+    [targeting, category]
+  );
+  const {
+    count: recipientCount,
+    optedOut,
+    counting,
+  } = useRecipientCount(reachRequest);
 
   const conditions = audienceConditions(targeting, labels);
   const activeFilters = countActiveAudienceFilters(audience);
@@ -579,6 +589,16 @@ export function Composer({
                   volunteer{recipientCount === 1 ? "" : "s"} will receive this
                 </span>
               </div>
+              {category !== null && optedOut > 0 && !counting && (
+                <p
+                  className="mt-1.5 text-xs text-muted-foreground"
+                  data-testid="announcement-opted-out-count"
+                >
+                  {optedOut} more opted out of{" "}
+                  {announcementCategoryMeta(category).label.toLowerCase()}{" "}
+                  announcements
+                </p>
+              )}
 
               {conditions.length === 0 ? (
                 <p className="mt-3 text-sm text-muted-foreground">
@@ -607,7 +627,7 @@ export function Composer({
               )}
 
               <RecipientListToggle
-                targeting={targeting}
+                reachRequest={reachRequest}
                 recipientCount={recipientCount}
               />
             </div>
@@ -923,14 +943,14 @@ type RecipientPreview = {
  * Refetches (debounced) whenever the targeting changes while open.
  */
 function RecipientListToggle({
-  targeting,
+  reachRequest,
   recipientCount,
 }: {
-  targeting: TargetingDraft;
+  reachRequest: ReachRequest;
   recipientCount: number | null;
 }) {
   const [open, setOpen] = useState(false);
-  const serialized = JSON.stringify(targeting);
+  const serialized = JSON.stringify(reachRequest);
   const [result, setResult] = useState<{
     recipients: RecipientPreview[];
     total: number;
@@ -1046,18 +1066,25 @@ function RecipientListToggle({
 
 // ─── Live recipient count ───────────────────────────────────────────────────
 
+/** Targeting plus category: what decides who an announcement reaches. */
+type ReachRequest = TargetingDraft & {
+  category: AnnouncementCategory | null;
+};
+
 /**
- * Debounced live count of volunteers matching the current targeting. Uses
- * the same parse path as the create route, so the preview can't drift from
- * what publishing would actually send. "Counting" is derived: the shown
- * count belongs to `key`, and any newer targeting means we're mid-count.
+ * Debounced live count of volunteers matching the current targeting, less
+ * anyone who opted out of the category (`optedOut` counts those). Uses the
+ * same parse path as the create route, so the preview can't drift from what
+ * publishing would actually send. "Counting" is derived: the shown count
+ * belongs to `key`, and any newer request means we're mid-count.
  */
-function useRecipientCount(targeting: TargetingDraft) {
-  const serialized = JSON.stringify(targeting);
+function useRecipientCount(reachRequest: ReachRequest) {
+  const serialized = JSON.stringify(reachRequest);
   const [result, setResult] = useState<{
     count: number | null;
+    optedOut: number;
     key: string | null;
-  }>({ count: null, key: null });
+  }>({ count: null, optedOut: 0, key: null });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1074,9 +1101,13 @@ function useRecipientCount(targeting: TargetingDraft) {
         );
         if (response.ok) {
           const data = await response.json();
-          setResult({ count: data.count ?? null, key: serialized });
+          setResult({
+            count: data.count ?? null,
+            optedOut: data.optedOut ?? 0,
+            key: serialized,
+          });
         } else {
-          setResult({ count: null, key: serialized });
+          setResult({ count: null, optedOut: 0, key: serialized });
         }
       } catch (err) {
         // On abort a newer request owns the spinner; on real errors stop
@@ -1092,5 +1123,9 @@ function useRecipientCount(targeting: TargetingDraft) {
     };
   }, [serialized]);
 
-  return { count: result.count, counting: result.key !== serialized };
+  return {
+    count: result.count,
+    optedOut: result.optedOut,
+    counting: result.key !== serialized,
+  };
 }

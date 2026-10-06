@@ -5,6 +5,7 @@ import {
   findAnnouncementRecipients,
   parseTargetingFromRequest,
 } from "@/lib/announcement-targeting";
+import { isAnnouncementCategory } from "@/lib/announcement-categories";
 
 /** Cap the preview list so a broad audience doesn't ship thousands of rows. */
 const MAX_PREVIEW_RECIPIENTS = 300;
@@ -12,8 +13,9 @@ const MAX_PREVIEW_RECIPIENTS = 300;
 /**
  * POST /api/admin/announcements/recipients
  *
- * Returns the volunteers matched by the given targeting filters — the same
- * matching logic the send path uses. Powers the "see exactly who" list under
+ * Returns the volunteers matched by the given targeting filters and
+ * `category` (leaving out anyone who opted out of it) — the same matching
+ * logic the send path uses. Powers the "see exactly who" list under
  * the recipient count in the composer. The list is alphabetised and capped
  * at MAX_PREVIEW_RECIPIENTS; `total` always reflects the full audience.
  */
@@ -25,7 +27,8 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const recipients = await findAnnouncementRecipients(
-    parseTargetingFromRequest(body)
+    parseTargetingFromRequest(body),
+    isAnnouncementCategory(body.category) ? body.category : null
   );
 
   // One display name, resolved server-side and used for both the sort and the
