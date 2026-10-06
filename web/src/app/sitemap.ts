@@ -1,13 +1,16 @@
 import { MetadataRoute } from "next";
+import { cacheLife } from "next/cache";
 import { getBaseUrl } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { VOLUNTEER_LOCATIONS } from "@/lib/volunteer-locations";
 
-// Regenerate at most once per hour. Shifts can be created/edited frequently
-// but search engines don't fetch sitemaps often enough to need fresher data.
-export const revalidate = 3600;
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Regenerate at most once per hour. Shifts can be created/edited frequently
+  // but search engines don't fetch sitemaps often enough to need fresher data.
+  // (The `revalidate` segment config isn't allowed under cacheComponents.)
+  "use cache";
+  cacheLife("hours");
+
   const baseUrl = getBaseUrl();
 
   // Static public pages that should be indexed

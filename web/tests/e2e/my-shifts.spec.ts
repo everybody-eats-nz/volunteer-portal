@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { loginAsVolunteer } from "./helpers/auth";
 
 // React streams the Suspense content into a hidden template div before
@@ -19,6 +19,21 @@ async function waitForPageLoad(page: Page) {
 // Shift rows in the schedule timeline (same markup at every viewport)
 function getShiftRows(page: Page) {
   return page.locator('[data-testid="shift-row"]:visible');
+}
+
+// Rows are server-rendered, so they can be visible before React has attached
+// the dialog trigger's click handler — a click in that window is silently
+// dropped. Retry the click until the dialog opens (only while it's closed, so
+// a slow open isn't toggled shut by a second click on the overlay).
+async function openShiftDialog(page: Page, row: Locator) {
+  const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
+  await expect(async () => {
+    if (!(await dialog.isVisible())) {
+      await row.click();
+    }
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+  return dialog;
 }
 
 test.describe("My Shifts Page", () => {
@@ -267,13 +282,9 @@ test.describe("My Shifts Page", () => {
       const rowCount = await shiftRows.count();
 
       if (rowCount > 0) {
-        // Click on first shift
+        // Click on first shift — dialog should open
         await shiftRows.first().waitFor({ state: "visible" });
-        await shiftRows.first().click();
-
-        // Dialog should open
-        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
-        await expect(dialog).toBeVisible();
+        const dialog = await openShiftDialog(page, shiftRows.first());
 
         // Dialog should have title
         const dialogTitle = dialog.locator("h2, .display").first();
@@ -290,10 +301,7 @@ test.describe("My Shifts Page", () => {
       const rowCount = await shiftRows.count();
 
       if (rowCount > 0) {
-        await shiftRows.first().click();
-
-        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
-        await expect(dialog).toBeVisible();
+        const dialog = await openShiftDialog(page, shiftRows.first());
 
         // Should show status
         const statusText = dialog.getByText(
@@ -324,10 +332,7 @@ test.describe("My Shifts Page", () => {
       const rowCount = await upcomingRows.count();
 
       if (rowCount > 0) {
-        await upcomingRows.first().click();
-
-        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
-        await expect(dialog).toBeVisible();
+        const dialog = await openShiftDialog(page, upcomingRows.first());
 
         // Cancel button should be visible and enabled
         const cancelButton = dialog.getByTestId("cancel-shift-button");
@@ -368,10 +373,7 @@ test.describe("My Shifts Page", () => {
       const rowCount = await shiftRows.count();
 
       if (rowCount > 0) {
-        await shiftRows.first().click();
-
-        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
-        await expect(dialog).toBeVisible();
+        const dialog = await openShiftDialog(page, shiftRows.first());
 
         // Look for friends section ("Whānau joining" / "Whānau who joined")
         const friendsSection = dialog.getByText(/whānau (joining|who joined)/i);
@@ -457,12 +459,9 @@ test.describe("My Shifts Page", () => {
       const rowCount = await shiftRows.count();
 
       if (rowCount > 0) {
-        await shiftRows.first().click();
-
         // On mobile the responsive dialog renders as a drawer — both have
         // role="dialog"
-        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
-        await expect(dialog).toBeVisible();
+        await openShiftDialog(page, shiftRows.first());
       }
     });
   });
