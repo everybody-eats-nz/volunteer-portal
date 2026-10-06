@@ -9,6 +9,8 @@ import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
 
 interface SiteFooterProps {
   session?: Session | null;
+  /** True until the client session is known; renders a placeholder column. */
+  isSessionLoading?: boolean;
 }
 
 const columnHeading = "eyebrow text-cream-50/60 mb-4";
@@ -25,7 +27,7 @@ const footerLink =
  * <SiteFooter session={session} />
  * ```
  */
-export function SiteFooter({ session }: SiteFooterProps) {
+export function SiteFooter({ session, isSessionLoading }: SiteFooterProps) {
   const currentYear = 2026;
   const isAdmin = session?.user?.role === "ADMIN";
 
@@ -107,8 +109,12 @@ export function SiteFooter({ session }: SiteFooterProps) {
             </div>
           </div>
 
+          {/* Session not known yet (server render + hydration): hold a
+              placeholder shaped like Quick Links so neither branch flashes */}
+          {isSessionLoading && <AccountColumnSkeleton />}
+
           {/* Quick links for logged-in users */}
-          {session?.user && (
+          {!isSessionLoading && session?.user && (
             <div>
               <h3 className={columnHeading}>Quick Links</h3>
               <nav className="space-y-2.5">
@@ -133,7 +139,7 @@ export function SiteFooter({ session }: SiteFooterProps) {
           )}
 
           {/* Call to action for non-logged-in users */}
-          {!session?.user && (
+          {!isSessionLoading && !session?.user && (
             <div>
               <h3 className={columnHeading}>Ready to Volunteer?</h3>
               <p className="text-sm text-cream-50/80 mb-4">
@@ -232,3 +238,24 @@ export function SiteFooter({ session }: SiteFooterProps) {
 }
 
 export default SiteFooter;
+
+function AccountColumnSkeleton() {
+  return (
+    <div aria-hidden className="motion-safe:animate-pulse">
+      {/* leading-[1.2] matches the global h1-h6 line-height of the real
+          column heading */}
+      <p className={`${columnHeading} leading-[1.2]`}>
+        <span className="inline-block h-2 w-20 rounded-full bg-cream-50/15 align-middle" />
+      </p>
+      <div className="space-y-2.5">
+        {["w-28", "w-20", "w-24", "w-16"].map((width) => (
+          <p key={width} className="text-sm">
+            <span
+              className={`inline-block h-2.5 ${width} rounded-full bg-cream-50/10 align-middle`}
+            />
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}

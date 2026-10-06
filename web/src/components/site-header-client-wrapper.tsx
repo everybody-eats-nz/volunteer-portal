@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useHydrationSafeSession } from "@/hooks/use-hydration-safe-session";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "./site-header";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { showEnvironmentLabel, getEnvironmentLabel } from "@/lib/environment";
 
 export function SiteHeaderClientWrapper() {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { data: session, status } = useHydrationSafeSession();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
