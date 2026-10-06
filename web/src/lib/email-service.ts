@@ -2,6 +2,10 @@ import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
 import { getLocationAddresses } from "./locations";
 import { getBaseUrl } from "./utils";
 import { getShiftTheme } from "./shift-themes";
+import {
+  announcementEmailFooter,
+  NOTIFICATION_SETTINGS_PATH,
+} from "./announcement-categories";
 
 interface ShiftCancellationEmailData {
   managerName: string;
@@ -45,6 +49,10 @@ interface ShiftShortageEmailData {
     spotsNeeded: string;
   }>;
   shiftsPageLink: string;
+  /** Why the volunteer got this, and that they can turn it off. */
+  footerText: string;
+  /** Their notification settings, linked after footerText. */
+  preferencesLink: string;
 }
 
 interface ShiftForShortageEmail {
@@ -216,6 +224,10 @@ interface AnnouncementEmailData {
   bodyHtml: string;
   imageUrl: string;
   feedLink: string;
+  /** Why the volunteer got this, and whether they can turn it off. */
+  footerText: string;
+  /** Their notification settings, linked after footerText. */
+  preferencesLink: string;
 }
 
 interface SendAnnouncementParams {
@@ -225,6 +237,7 @@ interface SendAnnouncementParams {
   bodyHtml: string;
   imageUrl?: string | null;
   feedLink: string;
+  footerText: string;
 }
 
 class EmailService {
@@ -558,6 +571,8 @@ class EmailService {
         bodyHtml: params.bodyHtml,
         imageUrl: params.imageUrl ?? "",
         feedLink: params.feedLink,
+        footerText: params.footerText,
+        preferencesLink: `${getBaseUrl()}${NOTIFICATION_SETTINGS_PATH}`,
       };
       await this.sendSmartEmail(
         this.announcementSmartEmailID,
@@ -820,6 +835,8 @@ class EmailService {
       location: firstShift.location,
       shifts,
       shiftsPageLink,
+      footerText: announcementEmailFooter("SHIFT_SHORTAGE"),
+      preferencesLink: `${getBaseUrl()}${NOTIFICATION_SETTINGS_PATH}`,
     };
 
     // In development, skip email sending if configuration is missing

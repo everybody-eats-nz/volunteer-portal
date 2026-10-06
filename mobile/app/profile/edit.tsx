@@ -1072,26 +1072,24 @@ export default function EditProfileScreen() {
         {/* ── Announcements ── */}
         <View style={s.section}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>
-            Announcements
+            Shift Announcements & Volunteer Notifications
           </Text>
           <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
-            News from the Everybody Eats team, in your feed and by email or
-            push notification.
+            Control what notifications you receive, in your feed and by email
+            or push notification.
           </Text>
 
           <View
             style={s.toggleRow}
             accessible
-            accessibilityLabel="Your shifts and urgent notices. Always on."
+            accessibilityLabel="Shift notifications. Mandatory, always on."
           >
             <View style={{ flex: 1 }}>
               <Text style={[s.toggleLabel, { color: colors.text }]}>
-                Your shifts & urgent notices
+                Shift notifications
               </Text>
               <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
-                Always on, because they&apos;re about shifts you&apos;re signed
-                up for or something you need to know, like a closure for
-                extreme weather.
+                Mandatory. Occasional updates about shifts you&apos;re signed up for.
               </Text>
             </View>
             <Ionicons
@@ -1102,54 +1100,32 @@ export default function EditProfileScreen() {
             />
           </View>
 
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              updateField(
-                "announcementOptOuts",
-                wantsPromotional
-                  ? [...form.announcementOptOuts, "PROMOTIONAL"]
-                  : form.announcementOptOuts.filter(
-                      (c) => c !== "PROMOTIONAL"
-                    )
-              );
-            }}
+          <View
             style={s.toggleRow}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: wantsPromotional }}
+            accessible
+            accessibilityLabel="Urgent messages. Mandatory, always on."
           >
             <View style={{ flex: 1 }}>
               <Text style={[s.toggleLabel, { color: colors.text }]}>
-                Promotions & events
+                Urgent messages
               </Text>
               <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
-                Deals, events and other promos, like Hopper Cafe student
-                deals.
+                Mandatory. Very occasional important messages, e.g. about flooding or similar.
               </Text>
             </View>
             <Ionicons
-              name={wantsPromotional ? "checkbox" : "square-outline"}
-              size={26}
-              color={
-                wantsPromotional
-                  ? isDark
-                    ? Palette.forest200
-                    : Brand.green
-                  : colors.textSecondary
-              }
+              name="lock-closed"
+              size={22}
+              color={colors.textSecondary}
+              style={{ width: 26, textAlign: "center" }}
             />
-          </Pressable>
-
-          <Text style={[s.fieldHint, { color: colors.textSecondary }]}>
-            &ldquo;Help needed&rdquo; announcements follow your shift shortage
-            alerts below.
-          </Text>
+          </View>
         </View>
 
         {/* ── Shortage Notifications ── */}
         <View style={s.section}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>
-            Shift Shortage Alerts
+            Shift Shortage Notifications
           </Text>
 
           <Pressable
@@ -1164,11 +1140,11 @@ export default function EditProfileScreen() {
           >
             <View style={{ flex: 1 }}>
               <Text style={[s.toggleLabel, { color: colors.text }]}>
-                Receive shortage notifications
+                Receive shift shortage notifications
               </Text>
               <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
-                Get notified when shifts need more volunteers, including
-                &ldquo;help needed&rdquo; announcements.
+                Optional. Asking for help to fill shifts that are short of
+                volunteers.
               </Text>
             </View>
             <Ionicons
@@ -1238,6 +1214,51 @@ export default function EditProfileScreen() {
               })}
             </View>
           )}
+        </View>
+
+        {/* ── Promotional ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Promotional Messages
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              updateField(
+                "announcementOptOuts",
+                wantsPromotional
+                  ? [...form.announcementOptOuts, "PROMOTIONAL"]
+                  : form.announcementOptOuts.filter(
+                      (c) => c !== "PROMOTIONAL"
+                    )
+              );
+            }}
+            style={s.toggleRow}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: wantsPromotional }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Receive promotional messages
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Optional. About upcoming events, activities and socials.
+              </Text>
+            </View>
+            <Ionicons
+              name={wantsPromotional ? "checkbox" : "square-outline"}
+              size={26}
+              color={
+                wantsPromotional
+                  ? isDark
+                    ? Palette.forest200
+                    : Brand.green
+                  : colors.textSecondary
+              }
+            />
+          </Pressable>
+
         </View>
 
         {/* ── Newsletter ── */}

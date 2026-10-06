@@ -1,6 +1,7 @@
 import { test, expect } from "./base";
 import { loginAsVolunteer } from "./helpers/auth";
 import { gotoSettled } from "./helpers/streaming";
+import { visibleTestId } from "./helpers/test-helpers";
 
 test.describe("Profile Page", () => {
   test.beforeEach(async ({ page }) => {
@@ -49,14 +50,9 @@ test.describe("Profile Page", () => {
     }
 
     // Check user name is displayed
-    const userName = page.locator("h2").filter({ hasText: /volunteer|admin/i });
-    if ((await userName.count()) === 0) {
-      // Fallback: look for any h2 that might contain the user name
-      const anyH2 = page.locator("h2").first();
-      await expect(anyH2).toBeVisible();
-    } else {
-      await expect(userName).toBeVisible();
-    }
+    const userName = visibleTestId(page, "profile-name");
+    await expect(userName).toBeVisible();
+    await expect(userName).toHaveText(/\S/);
 
     // Check role badge
     const roleBadge = page.getByTestId("user-role");

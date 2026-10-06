@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { getBudgetTracking } from "@/lib/budget-tracking";
-import { nowInNZT } from "@/lib/timezone";
+import { currentBudgetYear } from "@/lib/budget-calculations";
 import { BudgetTrackingClient } from "./budget-tracking-client";
 
 export default async function BudgetTrackingPage({
@@ -23,7 +23,7 @@ export default async function BudgetTrackingPage({
   }
 
   const params = await searchParams;
-  const currentYear = nowInNZT().getFullYear();
+  const currentYear = currentBudgetYear();
   const requestedYear = parseInt(params.year as string, 10);
   const year =
     Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= 2100
