@@ -1,6 +1,15 @@
 import { SkeletonCard } from "@/components/admin/admin-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Mirrors the hero stat tiles in MealsServedInput: koha, EFTPOS, then three ratios.
+const HERO_STAT_SPANS = [
+  "col-span-2 sm:col-span-3 xl:col-span-1",
+  "sm:col-span-3 xl:col-span-1",
+  "sm:col-span-2 xl:col-span-1",
+  "sm:col-span-2 xl:col-span-1",
+  "sm:col-span-2 xl:col-span-1",
+];
+
 /**
  * Collapsed Service Night Report placeholder. Shared by the shifts route
  * `loading.tsx` and MealsServedInput's own fetch so both match the real card.
@@ -26,9 +35,12 @@ export function ServiceNightReportSkeleton() {
             </div>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="space-y-2 rounded-xl border px-3.5 py-2.5">
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-6 xl:grid-cols-5">
+          {HERO_STAT_SPANS.map((span, i) => (
+            <div
+              key={i}
+              className={`space-y-2 rounded-xl border px-3.5 py-2.5 ${span}`}
+            >
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-6 w-20" />
             </div>

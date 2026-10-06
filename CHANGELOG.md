@@ -1,3 +1,9 @@
+## [0.180.1] - 2026-10-06
+
+### Changes
+- feat(admin): show EFTPOS on the service night report summary ([#1314](https://github.com/everybody-eats-nz/volunteer-portal/pull/1314)) by @malinmalliyawadu
+
+
 ## [0.180.0] - 2026-10-06
 
 ### Changes
