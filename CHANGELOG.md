@@ -1,3 +1,9 @@
+## [0.182.0] - 2026-10-06
+
+### Changes
+- feat: financial-year budgets, notification email footer and clearer notification preferences ([#1332](https://github.com/everybody-eats-nz/volunteer-portal/pull/1332)) by @malinmalliyawadu
+
+
 ## [0.181.1] - 2026-10-06
 
 ### Changes
