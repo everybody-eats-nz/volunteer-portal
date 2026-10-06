@@ -179,13 +179,28 @@ function Actions({
       );
     }
 
-    // The driver holding it is coming back.
+    // The driver holding it is usually coming back. But they may have
+    // forgotten to end it and be taking the van out again, so the same
+    // one-photo handover that closes somebody else's trip closes their own.
     if (openTrip.isMine) {
       return (
         <>
           <Button asChild size="xl" className="w-full" data-testid="van-end-open-trip">
             <Link href={`/drive/trip/${openTrip.id}/end`}>End my trip</Link>
           </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            className="w-full"
+            data-testid="van-start-new-trip"
+            onClick={onStart}
+          >
+            Start a new trip
+          </Button>
+          <p className="pt-1 text-center text-[13px] leading-snug text-muted-foreground">
+            Forgot to end the last one? Start a new trip and the reading you
+            photograph ends it.
+          </p>
           <Button asChild variant="ghost" size="lg" className="w-full">
             <Link href="/drive">My trips</Link>
           </Button>

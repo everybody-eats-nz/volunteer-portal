@@ -31,7 +31,19 @@ async function createTestVan(page: Page) {
   await page.getByTestId("van-vehicle-name").fill(VAN_NAME);
   await page.getByTestId("van-vehicle-rego").fill(REGO);
   await page.getByTestId("van-vehicle-city").fill("Wellington");
-  await page.getByTestId("van-vehicle-save").click();
+
+  // Keep the id from the create response itself, so afterAll can retire the
+  // van even when the rest of beforeAll fails before reaching it.
+  const [created] = await Promise.all([
+    page.waitForResponse(
+      (res) =>
+        res.url().endsWith("/api/admin/van/vehicles") &&
+        res.request().method() === "POST"
+    ),
+    page.getByTestId("van-vehicle-save").click(),
+  ]);
+  expect(created.status()).toBe(201);
+  vanId = (await created.json()).vehicle.id;
 
   await expect(page.getByText(VAN_NAME).first()).toBeVisible({ timeout: 15000 });
 }
@@ -71,7 +83,7 @@ test.beforeAll(async ({ browser }) => {
   await page.getByText(VAN_NAME).first().click();
   await page.waitForURL(/\/v\/[^/?]+/, { timeout: 15000 });
   vanUrl = new URL(page.url()).pathname;
-  vanId = vanUrl.split("/").pop()!;
+  expect(vanUrl).toBe(`/v/${vanId}`);
 
   await page.close();
 });
@@ -224,6 +236,38 @@ test.describe("van mileage log - ending a trip", () => {
 
     await expect(page.getByTestId("van-driver-home").first()).toBeVisible();
     await expect(page.getByText("33 km").first()).toBeVisible();
+  });
+
+  test("a forgotten trip is ended by the driver's next one, from one reading", async ({
+    page,
+  }) => {
+    await loginAsVolunteer(page);
+    await gotoSettled(page, vanUrl);
+    await page.getByTestId("van-start-trip").first().click();
+    await startTrip(page, "100545");
+
+    // The driver walks away without ending it and scans the sticker again.
+    await gotoSettled(page, vanUrl);
+    await expect(page.getByTestId("van-end-open-trip").first()).toBeVisible();
+    await page.getByTestId("van-start-new-trip").first().click();
+    await startTrip(page, "100566");
+
+    // The new trip is open from that reading, and the forgotten one was
+    // closed by it rather than left hanging.
+    await expect(page.getByTestId("van-trip-open").first()).toBeVisible();
+    await gotoSettled(page, "/drive");
+    await expect(page.getByText("21 km").first()).toBeVisible();
+
+    // End the new trip so the van is not left out for the specs after this.
+    await gotoSettled(page, vanUrl);
+    await page.getByTestId("van-end-open-trip").first().click();
+    await waitForStreamSettled(page);
+    await page.getByTestId("odometer-type-instead").first().click();
+    await page.getByTestId("odometer-reading-input").first().fill("100570");
+    await page.getByTestId("odometer-confirm").first().click();
+    await expect(page.getByTestId("van-trip-logged")).toBeVisible({
+      timeout: 15000,
+    });
   });
 });
 

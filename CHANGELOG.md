@@ -1,3 +1,9 @@
+## [0.178.0] - 2026-10-05
+
+### Changes
+- feat(van): let a driver's new trip end their own forgotten one ([#1325](https://github.com/everybody-eats-nz/volunteer-portal/pull/1325)) by @malinmalliyawadu
+
+
 ## [0.177.0] - 2026-10-05
 
 ### Changes

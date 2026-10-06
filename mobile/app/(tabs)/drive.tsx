@@ -303,9 +303,11 @@ function VanRow({
       accessibilityRole="button"
       accessibilityLabel={`${van.name}, ${van.rego}. ${status}. ${van.currentOdoLabel} kilometres.`}
       accessibilityHint={
-        out && !van.isMine
-          ? "Starting a trip closes theirs with the reading you photograph."
-          : undefined
+        !out
+          ? undefined
+          : van.isMine
+          ? "Starting a new trip ends your open one with the reading you photograph."
+          : "Starting a trip closes theirs with the reading you photograph."
       }
       style={({ pressed }) => [
         styles.vanRow,
