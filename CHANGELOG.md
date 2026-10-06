@@ -1,3 +1,9 @@
+## [0.180.0] - 2026-10-06
+
+### Changes
+- feat: add categories to announcements ([#1324](https://github.com/everybody-eats-nz/volunteer-portal/pull/1324)) by @malinmalliyawadu
+
+
 ## [0.179.0] - 2026-10-06
 
 ### Changes
