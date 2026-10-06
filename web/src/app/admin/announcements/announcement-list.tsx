@@ -15,7 +15,21 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import {
+  ANNOUNCEMENT_CATEGORIES,
+  type AnnouncementCategory,
+} from "@/lib/announcement-categories";
+import { CategoryBadge } from "./category";
 import {
   audienceSummary,
   authorDisplayName,
@@ -30,6 +44,7 @@ interface AnnouncementListProps {
   announcements: Announcement[];
   labels: LabelOption[];
   onDelete: (ann: Announcement) => void;
+  onCategoryChange: (ann: Announcement, category: AnnouncementCategory) => void;
   onCompose: () => void;
 }
 
@@ -41,23 +56,35 @@ export function AnnouncementList({
   announcements,
   labels,
   onDelete,
+  onCategoryChange,
   onCompose,
 }: AnnouncementListProps) {
   const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] =
+    useState<AnnouncementCategory | null>(null);
 
   const { live, expired } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const matches = (ann: Announcement) =>
-      q === "" ||
-      ann.title.toLowerCase().includes(q) ||
-      ann.body.toLowerCase().includes(q) ||
-      authorDisplayName(ann.author).toLowerCase().includes(q);
+      (categoryFilter === null || ann.category === categoryFilter) &&
+      (q === "" ||
+        ann.title.toLowerCase().includes(q) ||
+        ann.body.toLowerCase().includes(q) ||
+        authorDisplayName(ann.author).toLowerCase().includes(q));
     const filtered = announcements.filter(matches);
     return {
       live: filtered.filter((a) => !isExpired(a)),
       expired: filtered.filter((a) => isExpired(a)),
     };
-  }, [announcements, query]);
+  }, [announcements, query, categoryFilter]);
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<AnnouncementCategory, number>();
+    for (const a of announcements) {
+      counts.set(a.category, (counts.get(a.category) ?? 0) + 1);
+    }
+    return counts;
+  }, [announcements]);
 
   const liveTotal = announcements.filter((a) => !isExpired(a)).length;
   const nextToExpire = announcements
@@ -119,21 +146,51 @@ export function AnnouncementList({
         />
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search announcements…"
-          className="h-9 pl-9"
-          data-testid="announcement-search"
-        />
+      {/* Search + category filter */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search announcements…"
+            className="h-9 pl-9"
+            data-testid="announcement-search"
+          />
+        </div>
+        <div
+          className="flex flex-wrap items-center gap-1.5"
+          role="group"
+          aria-label="Filter by category"
+          data-testid="announcement-category-filter"
+        >
+          <FilterChip
+            pressed={categoryFilter === null}
+            onClick={() => setCategoryFilter(null)}
+          >
+            All
+          </FilterChip>
+          {ANNOUNCEMENT_CATEGORIES.map((c) => (
+            <FilterChip
+              key={c.value}
+              pressed={categoryFilter === c.value}
+              onClick={() =>
+                setCategoryFilter((prev) => (prev === c.value ? null : c.value))
+              }
+              count={categoryCounts.get(c.value) ?? 0}
+              data-testid={`announcement-category-filter-${c.value}`}
+            >
+              {c.label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
 
       {live.length === 0 && expired.length === 0 ? (
         <p className="px-1 py-8 text-center text-sm text-muted-foreground">
-          No announcements match &ldquo;{query}&rdquo;.
+          {query.trim()
+            ? <>No announcements match &ldquo;{query}&rdquo;.</>
+            : "No announcements in this category."}
         </p>
       ) : (
         <>
@@ -149,6 +206,7 @@ export function AnnouncementList({
                     ann={ann}
                     labels={labels}
                     onDelete={() => onDelete(ann)}
+                    onCategoryChange={(next) => onCategoryChange(ann, next)}
                   />
                 ))}
               </div>
@@ -165,6 +223,7 @@ export function AnnouncementList({
                     ann={ann}
                     labels={labels}
                     onDelete={() => onDelete(ann)}
+                    onCategoryChange={(next) => onCategoryChange(ann, next)}
                     expired
                   />
                 ))}
@@ -174,6 +233,46 @@ export function AnnouncementList({
         </>
       )}
     </div>
+  );
+}
+
+function FilterChip({
+  pressed,
+  onClick,
+  count,
+  children,
+  ...rest
+}: {
+  pressed: boolean;
+  onClick: () => void;
+  count?: number;
+  children: React.ReactNode;
+} & Record<`data-${string}`, string>) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs transition-colors",
+        pressed
+          ? "border-primary-text bg-primary-text font-medium text-background"
+          : "border-forest-500/25 text-foreground hover:border-forest-500/60 hover:bg-forest-500/[0.05] dark:border-white/15 dark:hover:border-white/30 dark:hover:bg-white/[0.04]"
+      )}
+      {...rest}
+    >
+      {children}
+      {count !== undefined && (
+        <span
+          className={cn(
+            "tabular-nums",
+            pressed ? "text-background/75" : "text-muted-foreground"
+          )}
+        >
+          {count}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -230,11 +329,13 @@ function AnnouncementRow({
   ann,
   labels,
   onDelete,
+  onCategoryChange,
   expired,
 }: {
   ann: Announcement;
   labels: LabelOption[];
   onDelete: () => void;
+  onCategoryChange: (category: AnnouncementCategory) => void;
   expired?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -375,6 +476,7 @@ function AnnouncementRow({
 
           {/* Status chips */}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <CategoryMenu ann={ann} onChange={onCategoryChange} />
             {ann.sendNotification && (
               <StatusChip
                 icon={<Bell className="h-3 w-3" />}
@@ -467,5 +569,69 @@ function StatusChip({
       {icon}
       {children}
     </span>
+  );
+}
+
+/**
+ * The row's category badge, doubling as the way to re-categorise. Existing
+ * announcements were backfilled to Urgent, so admins need to be able to move
+ * old promos into Promotional before opt-outs ship.
+ */
+function CategoryMenu({
+  ann,
+  onChange,
+}: {
+  ann: Announcement;
+  onChange: (category: AnnouncementCategory) => void;
+}) {
+  const hasShifts = ann.targetShiftIds.length > 0;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="group/category cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+        aria-label="Change category"
+        data-testid="announcement-category-menu"
+      >
+        <CategoryBadge
+          category={ann.category}
+          withChevron
+          className="pr-1.5 transition-opacity group-hover/category:opacity-80"
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuLabel className="text-xs text-muted-foreground">
+          Category
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup
+          value={ann.category}
+          onValueChange={(next) => onChange(next as AnnouncementCategory)}
+        >
+          {ANNOUNCEMENT_CATEGORIES.map((c) => {
+            const blocked = c.requiresShifts && !hasShifts;
+            return (
+              <DropdownMenuRadioItem
+                key={c.value}
+                value={c.value}
+                disabled={blocked}
+                className="cursor-pointer items-start"
+                data-testid={`announcement-category-option-${c.value}`}
+              >
+                <span className="flex flex-col">
+                  <span className="text-sm">{c.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {blocked
+                      ? "Only for announcements sent to specific shifts"
+                      : c.mandatory
+                        ? "Always delivered"
+                        : "Volunteers can opt out"}
+                  </span>
+                </span>
+              </DropdownMenuRadioItem>
+            );
+          })}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -12,6 +12,7 @@ import {
   parseTargetingFromRequest,
   targetingFromAnnouncement,
 } from "@/lib/announcement-targeting";
+import { parseAnnouncementCategory } from "@/lib/announcement-categories";
 
 /**
  * GET /api/admin/announcements
@@ -61,7 +62,7 @@ export async function GET() {
  * stays snappy on large recipient lists.
  *
  * Body: {
- *   title, body,
+ *   title, body, category,
  *   imageUrl?, expiresAt?,
  *   targetLocations?, targetGrades?, targetLabelIds?,
  *   targetUserIds?, targetShiftIds?,
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
   const {
     title,
     body: announcementBody,
+    category,
     imageUrl,
     expiresAt,
     sendEmail,
@@ -135,10 +137,19 @@ export async function POST(request: Request) {
 
   const targeting = parseTargetingFromRequest(body);
 
+  const parsedCategory = parseAnnouncementCategory(
+    category,
+    targeting.targetShiftIds
+  );
+  if (!parsedCategory.ok) {
+    return NextResponse.json({ error: parsedCategory.error }, { status: 400 });
+  }
+
   const announcement = await prisma.announcement.create({
     data: {
       title: title.trim(),
       body: announcementBody.trim(),
+      category: parsedCategory.category,
       imageUrl: imageUrl?.trim() || null,
       expiresAt: expiresAtDate,
       createdBy: adminUser.id,

@@ -71,6 +71,11 @@ export interface StartTripResult {
  * that single observed reading both closes the trip before it and opens theirs.
  * The closed trip records who closed it and is flagged, so the office sees that
  * its end *time* is when the van went out again rather than when it came back.
+ *
+ * The open trip can also be this driver's own, left open by mistake. Then the
+ * same reading closes it without a flag: it is exactly what ending the trip and
+ * starting a new one would have written, one photo of the dial instead of two,
+ * and "End my trip" a day late does not flag the trip either.
  */
 export async function startTrip(
   input: StartTripInput
@@ -106,7 +111,7 @@ export async function startTrip(
             endOdoPhotoUrl: input.startOdoPhotoUrl,
             distanceKm: input.startOdo - open.startOdo,
             endedByUserId: input.driverId,
-            status: "FLAGGED",
+            status: open.driverId === input.driverId ? "CLOSED" : "FLAGGED",
           },
         });
         closedTripId = open.id;

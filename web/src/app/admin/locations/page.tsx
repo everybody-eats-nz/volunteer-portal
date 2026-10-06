@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { nightlyTargetFor } from "@/lib/budget-calculations";
+import { nowInNZT } from "@/lib/timezone";
 
 import { LocationsContent } from "./locations-content";
 import type { Venue, VenueManager } from "./types";
@@ -34,9 +36,13 @@ export default async function LocationsPage() {
     redirect("/dashboard");
   }
 
+  const currentYear = nowInNZT().getFullYear();
   const [locations, upcomingShiftGroups, restaurantManagers] =
     await Promise.all([
-      prisma.location.findMany({ orderBy: { name: "asc" } }),
+      prisma.location.findMany({
+        orderBy: { name: "asc" },
+        include: { budgets: { where: { year: currentYear } } },
+      }),
       // Shift.location is a free-text reference to Location.name, so shift
       // stats are grouped by name rather than joined by id.
       prisma.shift.groupBy({
@@ -88,6 +94,7 @@ export default async function LocationsPage() {
 
   const venues: Venue[] = locations.map((location) => {
     const shiftStats = shiftStatsByLocation.get(location.name);
+    const budget = location.budgets[0];
     return {
       id: location.id,
       name: location.name,
@@ -97,6 +104,17 @@ export default async function LocationsPage() {
         location.targetPerNight === null
           ? null
           : Number(location.targetPerNight),
+      budget: budget
+        ? {
+            year: budget.year,
+            annualTarget: Number(budget.annualTarget),
+            plannedServiceNights: budget.plannedServiceNights,
+            nightlyTarget: nightlyTargetFor({
+              annualTarget: Number(budget.annualTarget),
+              plannedServiceNights: budget.plannedServiceNights,
+            }),
+          }
+        : null,
       isActive: location.isActive,
       isPopup: location.isPopup,
       upcomingShifts: shiftStats?.count ?? 0,

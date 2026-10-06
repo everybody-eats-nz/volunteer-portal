@@ -1,10 +1,12 @@
 import { format } from "date-fns";
+import type { AnnouncementCategory } from "@/lib/announcement-categories";
 
 /** Serialized announcement row as the server page hands it to the client. */
 export type Announcement = {
   id: string;
   title: string;
   body: string;
+  category: AnnouncementCategory;
   imageUrl: string | null;
   createdAt: string;
   expiresAt: string | null;
