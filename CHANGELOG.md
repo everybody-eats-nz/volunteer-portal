@@ -1,3 +1,9 @@
+## [0.179.0] - 2026-10-06
+
+### Changes
+- feat(web): restaurant budget target tracking ([#1327](https://github.com/everybody-eats-nz/volunteer-portal/pull/1327)) by @malinmalliyawadu
+
+
 ## [0.178.0] - 2026-10-05
 
 ### Changes
