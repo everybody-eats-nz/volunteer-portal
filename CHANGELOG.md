@@ -1,3 +1,27 @@
+## [0.179.0] - 2026-10-06
+
+### Changes
+- feat(web): restaurant budget target tracking ([#1327](https://github.com/everybody-eats-nz/volunteer-portal/pull/1327)) by @malinmalliyawadu
+
+
+## [0.178.0] - 2026-10-05
+
+### Changes
+- feat(van): let a driver's new trip end their own forgotten one ([#1325](https://github.com/everybody-eats-nz/volunteer-portal/pull/1325)) by @malinmalliyawadu
+
+
+## [0.177.0] - 2026-10-05
+
+### Changes
+- feat(admin): cash reconciliation view per location and date range ([#1326](https://github.com/everybody-eats-nz/volunteer-portal/pull/1326)) by @malinmalliyawadu
+
+
+## [0.176.1] - 2026-10-05
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 4 updates ([#1313](https://github.com/everybody-eats-nz/volunteer-portal/pull/1313)) by @dependabot[bot]
+
+
 ## [0.176.0] - 2026-10-02
 
 ### Changes

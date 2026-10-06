@@ -862,7 +862,29 @@ model Location {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  budgets LocationBudget[]
+
   @@index([isActive])
+}
+
+// Annual koha budget for one location in one budget year. Kept per year so a
+// new year never overwrites the last. When a budget exists for a night's year,
+// that night's target is annualTarget / plannedServiceNights; otherwise it
+// falls back to Location.targetPerNight.
+model LocationBudget {
+  id                   String   @id @default(cuid())
+  locationId           String
+  year                 Int // Budget year - calendar year in NZ time (1 Jan - 31 Dec), see lib/budget-tracking.ts
+  annualTarget         Decimal  @db.Decimal(12, 2) // Koha budget for the year ($)
+  plannedServiceNights Int // Estimated number of service nights in the year
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  updatedBy            String? // Admin user ID who last saved it
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, year])
+  @@index([year])
 }
 
 // Site-wide configurable settings

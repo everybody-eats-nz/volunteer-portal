@@ -97,6 +97,7 @@ export function LocationsContent({ initialVenues }: LocationsContentProps) {
             defaultMealsServed: raw.defaultMealsServed,
             targetPerNight:
               raw.targetPerNight === null ? null : Number(raw.targetPerNight),
+            budget: null,
             isActive: true,
             isPopup: raw.isPopup,
             upcomingShifts: 0,
