@@ -1,3 +1,9 @@
+## [0.182.1] - 2026-10-06
+
+### Changes
+- fix(web): stop signed-in hydration mismatch in site footer ([#1331](https://github.com/everybody-eats-nz/volunteer-portal/pull/1331)) by @malinmalliyawadu
+
+
 ## [0.182.0] - 2026-10-06
 
 ### Changes
