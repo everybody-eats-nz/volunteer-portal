@@ -517,10 +517,10 @@ test.describe("Registration Page", () => {
 
       await expect(
         visibleTestId(page, "receive-notifications-toggle")
-      ).toHaveText("Disabled");
+      ).toHaveText("Off");
       await expect(
         visibleTestId(page, "promotional-announcements-status")
-      ).toHaveText("Disabled");
+      ).toHaveText("Off");
     });
   });
 

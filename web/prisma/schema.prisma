@@ -878,7 +878,7 @@ model Location {
 model LocationBudget {
   id                   String   @id @default(cuid())
   locationId           String
-  year                 Int // Budget year - calendar year in NZ time (1 Jan - 31 Dec), see lib/budget-tracking.ts
+  year                 Int // Financial year, numbered by the March it ends in (2027 = 1 Apr 2026 - 31 Mar 2027, NZ time), see lib/budget-calculations.ts
   annualTarget         Decimal  @db.Decimal(12, 2) // Koha budget for the year ($)
   plannedServiceNights Int // Estimated number of service nights in the year
   createdAt            DateTime @default(now())

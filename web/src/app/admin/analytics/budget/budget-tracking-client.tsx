@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Loader2, MapPin, CalendarRange } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { budgetYearLabel, budgetYearSpan } from "@/lib/budget-calculations";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -99,7 +100,7 @@ export function BudgetTrackingClient({
               className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
             >
               <CalendarRange className="h-3.5 w-3.5" />
-              Budget year
+              Financial year
             </Label>
             <Select
               value={String(data.year)}
@@ -115,7 +116,7 @@ export function BudgetTrackingClient({
               <SelectContent>
                 {data.years.map((y) => (
                   <SelectItem key={y} value={String(y)}>
-                    {y}
+                    {budgetYearLabel(y)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -124,7 +125,7 @@ export function BudgetTrackingClient({
         </div>
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:pb-2.5">
           {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          1 Jan &ndash; 31 Dec {data.year} · koha = cash + EFTPOS + Stripe
+          {budgetYearSpan(data.year)} · koha = cash + EFTPOS + Stripe
         </p>
       </div>
 

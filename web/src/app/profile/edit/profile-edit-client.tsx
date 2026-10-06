@@ -158,11 +158,18 @@ export default function ProfileEditClient({
       return;
     }
 
+    // In dev, StrictMode runs this effect twice. Only the live run may
+    // apply its response, or a late duplicate could overwrite edits the
+    // volunteer has already made.
+    let cancelled = false;
+
     const loadProfileData = async () => {
       try {
         const response = await fetch("/api/profile");
+        if (cancelled) return;
         if (response.ok) {
           const profileData = await response.json();
+          if (cancelled) return;
 
           // Store initial values for locked field detection
           setUserRole(profileData.role);
@@ -217,6 +224,7 @@ export default function ProfileEditClient({
           hasLoadedData.current = true;
         }
       } catch (error) {
+        if (cancelled) return;
         console.error("Failed to load profile data:", error);
         toast({
           title: "Error loading profile",
@@ -225,11 +233,14 @@ export default function ProfileEditClient({
           variant: "destructive",
         });
       } finally {
-        setInitialLoading(false);
+        if (!cancelled) setInitialLoading(false);
       }
     };
 
     loadProfileData();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run on mount
 

@@ -12,7 +12,10 @@ import {
   parseTargetingFromRequest,
   targetingFromAnnouncement,
 } from "@/lib/announcement-targeting";
-import { parseAnnouncementCategory } from "@/lib/announcement-categories";
+import {
+  announcementEmailFooter,
+  parseAnnouncementCategory,
+} from "@/lib/announcement-categories";
 
 /**
  * GET /api/admin/announcements
@@ -229,6 +232,7 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   // current timestamp so clients/proxies can't serve a stale copy.
   const imageUrl =
     ann.imageUrl ?? `${baseUrl}/email/blank-pixel.png?v=${Date.now()}`;
+  const footerText = announcementEmailFooter(ann.category);
   const emailService = getEmailService();
 
   await Promise.allSettled(
@@ -240,6 +244,7 @@ async function dispatchAnnouncementEmails(announcementId: string) {
         bodyHtml,
         imageUrl,
         feedLink,
+        footerText,
       })
     )
   );

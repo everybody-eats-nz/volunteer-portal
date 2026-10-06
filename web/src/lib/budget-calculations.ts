@@ -5,9 +5,11 @@ import { toNZT } from "@/lib/timezone";
  * Pure budget-tracking maths shared by the budget analytics page, the
  * restaurant analytics koha-vs-target figures and the locations admin.
  *
- * Budget years are NZ calendar years (1 Jan - 31 Dec, Pacific/Auckland).
- * `budgetYearRange` and `budgetYearOf` are the only places that encode that,
- * so moving to a financial year (e.g. 1 April) is a change to those two.
+ * Budget years are Everybody Eats financial years: 1 April - 31 March,
+ * Pacific/Auckland. A year is numbered by the March it ends in, the NZ
+ * convention, so budget year 2027 runs 1 Apr 2026 - 31 Mar 2027 and is shown
+ * as "2026/27". `budgetYearRange` and `budgetYearOf` are the only places that
+ * encode the boundaries.
  */
 
 const NZ_TZ = "Pacific/Auckland";
@@ -24,17 +26,40 @@ export interface BudgetInput {
   plannedServiceNights: number;
 }
 
+/** Month (0-based) the budget year starts in: April. */
+const BUDGET_YEAR_START_MONTH = 3;
+
 /** First instant of the budget year and first instant of the next one (NZ). */
 export function budgetYearRange(year: number): { start: Date; end: Date } {
   return {
-    start: new Date(new TZDate(year, 0, 1, NZ_TZ).getTime()),
-    end: new Date(new TZDate(year + 1, 0, 1, NZ_TZ).getTime()),
+    start: new Date(
+      new TZDate(year - 1, BUDGET_YEAR_START_MONTH, 1, NZ_TZ).getTime()
+    ),
+    end: new Date(new TZDate(year, BUDGET_YEAR_START_MONTH, 1, NZ_TZ).getTime()),
   };
 }
 
 /** The budget year a service night (or any instant) belongs to. */
 export function budgetYearOf(date: Date): number {
-  return toNZT(date).getFullYear();
+  const nz = toNZT(date);
+  return nz.getMonth() >= BUDGET_YEAR_START_MONTH
+    ? nz.getFullYear() + 1
+    : nz.getFullYear();
+}
+
+/** The budget year in progress right now. */
+export function currentBudgetYear(now: Date = new Date()): number {
+  return budgetYearOf(now);
+}
+
+/** Short label for a budget year: 2027 → "2026/27". */
+export function budgetYearLabel(year: number): string {
+  return `${year - 1}/${String(year % 100).padStart(2, "0")}`;
+}
+
+/** The dates a budget year covers: 2027 → "1 Apr 2026 – 31 Mar 2027". */
+export function budgetYearSpan(year: number): string {
+  return `1 Apr ${year - 1} – 31 Mar ${year}`;
 }
 
 /** Share of the budget year that has elapsed at `now`, clamped to 0..1. */

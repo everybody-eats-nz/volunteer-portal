@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { money0, money2 } from "../_lib/chart-theme";
+import { budgetYearLabel } from "@/lib/budget-calculations";
 
 export interface BudgetFormTarget {
   locationId: string;
@@ -85,7 +86,7 @@ export function BudgetFormDialog({
         toast.error(body.error ?? "Couldn't save the budget");
         return;
       }
-      toast.success(`${target.location} ${target.year} budget saved`);
+      toast.success(`${target.location} ${budgetYearLabel(target.year)} budget saved`);
       onOpenChange(false);
       router.refresh();
     } catch (error) {
@@ -112,7 +113,7 @@ export function BudgetFormDialog({
         toast.error(body.error ?? "Couldn't remove the budget");
         return;
       }
-      toast.success(`${target.location} ${target.year} budget removed`);
+      toast.success(`${target.location} ${budgetYearLabel(target.year)} budget removed`);
       setConfirmRemove(false);
       onOpenChange(false);
       router.refresh();
@@ -133,7 +134,8 @@ export function BudgetFormDialog({
         <DialogContent className="sm:max-w-md" data-testid="budget-form-dialog">
           <DialogHeader>
             <DialogTitle className="font-accent">
-              {target?.location} budget for {target?.year}
+              {target?.location} budget for{" "}
+              {target && budgetYearLabel(target.year)}
             </DialogTitle>
             <DialogDescription>
               Each service night&rsquo;s koha target is the annual budget spread
@@ -258,10 +260,11 @@ export function BudgetFormDialog({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Remove the {target?.year} budget for {target?.location}?
+              Remove the {target && budgetYearLabel(target.year)} budget for{" "}
+              {target?.location}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Budget tracking for {target?.year} will stop and nightly targets
+              Budget tracking for {target && budgetYearLabel(target.year)} will stop and nightly targets
               fall back to the location&rsquo;s standing koha target. Recorded
               koha is not affected.
             </AlertDialogDescription>

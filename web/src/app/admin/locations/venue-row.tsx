@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatInNZT } from "@/lib/timezone";
+import { budgetYearLabel } from "@/lib/budget-calculations";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -169,7 +170,7 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
                   ? null
                   : Math.round(venue.budget.nightlyTarget)
               )}
-              sub={`${venue.budget.year} budget`}
+              sub={`${budgetYearLabel(venue.budget.year)} budget`}
             />
           ) : (
             <Figure

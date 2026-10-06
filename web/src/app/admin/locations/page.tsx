@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { nightlyTargetFor } from "@/lib/budget-calculations";
-import { nowInNZT } from "@/lib/timezone";
+import {
+  currentBudgetYear,
+  nightlyTargetFor,
+} from "@/lib/budget-calculations";
 
 import { LocationsContent } from "./locations-content";
 import type { Venue, VenueManager } from "./types";
@@ -36,7 +38,7 @@ export default async function LocationsPage() {
     redirect("/dashboard");
   }
 
-  const currentYear = nowInNZT().getFullYear();
+  const currentYear = currentBudgetYear();
   const [locations, upcomingShiftGroups, restaurantManagers] =
     await Promise.all([
       prisma.location.findMany({
