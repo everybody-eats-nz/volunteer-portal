@@ -32,6 +32,7 @@ import {
   ListChecks,
   IdCard,
   Building2,
+  Banknote,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -109,6 +110,14 @@ export const adminNavCategories: AdminNavCategory[] = [
         description:
           "Shifts run, positions filled, and understaffing by restaurant",
         commandKey: "coverage",
+      },
+      {
+        title: "Cash Reconciliation",
+        href: "/admin/analytics/cash",
+        icon: Banknote,
+        description:
+          "Total cash per restaurant over a date range, to check a bank deposit",
+        commandKey: "cash-reconciliation",
       },
       {
         title: "Shortage Notifications",
@@ -376,6 +385,7 @@ export const getIconColor = (
     "Volunteer Recruitment": "text-violet-600",
     "Milestone Analytics": "text-amber-600",
     "Shift Coverage": "text-teal-600",
+    "Cash Reconciliation": "text-green-700",
 
     // Volunteers
     "All Users": "text-purple-600",

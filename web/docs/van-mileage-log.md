@@ -301,6 +301,18 @@ theirs — it is recorded anyway. The resulting negative distance surfaces as a
 high-severity exception the office can fix, which is better than refusing to let
 the next driver start over a mistake they cannot see.
 
+The open trip can be the driver's own, left open by mistake. The sticker page
+offers "Start a new trip" beside "End my trip" (the app's start flow already
+took them there), and the same single reading closes it. That trip is closed
+`CLOSED`, not `FLAGGED`: it is exactly what ending it and starting again would
+have written, one photo of the dial instead of two, and ending a trip a day late
+through "End my trip" is not flagged either. It still shows as `left-open` until
+then, which is what tells the office a trip was forgotten.
+
+A forgotten trip in a *different* van is not closed by starting this one. Nobody
+has read that van's dial, so there is no reading to close it with; it stays on
+`left-open` and the reminder until somebody does.
+
 ### The reminder asks the exception list who to nudge
 
 A van left logged out overnight is already a `left-open` exception, and that
