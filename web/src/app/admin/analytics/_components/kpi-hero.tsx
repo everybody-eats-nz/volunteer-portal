@@ -224,7 +224,7 @@ export function KpiHero({
         </div>
       ),
       tooltip:
-        "Total koha collected (cash + eftpos + Stripe) across recorded service nights, with progress against each location's per-night target.",
+        "Total koha collected (cash + eftpos + Stripe) across recorded service nights, with progress against each night's koha target (from the year's budget, or the location's per-night target).",
     },
     {
       icon: Wallet,

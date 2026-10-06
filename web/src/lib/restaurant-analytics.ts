@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { nowInNZT, toNZT } from "@/lib/timezone";
+import { makeNightlyTargetLookup } from "@/lib/budget-calculations";
 
 export interface RestaurantAnalyticsData {
   summary: {
@@ -49,7 +50,7 @@ export interface RestaurantAnalyticsData {
     vege: number;
     bookingsPax: number;
     eftposTransactions: number;
-    kohaTarget: number; // Σ per-location target × nights with koha
+    kohaTarget: number; // Σ each koha night's target (budget-derived, else per-location)
     kohaTargetPercent: number | null; // totalKoha ÷ kohaTarget
   };
   kohaTrend: number[]; // monthly total koha, aligned to trendLabels
@@ -145,7 +146,7 @@ function toNum(v: unknown): number {
 function aggregateNightStats(
   records: NightRecord[],
   daysFilter: number[] | null,
-  locationTargets: Record<string, number> = {}
+  targetFor: (location: string, date: Date) => number | null = () => null
 ) {
   const agg = {
     recordedNights: 0,
@@ -197,7 +198,7 @@ function aggregateNightStats(
       agg.monthlyCash[monthKey] = (agg.monthlyCash[monthKey] || 0) + cash;
       agg.monthlyEftpos[monthKey] = (agg.monthlyEftpos[monthKey] || 0) + eftpos;
       agg.monthlyStripe[monthKey] = (agg.monthlyStripe[monthKey] || 0) + stripe;
-      const target = locationTargets[r.location] || 0;
+      const target = targetFor(r.location, r.date) ?? 0;
       agg.totalTarget += target;
       agg.monthlyTarget[monthKey] = (agg.monthlyTarget[monthKey] || 0) + target;
     }
@@ -243,17 +244,34 @@ export async function getRestaurantAnalytics(
       isActive: true,
       ...(isLocationFiltered ? { name: location } : {}),
     },
-    select: { name: true, defaultMealsServed: true, targetPerNight: true },
+    select: {
+      name: true,
+      defaultMealsServed: true,
+      targetPerNight: true,
+      budgets: {
+        select: { year: true, annualTarget: true, plannedServiceNights: true },
+      },
+    },
   });
 
   const locationDefaults: Record<string, number> = {};
-  const locationTargets: Record<string, number> = {};
   locations.forEach((loc) => {
     locationDefaults[loc.name] = loc.defaultMealsServed;
-    if (loc.targetPerNight !== null) {
-      locationTargets[loc.name] = Number(loc.targetPerNight);
-    }
   });
+  // A night's koha target comes from its year's budget when one is set,
+  // otherwise from the location's standing per-night target.
+  const targetFor = makeNightlyTargetLookup(
+    locations.map((loc) => ({
+      name: loc.name,
+      targetPerNight:
+        loc.targetPerNight === null ? null : Number(loc.targetPerNight),
+      budgets: loc.budgets.map((b) => ({
+        year: b.year,
+        annualTarget: Number(b.annualTarget),
+        plannedServiceNights: b.plannedServiceNights,
+      })),
+    }))
+  );
 
   // Current period — use NZ timezone so "today" is correct on UTC servers.
   // Dates are constructed in server-local time (TZ=Pacific/Auckland) so they
@@ -314,8 +332,8 @@ export async function getRestaurantAnalytics(
   const previous = processPeriod(prevMeals, daysFilter);
 
   // Service-night stats (donations, volunteers, protein/weather mix, …)
-  const stats = aggregateNightStats(currentMeals, daysFilter, locationTargets);
-  const prevStats = aggregateNightStats(prevMeals, daysFilter, locationTargets);
+  const stats = aggregateNightStats(currentMeals, daysFilter, targetFor);
+  const prevStats = aggregateNightStats(prevMeals, daysFilter, targetFor);
 
   const payingCustomers = stats.customersWithKoha - stats.nonPayingWithKoha;
   const serviceStats = {
