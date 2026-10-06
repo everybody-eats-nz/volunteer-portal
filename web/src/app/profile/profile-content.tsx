@@ -410,7 +410,10 @@ export async function ProfileContent() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2 className="display text-3xl leading-[1.05] tracking-tight sm:text-4xl">
+            <h2
+              className="display text-3xl leading-[1.05] tracking-tight sm:text-4xl"
+              data-testid="profile-name"
+            >
               {userProfile?.name || session.user.name || "Volunteer"}
             </h2>
             <p className="mt-2 break-words text-cream-50/75">
