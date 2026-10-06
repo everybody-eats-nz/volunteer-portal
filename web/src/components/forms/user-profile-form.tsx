@@ -112,8 +112,8 @@ export interface UserProfileFormData {
   notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
-  /** Announcement categories opted out of. Profile editing only: leave it
-   *  undefined (as registration does) to hide the Announcements section. */
+  /** Announcement categories opted out of. Leave it undefined to hide the
+   *  Announcements section. */
   announcementOptOuts?: string[];
   volunteerAgreementAccepted: boolean;
   healthSafetyPolicyAccepted: boolean;

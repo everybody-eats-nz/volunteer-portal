@@ -17,6 +17,7 @@ import {
 } from "@/lib/funnel";
 import { phAlias } from "@/lib/posthog-server";
 import { isProfileComplete } from "@/lib/profile-completion";
+import { sanitizeAnnouncementOptOuts } from "@/lib/announcement-categories";
 
 /**
  * Validation schema for user registration
@@ -72,6 +73,14 @@ const registerSchema = z
     emailNewsletterSubscription: z.boolean().optional(),
     newsletterLists: z.array(z.string()).optional(),
     notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
+    receiveShortageNotifications: z.boolean().optional(),
+    excludedShortageNotificationTypes: z.array(z.string()).optional(),
+    // Announcement categories to opt out of. Anything that can't be opted out
+    // of this way (mandatory categories, shift shortages) is dropped.
+    announcementOptOuts: z
+      .array(z.string())
+      .transform(sanitizeAnnouncementOptOuts)
+      .optional(),
     volunteerAgreementAccepted: z.boolean(),
     healthSafetyPolicyAccepted: z.boolean(),
 
@@ -198,6 +207,11 @@ export async function POST(req: Request) {
           ? []
           : validatedData.newsletterLists ?? [],
       notificationPreference: validatedData.notificationPreference || "EMAIL",
+      receiveShortageNotifications:
+        validatedData.receiveShortageNotifications ?? true,
+      excludedShortageNotificationTypes:
+        validatedData.excludedShortageNotificationTypes ?? [],
+      announcementOptOuts: validatedData.announcementOptOuts ?? [],
       volunteerAgreementAccepted: validatedData.volunteerAgreementAccepted,
       healthSafetyPolicyAccepted: validatedData.healthSafetyPolicyAccepted,
       
