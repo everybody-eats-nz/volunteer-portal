@@ -1,3 +1,9 @@
+## [0.182.2] - 2026-10-07
+
+### Changes
+- fix: reactivate archived users on mobile passkey sign-in ([#1333](https://github.com/everybody-eats-nz/volunteer-portal/pull/1333)) by @malinmalliyawadu
+
+
 ## [0.182.1] - 2026-10-06
 
 ### Changes

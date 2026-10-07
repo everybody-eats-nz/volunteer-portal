@@ -24,6 +24,8 @@ import {
 } from "@/lib/webauthn-utils";
 import { rpID, expectedOrigin } from "@/lib/webauthn-config";
 import { signMobileToken, toMobileUser } from "@/lib/mobile-auth";
+import { unarchiveUser } from "@/lib/archive-service";
+import { ArchiveTriggerSource } from "@/generated/client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
             emergencyContactPhone: true,
             volunteerAgreementAccepted: true,
             healthSafetyPolicyAccepted: true,
+            archivedAt: true,
           },
         },
       },
@@ -133,6 +136,17 @@ export async function POST(req: NextRequest) {
       where: { id: passkey.id },
       data: { counter: BigInt(newCounter), lastUsedAt: new Date() },
     });
+
+    // Auto-reactivate archived users, same as the web passkey and mobile
+    // OAuth paths. Without this the JWT below would be issued but rejected by
+    // getMobileUser on every request, leaving the app signed in but empty.
+    if (passkey.user.archivedAt) {
+      await unarchiveUser({
+        userId: passkey.user.id,
+        triggerSource: ArchiveTriggerSource.SELF_REACTIVATION,
+        actorId: passkey.user.id,
+      });
+    }
 
     // Stamp the mobile-login marker so admin UI can tell this user is on
     // mobile. Fire-and-forget — failure shouldn't block a successful auth.
