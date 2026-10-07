@@ -8,6 +8,7 @@ import {
   currentBudgetYear,
   computeBudgetProgress,
   makeNightlyTargetLookup,
+  resolveNightlyTarget,
   nightlyTargetFor,
   ratioToPercent,
   yearElapsedRatio,
@@ -206,5 +207,46 @@ describe("makeNightlyTargetLookup", () => {
   it("has no target for a location without one", () => {
     expect(lookup("Onehunga", new Date("2026-03-10T11:00:00Z"))).toBeNull();
     expect(lookup("Unknown", new Date("2026-03-10T11:00:00Z"))).toBeNull();
+  });
+});
+
+describe("resolveNightlyTarget", () => {
+  const wellington = {
+    targetPerNight: 700,
+    budgets: [{ year: 2027, annualTarget: 120_000, plannedServiceNights: 240 }],
+  };
+
+  it("says the target came from the night's budget", () => {
+    // NZ 7 Oct 2026 is in budget year 2027 (Apr 2026 - Mar 2027)
+    expect(
+      resolveNightlyTarget(wellington, new Date("2026-10-06T11:00:00Z"))
+    ).toEqual({ amount: 500, source: "budget", budgetYear: 2027 });
+  });
+
+  it("falls back to the venue's standing target outside budgeted years", () => {
+    expect(
+      resolveNightlyTarget(wellington, new Date("2026-03-10T11:00:00Z"))
+    ).toEqual({ amount: 700, source: "venue", budgetYear: 2026 });
+  });
+
+  it("has no target when the budget has no planned nights", () => {
+    expect(
+      resolveNightlyTarget(
+        {
+          targetPerNight: 700,
+          budgets: [{ year: 2027, annualTarget: 120_000, plannedServiceNights: 0 }],
+        },
+        new Date("2026-10-06T11:00:00Z")
+      )
+    ).toBeNull();
+  });
+
+  it("has no target when the venue has neither", () => {
+    expect(
+      resolveNightlyTarget(
+        { targetPerNight: null, budgets: [] },
+        new Date("2026-10-06T11:00:00Z")
+      )
+    ).toBeNull();
   });
 });

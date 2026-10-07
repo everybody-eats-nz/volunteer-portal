@@ -14,6 +14,10 @@ export const STATUS_META: Record<
     /** Solid fill for bars / dots */
     fill: string;
     pill: string;
+    /** Tinted panel (border + background) */
+    surface: string;
+    /** Strong text on that panel */
+    text: string;
   }
 > = {
   green: {
@@ -23,6 +27,9 @@ export const STATUS_META: Record<
     hex: "#10b981",
     fill: "bg-emerald-500",
     pill: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+    surface:
+      "border-emerald-300/80 bg-emerald-50/80 dark:border-emerald-800/60 dark:bg-emerald-950/30",
+    text: "text-emerald-700 dark:text-emerald-300",
   },
   yellow: {
     label: "Close to target",
@@ -31,6 +38,9 @@ export const STATUS_META: Record<
     hex: "#eab308",
     fill: "bg-yellow-500",
     pill: "bg-yellow-400/20 text-yellow-800 dark:text-yellow-200",
+    surface:
+      "border-yellow-300/80 bg-yellow-50/80 dark:border-yellow-700/50 dark:bg-yellow-950/25",
+    text: "text-yellow-800 dark:text-yellow-200",
   },
   red: {
     label: "Below target",
@@ -39,6 +49,9 @@ export const STATUS_META: Record<
     hex: "#ef4444",
     fill: "bg-red-500",
     pill: "bg-red-500/12 text-red-700 dark:text-red-300",
+    surface:
+      "border-red-300/80 bg-red-50/80 dark:border-red-800/60 dark:bg-red-950/30",
+    text: "text-red-700 dark:text-red-300",
   },
 };
 

@@ -50,7 +50,7 @@ import {
   PALETTE,
   type ChartTokens,
 } from "../_lib/chart-theme";
-import { BudgetProgressBar, STATUS_META, StatusPill } from "./budget-status";
+import { BudgetProgressBar, STATUS_META, StatusPill } from "@/components/budget-status";
 
 type Selected = NonNullable<BudgetTrackingData["selected"]>;
 

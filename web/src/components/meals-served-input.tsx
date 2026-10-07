@@ -38,6 +38,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { computeNightDerived } from "@/lib/restaurant-stats";
+import type { NightlyTarget } from "@/lib/budget-calculations";
+import { NightlyTargetStrip } from "@/components/nightly-target-strip";
 
 interface MealsServedInputProps {
   date: string; // ISO date string (YYYY-MM-DD)
@@ -120,6 +122,8 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
   // Pop-up / special-event venues take koha outside the per-restaurant Stripe
   // products, so the Stripe field stays manual-only (no Sync) for them.
   const [isPopupLocation, setIsPopupLocation] = useState(false);
+  // Tonight's koha target (budget share, else the venue's standing target).
+  const [target, setTarget] = useState<NightlyTarget | null>(null);
 
   const set = (key: StatKey, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -183,6 +187,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
           typeof data.newVolunteers === "number" ? data.newVolunteers : null
         );
         setIsPopupLocation(data.isPopup === true);
+        setTarget(data.target ?? null);
         if (typeof data.defaultMealsServed === "number") {
           setDefaultValue(data.defaultMealsServed);
         }
@@ -395,9 +400,19 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
             </div>
           </div>
 
+        <div className="mt-5 space-y-2.5">
+        {/* Koha against tonight's target. Pop-ups without one skip it. */}
+        {(target || !isPopupLocation) && (
+          <NightlyTargetStrip
+            location={location}
+            target={target}
+            koha={derived.totalDonations}
+          />
+        )}
+
         {/* Hero totals — the night's headline result, building live */}
         {/* Money tiles pair up on their own row until there's room for all five */}
-        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-6 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-6 xl:grid-cols-5">
           <HeroStat
             featured
             className="col-span-2 sm:col-span-3 xl:col-span-1"
@@ -435,6 +450,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
                 : `${Math.round(derived.nonPayingRatio * 100)}%`
             }
           />
+        </div>
         </div>
         </header>
 
