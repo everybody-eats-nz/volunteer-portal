@@ -1,3 +1,9 @@
+## [0.183.0] - 2026-10-07
+
+### Changes
+- feat(web): nightly koha target on the Service Night Report ([#1334](https://github.com/everybody-eats-nz/volunteer-portal/pull/1334)) by @malinmalliyawadu
+
+
 ## [0.182.2] - 2026-10-07
 
 ### Changes
