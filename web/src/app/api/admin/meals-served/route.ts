@@ -6,6 +6,7 @@ import { startOfDay, endOfDay } from "date-fns";
 import { parseISOInNZT, toUTC } from "@/lib/timezone";
 import { restaurantNightStatsSchema } from "@/lib/validation-schemas";
 import { countNewVolunteers } from "@/lib/service-night-attendance";
+import { budgetYearOf, resolveNightlyTarget } from "@/lib/budget-calculations";
 import type { Prisma } from "@/generated/client";
 
 // Decimal columns come back as Prisma.Decimal — serialize to plain numbers for JSON.
@@ -72,11 +73,32 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
-      prisma.location.findUnique({ where: { name: location } }),
+      prisma.location.findUnique({
+        where: { name: location },
+        include: { budgets: { where: { year: budgetYearOf(startOfDayUTC) } } },
+      }),
     ]);
 
     // Pop-up / special-event venues are koha-manual-only (no Stripe sync).
     const isPopup = locationConfig?.isPopup ?? false;
+
+    // The night's koha target, the same one restaurant analytics measures against.
+    const target = locationConfig
+      ? resolveNightlyTarget(
+          {
+            targetPerNight:
+              locationConfig.targetPerNight === null
+                ? null
+                : Number(locationConfig.targetPerNight),
+            budgets: locationConfig.budgets.map((b) => ({
+              year: b.year,
+              annualTarget: Number(b.annualTarget),
+              plannedServiceNights: b.plannedServiceNights,
+            })),
+          },
+          startOfDayUTC
+        )
+      : null;
 
     // If no record exists, get the default from Location model
     if (!mealsRecord) {
@@ -86,6 +108,7 @@ export async function GET(request: NextRequest) {
         notes: null,
         newVolunteers,
         isPopup,
+        target,
       });
     }
 
@@ -94,6 +117,7 @@ export async function GET(request: NextRequest) {
       newVolunteers, // live value overrides the stored snapshot
       defaultMealsServed: null,
       isPopup,
+      target,
     });
   } catch (error) {
     console.error("Error fetching meals served:", error);

@@ -182,29 +182,46 @@ export function computeBudgetProgress(
   };
 }
 
+export interface NightlyTargetLocation {
+  targetPerNight: number | null;
+  budgets: Array<BudgetInput & { year: number }>;
+}
+
+export interface NightlyTarget {
+  amount: number;
+  /** "budget" = the night's budget year; "venue" = the standing per-night target. */
+  source: "budget" | "venue";
+  /** Budget year the night falls in. */
+  budgetYear: number;
+}
+
 /**
- * Builds a (location, night) → koha target lookup. A night in a year that has
- * a budget uses the budget's nightly target; any other night falls back to the
- * location's standing per-night target.
+ * One location's koha target for one night. A night in a year that has a
+ * budget uses the budget's nightly target; any other night falls back to the
+ * location's standing per-night target. Null when neither gives a target.
  */
-export function makeNightlyTargetLookup(
-  locations: Array<{
-    name: string;
-    targetPerNight: number | null;
-    budgets: Array<BudgetInput & { year: number }>;
-  }>
-): (location: string, date: Date) => number | null {
-  const fallback = new Map<string, number | null>();
-  const byYear = new Map<string, number | null>();
-  for (const loc of locations) {
-    fallback.set(loc.name, loc.targetPerNight);
-    for (const budget of loc.budgets) {
-      byYear.set(`${loc.name}|${budget.year}`, nightlyTargetFor(budget));
-    }
+export function resolveNightlyTarget(
+  location: NightlyTargetLocation,
+  date: Date
+): NightlyTarget | null {
+  const budgetYear = budgetYearOf(date);
+  const budget = location.budgets.find((b) => b.year === budgetYear);
+  if (budget) {
+    const amount = nightlyTargetFor(budget);
+    return amount === null ? null : { amount, source: "budget", budgetYear };
   }
+  return location.targetPerNight === null
+    ? null
+    : { amount: location.targetPerNight, source: "venue", budgetYear };
+}
+
+/** Builds a (location, night) → koha target lookup over many locations. */
+export function makeNightlyTargetLookup(
+  locations: Array<NightlyTargetLocation & { name: string }>
+): (location: string, date: Date) => number | null {
+  const byName = new Map(locations.map((loc) => [loc.name, loc]));
   return (location, date) => {
-    const key = `${location}|${budgetYearOf(date)}`;
-    if (byYear.has(key)) return byYear.get(key) ?? null;
-    return fallback.get(location) ?? null;
+    const loc = byName.get(location);
+    return loc ? (resolveNightlyTarget(loc, date)?.amount ?? null) : null;
   };
 }

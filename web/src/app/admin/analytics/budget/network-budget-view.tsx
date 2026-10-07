@@ -14,7 +14,7 @@ import type {
   LocationBudgetSummary,
 } from "@/lib/budget-tracking";
 import { money0 } from "../_lib/chart-theme";
-import { BudgetProgressBar, StatusPill } from "./budget-status";
+import { BudgetProgressBar, StatusPill } from "@/components/budget-status";
 
 export function NetworkBudgetView({
   data,
