@@ -30,6 +30,8 @@ type ProfileResponse = {
     notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
     receiveShortageNotifications: boolean;
     excludedShortageNotificationTypes: string[];
+    /** Announcement categories opted out of. Absent from older APIs. */
+    announcementOptOuts?: string[];
     emailNewsletterSubscription: boolean;
     newsletterLists: string[];
     defaultLocation: string | null;
@@ -100,6 +102,7 @@ export function useProfile(): UseProfileReturn {
         notificationPreference: data.profile.notificationPreference,
         receiveShortageNotifications: data.profile.receiveShortageNotifications,
         excludedShortageNotificationTypes: data.profile.excludedShortageNotificationTypes,
+        announcementOptOuts: data.profile.announcementOptOuts ?? [],
         emailNewsletterSubscription: data.profile.emailNewsletterSubscription,
         newsletterLists: data.profile.newsletterLists,
         defaultLocation: data.profile.defaultLocation,

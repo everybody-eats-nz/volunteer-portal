@@ -29,10 +29,16 @@ import {
   CalendarIcon,
   Eye,
   EyeOff,
+  Lock,
   Mail,
+  Megaphone,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  ANNOUNCEMENT_CATEGORIES,
+  announcementCategoryMeta,
+} from "@/lib/announcement-categories";
 import { PasswordRequirements } from "@/components/password-requirements";
 import {
   type LocationOption,
@@ -110,6 +116,9 @@ export interface UserProfileFormData {
   notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
+  /** Announcement categories opted out of. Leave it undefined to hide the
+   *  Announcements section. */
+  announcementOptOuts?: string[];
   volunteerAgreementAccepted: boolean;
   healthSafetyPolicyAccepted: boolean;
 }
@@ -921,6 +930,106 @@ export function AvailabilityStep({
 }
 
 /**
+ * The notifications every volunteer gets: shift-related and urgent
+ * announcements are always delivered, so they show as locked on. The
+ * optional ones (shortages, promotional) follow below in the step.
+ */
+function MandatoryNotifications() {
+  const mandatory = ANNOUNCEMENT_CATEGORIES.filter((c) => c.mandatory);
+
+  return (
+    <div className="space-y-4" data-testid="announcement-preferences">
+      <div className="space-y-1.5">
+        <h3 className={groupHeadingStyles}>
+          <Megaphone className="h-3.5 w-3.5" />
+          Shift Announcements and Volunteer Notifications
+        </h3>
+        <p className={helperTextStyles}>
+          Control what notifications you receive, in the app and by email or
+          push notification.
+        </p>
+      </div>
+
+      <div className="space-y-2" data-testid="announcement-mandatory">
+        {mandatory.map((category) => (
+          <div
+            key={category.value}
+            className={cn(panelStyles, "flex items-start gap-5")}
+          >
+            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-forest-500/70 dark:text-cream-50/60">
+              <Lock className="h-3.5 w-3.5" aria-hidden />
+            </span>
+            <div className="text-sm font-medium">
+              <span className="flex flex-wrap items-center gap-2">
+                {category.preferenceLabel}
+                <span className="rounded-full bg-forest-500/10 px-2 py-0.5 text-[11px] font-semibold text-forest-700 dark:bg-cream-50/10 dark:text-cream-50/80">
+                  Mandatory · Always on
+                </span>
+              </span>
+              <p className={cn(helperTextStyles, "mt-1 font-normal")}>
+                {category.preferenceDescription}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Opt out of promotional announcements. Shift shortages follow the shortage
+ * notification switch instead of getting a second toggle.
+ */
+function PromotionalPreference({
+  optOuts,
+  onChange,
+  loading,
+}: {
+  optOuts: string[];
+  onChange: (next: string[]) => void;
+  loading: boolean;
+}) {
+  const wantsPromotional = !optOuts.includes("PROMOTIONAL");
+  const promotional = announcementCategoryMeta("PROMOTIONAL");
+
+  return (
+    <div
+      className="space-y-4 border-t border-forest-500/10 pt-6 dark:border-cream-50/10"
+      data-testid="announcement-promotional"
+    >
+      <h3 className={groupHeadingStyles}>
+        <Megaphone className="h-3.5 w-3.5" />
+        Promotional Messages
+      </h3>
+      <div className={panelStyles}>
+        <Label className="flex items-start space-x-3 text-sm font-medium cursor-pointer">
+          <Checkbox
+            checked={wantsPromotional}
+            onCheckedChange={(checked) =>
+              onChange(
+                checked === true
+                  ? optOuts.filter((c) => c !== "PROMOTIONAL")
+                  : [...optOuts, "PROMOTIONAL"]
+              )
+            }
+            disabled={loading}
+            className="mt-1"
+            data-testid="announcement-promotional-toggle"
+          />
+          <div>
+            <span>Receive {promotional.preferenceLabel.toLowerCase()}</span>
+            <p className={cn(helperTextStyles, "mt-1 font-normal")}>
+              Optional. {promotional.preferenceDescription}
+            </p>
+          </div>
+        </Label>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Communication preferences and agreements step
  */
 export function CommunicationStep({
@@ -956,12 +1065,22 @@ export function CommunicationStep({
     description: string | null;
   }>;
 }) {
+  const shortageMeta = announcementCategoryMeta("SHIFT_SHORTAGE");
+
   return (
     <div className="space-y-6" data-testid="notification-preferences-form">
-      <div className="space-y-4">
+      {formData.announcementOptOuts && <MandatoryNotifications />}
+
+      <div
+        className={cn(
+          "space-y-4",
+          formData.announcementOptOuts &&
+            "border-t border-forest-500/10 pt-6 dark:border-cream-50/10"
+        )}
+      >
         <h3 className={groupHeadingStyles}>
           <Bell className="h-3.5 w-3.5" />
-          Shortage Notifications
+          Shift Shortage Notifications
         </h3>
 
         <div className={panelStyles}>
@@ -978,7 +1097,7 @@ export function CommunicationStep({
             <div>
               <span>Receive shift shortage notifications</span>
               <p className={cn(helperTextStyles, "mt-1 font-normal")}>
-                Get notified when shifts need more volunteers. You can customize
+                Optional. {shortageMeta.preferenceDescription} You can choose
                 which types of shifts you&apos;d like to hear about.
               </p>
             </div>
@@ -1043,6 +1162,14 @@ export function CommunicationStep({
           </>
         )}
       </div>
+
+      {formData.announcementOptOuts && (
+        <PromotionalPreference
+          optOuts={formData.announcementOptOuts}
+          onChange={(next) => onInputChange("announcementOptOuts", next)}
+          loading={loading}
+        />
+      )}
 
       {/* Newsletter Subscription Section */}
       <div className="space-y-4 border-t border-forest-500/10 pt-6 dark:border-cream-50/10">

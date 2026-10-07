@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { createTestUser, deleteTestUsers, login } from "./helpers/test-helpers";
+import {
+  createTestUser,
+  deleteTestUsers,
+  login,
+  visibleTestId,
+} from "./helpers/test-helpers";
 import { randomUUID } from "node:crypto";
 
 test.describe("User Notification Preferences", () => {
@@ -34,13 +39,23 @@ test.describe("User Notification Preferences", () => {
       page.getByTestId("notification-preferences-section").first()
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: /Shift Shortage Notifications/i })
+      page.getByRole("heading", {
+        name: /Shift Announcements and Volunteer Notifications/i,
+      })
     ).toBeVisible();
 
     // Check current preferences are displayed (now shown as a Badge, not checkbox)
     const notificationToggle = page.getByTestId("receive-notifications-toggle").first();
     await expect(notificationToggle).toBeVisible();
-    await expect(notificationToggle).toContainText(/Enabled|Disabled/);
+    await expect(notificationToggle).toHaveText(/^(On|Off)$/);
+
+    // Shift and urgent messages are mandatory and shown as always on
+    await expect(page.getByTestId("shift-notifications-status")).toHaveText(
+      "Always on"
+    );
+    await expect(page.getByTestId("urgent-messages-status")).toHaveText(
+      "Always on"
+    );
 
     // Check that shift type preferences are available
     await expect(
@@ -79,10 +94,10 @@ test.describe("User Notification Preferences", () => {
     await page.goto("/profile");
     await page.waitForLoadState("load");
 
-    // Verify changes persisted - on profile page it shows as a Badge with "Disabled" text
+    // Verify changes persisted - the profile page shows the shortage status as "Off"
     const notificationToggle = page.getByTestId("receive-notifications-toggle").first();
     await expect(notificationToggle).toBeVisible();
-    await expect(notificationToggle).toContainText("Disabled");
+    await expect(notificationToggle).toHaveText("Off");
   });
 
   test("should load and display shift types", async ({ page }) => {
@@ -149,6 +164,41 @@ test.describe("User Notification Preferences", () => {
 
     // Check success toast
     await expect(page.getByText("Profile saved successfully!")).toBeVisible();
+  });
+
+  test("should opt out of promotional announcements", async ({ page }) => {
+    await login(page, volunteerEmail, "Test123456");
+    await page.goto("/profile");
+
+    // The profile streams in, so a hidden staging copy can briefly exist
+    const promoStatus = visibleTestId(page, "promotional-announcements-status");
+    await expect(promoStatus).toHaveText("On");
+
+    await page.goto("/profile/edit?step=communication");
+    const announcements = page.getByTestId("announcement-preferences");
+    await expect(announcements).toBeVisible();
+
+    // Shift-related and urgent announcements can't be switched off
+    await expect(announcements.getByTestId("announcement-mandatory")).toContainText(
+      "Always on"
+    );
+
+    const promoToggle = page.getByTestId("announcement-promotional-toggle");
+    await expect(promoToggle).toBeChecked();
+    await promoToggle.click();
+    await expect(promoToggle).not.toBeChecked();
+
+    await page.getByTestId("header-save-button").click();
+    await expect(page.getByText("Profile saved successfully!")).toBeVisible();
+
+    await page.goto("/profile");
+    await expect(promoStatus).toHaveText("Off");
+
+    // The opt-out is loaded back into the form
+    await page.goto("/profile/edit?step=communication");
+    await expect(
+      page.getByTestId("announcement-promotional-toggle")
+    ).not.toBeChecked();
   });
 
   // NOTE: The following tests are skipped as the features are not implemented:

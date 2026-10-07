@@ -1,5 +1,11 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import {
+  deleteTestUsers,
+  login,
+  visibleTestId,
+} from "./helpers/test-helpers";
+import { selectOption } from "./helpers/select";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
@@ -23,15 +29,39 @@ async function fillStep2ValidData(page: Page) {
     .fill("(555) 123-4567");
 }
 
+// Helper function to accept a policy on the final step. The agree button only
+// enables once the policy has been scrolled to the bottom.
+async function acceptPolicy(page: Page, checkboxTestId: string) {
+  // The checkbox itself is display-only; its card opens the policy dialog
+  await page
+    .locator(".cursor-pointer", { has: page.getByTestId(checkboxTestId) })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .locator(".overflow-y-auto")
+    .evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await dialog.getByRole("button", { name: "I agree to these terms" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByTestId(checkboxTestId)).toBeChecked();
+}
+
 // Helper function to navigate to a specific step
-async function navigateToStep(page: Page, stepNumber: number) {
+async function navigateToStep(
+  page: Page,
+  stepNumber: number,
+  email = "test@example.com"
+) {
   // Fill and navigate through each step sequentially
-  await fillStep1ValidData(page);
+  await fillStep1ValidData(page, email);
   await page.getByTestId("next-submit-button").click();
   await waitForPageLoad(page);
 
   if (stepNumber >= 3) {
     await fillStep2ValidData(page);
+    // The date picker is backed by a visually hidden input for tests
+    await page
+      .getByTestId("date-of-birth-hidden-input")
+      .fill("1995-07-15", { force: true });
     await page.getByTestId("next-submit-button").click();
     await waitForPageLoad(page);
   }
@@ -43,7 +73,10 @@ async function navigateToStep(page: Page, stepNumber: number) {
   }
 
   if (stepNumber >= 5) {
-    // Step 4: Medical & Background (can be skipped for most tests)
+    // Step 4: Medical & Background ("How did you hear about us?" is required)
+    await selectOption(page.getByTestId("how-did-you-hear-select"), {
+      name: "Website",
+    });
     await page.getByTestId("next-submit-button").click();
     await waitForPageLoad(page);
   }
@@ -408,37 +441,86 @@ test.describe("Registration Page", () => {
 
   test.describe("Form Submission and Error Handling", () => {
     test("should show loading state during submission", async ({ page }) => {
-      // Navigate to final step (this would be a comprehensive test)
+      // Hold the request open so the in-flight state can be observed
+      let releaseRequest!: () => void;
+      const requestHeld = new Promise<void>((resolve) => {
+        releaseRequest = resolve;
+      });
+      await page.route("/api/auth/register", async (route) => {
+        await requestHeld;
+        await route.abort("failed");
+      });
+
       await navigateToStep(page, 6);
+      await acceptPolicy(page, "volunteer-agreement-checkbox");
+      await acceptPolicy(page, "health-safety-policy-checkbox");
 
-      // Accept required agreements (would need to implement this for final step)
       const nextButton = page.getByTestId("next-submit-button");
-
-      // Click submit and check for loading state
       await nextButton.click();
 
-      // Check if button shows loading state
-      const hasLoadingState = await nextButton.textContent();
-      if (
-        hasLoadingState?.includes("Creating Account") ||
-        hasLoadingState?.includes("Processing")
-      ) {
-        await expect(nextButton).toBeDisabled();
-      }
+      await expect(nextButton).toBeDisabled();
+      await expect(nextButton).toHaveText(/creating account/i);
+
+      releaseRequest();
+      await expect(nextButton).toBeEnabled();
     });
 
     test("should handle network errors gracefully", async ({ page }) => {
-      // Mock network failure
       await page.route("/api/auth/register", (route) => route.abort("failed"));
 
-      // Navigate to final step and attempt submission
       await navigateToStep(page, 6);
+      await acceptPolicy(page, "volunteer-agreement-checkbox");
+      await acceptPolicy(page, "health-safety-policy-checkbox");
 
-      const nextButton = page.getByTestId("next-submit-button");
-      await nextButton.click();
+      await page.getByTestId("next-submit-button").click();
 
-      // Should show error message (implementation-dependent)
-      await page.waitForTimeout(2000);
+      await expect(
+        page.getByText("Registration failed", { exact: true })
+      ).toBeVisible();
+      // The volunteer stays on the form and can retry
+      await expect(page).toHaveURL(/\/register/);
+      await expect(page.getByTestId("next-submit-button")).toBeEnabled();
+    });
+  });
+
+  test.describe("Communication Preferences", () => {
+    const email = `register-optout-${Date.now()}@example.com`;
+
+    test.afterAll(async ({ browser }) => {
+      const page = await browser.newPage();
+      await deleteTestUsers(page, [email]);
+      await page.close();
+    });
+
+    test("saves shortage and announcement opt-outs chosen at signup", async ({
+      page,
+    }) => {
+      await navigateToStep(page, 6, email);
+
+      await page.getByTestId("receive-notifications-toggle").click();
+      await expect(
+        page.getByTestId("receive-notifications-toggle")
+      ).not.toBeChecked();
+      await page.getByTestId("announcement-promotional-toggle").click();
+      await expect(
+        page.getByTestId("announcement-promotional-toggle")
+      ).not.toBeChecked();
+
+      await acceptPolicy(page, "volunteer-agreement-checkbox");
+      await acceptPolicy(page, "health-safety-policy-checkbox");
+
+      await page.getByTestId("next-submit-button").click();
+      await page.waitForURL(/\/login/);
+
+      await login(page, email, "Password123!");
+      await page.goto("/profile");
+
+      await expect(
+        visibleTestId(page, "receive-notifications-toggle")
+      ).toHaveText("Off");
+      await expect(
+        visibleTestId(page, "promotional-announcements-status")
+      ).toHaveText("Off");
     });
   });
 

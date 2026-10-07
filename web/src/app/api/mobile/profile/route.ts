@@ -15,6 +15,7 @@ import { isUserUnder16, autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { getEmailService } from "@/lib/email-service";
 import { captureFunnelEvent, FunnelEvent } from "@/lib/funnel";
 import { z } from "zod";
+import { sanitizeAnnouncementOptOuts } from "@/lib/announcement-categories";
 
 /**
  * GET /api/mobile/profile
@@ -57,6 +58,7 @@ export async function GET(request: Request) {
         notificationPreference: true,
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: true,
+        announcementOptOuts: true,
         emailNewsletterSubscription: true,
         newsletterLists: true,
         defaultLocation: true,
@@ -327,6 +329,7 @@ export async function GET(request: Request) {
         notificationPreference: user.notificationPreference,
         receiveShortageNotifications: user.receiveShortageNotifications,
         excludedShortageNotificationTypes: user.excludedShortageNotificationTypes,
+        announcementOptOuts: user.announcementOptOuts,
         emailNewsletterSubscription: user.emailNewsletterSubscription,
         newsletterLists: user.newsletterLists,
         defaultLocation: user.defaultLocation,
@@ -446,6 +449,12 @@ const updateMobileProfileSchema = z.object({
   notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
   receiveShortageNotifications: z.boolean().optional(),
   excludedShortageNotificationTypes: z.array(z.string()).optional(),
+  // Announcement categories to opt out of. Anything that can't be opted out
+  // of this way (mandatory categories, shift shortages) is dropped.
+  announcementOptOuts: z
+    .array(z.string())
+    .transform(sanitizeAnnouncementOptOuts)
+    .optional(),
   emailNewsletterSubscription: z.boolean().optional(),
   newsletterLists: z.array(z.string()).optional(),
   defaultLocation: z.string().nullable().optional(),

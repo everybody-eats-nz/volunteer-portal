@@ -10,6 +10,13 @@ import { MotionCard } from "@/components/motion-card";
 import { ContentGrid } from "@/components/dashboard-animated";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { ChangePasswordForm } from "@/components/change-password-form";
+import {
+  ANNOUNCEMENT_CATEGORIES,
+  isOptedOutOfAnnouncementCategory,
+  type AnnouncementCategory,
+  type AnnouncementCategoryMeta,
+  type AnnouncementPreferences,
+} from "@/lib/announcement-categories";
 
 /** Four-point sparkle — the marketing site's signature accent mark. */
 function Sparkle({ className }: { className?: string }) {
@@ -131,7 +138,7 @@ function StatusPill({
   return (
     <span
       data-testid={testId}
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+      className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold ${
         on
           ? "border-forest-500/20 bg-forest-500/10 text-forest-600 dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50"
           : "border-forest-500/15 text-forest-700/50 dark:border-cream-50/15 dark:text-cream-50/50"
@@ -148,6 +155,88 @@ function StatusPill({
   );
 }
 
+const preferenceNote = "text-sm text-forest-700/70 dark:text-cream-50/65";
+
+/** Status test IDs kept stable for the e2e suite. */
+const categoryStatusTestIds: Record<AnnouncementCategory, string> = {
+  SHIFT_RELATED: "shift-notifications-status",
+  URGENT: "urgent-messages-status",
+  SHIFT_SHORTAGE: "receive-notifications-toggle",
+  PROMOTIONAL: "promotional-announcements-status",
+};
+
+/**
+ * One kind of notification: what it is, whether volunteers can turn it off,
+ * and whether this volunteer gets it.
+ */
+function NotificationCategoryRow({
+  meta,
+  on,
+  testId,
+}: {
+  meta: AnnouncementCategoryMeta;
+  on: boolean;
+  testId: string;
+}) {
+  return (
+    <li className="flex items-start justify-between gap-4 py-3.5">
+      <div className="min-w-0">
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm font-medium text-forest-700 dark:text-cream-50">
+          {meta.preferenceLabel}
+          <span className="eyebrow text-[10px] text-forest-500/60 dark:text-cream-50/50">
+            {meta.mandatory ? "Mandatory" : "Optional"}
+          </span>
+        </p>
+        <p className="mt-0.5 text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
+          {meta.preferenceDescription}
+        </p>
+      </div>
+      {meta.mandatory ? (
+        <span
+          data-testid={testId}
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-forest-500/15 px-3 py-1 text-xs font-semibold text-forest-700/70 dark:border-cream-50/15 dark:text-cream-50/70"
+        >
+          <svg
+            className="h-3 w-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.25}
+              d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+            />
+          </svg>
+          Always on
+        </span>
+      ) : (
+        <StatusPill testId={testId} on={on} onLabel="On" offLabel="Off" />
+      )}
+    </li>
+  );
+}
+
+/** A titled block of detail under the notification overview. */
+function PreferenceGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h3 className="eyebrow mb-2.5 font-sans text-forest-500/70 dark:text-cream-50/55">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
 export async function ProfileContent() {
   const session = await getServerSession(authOptions);
 
@@ -158,6 +247,7 @@ export async function ProfileContent() {
     id: string;
     name: string;
     campaignMonitorId: string;
+    description: string | null;
   }[] = [];
   if (session?.user?.email) {
     [userProfile, shiftTypes, newsletterLists] = await Promise.all([
@@ -187,6 +277,7 @@ export async function ProfileContent() {
           notificationPreference: true,
           receiveShortageNotifications: true,
           excludedShortageNotificationTypes: true,
+          announcementOptOuts: true,
           volunteerAgreementAccepted: true,
           healthSafetyPolicyAccepted: true,
           role: true,
@@ -208,6 +299,7 @@ export async function ProfileContent() {
           id: true,
           name: true,
           campaignMonitorId: true,
+          description: true,
         },
         orderBy: {
           displayOrder: "asc",
@@ -229,6 +321,19 @@ export async function ProfileContent() {
   const availableDays = safeParseAvailability(userProfile?.availableDays);
   const availableLocations = safeParseAvailability(
     userProfile?.availableLocations
+  );
+
+  const announcementPreferences: AnnouncementPreferences = {
+    receiveShortageNotifications: !!userProfile?.receiveShortageNotifications,
+    announcementOptOuts: userProfile?.announcementOptOuts ?? [],
+  };
+  const excludedShiftTypes = shiftTypes.filter((type) =>
+    userProfile?.excludedShortageNotificationTypes?.includes(type.id)
+  );
+  const subscribedListIds = new Set(
+    userProfile?.emailNewsletterSubscription
+      ? (userProfile.newsletterLists ?? [])
+      : []
   );
 
   // Accounts created through Google/Apple sign-in have no password yet.
@@ -305,7 +410,10 @@ export async function ProfileContent() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2 className="display text-3xl leading-[1.05] tracking-tight sm:text-4xl">
+            <h2
+              className="display text-3xl leading-[1.05] tracking-tight sm:text-4xl"
+              data-testid="profile-name"
+            >
               {userProfile?.name || session.user.name || "Volunteer"}
             </h2>
             <p className="mt-2 break-words text-cream-50/75">
@@ -611,8 +719,8 @@ export async function ProfileContent() {
         <MotionCard className={detailCard}>
           <CardContent className="p-6 sm:p-8">
             <CardHeading
-              title="Shift Shortage Notifications"
-              subtitle="Control your notification preferences"
+              title="Shift Announcements and Volunteer Notifications"
+              subtitle="Control what notifications you receive"
               icon={
                 <svg
                   className="h-5 w-5"
@@ -632,27 +740,35 @@ export async function ProfileContent() {
             />
 
             <div
-              className="space-y-5"
+              className="space-y-7"
               data-testid="notification-preferences-section"
             >
-              <div className="flex items-center justify-between gap-4 border-b border-forest-500/10 py-3 dark:border-cream-50/10">
-                <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
-                  Receive Notifications
-                </span>
-                <StatusPill
-                  testId="receive-notifications-toggle"
-                  on={!!userProfile?.receiveShortageNotifications}
-                  onLabel="Enabled"
-                  offLabel="Disabled"
-                />
-              </div>
+              <ul
+                className="divide-y divide-forest-500/10 border-y border-forest-500/10 dark:divide-cream-50/10 dark:border-cream-50/10"
+                data-testid="notification-categories"
+              >
+                {ANNOUNCEMENT_CATEGORIES.map((category) => (
+                  <NotificationCategoryRow
+                    key={category.value}
+                    meta={category}
+                    on={
+                      category.mandatory ||
+                      !isOptedOutOfAnnouncementCategory(
+                        announcementPreferences,
+                        category.value
+                      )
+                    }
+                    testId={categoryStatusTestIds[category.value]}
+                  />
+                ))}
+              </ul>
 
-              {userProfile?.receiveShortageNotifications && (
-                <>
-                  <div>
-                    <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+              <PreferenceGroup title="Shift shortage notification preferences">
+                {announcementPreferences.receiveShortageNotifications ? (
+                  <>
+                    <p className={preferenceNote}>
                       Shift types you&apos;d like notifications for:
-                    </span>
+                    </p>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {shiftTypes
                         .filter(
@@ -665,62 +781,77 @@ export async function ProfileContent() {
                           <Chip key={type.id}>{type.name}</Chip>
                         ))}
                     </div>
-                  </div>
 
-                  {userProfile?.excludedShortageNotificationTypes?.length >
-                    0 && (
-                    <div>
-                      <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
-                        Excluded shift types:
-                      </span>
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {shiftTypes
-                          .filter((type) =>
-                            userProfile?.excludedShortageNotificationTypes?.includes(
-                              type.id
-                            )
-                          )
-                          .map((type) => (
+                    {excludedShiftTypes.length > 0 && (
+                      <>
+                        <p className={`${preferenceNote} mt-4`}>
+                          Excluded shift types:
+                        </p>
+                        <div className="mt-2.5 flex flex-wrap gap-1.5">
+                          {excludedShiftTypes.map((type) => (
                             <Chip key={type.id} muted>
                               {type.name}
                             </Chip>
                           ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <p className={preferenceNote}>
+                    You&apos;ve turned these off, so we won&apos;t ask you to
+                    help fill short-staffed shifts.
+                  </p>
+                )}
+              </PreferenceGroup>
 
-              <div className="border-t border-forest-500/10 pt-2 dark:border-cream-50/10">
-                <div className="flex items-center justify-between gap-4 py-3">
-                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
-                    Newsletter Subscription
-                  </span>
-                  <StatusPill
-                    on={!!userProfile?.emailNewsletterSubscription}
-                    onLabel="Subscribed"
-                    offLabel="Not subscribed"
-                  />
-                </div>
+              <PreferenceGroup title="Promotional volunteer announcement preferences">
+                <p className={preferenceNote}>
+                  {announcementPreferences.announcementOptOuts.includes(
+                    "PROMOTIONAL"
+                  )
+                    ? "You've turned these off. You'll still hear about your shifts and anything urgent."
+                    : "You'll hear about upcoming events, activities and socials for volunteers."}
+                </p>
+              </PreferenceGroup>
 
-                {userProfile?.emailNewsletterSubscription &&
-                  userProfile?.newsletterLists &&
-                  userProfile.newsletterLists.length > 0 && (
-                    <div className="mt-1">
-                      <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
-                        Subscribed to:
-                      </span>
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {userProfile.newsletterLists.map((listId: string) => {
-                          const list = newsletterLists.find(
-                            (l) => l.campaignMonitorId === listId
-                          );
-                          return <Chip key={listId}>{list?.name || listId}</Chip>;
-                        })}
-                      </div>
-                    </div>
-                  )}
-              </div>
+              <PreferenceGroup title="Newsletter subscription">
+                {newsletterLists.length > 0 ? (
+                  <ul className="space-y-3" data-testid="newsletter-lists">
+                    {newsletterLists.map((list) => (
+                      <li
+                        key={list.id}
+                        className="flex items-start justify-between gap-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-forest-700 dark:text-cream-50">
+                            {list.name}
+                          </p>
+                          {list.description && (
+                            <p className="mt-0.5 text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
+                              {list.description}
+                            </p>
+                          )}
+                        </div>
+                        <StatusPill
+                          on={subscribedListIds.has(list.campaignMonitorId)}
+                          onLabel="Subscribed"
+                          offLabel="Not subscribed"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex items-center justify-between gap-4">
+                    <p className={preferenceNote}>Email newsletter</p>
+                    <StatusPill
+                      on={!!userProfile?.emailNewsletterSubscription}
+                      onLabel="Subscribed"
+                      offLabel="Not subscribed"
+                    />
+                  </div>
+                )}
+              </PreferenceGroup>
 
               <div className="border-t border-forest-500/10 pt-5 dark:border-cream-50/10">
                 <Button

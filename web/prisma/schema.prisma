@@ -53,6 +53,10 @@ model User {
   // Shift shortage notification preferences
   receiveShortageNotifications      Boolean  @default(true)
   excludedShortageNotificationTypes String[] @default([]) // Array of shift type IDs they DON'T want notifications for (opt-out list), empty means get all types
+  // Announcement categories this volunteer has opted out of (email, push and
+  // feed). Shift shortages aren't stored here: they follow
+  // receiveShortageNotifications so volunteers have one shortage switch.
+  announcementOptOuts               AnnouncementCategory[] @default([])
 
   // Email verification
   emailVerified                   Boolean   @default(false) // Whether email is verified
@@ -862,7 +866,29 @@ model Location {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  budgets LocationBudget[]
+
   @@index([isActive])
+}
+
+// Annual koha budget for one location in one budget year. Kept per year so a
+// new year never overwrites the last. When a budget exists for a night's year,
+// that night's target is annualTarget / plannedServiceNights; otherwise it
+// falls back to Location.targetPerNight.
+model LocationBudget {
+  id                   String   @id @default(cuid())
+  locationId           String
+  year                 Int // Financial year, numbered by the March it ends in (2027 = 1 Apr 2026 - 31 Mar 2027, NZ time), see lib/budget-calculations.ts
+  annualTarget         Decimal  @db.Decimal(12, 2) // Koha budget for the year ($)
+  plannedServiceNights Int // Estimated number of service nights in the year
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  updatedBy            String? // Admin user ID who last saved it
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, year])
+  @@index([year])
 }
 
 // Site-wide configurable settings
@@ -1123,6 +1149,10 @@ model Announcement {
   expiresAt DateTime? // If set, hidden from feed after this date
   createdBy String
 
+  // What kind of message this is. Decides whether volunteers can opt out of
+  // it (see AnnouncementCategory); required so every send is classified.
+  category AnnouncementCategory
+
   // Targeting — empty = everyone on that dimension
   targetLocations String[] @default([]) // Location names, e.g. ["Auckland", "Wellington"]
   targetGrades    String[] @default([]) // VolunteerGrade values, e.g. ["GREEN", "YELLOW"]
@@ -1151,6 +1181,15 @@ model Announcement {
 
   @@index([createdAt])
   @@index([expiresAt])
+}
+
+/// What an announcement is about, which decides whether a volunteer can opt
+/// out of it. Metadata (labels, rules) lives in src/lib/announcement-categories.ts.
+enum AnnouncementCategory {
+  SHIFT_RELATED // Mandatory. Must target specific shifts (e.g. uniform reminder)
+  URGENT // Mandatory. Operational notices such as extreme-weather closures
+  SHIFT_SHORTAGE // Opt-out via User.receiveShortageNotifications
+  PROMOTIONAL // Opt-out via User.announcementOptOuts. Deals, event promos
 }
 
 enum ArchiveReason {

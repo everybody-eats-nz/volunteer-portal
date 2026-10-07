@@ -5,12 +5,15 @@ import {
   countAnnouncementRecipients,
   parseTargetingFromRequest,
 } from "@/lib/announcement-targeting";
+import { isAnnouncementCategory } from "@/lib/announcement-categories";
 
 /**
  * POST /api/admin/announcements/recipient-count
  *
  * Returns how many volunteers would receive an announcement with the given
- * targeting filters. Powers the live counter on the admin form.
+ * targeting filters and `category`, and how many more matched but opted out
+ * of that category. Powers the live counter on the admin form. Without a
+ * category (none picked yet) nobody counts as opted out.
  */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -19,8 +22,9 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const count = await countAnnouncementRecipients(
-    parseTargetingFromRequest(body)
+  const { count, optedOut } = await countAnnouncementRecipients(
+    parseTargetingFromRequest(body),
+    isAnnouncementCategory(body.category) ? body.category : null
   );
-  return NextResponse.json({ count });
+  return NextResponse.json({ count, optedOut });
 }

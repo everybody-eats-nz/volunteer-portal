@@ -1,3 +1,57 @@
+## [0.182.2] - 2026-10-07
+
+### Changes
+- fix: reactivate archived users on mobile passkey sign-in ([#1333](https://github.com/everybody-eats-nz/volunteer-portal/pull/1333)) by @malinmalliyawadu
+
+
+## [0.182.1] - 2026-10-06
+
+### Changes
+- fix(web): stop signed-in hydration mismatch in site footer ([#1331](https://github.com/everybody-eats-nz/volunteer-portal/pull/1331)) by @malinmalliyawadu
+
+
+## [0.182.0] - 2026-10-06
+
+### Changes
+- feat: financial-year budgets, notification email footer and clearer notification preferences ([#1332](https://github.com/everybody-eats-nz/volunteer-portal/pull/1332)) by @malinmalliyawadu
+
+
+## [0.181.1] - 2026-10-06
+
+### Changes
+- fix: save shortage and announcement preferences chosen at signup ([#1330](https://github.com/everybody-eats-nz/volunteer-portal/pull/1330)) by @malinmalliyawadu
+
+
+## [0.181.0] - 2026-10-06
+
+### Changes
+- feat: let volunteers opt out of announcement categories ([#1329](https://github.com/everybody-eats-nz/volunteer-portal/pull/1329)) by @malinmalliyawadu
+
+
+## [0.180.2] - 2026-10-06
+
+### Changes
+- chore(deps): bump next to 16.3.8 and fix sitemap for cacheComponents ([#1328](https://github.com/everybody-eats-nz/volunteer-portal/pull/1328)) by @malinmalliyawadu
+
+
+## [0.180.1] - 2026-10-06
+
+### Changes
+- feat(admin): show EFTPOS on the service night report summary ([#1314](https://github.com/everybody-eats-nz/volunteer-portal/pull/1314)) by @malinmalliyawadu
+
+
+## [0.180.0] - 2026-10-06
+
+### Changes
+- feat: add categories to announcements ([#1324](https://github.com/everybody-eats-nz/volunteer-portal/pull/1324)) by @malinmalliyawadu
+
+
+## [0.179.0] - 2026-10-06
+
+### Changes
+- feat(web): restaurant budget target tracking ([#1327](https://github.com/everybody-eats-nz/volunteer-portal/pull/1327)) by @malinmalliyawadu
+
+
 ## [0.178.0] - 2026-10-05
 
 ### Changes

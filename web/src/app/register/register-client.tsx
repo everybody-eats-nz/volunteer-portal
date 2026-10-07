@@ -146,6 +146,7 @@ export default function RegisterClient({
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],
+    announcementOptOuts: [],
     volunteerAgreementAccepted: false,
     healthSafetyPolicyAccepted: false,
   });

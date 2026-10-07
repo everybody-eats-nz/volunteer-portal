@@ -10,10 +10,12 @@ import {
   MapPin,
   MoreHorizontal,
   Pencil,
+  Target,
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatInNZT } from "@/lib/timezone";
+import { budgetYearLabel } from "@/lib/budget-calculations";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -160,11 +162,23 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
             label="Meals / night"
             value={String(venue.defaultMealsServed)}
           />
-          <Figure
-            label="Koha / night"
-            value={formatKoha(venue.targetPerNight)}
-            sub={venue.targetPerNight === null ? "no target" : undefined}
-          />
+          {venue.budget ? (
+            <Figure
+              label="Koha / night"
+              value={formatKoha(
+                venue.budget.nightlyTarget === null
+                  ? null
+                  : Math.round(venue.budget.nightlyTarget)
+              )}
+              sub={`${budgetYearLabel(venue.budget.year)} budget`}
+            />
+          ) : (
+            <Figure
+              label="Koha / night"
+              value={formatKoha(venue.targetPerNight)}
+              sub={venue.targetPerNight === null ? "no target" : undefined}
+            />
+          )}
         </dl>
 
         {/* Actions */}
@@ -197,6 +211,15 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
                 >
                   <CalendarDays className="h-4 w-4" />
                   View shifts
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href={`/admin/analytics/budget?location=${encodeURIComponent(venue.name)}`}
+                  data-testid={`location-budget-link-${venue.id}`}
+                >
+                  <Target className="h-4 w-4" />
+                  Budget tracking
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

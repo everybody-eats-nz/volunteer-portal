@@ -47,11 +47,17 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
+  announcementCategoryMeta,
+  type AnnouncementCategory,
+} from "@/lib/announcement-categories";
+import {
+  AUDIENCE_SHIFTS_GROUP_ID,
   AudienceBuilder,
   EMPTY_AUDIENCE,
   countActiveAudienceFilters,
   type AudienceDraft,
 } from "./audience-builder";
+import { CategoryPicker } from "./category";
 import { FeedPreview } from "./feed-preview";
 import {
   audienceConditions,
@@ -113,6 +119,7 @@ export function Composer({
   onPublished,
   onClose,
 }: ComposerProps) {
+  const [category, setCategory] = useState<AnnouncementCategory | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -128,6 +135,7 @@ export function Composer({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [shiftsGroupOpen, setShiftsGroupOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const patchAudience = useCallback(
@@ -210,7 +218,17 @@ export function Composer({
     [audience]
   );
 
-  const { count: recipientCount, counting } = useRecipientCount(targeting);
+  // The reach preview also sends the category, so volunteers who opted out
+  // of it drop out of the count and the "see exactly who" list.
+  const reachRequest: ReachRequest = useMemo(
+    () => ({ ...targeting, category }),
+    [targeting, category]
+  );
+  const {
+    count: recipientCount,
+    optedOut,
+    counting,
+  } = useRecipientCount(reachRequest);
 
   const conditions = audienceConditions(targeting, labels);
   const activeFilters = countActiveAudienceFilters(audience);
@@ -220,8 +238,31 @@ export function Composer({
   // The calendar rules out past days, but the time input can still land
   // earlier today — an expiry in the past publishes straight into the archive.
   const expiryInPast = isExpiryInPast(expiresAt);
-  const canPublish =
-    title.trim() !== "" && body.trim() !== "" && !expiryInPast;
+  // Shift-related is mandatory, so it must point at real shifts rather than
+  // carry general news. The API enforces the same rule.
+  const needsShifts =
+    category !== null &&
+    announcementCategoryMeta(category).requiresShifts &&
+    targeting.targetShiftIds.length === 0;
+  // Why publishing is blocked, in the order an admin would fix things.
+  const publishBlocker =
+    category === null
+      ? "Choose a category to publish."
+      : title.trim() === "" || body.trim() === ""
+        ? "Add a title and a message to publish."
+        : needsShifts
+          ? "Pick at least one shift for a shift-related announcement."
+          : expiryInPast
+            ? "Pick an expiry in the future to publish."
+            : null;
+  const canPublish = publishBlocker === null;
+
+  const revealShiftsGroup = () => {
+    setShiftsGroupOpen(true);
+    document
+      .getElementById(AUDIENCE_SHIFTS_GROUP_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const requestClose = () => {
     if (isDirty) setConfirmDiscard(true);
@@ -264,12 +305,8 @@ export function Composer({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isExpiryInPast(expiresAt)) {
-      toast.error("Expiry must be in the future");
-      return;
-    }
-    if (!canPublish) {
-      toast.error("Title and message are required");
+    if (publishBlocker !== null) {
+      toast.error(publishBlocker);
       return;
     }
     setIsSubmitting(true);
@@ -280,6 +317,7 @@ export function Composer({
         body: JSON.stringify({
           title: title.trim(),
           body: body.trim(),
+          category,
           imageUrl,
           expiresAt: expiresAt || null,
           ...targeting,
@@ -337,6 +375,33 @@ export function Composer({
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* ── Left: the inputs ── */}
           <div className="min-w-0 space-y-5">
+            <Section
+              eyebrow="Category"
+              hint="What kind of message this is, and whether volunteers can opt out of it."
+            >
+              <CategoryPicker value={category} onChange={setCategory} />
+              {needsShifts && (
+                <div
+                  className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg bg-amber-500/10 px-3 py-2"
+                  data-testid="announcement-category-needs-shifts"
+                >
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                    Shift-related announcements go to the volunteers on
+                    specific shifts. Choose at least one.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 shrink-0 rounded-full border-amber-500/40 bg-transparent text-xs text-amber-800 hover:bg-amber-500/10 dark:text-amber-300"
+                    onClick={revealShiftsGroup}
+                  >
+                    Choose shifts
+                  </Button>
+                </div>
+              )}
+            </Section>
+
             <Section eyebrow="Message" hint="What volunteers will read.">
               <div className="space-y-4">
                 <div>
@@ -456,6 +521,8 @@ export function Composer({
                 onPatch={patchAudience}
                 labels={labels}
                 locations={locations}
+                shiftsOpen={shiftsGroupOpen}
+                onShiftsOpenChange={setShiftsGroupOpen}
               />
             </Section>
 
@@ -494,6 +561,7 @@ export function Composer({
               <FeedPreview
                 title={title}
                 body={body}
+                category={category}
                 imageUrl={imageUrl}
                 authorName={authorName}
                 authorPhotoUrl={authorPhotoUrl}
@@ -521,6 +589,16 @@ export function Composer({
                   volunteer{recipientCount === 1 ? "" : "s"} will receive this
                 </span>
               </div>
+              {category !== null && optedOut > 0 && !counting && (
+                <p
+                  className="mt-1.5 text-xs text-muted-foreground"
+                  data-testid="announcement-opted-out-count"
+                >
+                  {optedOut} more opted out of{" "}
+                  {announcementCategoryMeta(category).label.toLowerCase()}{" "}
+                  announcements
+                </p>
+              )}
 
               {conditions.length === 0 ? (
                 <p className="mt-3 text-sm text-muted-foreground">
@@ -549,7 +627,7 @@ export function Composer({
               )}
 
               <RecipientListToggle
-                targeting={targeting}
+                reachRequest={reachRequest}
                 recipientCount={recipientCount}
               />
             </div>
@@ -571,11 +649,12 @@ export function Composer({
                 <Upload className="h-4 w-4" />
                 {publishLabel}
               </Button>
-              {!canPublish && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">
-                  {expiryInPast
-                    ? "Pick an expiry in the future to publish."
-                    : "Add a title and a message to publish."}
+              {publishBlocker && (
+                <p
+                  className="mt-2 text-center text-xs text-muted-foreground"
+                  data-testid="announcement-publish-blocker"
+                >
+                  {publishBlocker}
                 </p>
               )}
               <Button
@@ -864,14 +943,14 @@ type RecipientPreview = {
  * Refetches (debounced) whenever the targeting changes while open.
  */
 function RecipientListToggle({
-  targeting,
+  reachRequest,
   recipientCount,
 }: {
-  targeting: TargetingDraft;
+  reachRequest: ReachRequest;
   recipientCount: number | null;
 }) {
   const [open, setOpen] = useState(false);
-  const serialized = JSON.stringify(targeting);
+  const serialized = JSON.stringify(reachRequest);
   const [result, setResult] = useState<{
     recipients: RecipientPreview[];
     total: number;
@@ -987,18 +1066,25 @@ function RecipientListToggle({
 
 // ─── Live recipient count ───────────────────────────────────────────────────
 
+/** Targeting plus category: what decides who an announcement reaches. */
+type ReachRequest = TargetingDraft & {
+  category: AnnouncementCategory | null;
+};
+
 /**
- * Debounced live count of volunteers matching the current targeting. Uses
- * the same parse path as the create route, so the preview can't drift from
- * what publishing would actually send. "Counting" is derived: the shown
- * count belongs to `key`, and any newer targeting means we're mid-count.
+ * Debounced live count of volunteers matching the current targeting, less
+ * anyone who opted out of the category (`optedOut` counts those). Uses the
+ * same parse path as the create route, so the preview can't drift from what
+ * publishing would actually send. "Counting" is derived: the shown count
+ * belongs to `key`, and any newer request means we're mid-count.
  */
-function useRecipientCount(targeting: TargetingDraft) {
-  const serialized = JSON.stringify(targeting);
+function useRecipientCount(reachRequest: ReachRequest) {
+  const serialized = JSON.stringify(reachRequest);
   const [result, setResult] = useState<{
     count: number | null;
+    optedOut: number;
     key: string | null;
-  }>({ count: null, key: null });
+  }>({ count: null, optedOut: 0, key: null });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1015,9 +1101,13 @@ function useRecipientCount(targeting: TargetingDraft) {
         );
         if (response.ok) {
           const data = await response.json();
-          setResult({ count: data.count ?? null, key: serialized });
+          setResult({
+            count: data.count ?? null,
+            optedOut: data.optedOut ?? 0,
+            key: serialized,
+          });
         } else {
-          setResult({ count: null, key: serialized });
+          setResult({ count: null, optedOut: 0, key: serialized });
         }
       } catch (err) {
         // On abort a newer request owns the spinner; on real errors stop
@@ -1033,5 +1123,9 @@ function useRecipientCount(targeting: TargetingDraft) {
     };
   }, [serialized]);
 
-  return { count: result.count, counting: result.key !== serialized };
+  return {
+    count: result.count,
+    optedOut: result.optedOut,
+    counting: result.key !== serialized,
+  };
 }

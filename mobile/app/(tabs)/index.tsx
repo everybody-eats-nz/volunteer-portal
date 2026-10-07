@@ -58,6 +58,7 @@ import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
 import { useHomeShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import { usePendingSurveys } from "@/hooks/use-surveys";
+import { announcementCategoryPill } from "@/lib/announcement-category";
 import {
   getShiftThemeByName,
   type DinerFeedbackNote,
@@ -2383,6 +2384,7 @@ function FeedCard({
 
   const renderContent = () => {
     if (item.type === "announcement") {
+      const categoryPill = announcementCategoryPill(item.category);
       const iconAndBody = (
         <>
           {item.authorPhotoUrl ? (
@@ -2398,16 +2400,40 @@ function FeedCard({
             </View>
           )}
           <View style={styles.feedBody}>
-            {item.visibleAsAdmin && (
-              <View
-                style={[styles.feedTodayPill, { backgroundColor: "#e2e8f0" }]}
-              >
-                <Text
-                  accessibilityLabel="Shown to you as an admin. This announcement went to a different audience."
-                  style={[styles.feedTodayPillText, { color: "#334155" }]}
-                >
-                  Admin view
-                </Text>
+            {(categoryPill || item.visibleAsAdmin) && (
+              <View style={styles.announcementPills}>
+                {categoryPill && (
+                  <View
+                    style={[
+                      styles.feedTodayPill,
+                      { backgroundColor: categoryPill.backgroundColor },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.feedTodayPillText,
+                        { color: categoryPill.color },
+                      ]}
+                    >
+                      {categoryPill.label}
+                    </Text>
+                  </View>
+                )}
+                {item.visibleAsAdmin && (
+                  <View
+                    style={[
+                      styles.feedTodayPill,
+                      { backgroundColor: "#e2e8f0" },
+                    ]}
+                  >
+                    <Text
+                      accessibilityLabel="Shown to you as an admin. This announcement went to a different audience."
+                      style={[styles.feedTodayPillText, { color: "#334155" }]}
+                    >
+                      Admin view
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
             <Text style={[styles.feedTitle, { color: colors.text }]}>
@@ -4935,6 +4961,11 @@ const styles = StyleSheet.create({
     top: FEED_CARD_PADDING_Y,
     right: 0,
     zIndex: 10,
+  },
+  announcementPills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    columnGap: 6,
   },
   announcementRow: {
     flexDirection: "row",

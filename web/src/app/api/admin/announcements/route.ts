@@ -12,6 +12,10 @@ import {
   parseTargetingFromRequest,
   targetingFromAnnouncement,
 } from "@/lib/announcement-targeting";
+import {
+  announcementEmailFooter,
+  parseAnnouncementCategory,
+} from "@/lib/announcement-categories";
 
 /**
  * GET /api/admin/announcements
@@ -35,8 +39,9 @@ export async function GET() {
 
   const results = await Promise.all(
     announcements.map(async (ann) => {
-      const recipientCount = await countAnnouncementRecipients(
-        targetingFromAnnouncement(ann)
+      const { count: recipientCount } = await countAnnouncementRecipients(
+        targetingFromAnnouncement(ann),
+        ann.category
       );
       return {
         ...ann,
@@ -61,7 +66,7 @@ export async function GET() {
  * stays snappy on large recipient lists.
  *
  * Body: {
- *   title, body,
+ *   title, body, category,
  *   imageUrl?, expiresAt?,
  *   targetLocations?, targetGrades?, targetLabelIds?,
  *   targetUserIds?, targetShiftIds?,
@@ -98,6 +103,7 @@ export async function POST(request: Request) {
   const {
     title,
     body: announcementBody,
+    category,
     imageUrl,
     expiresAt,
     sendEmail,
@@ -135,10 +141,19 @@ export async function POST(request: Request) {
 
   const targeting = parseTargetingFromRequest(body);
 
+  const parsedCategory = parseAnnouncementCategory(
+    category,
+    targeting.targetShiftIds
+  );
+  if (!parsedCategory.ok) {
+    return NextResponse.json({ error: parsedCategory.error }, { status: 400 });
+  }
+
   const announcement = await prisma.announcement.create({
     data: {
       title: title.trim(),
       body: announcementBody.trim(),
+      category: parsedCategory.category,
       imageUrl: imageUrl?.trim() || null,
       expiresAt: expiresAtDate,
       createdBy: adminUser.id,
@@ -153,7 +168,10 @@ export async function POST(request: Request) {
     },
   });
 
-  const recipientCount = await countAnnouncementRecipients(targeting);
+  const { count: recipientCount } = await countAnnouncementRecipients(
+    targeting,
+    parsedCategory.category
+  );
 
   // Fire-and-forget dispatch paths — keep the admin response snappy.
   if (sendEmail) {
@@ -192,8 +210,10 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   });
   if (!ann) return;
 
+  // Volunteers who opted out of this category are left out here.
   const recipients = await findAnnouncementRecipients(
-    targetingFromAnnouncement(ann)
+    targetingFromAnnouncement(ann),
+    ann.category
   );
 
   // Wrap the rendered markdown in a container with explicit colour and font
@@ -212,6 +232,7 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   // current timestamp so clients/proxies can't serve a stale copy.
   const imageUrl =
     ann.imageUrl ?? `${baseUrl}/email/blank-pixel.png?v=${Date.now()}`;
+  const footerText = announcementEmailFooter(ann.category);
   const emailService = getEmailService();
 
   await Promise.allSettled(
@@ -223,6 +244,7 @@ async function dispatchAnnouncementEmails(announcementId: string) {
         bodyHtml,
         imageUrl,
         feedLink,
+        footerText,
       })
     )
   );
@@ -268,8 +290,10 @@ async function dispatchAnnouncementNotifications(announcementId: string) {
   });
   if (!ann) return;
 
+  // Volunteers who opted out of this category are left out here.
   const recipients = await findAnnouncementRecipients(
-    targetingFromAnnouncement(ann)
+    targetingFromAnnouncement(ann),
+    ann.category
   );
   if (recipients.length === 0) {
     await prisma.announcement.update({

@@ -485,6 +485,21 @@ export async function applyLocationMerge(
     `;
 
     if (work.fromLocationId) {
+      // Carry budgets over for years the target has none; the rest go with
+      // the duplicate row (cascade) since the target's own budget wins.
+      const intoRow = await tx.location.findUnique({
+        where: { name: into },
+        select: { id: true, budgets: { select: { year: true } } },
+      });
+      if (intoRow) {
+        await tx.locationBudget.updateMany({
+          where: {
+            locationId: work.fromLocationId,
+            year: { notIn: intoRow.budgets.map((b) => b.year) },
+          },
+          data: { locationId: intoRow.id },
+        });
+      }
       await tx.location.delete({ where: { id: work.fromLocationId } });
     }
 

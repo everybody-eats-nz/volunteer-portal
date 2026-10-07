@@ -193,7 +193,7 @@ export function VenueFormDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="venue-koha">Koha target / night ($)</Label>
+                <Label htmlFor="venue-koha">Default koha target / night ($)</Label>
                 <Input
                   id="venue-koha"
                   type="number"
@@ -211,7 +211,8 @@ export function VenueFormDialog({
                   data-testid="venue-koha-input"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Banking target. Leave empty for none.
+                  Used for years without an annual budget. Leave empty for
+                  none.
                 </p>
               </div>
             </div>

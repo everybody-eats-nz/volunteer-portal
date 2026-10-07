@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { sanitizeAnnouncementOptOuts } from "@/lib/announcement-categories";
 import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { autoLabelUnder16User, isUserUnder16 } from "@/lib/auto-label-utils";
@@ -50,6 +51,12 @@ const updateProfileSchema = z.object({
   notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
   receiveShortageNotifications: z.boolean().optional(),
   excludedShortageNotificationTypes: z.array(z.string()).optional(),
+  // Announcement categories to opt out of. Anything that can't be opted out
+  // of this way (mandatory categories, shift shortages) is dropped.
+  announcementOptOuts: z
+    .array(z.string())
+    .transform(sanitizeAnnouncementOptOuts)
+    .optional(),
   volunteerAgreementAccepted: z.boolean().optional(),
   healthSafetyPolicyAccepted: z.boolean().optional(),
 });
@@ -89,6 +96,7 @@ export async function GET() {
       notificationPreference: true,
       receiveShortageNotifications: true,
       excludedShortageNotificationTypes: true,
+      announcementOptOuts: true,
       volunteerAgreementAccepted: true,
       healthSafetyPolicyAccepted: true,
       requiresParentalConsent: true,
@@ -248,6 +256,8 @@ export async function PUT(req: Request) {
     if (validatedData.excludedShortageNotificationTypes !== undefined)
       updateData.excludedShortageNotificationTypes =
         validatedData.excludedShortageNotificationTypes;
+    if (validatedData.announcementOptOuts !== undefined)
+      updateData.announcementOptOuts = validatedData.announcementOptOuts;
 
     // Handle date field - can only be changed by admins if already set
     if (validatedData.dateOfBirth !== undefined) {
@@ -339,6 +349,7 @@ export async function PUT(req: Request) {
         notificationPreference: true,
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: true,
+        announcementOptOuts: true,
         volunteerAgreementAccepted: true,
         healthSafetyPolicyAccepted: true,
         requiresParentalConsent: true,

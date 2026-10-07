@@ -212,7 +212,7 @@ Rate limiting available via `src/lib/rate-limit.ts`.
 
 SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/sse-*.ts` and `better-sse`.
 
-### Database Schema (34 Models)
+### Database Schema (52 Models)
 
 **Core**:
 - **User** — Volunteer profiles with emergency contacts, role (`VOLUNTEER`/`ADMIN`), volunteer grade
@@ -220,6 +220,7 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 - **Shift** / **ShiftType** / **ShiftTemplate** — Shift scheduling with templates
 - **Signup** — Shift registrations with status tracking (`SignupStatus` enum)
 - **Location** — Restaurant locations
+- **LocationBudget** - Annual koha budget per location per year (annual target + planned service nights); drives nightly targets and `/admin/analytics/budget`
 
 **Gamification & Social**:
 - **Achievement** / **UserAchievement** — Achievement system with categories (`MILESTONE`, `DEDICATION`, `IMPACT`, `SPECIALIZATION`)
