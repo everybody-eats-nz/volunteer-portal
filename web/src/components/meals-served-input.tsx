@@ -413,7 +413,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
         )}
 
         {/* Hero totals — the night's headline result, building live */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <HeroStat
             featured
             label="Total koha"
@@ -437,7 +437,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
             label="$ per head"
             value={derived.perHead === null ? "—" : NZD.format(derived.perHead)}
           />
-        </div>
+        </dl>
         </div>
         </header>
 
@@ -705,10 +705,10 @@ function HeroStat({
         className
       )}
     >
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
         {label}
-      </div>
-      <div
+      </dt>
+      <dd
         className={cn(
           "font-accent font-semibold tabular-nums leading-tight",
           featured
@@ -717,7 +717,7 @@ function HeroStat({
         )}
       >
         {value}
-      </div>
+      </dd>
     </div>
   );
 }
