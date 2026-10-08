@@ -1,3 +1,9 @@
+## [0.184.0] - 2026-10-08
+
+### Changes
+- feat(admin): show pax on the Service Night Report summary ([#1335](https://github.com/everybody-eats-nz/volunteer-portal/pull/1335)) by @malinmalliyawadu
+
+
 ## [0.183.0] - 2026-10-07
 
 ### Changes
