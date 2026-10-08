@@ -29,6 +29,7 @@ import {
   UserPlus,
   UtensilsCrossed,
   CalendarDays,
+  Calculator,
   MapPin,
   CheckCircle2,
   Sparkles,
@@ -222,6 +223,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
     [form.mealsServed, form.nonPayingCount, form.cash, form.eftpos, form.stripe]
   );
   const eftposTotal = num(form.eftpos);
+  const customers = num(form.mealsServed);
 
   const filledCount = FILLABLE_KEYS.filter(
     (k) => form[k].trim() !== ""
@@ -411,11 +413,9 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
         )}
 
         {/* Hero totals — the night's headline result, building live */}
-        {/* Money tiles pair up on their own row until there's room for all five */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-6 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <HeroStat
             featured
-            className="col-span-2 sm:col-span-3 xl:col-span-1"
             label="Total koha"
             value={
               derived.totalDonations === null
@@ -423,32 +423,19 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
                 : NZD.format(derived.totalDonations)
             }
           />
+          {/* Headcount is the figure the team wants at a glance */}
+          <HeroStat
+            label="Pax"
+            value={customers === null ? "—" : customers.toLocaleString("en-NZ")}
+          />
           {/* EFTPOS is reconciled against Xero daily, so keep it on the summary */}
           <HeroStat
-            className="sm:col-span-3 xl:col-span-1"
             label="EFTPOS"
             value={eftposTotal === null ? "—" : NZD.format(eftposTotal)}
           />
           <HeroStat
-            className="sm:col-span-2 xl:col-span-1"
             label="$ per head"
             value={derived.perHead === null ? "—" : NZD.format(derived.perHead)}
-          />
-          <HeroStat
-            className="sm:col-span-2 xl:col-span-1"
-            label="Per paying"
-            value={
-              derived.perPaying === null ? "—" : NZD.format(derived.perPaying)
-            }
-          />
-          <HeroStat
-            className="sm:col-span-2 xl:col-span-1"
-            label="Non-paying"
-            value={
-              derived.nonPayingRatio === null
-                ? "—"
-                : `${Math.round(derived.nonPayingRatio * 100)}%`
-            }
           />
         </div>
         </div>
@@ -624,11 +611,26 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
             label="Non-paying customers"
             value={form.nonPayingCount}
             onChange={(v) => set("nonPayingCount", v)}
-            hint={
-              derived.nonPayingRatio === null
-                ? "Ratio is calculated from customers served."
-                : `${Math.round(derived.nonPayingRatio * 100)}% of customers served`
+          />
+
+          {/* Derived ratios — calculated, not entered */}
+          <DerivedField
+            id="perPaying"
+            label="Per paying customer"
+            value={
+              derived.perPaying === null ? "—" : NZD.format(derived.perPaying)
             }
+            hint="Koha divided by paying customers."
+          />
+          <DerivedField
+            id="nonPayingRatio"
+            label="Non-paying"
+            value={
+              derived.nonPayingRatio === null
+                ? "—"
+                : `${Math.round(derived.nonPayingRatio * 100)}%`
+            }
+            hint="Share of customers served."
           />
         </SectionCard>
 
@@ -816,6 +818,30 @@ function CountField({
         onChange={(e) => onChange(e.target.value)}
         className="tabular-nums"
       />
+    </Field>
+  );
+}
+
+function DerivedField({
+  id,
+  label,
+  value,
+  hint,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <Field htmlFor={id} label={label} hint={hint}>
+      <div
+        id={id}
+        className="flex h-9 items-center gap-2 rounded-md border border-dashed border-input bg-muted/40 px-3 text-sm tabular-nums text-foreground"
+      >
+        <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+        {value}
+      </div>
     </Field>
   );
 }
