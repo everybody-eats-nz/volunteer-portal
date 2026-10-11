@@ -1,3 +1,9 @@
+## [0.184.1] - 2026-10-11
+
+### Changes
+- chore(deps): bump @radix-ui/react-scroll-area from 1.2.18 to 1.3.0 in /web ([#1338](https://github.com/everybody-eats-nz/volunteer-portal/pull/1338)) by @dependabot[bot]
+
+
 ## [0.184.0] - 2026-10-08
 
 ### Changes
