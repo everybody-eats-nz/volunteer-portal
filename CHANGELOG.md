@@ -1,3 +1,9 @@
+## [0.184.2] - 2026-10-11
+
+### Changes
+- chore(deps): bump source-map-js from 1.2.1 to 1.2.2 in /web ([#1341](https://github.com/everybody-eats-nz/volunteer-portal/pull/1341)) by @dependabot[bot]
+
+
 ## [0.184.1] - 2026-10-11
 
 ### Changes
