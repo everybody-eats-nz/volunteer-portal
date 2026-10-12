@@ -1,3 +1,9 @@
+## [0.184.3] - 2026-10-12
+
+### Changes
+- fix(flaky): Backup Shift Signup Feature e2e tests ([#1343](https://github.com/everybody-eats-nz/volunteer-portal/pull/1343)) by @malinmalliyawadu
+
+
 ## [0.184.2] - 2026-10-11
 
 ### Changes
