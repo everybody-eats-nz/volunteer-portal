@@ -105,6 +105,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await deleteTestShifts(page, testShiftIds);
   });
 
+
   test("volunteer can see concurrent shift backup options when signing up", async ({
     page,
   }) => {
@@ -131,10 +132,14 @@ test.describe("Backup Shift Signup Feature", () => {
     await signupButton.click();
 
     // Wait for dialog to open
-    await page.waitForTimeout(1000);
+    await expect(page.getByTestId("shift-signup-dialog")).toBeVisible({
+      timeout: 15000,
+    });
 
     // Should see the backup shift options section
-    await expect(page.getByText("Flexible with shift changes?")).toBeVisible();
+    await expect(page.getByText("Flexible with shift changes?")).toBeVisible({
+      timeout: 15000,
+    });
     await expect(
       page.getByText("If we need to move you, which other shifts")
     ).toBeVisible();
@@ -142,7 +147,7 @@ test.describe("Backup Shift Signup Feature", () => {
     // Should see checkboxes for this test's specific concurrent shifts
     await expect(
       page.locator(`[data-testid="backup-shift-${backupShift1Id}"]`)
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
     await expect(
       page.locator(`[data-testid="backup-shift-${backupShift2Id}"]`)
     ).toBeVisible();
@@ -175,13 +180,15 @@ test.describe("Backup Shift Signup Feature", () => {
 
     const signupButton = primaryShiftCard.getByTestId("shift-signup-button");
     await signupButton.click();
-    await page.waitForTimeout(1000);
+    await expect(page.getByTestId("shift-signup-dialog")).toBeVisible({
+      timeout: 15000,
+    });
 
     // Select FOH as backup
     const fohCheckbox = page.locator(
       `[data-testid="backup-shift-${backupShift1Id}"]`
     );
-    await expect(fohCheckbox).toBeVisible();
+    await expect(fohCheckbox).toBeVisible({ timeout: 15000 });
     await fohCheckbox.click();
 
     // Select Dishwasher as backup
@@ -203,13 +210,10 @@ test.describe("Backup Shift Signup Feature", () => {
     await expect(submitButton).toBeVisible();
     await submitButton.click();
 
-    // Wait for success
-    await page.waitForTimeout(2000);
-
-    // Dialog should close
+    // Dialog closes once the signup request succeeds
     await expect(
       page.getByText("Flexible with shift changes?")
-    ).not.toBeVisible();
+    ).not.toBeVisible({ timeout: 15000 });
   }
 
   /**
@@ -475,11 +479,13 @@ test.describe("Backup Shift Signup Feature", () => {
 
     const signupButton = shiftCard.getByTestId("shift-signup-button");
     await signupButton.click();
-    await page.waitForTimeout(1000);
+    await expect(page.getByTestId("shift-signup-dialog")).toBeVisible({
+      timeout: 15000,
+    });
 
     // Should see the "Add a note" button, not the textarea
     const addNoteButton = page.getByTestId("show-note-button");
-    await expect(addNoteButton).toBeVisible();
+    await expect(addNoteButton).toBeVisible({ timeout: 15000 });
     await expect(addNoteButton).toHaveText(/Add a message/i);
 
     // Note field should not be visible
@@ -487,10 +493,11 @@ test.describe("Backup Shift Signup Feature", () => {
 
     // Click the button to reveal note field
     await addNoteButton.click();
-    await page.waitForTimeout(300);
 
     // Now the textarea should be visible
-    await expect(page.getByTestId("shift-signup-note")).toBeVisible();
+    await expect(page.getByTestId("shift-signup-note")).toBeVisible({
+      timeout: 15000,
+    });
 
     // And the button should be hidden
     await expect(addNoteButton).not.toBeVisible();
