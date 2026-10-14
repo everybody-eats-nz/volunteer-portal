@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface NotificationStreamEvent {
   type: "connected" | "heartbeat" | "notification" | "unread_count_changed" | "system_update";
@@ -24,6 +24,9 @@ interface UseNotificationStreamOptions {
   endpoint?: string; // Allow custom endpoint
 }
 
+const MAX_RECONNECT_ATTEMPTS = 5;
+const BASE_RECONNECT_DELAY_MS = 2000;
+
 export function useNotificationStream({
   onUnreadCountChange,
   onNewNotification,
@@ -32,9 +35,6 @@ export function useNotificationStream({
   enabled = true,
   endpoint = "/api/notifications/stream",
 }: UseNotificationStreamOptions = {}) {
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStats, setConnectionStats] = useState({
     connectedAt: null as Date | null,
@@ -42,167 +42,154 @@ export function useNotificationStream({
     lastHeartbeat: null as Date | null,
   });
 
-  // Store callbacks in refs to avoid dependency issues
-  const onUnreadCountChangeRef = useRef(onUnreadCountChange);
-  const onNewNotificationRef = useRef(onNewNotification);
-  const onSystemUpdateRef = useRef(onSystemUpdate);
-  const onConnectionStatusChangeRef = useRef(onConnectionStatusChange);
-
-  // Update refs when callbacks change
+  // The latest callbacks, read by the long-lived EventSource handlers so a
+  // new callback identity never tears down the connection.
+  const callbacksRef = useRef({
+    onUnreadCountChange,
+    onNewNotification,
+    onSystemUpdate,
+    onConnectionStatusChange,
+  });
   useEffect(() => {
-    onUnreadCountChangeRef.current = onUnreadCountChange;
-    onNewNotificationRef.current = onNewNotification;
-    onSystemUpdateRef.current = onSystemUpdate;
-    onConnectionStatusChangeRef.current = onConnectionStatusChange;
+    callbacksRef.current = {
+      onUnreadCountChange,
+      onNewNotification,
+      onSystemUpdate,
+      onConnectionStatusChange,
+    };
   }, [onUnreadCountChange, onNewNotification, onSystemUpdate, onConnectionStatusChange]);
 
-  const maxReconnectAttempts = 5;
-  const baseReconnectDelay = 2000; // 2 seconds (increased from 1s)
-
-  const cleanup = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    setIsConnected(false);
-    onConnectionStatusChangeRef.current?.(false);
-  }, []);
-
-  const connect = useCallback(() => {
+  // The connection belongs to this effect: opened when enabled, rebuilt when
+  // the endpoint changes, and closed (with any pending reconnect) on cleanup.
+  useEffect(() => {
     if (!enabled) return;
 
-    cleanup();
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempts = 0;
 
-    try {
-      console.log(`[SSE] Connecting to notification stream: ${endpoint}`);
-      const eventSource = new EventSource(endpoint);
-      eventSourceRef.current = eventSource;
+    const setConnected = (connected: boolean) => {
+      setIsConnected(connected);
+      callbacksRef.current.onConnectionStatusChange?.(connected);
+    };
 
-      eventSource.onopen = () => {
-        console.log("[SSE] Notification stream connected successfully");
-        reconnectAttemptsRef.current = 0;
-        setIsConnected(true);
-        setConnectionStats(prev => ({
-          ...prev,
-          connectedAt: new Date(),
-          reconnectAttempts: 0,
-        }));
-        onConnectionStatusChangeRef.current?.(true);
-      };
+    const close = () => {
+      eventSource?.close();
+      eventSource = null;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
+    };
 
-      eventSource.onmessage = (event) => {
-        try {
-          const data: NotificationStreamEvent = JSON.parse(event.data);
+    const connect = () => {
+      close();
 
-          // Update last heartbeat time
-          if (data.type === "heartbeat") {
-            setConnectionStats(prev => ({
-              ...prev,
-              lastHeartbeat: new Date(),
-            }));
-          }
+      try {
+        console.log(`[SSE] Connecting to notification stream: ${endpoint}`);
+        const source = new EventSource(endpoint);
+        eventSource = source;
 
-          switch (data.type) {
-            case "connected":
-              console.log(`[SSE] Connection established for user: ${data.userId} (${data.role})`);
-              break;
-            case "heartbeat":
-              // Connection is alive, heartbeat logged above
-              break;
-            case "unread_count_changed":
-              console.log(`[SSE] Unread count changed: ${data.data?.count}`);
-              onUnreadCountChangeRef.current?.(data.data?.count || 0);
-              break;
-            case "notification":
-              console.log("[SSE] New notification received");
-              if (data.data?.notification) {
-                onNewNotificationRef.current?.(data.data.notification);
-              }
-              break;
-            case "system_update":
-              console.log(`[SSE] System update: ${data.data?.message}`);
-              if (data.data?.message) {
-                onSystemUpdateRef.current?.(data.data.message);
-              }
-              break;
-            default:
-              console.log(`[SSE] Unknown event type: ${data.type}`);
-          }
-        } catch (error) {
-          console.error("[SSE] Error parsing message:", error);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        // EventSource fires onerror on every transient drop and auto-reconnects
-        // (handled below), so this is a warning, not an error — logging it at
-        // error level pops the Next.js dev error overlay on every reconnect and
-        // breaks e2e tests that assert on dialogs.
-        console.warn("[SSE] Connection error:", error);
-        setIsConnected(false);
-        onConnectionStatusChangeRef.current?.(false);
-
-        // Only attempt to reconnect if we haven't exceeded max attempts
-        if (reconnectAttemptsRef.current < maxReconnectAttempts && enabled) {
-          const delay = baseReconnectDelay * Math.pow(2, Math.min(reconnectAttemptsRef.current, 4));
-
-          console.log(
-            `[SSE] Reconnecting in ${delay}ms (attempt ${
-              reconnectAttemptsRef.current + 1
-            }/${maxReconnectAttempts})`
-          );
-
-          setConnectionStats(prev => ({
+        source.onopen = () => {
+          console.log("[SSE] Notification stream connected successfully");
+          reconnectAttempts = 0;
+          setConnectionStats((prev) => ({
             ...prev,
-            reconnectAttempts: reconnectAttemptsRef.current + 1,
+            connectedAt: new Date(),
+            reconnectAttempts: 0,
           }));
+          setConnected(true);
+        };
 
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttemptsRef.current++;
-            connect();
-          }, delay);
-        } else {
-          console.error("[SSE] Max reconnection attempts reached. Connection abandoned.");
-          cleanup();
-        }
-      };
-    } catch (error) {
-      console.error("[SSE] Failed to create connection:", error);
-      setIsConnected(false);
-      onConnectionStatusChangeRef.current?.(false);
-    }
-  }, [enabled, endpoint, cleanup]);
+        source.onmessage = (event) => {
+          try {
+            const data: NotificationStreamEvent = JSON.parse(event.data);
 
-  // Initialize connection
-  useEffect(() => {
-    if (enabled) {
-      connect();
-    } else {
-      cleanup();
-    }
+            // Update last heartbeat time
+            if (data.type === "heartbeat") {
+              setConnectionStats((prev) => ({
+                ...prev,
+                lastHeartbeat: new Date(),
+              }));
+            }
 
-    return cleanup;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, endpoint]); // Only depend on enabled and endpoint, not connect/cleanup to avoid render loops
+            switch (data.type) {
+              case "connected":
+                console.log(`[SSE] Connection established for user: ${data.userId} (${data.role})`);
+                break;
+              case "heartbeat":
+                // Connection is alive, heartbeat logged above
+                break;
+              case "unread_count_changed":
+                console.log(`[SSE] Unread count changed: ${data.data?.count}`);
+                callbacksRef.current.onUnreadCountChange?.(data.data?.count || 0);
+                break;
+              case "notification":
+                console.log("[SSE] New notification received");
+                if (data.data?.notification) {
+                  callbacksRef.current.onNewNotification?.(data.data.notification);
+                }
+                break;
+              case "system_update":
+                console.log(`[SSE] System update: ${data.data?.message}`);
+                if (data.data?.message) {
+                  callbacksRef.current.onSystemUpdate?.(data.data.message);
+                }
+                break;
+              default:
+                console.log(`[SSE] Unknown event type: ${data.type}`);
+            }
+          } catch (error) {
+            console.error("[SSE] Error parsing message:", error);
+          }
+        };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return cleanup;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+        source.onerror = (error) => {
+          // EventSource fires onerror on every transient drop and auto-reconnects
+          // (handled below), so this is a warning, not an error — logging it at
+          // error level pops the Next.js dev error overlay on every reconnect and
+          // breaks e2e tests that assert on dialogs.
+          console.warn("[SSE] Connection error:", error);
+          setConnected(false);
 
-  return {
-    reconnect: connect,
-    disconnect: cleanup,
-    isConnected,
-    connectionStats,
-    forceReconnect: useCallback(() => {
-      reconnectAttemptsRef.current = 0; // Reset attempts
-      connect();
-    }, [connect]),
-  };
+          // Only attempt to reconnect if we haven't exceeded max attempts
+          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            const delay =
+              BASE_RECONNECT_DELAY_MS * Math.pow(2, Math.min(reconnectAttempts, 4));
+
+            console.log(
+              `[SSE] Reconnecting in ${delay}ms (attempt ${
+                reconnectAttempts + 1
+              }/${MAX_RECONNECT_ATTEMPTS})`
+            );
+
+            setConnectionStats((prev) => ({
+              ...prev,
+              reconnectAttempts: reconnectAttempts + 1,
+            }));
+
+            reconnectTimeout = setTimeout(() => {
+              reconnectAttempts++;
+              connect();
+            }, delay);
+          } else {
+            console.error("[SSE] Max reconnection attempts reached. Connection abandoned.");
+            close();
+          }
+        };
+      } catch (error) {
+        console.error("[SSE] Failed to create connection:", error);
+        setConnected(false);
+      }
+    };
+
+    connect();
+
+    return () => {
+      close();
+      setConnected(false);
+    };
+  }, [enabled, endpoint]);
+
+  return { isConnected, connectionStats };
 }

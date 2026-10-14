@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 import {
   FileSearch,
   LayoutDashboard,
@@ -28,25 +29,14 @@ export function AutoApprovalClient() {
   const [tab, setTab] = useState<TabValue>("overview");
   const { options } = useAdminOptions();
 
-  const [rules, setRules] = useState<SerializedRuleClient[]>([]);
-  const [rulesLoading, setRulesLoading] = useState(true);
-
-  const loadRules = useCallback(async () => {
-    setRulesLoading(true);
-    try {
-      const res = await fetch("/api/admin/auto-approval/rules");
-      if (res.ok) {
-        const json = await res.json();
-        setRules(json.rules);
-      }
-    } finally {
-      setRulesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadRules();
-  }, [loadRules]);
+  const {
+    data: rulesData,
+    isLoading: rulesLoading,
+    mutate: refreshRules,
+  } = useSWR<{ rules: SerializedRuleClient[] }>(
+    "/api/admin/auto-approval/rules"
+  );
+  const rules = rulesData?.rules ?? [];
 
   // Deep links: /admin/auto-approval#decisions lands straight on that tab.
   useEffect(() => {
@@ -100,7 +90,7 @@ export function AutoApprovalClient() {
           rules={rules}
           loading={rulesLoading}
           options={options}
-          onRefresh={loadRules}
+          onRefresh={() => void refreshRules()}
         />
       </TabsContent>
     </Tabs>

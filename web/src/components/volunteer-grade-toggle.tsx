@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ResponsiveDialog,
@@ -26,7 +26,6 @@ import {
   VOLUNTEER_GRADE_OPTIONS,
   getVolunteerGradeInfo,
 } from "@/lib/volunteer-grades";
-import { useCallback, useEffect } from "react";
 
 interface VolunteerGradeToggleProps {
   userId: string;
@@ -50,11 +49,14 @@ export function VolunteerGradeToggle({
     useState<VolunteerGrade>(currentGrade);
   const router = useRouter();
 
-  // Update local state when currentGrade prop changes
-  useEffect(() => {
+  // Update local state when the currentGrade prop changes. Done during render
+  // so the badge never shows the stale grade for a frame.
+  const [syncedGrade, setSyncedGrade] = useState(currentGrade);
+  if (currentGrade !== syncedGrade) {
+    setSyncedGrade(currentGrade);
     setSelectedGrade(currentGrade);
     setOptimisticGrade(currentGrade);
-  }, [currentGrade]);
+  }
 
   const handleGradeChange = useCallback(async () => {
     if (selectedGrade === currentGrade) {

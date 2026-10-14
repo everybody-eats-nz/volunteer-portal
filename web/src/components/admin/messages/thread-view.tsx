@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import {
   Archive,
@@ -25,6 +26,19 @@ import type {
   ThreadDetail,
 } from "./types";
 
+interface ThreadResponse {
+  thread: ThreadDetail & {
+    lastMessageAt: string;
+    teamLastReadAt: string | null;
+    volunteerLastReadAt: string | null;
+  };
+  messages: SerializedMessage[];
+  upcomingShiftCount: number;
+  nextShift: NextShiftSummary | null;
+}
+
+const NO_MESSAGES: SerializedMessage[] = [];
+
 interface ThreadViewProps {
   threadId: string;
   onMessageSent: (threadId: string, body: string, createdAt: string) => void;
@@ -32,38 +46,34 @@ interface ThreadViewProps {
 }
 
 export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewProps) {
-  const [thread, setThread] = useState<ThreadDetail | null>(null);
-  const [messages, setMessages] = useState<SerializedMessage[]>([]);
-  const [loading, setLoading] = useState(true);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const refresh = useCallback(async () => {
-    const res = await fetch(`/api/admin/messages/threads/${threadId}`);
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      thread: ThreadDetail & {
-        lastMessageAt: string;
-        teamLastReadAt: string | null;
-        volunteerLastReadAt: string | null;
-      };
-      messages: SerializedMessage[];
-      upcomingShiftCount: number;
-      nextShift: NextShiftSummary | null;
-    };
-    setThread({
-      ...data.thread,
-      upcomingShiftCount: data.upcomingShiftCount,
-      nextShift: data.nextShift,
-    });
-    setMessages(data.messages);
-  }, [threadId]);
+  const { data, mutate } = useSWR<ThreadResponse>(
+    `/api/admin/messages/threads/${threadId}`
+  );
+  const thread: ThreadDetail | null = data
+    ? {
+        ...data.thread,
+        upcomingShiftCount: data.upcomingShiftCount,
+        nextShift: data.nextShift,
+      }
+    : null;
+  const messages = data?.messages ?? NO_MESSAGES;
 
-  useEffect(() => {
-    setLoading(true);
-    void refresh().finally(() => setLoading(false));
-  }, [refresh]);
+  /** Adds a message locally, ignoring one we already have (our own send). */
+  const appendMessage = useCallback(
+    (message: SerializedMessage) =>
+      mutate(
+        (current) =>
+          current && !current.messages.some((m) => m.id === message.id)
+            ? { ...current, messages: [...current.messages, message] }
+            : current,
+        { revalidate: false }
+      ),
+    [mutate]
+  );
 
   // Auto-scroll to bottom on new messages.
   useEffect(() => {
@@ -84,32 +94,26 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
           return;
         }
         // Avoid duplicating our own optimistic send.
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === evt.directMessage!.id)) return prev;
-          return [
-            ...prev,
-            {
-              id: evt.directMessage!.id,
-              body: evt.directMessage!.body,
-              senderId: evt.directMessage!.senderId,
-              senderRole: evt.directMessage!.senderRole,
-              createdAt: evt.directMessage!.createdAt,
-              sender: {
-                id: evt.directMessage!.senderId,
-                firstName: null,
-                lastName: null,
-                name: evt.volunteer?.name ?? null,
-                profilePhotoUrl: null,
-              },
-            },
-          ];
+        void appendMessage({
+          id: evt.directMessage.id,
+          body: evt.directMessage.body,
+          senderId: evt.directMessage.senderId,
+          senderRole: evt.directMessage.senderRole,
+          createdAt: evt.directMessage.createdAt,
+          sender: {
+            id: evt.directMessage.senderId,
+            firstName: null,
+            lastName: null,
+            name: evt.volunteer?.name ?? null,
+            profilePhotoUrl: null,
+          },
         });
         // Mark thread as read on receipt while it's open.
         void fetch(`/api/admin/messages/threads/${threadId}/read`, {
           method: "POST",
         });
       },
-      [threadId]
+      [threadId, appendMessage]
     ),
   });
 
@@ -132,22 +136,27 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
         return;
       }
       const data = (await res.json()) as { message: SerializedMessage };
-      setMessages((prev) => [...prev, data.message]);
+      void appendMessage(data.message);
       setBody("");
       onMessageSent(threadId, trimmed, data.message.createdAt);
     } finally {
       setSending(false);
     }
-  }, [body, sending, threadId, onMessageSent]);
+  }, [body, sending, threadId, onMessageSent, appendMessage]);
 
+  const status = data?.thread.status;
   const handleResolveClick = useCallback(() => {
-    if (!thread) return;
-    const next = thread.status === "OPEN" ? "RESOLVED" : "OPEN";
+    if (!status) return;
+    const next = status === "OPEN" ? "RESOLVED" : "OPEN";
     onResolve(threadId, next);
-    setThread({ ...thread, status: next });
-  }, [thread, threadId, onResolve]);
+    void mutate(
+      (current) =>
+        current && { ...current, thread: { ...current.thread, status: next } },
+      { revalidate: false }
+    );
+  }, [status, threadId, onResolve, mutate]);
 
-  if (loading || !thread) {
+  if (!thread) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />

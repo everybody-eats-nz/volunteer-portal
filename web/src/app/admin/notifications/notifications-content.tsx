@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import useSWR from "swr";
+import { useResettableState } from "@/hooks/use-resettable-state";
 import { useSearchParams } from "next/navigation";
 import { useLocationPreferenceState } from "@/hooks/use-location-preference";
 import {
@@ -97,6 +99,12 @@ interface NotificationsContentProps {
 
 const HISTORY_PAGE_SIZE = 20;
 
+// Stable fallbacks so derived lists don't recompute on every render while
+// their data loads.
+const NO_SHIFTS: Shift[] = [];
+const NO_VOLUNTEERS: Volunteer[] = [];
+const NO_GROUPS: NotificationGroup[] = [];
+
 export function NotificationsContent({
   shiftTypes,
   locations,
@@ -112,15 +120,9 @@ export function NotificationsContent({
   );
   const [filterShiftLocation, setFilterShiftLocation] = useState<string>("all");
 
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
-  const [filteredVolunteers, setFilteredVolunteers] = useState<Volunteer[]>([]);
   const [selectedVolunteers, setSelectedVolunteers] = useState<Set<string>>(
     new Set()
   );
-  const [notificationGroups, setNotificationGroups] = useState<
-    NotificationGroup[]
-  >([]);
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -136,8 +138,39 @@ export function NotificationsContent({
   const [filterNotificationsEnabled, setFilterNotificationsEnabled] =
     useState<boolean>(true);
 
-  // Check for URL parameters to pre-select date, shift type and location
-  useEffect(() => {
+  const { data: shifts = NO_SHIFTS } = useSWR<Shift[]>(
+    "/api/admin/shifts/shortages",
+    {
+      onError: (error) => {
+        console.error("Error fetching shifts:", error);
+        toast.error("Failed to load shifts");
+      },
+    }
+  );
+  const { data: volunteers = NO_VOLUNTEERS } = useSWR<Volunteer[]>(
+    "/api/admin/volunteers?includeStats=true&includeAdmins=true",
+    {
+      onError: (error) => {
+        console.error("Error fetching volunteers:", error);
+        toast.error("Failed to load volunteers");
+      },
+    }
+  );
+  const { data: notificationGroups = NO_GROUPS, mutate: mutateGroups } =
+    useSWR<NotificationGroup[]>("/api/admin/notification-groups", {
+      onError: (error) =>
+        console.error("Error fetching notification groups:", error),
+    });
+
+  // Pre-select date, shift type and location from the URL. Applied during
+  // render whenever the query string changes, so the filters are right on
+  // the first paint.
+  const searchParamsKey = searchParams.toString();
+  const [appliedSearchParams, setAppliedSearchParams] = useState<
+    string | null
+  >(null);
+  if (appliedSearchParams !== searchParamsKey) {
+    setAppliedSearchParams(searchParamsKey);
     const dateParam = searchParams.get("date");
     const shiftTypeParam = searchParams.get("shiftType");
     const locationParam = searchParams.get("location");
@@ -158,7 +191,7 @@ export function NotificationsContent({
       setFilterLocation(locationParam);
       setFilterShiftLocation(locationParam);
     }
-  }, [searchParams, shiftTypes, locations]);
+  }
 
   // Save location preference to localStorage when it changes
   useEffect(() => {
@@ -167,89 +200,50 @@ export function NotificationsContent({
     }
   }, [filterLocation, setLocationPreference]);
 
-  // Auto-select specific shift once shifts are loaded
-  useEffect(() => {
-    const shiftIdParam = searchParams.get("shiftId");
-
-    if (shifts.length > 0 && shiftIdParam) {
-      const targetShift = shifts.find((shift) => shift.id === shiftIdParam);
-      if (targetShift) {
-        setSelectedShifts(new Set([shiftIdParam]));
-        // Set the date filter to the shift's date
-        setFilterShiftDate(new Date(targetShift.start));
-        setFilterShiftLocation(targetShift.location || "all");
-      }
+  // Auto-select the shift named in the URL once the shifts have loaded.
+  const shiftIdParam = searchParams.get("shiftId");
+  const [autoSelectedShiftId, setAutoSelectedShiftId] = useState<
+    string | null
+  >(null);
+  if (shiftIdParam && autoSelectedShiftId !== shiftIdParam) {
+    const targetShift = shifts.find((shift) => shift.id === shiftIdParam);
+    if (targetShift) {
+      setAutoSelectedShiftId(shiftIdParam);
+      setSelectedShifts(new Set([shiftIdParam]));
+      // Set the date filter to the shift's date
+      setFilterShiftDate(new Date(targetShift.start));
+      setFilterShiftLocation(targetShift.location || "all");
     }
-  }, [shifts, searchParams]);
+  }
 
   // Group saving
   const [groupName, setGroupName] = useState<string>("");
   const [groupDescription, setGroupDescription] = useState<string>("");
 
   // Notification history
-  const [notificationHistory, setNotificationHistory] = useState<NotificationBatch[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
-  const [historyTotal, setHistoryTotal] = useState(0);
-
-  const fetchShifts = async () => {
-    try {
-      const response = await fetch("/api/admin/shifts/shortages");
-      if (!response.ok) throw new Error("Failed to fetch shifts");
-      const data = await response.json();
-      setShifts(data);
-    } catch (error) {
-      console.error("Error fetching shifts:", error);
-      toast.error("Failed to load shifts");
-    }
-  };
-
-  const fetchVolunteers = async () => {
-    try {
-      const response = await fetch("/api/admin/volunteers?includeStats=true&includeAdmins=true");
-      if (!response.ok) throw new Error("Failed to fetch volunteers");
-      const data = await response.json();
-      setVolunteers(data);
-    } catch (error) {
-      console.error("Error fetching volunteers:", error);
-      toast.error("Failed to load volunteers");
-    }
-  };
-
-  const fetchNotificationGroups = async () => {
-    try {
-      const response = await fetch("/api/admin/notification-groups");
-      if (!response.ok) throw new Error("Failed to fetch notification groups");
-      const data = await response.json();
-      setNotificationGroups(data);
-    } catch (error) {
-      console.error("Error fetching notification groups:", error);
-    }
-  };
-
-  const fetchNotificationHistory = useCallback(
-    async (targetPage: number = historyPage) => {
-      setIsLoadingHistory(true);
-      try {
-        const offset = (targetPage - 1) * HISTORY_PAGE_SIZE;
-        const response = await fetch(
-          `/api/admin/notifications/history?limit=${HISTORY_PAGE_SIZE}&offset=${offset}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch notification history");
-        const data = await response.json();
-        setNotificationHistory(data.batches);
-        setHistoryTotal(data.totalCount ?? 0);
-        setExpandedBatch(null);
-      } catch (error) {
+  // A different page (or a refresh) starts with every batch collapsed.
+  const [expandedBatch, setExpandedBatch] = useResettableState<string | null>(
+    null,
+    historyPage
+  );
+  const {
+    data: historyData,
+    isLoading: isLoadingHistory,
+    isValidating: isRefreshingHistory,
+    mutate: refreshHistory,
+  } = useSWR<{ batches: NotificationBatch[]; totalCount?: number }>(
+    `/api/admin/notifications/history?limit=${HISTORY_PAGE_SIZE}&offset=${(historyPage - 1) * HISTORY_PAGE_SIZE}`,
+    {
+      keepPreviousData: true,
+      onError: (error) => {
         console.error("Error fetching notification history:", error);
         toast.error("Failed to load notification history");
-      } finally {
-        setIsLoadingHistory(false);
-      }
-    },
-    [historyPage]
+      },
+    }
   );
+  const notificationHistory = historyData?.batches ?? [];
+  const historyTotal = historyData?.totalCount ?? 0;
 
   // Filter shifts based on date and location
   const filteredShifts = useMemo(() => {
@@ -314,7 +308,7 @@ export function NotificationsContent({
     }));
   }, [shifts]);
 
-  const applyFilters = useCallback(() => {
+  const filteredVolunteers = useMemo(() => {
     let filtered = [...volunteers];
 
     // Filter by notification preferences
@@ -370,7 +364,7 @@ export function NotificationsContent({
       );
     }
 
-    setFilteredVolunteers(filtered);
+    return filtered;
   }, [
     volunteers,
     filterNotificationsEnabled,
@@ -380,32 +374,6 @@ export function NotificationsContent({
     selectedShifts,
     shifts,
     filterMinShifts,
-  ]);
-
-  // Load shifts with shortage
-  useEffect(() => {
-    fetchShifts();
-    fetchVolunteers();
-    fetchNotificationGroups();
-  }, []);
-
-  // Load notification history when the page changes (initial mount + pagination)
-  useEffect(() => {
-    fetchNotificationHistory(historyPage);
-  }, [historyPage, fetchNotificationHistory]);
-
-  // Apply filters when they change
-  useEffect(() => {
-    applyFilters();
-  }, [
-    applyFilters,
-    volunteers,
-    filterLocation,
-    filterShiftType,
-    filterAvailability,
-    filterMinShifts,
-    filterNotificationsEnabled,
-    selectedShifts,
   ]);
 
   const handleSelectAll = () => {
@@ -525,7 +493,9 @@ export function NotificationsContent({
       if (!response.ok) throw new Error("Failed to save group");
 
       const newGroup = await response.json();
-      setNotificationGroups([...notificationGroups, newGroup]);
+      await mutateGroups([...notificationGroups, newGroup], {
+        revalidate: false,
+      });
       setGroupName("");
       setGroupDescription("");
       toast.success("Group saved successfully");
@@ -572,9 +542,9 @@ export function NotificationsContent({
       setSelectedShifts(new Set());
 
       // Refresh notification history (jump back to first page so the new
-      // batch is visible; the page-change effect refetches).
+      // batch is visible; changing page refetches).
       if (historyPage === 1) {
-        fetchNotificationHistory(1);
+        void refreshHistory();
       } else {
         setHistoryPage(1);
       }
@@ -1096,10 +1066,13 @@ export function NotificationsContent({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => fetchNotificationHistory(historyPage)}
-                disabled={isLoadingHistory}
+                onClick={() => {
+                  setExpandedBatch(null);
+                  void refreshHistory();
+                }}
+                disabled={isRefreshingHistory}
               >
-                <RefreshCw className={cn("h-4 w-4 mr-2", isLoadingHistory && "animate-spin")} />
+                <RefreshCw className={cn("h-4 w-4 mr-2", isRefreshingHistory && "animate-spin")} />
                 Refresh
               </Button>
             </div>
@@ -1234,7 +1207,7 @@ export function NotificationsContent({
                     variant="outline"
                     size="sm"
                     onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                    disabled={isLoadingHistory || historyPage <= 1}
+                    disabled={isRefreshingHistory || historyPage <= 1}
                     data-testid="notification-history-prev"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -1256,7 +1229,7 @@ export function NotificationsContent({
                       )
                     }
                     disabled={
-                      isLoadingHistory ||
+                      isRefreshingHistory ||
                       historyPage >=
                         Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE))
                     }

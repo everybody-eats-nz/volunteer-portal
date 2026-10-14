@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -172,29 +172,17 @@ interface AchievementsCardProps {
 }
 
 export default function AchievementsCard({ initialData }: AchievementsCardProps = {}) {
-  const [achievementsData, setAchievementsData] =
-    useState<AchievementsData | null>(initialData ?? null);
-  const [loading, setLoading] = useState(!initialData);
-
-  useEffect(() => {
-    // Skip fetch if server provided initial data
-    if (initialData) return;
-    fetchAchievements();
-  }, [initialData]);
-
-  const fetchAchievements = async () => {
-    try {
-      const response = await fetch("/api/achievements");
-      if (response.ok) {
-        const data = await response.json();
-        setAchievementsData(data);
-      }
-    } catch (error) {
-      console.error("Error fetching achievements:", error);
-    } finally {
-      setLoading(false);
+  // The dashboard server-renders this data; the fetch is only a fallback. It
+  // also runs the unlock check, so it isn't repeated on focus or reconnect.
+  const { data, isLoading: loading } = useSWR<AchievementsData>(
+    initialData ? null : "/api/achievements",
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      onError: (error) => console.error("Error fetching achievements:", error),
     }
-  };
+  );
+  const achievementsData = initialData ?? data ?? null;
 
   if (loading) {
     return (

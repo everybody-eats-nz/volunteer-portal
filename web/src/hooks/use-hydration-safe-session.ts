@@ -1,7 +1,5 @@
-import { useSyncExternalStore } from "react";
 import { useSession, type SessionContextValue } from "next-auth/react";
-
-const subscribeNoop = () => () => {};
+import { useHydrated } from "./use-hydrated";
 
 /**
  * `useSession()` that reports `"loading"` until the calling component has
@@ -14,18 +12,13 @@ const subscribeNoop = () => () => {};
  * the signed-in branch over signed-out server HTML - a React hydration
  * mismatch that throws away and client-renders the whole boundary.
  *
- * During hydration `useSyncExternalStore` returns the server snapshot
- * (`false`), then re-renders with the client snapshot (`true`). Components
- * that mount on the client without hydrating (e.g. after a soft navigation)
- * get the real session on their first render, with no loading flash.
+ * Components that mount on the client without hydrating (e.g. after a soft
+ * navigation) get the real session on their first render, with no loading
+ * flash.
  */
 export function useHydrationSafeSession(): SessionContextValue {
   const session = useSession();
-  const hydrated = useSyncExternalStore(
-    subscribeNoop,
-    () => true,
-    () => false
-  );
+  const hydrated = useHydrated();
 
   if (!hydrated) {
     return { data: null, status: "loading", update: session.update };

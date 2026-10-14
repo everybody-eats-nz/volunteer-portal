@@ -1,6 +1,8 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { SWRConfig } from "swr";
+import { swrConfig } from "@/lib/swr";
 import { ThemeProvider } from "./theme-provider";
 import { MotionConfig } from "./motion-config";
 import { PostHogIdentifier } from "./posthog-identifier";
@@ -20,7 +22,7 @@ export function Providers({ children }: ProvidersProps) {
         disableTransitionOnChange
       >
         <MotionConfig />
-        {children}
+        <SWRConfig value={swrConfig}>{children}</SWRConfig>
       </ThemeProvider>
     </SessionProvider>
   );

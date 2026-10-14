@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,37 +38,49 @@ export default function NewsletterListDialog({
   list,
   onSuccess,
 }: NewsletterListDialogProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    campaignMonitorId: "",
-    description: "",
-    active: true,
-    displayOrder: 0,
-  });
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        {/* Mounted per open, so the form always starts from the list being
+            edited (or a blank one). */}
+        <NewsletterListForm
+          key={list?.id ?? "new"}
+          list={list}
+          onSuccess={onSuccess}
+          onCancel={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NewsletterListForm({
+  list,
+  onSuccess,
+  onCancel,
+}: Omit<NewsletterListDialogProps, "open" | "onOpenChange"> & {
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState(() =>
+    list
+      ? {
+          name: list.name,
+          campaignMonitorId: list.campaignMonitorId,
+          description: list.description || "",
+          active: list.active,
+          displayOrder: list.displayOrder,
+        }
+      : {
+          name: "",
+          campaignMonitorId: "",
+          description: "",
+          active: true,
+          displayOrder: 0,
+        }
+  );
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (list) {
-      setFormData({
-        name: list.name,
-        campaignMonitorId: list.campaignMonitorId,
-        description: list.description || "",
-        active: list.active,
-        displayOrder: list.displayOrder,
-      });
-    } else {
-      setFormData({
-        name: "",
-        campaignMonitorId: "",
-        description: "",
-        active: true,
-        displayOrder: 0,
-      });
-    }
-    setErrors({});
-  }, [list, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,127 +136,125 @@ export default function NewsletterListDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>
-              {list ? "Edit Newsletter List" : "Create Newsletter List"}
-            </DialogTitle>
-            <DialogDescription>
-              {list
-                ? "Update the newsletter list details below."
-                : "Add a new Campaign Monitor newsletter list for volunteers to subscribe to."}
-            </DialogDescription>
-          </DialogHeader>
+    <>
+      <form onSubmit={handleSubmit}>
+        <DialogHeader>
+          <DialogTitle>
+            {list ? "Edit Newsletter List" : "Create Newsletter List"}
+          </DialogTitle>
+          <DialogDescription>
+            {list
+              ? "Update the newsletter list details below."
+              : "Add a new Campaign Monitor newsletter list for volunteers to subscribe to."}
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">
-                Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Auckland Newsletter"
-                disabled={loading}
-              />
-              {errors.name && (
-                <p className="text-sm text-destructive">{errors.name}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="campaignMonitorId">
-                Campaign Monitor List ID <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="campaignMonitorId"
-                value={formData.campaignMonitorId}
-                onChange={(e) =>
-                  setFormData({ ...formData, campaignMonitorId: e.target.value })
-                }
-                placeholder="e.g., d0fa752b4fe96d8b9a14e77d3c917222"
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Find this ID in your Campaign Monitor account
-              </p>
-              {errors.campaignMonitorId && (
-                <p className="text-sm text-destructive">{errors.campaignMonitorId}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Optional description for volunteers"
-                rows={3}
-                disabled={loading}
-              />
-              {errors.description && (
-                <p className="text-sm text-destructive">{errors.description}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="displayOrder">Display Order</Label>
-              <Input
-                id="displayOrder"
-                type="number"
-                value={formData.displayOrder}
-                onChange={(e) =>
-                  setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })
-                }
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Lower numbers appear first
-              </p>
-              {errors.displayOrder && (
-                <p className="text-sm text-destructive">{errors.displayOrder}</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="active">Active</Label>
-                <p className="text-xs text-muted-foreground">
-                  Only active lists are shown to volunteers
-                </p>
-              </div>
-              <Switch
-                id="active"
-                checked={formData.active}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, active: checked })
-                }
-                disabled={loading}
-              />
-            </div>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">
+              Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Auckland Newsletter"
+              disabled={loading}
+            />
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name}</p>
+            )}
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
+          <div className="space-y-2">
+            <Label htmlFor="campaignMonitorId">
+              Campaign Monitor List ID <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="campaignMonitorId"
+              value={formData.campaignMonitorId}
+              onChange={(e) =>
+                setFormData({ ...formData, campaignMonitorId: e.target.value })
+              }
+              placeholder="e.g., d0fa752b4fe96d8b9a14e77d3c917222"
               disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : list ? "Update" : "Create"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            />
+            <p className="text-xs text-muted-foreground">
+              Find this ID in your Campaign Monitor account
+            </p>
+            {errors.campaignMonitorId && (
+              <p className="text-sm text-destructive">{errors.campaignMonitorId}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              placeholder="Optional description for volunteers"
+              rows={3}
+              disabled={loading}
+            />
+            {errors.description && (
+              <p className="text-sm text-destructive">{errors.description}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="displayOrder">Display Order</Label>
+            <Input
+              id="displayOrder"
+              type="number"
+              value={formData.displayOrder}
+              onChange={(e) =>
+                setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })
+              }
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Lower numbers appear first
+            </p>
+            {errors.displayOrder && (
+              <p className="text-sm text-destructive">{errors.displayOrder}</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="active">Active</Label>
+              <p className="text-xs text-muted-foreground">
+                Only active lists are shown to volunteers
+              </p>
+            </div>
+            <Switch
+              id="active"
+              checked={formData.active}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, active: checked })
+              }
+              disabled={loading}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : list ? "Update" : "Create"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </>
   );
 }

@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { useResettableState } from "@/hooks/use-resettable-state";
+import { describeError } from "@/lib/swr";
 import { differenceInCalendarDays, format, isBefore, startOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
 import {
@@ -61,9 +64,6 @@ export function DeleteShiftsDateRangeDialog({
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = onOpenChange ?? setUncontrolledOpen;
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [preview, setPreview] = useState<RangePreview | null>(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const from = dateRange?.from;
@@ -72,51 +72,31 @@ export function DeleteShiftsDateRangeDialog({
   const endDateStr = to ? format(to, "yyyy-MM-dd") : null;
 
   // Load a preview of the blast radius whenever a complete range is picked
-  useEffect(() => {
-    if (!open || !startDateStr || !endDateStr) {
-      setPreview(null);
-      setPreviewError(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    setIsLoadingPreview(true);
-    setPreviewError(null);
-
-    fetch(
-      `/api/admin/shifts/by-date-range?startDate=${startDateStr}&endDate=${endDateStr}&location=${encodeURIComponent(location)}`,
-      { signal: controller.signal }
-    )
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to load shifts");
-        }
-        setPreview(data);
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        setPreview(null);
-        setPreviewError(
-          error instanceof Error ? error.message : "Failed to load shifts"
-        );
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoadingPreview(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [open, startDateStr, endDateStr, location]);
+  const previewKey =
+    open && startDateStr && endDateStr
+      ? `/api/admin/shifts/by-date-range?startDate=${startDateStr}&endDate=${endDateStr}&location=${encodeURIComponent(location)}`
+      : null;
+  const {
+    data,
+    error: loadError,
+    isLoading: isLoadingPreview,
+    mutate: mutatePreview,
+  } = useSWR<RangePreview>(previewKey);
+  const preview = previewKey ? (data ?? null) : null;
+  // A failed delete is reported until a different range is picked.
+  const [deleteError, setDeleteError] = useResettableState<string | null>(
+    null,
+    previewKey
+  );
+  const previewError =
+    deleteError ??
+    (previewKey && loadError
+      ? describeError(loadError, "Failed to load shifts")
+      : null);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-    if (!nextOpen) {
-      setDateRange(undefined);
-      setPreview(null);
-      setPreviewError(null);
-    }
+    if (!nextOpen) setDateRange(undefined);
   };
 
   const handleDelete = async () => {
@@ -124,10 +104,12 @@ export function DeleteShiftsDateRangeDialog({
     setIsDeleting(true);
     try {
       await onDelete(startDateStr, endDateStr);
+      // Those shifts are gone; never show this range's old preview again.
+      void mutatePreview(undefined, { revalidate: false });
       setOpen(false);
     } catch (error) {
       console.error("Failed to delete shifts:", error);
-      setPreviewError(
+      setDeleteError(
         error instanceof Error ? error.message : "Failed to delete shifts"
       );
     } finally {

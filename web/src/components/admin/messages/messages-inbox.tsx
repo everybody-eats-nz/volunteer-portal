@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Bell, BellOff, MessageSquarePlus, Search } from "lucide-react";
 
@@ -21,6 +27,32 @@ import { ComposeButton } from "./compose-button";
 import type { InboxRealtimeEvent, SerializedThread } from "./types";
 
 const BROWSER_NOTIFICATIONS_KEY = "admin-messages-browser-notifications";
+
+// The "Notify me" preference lives in localStorage and is on whenever the
+// browser already has permission and the admin hasn't turned it off. Read as
+// an external store so SSR and hydration render "off" and the saved value
+// follows straight after, instead of the toggle resetting on every page load.
+const preferenceListeners = new Set<() => void>();
+
+function subscribeToNotificationPreference(listener: () => void) {
+  preferenceListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    preferenceListeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+function readNotificationPreference() {
+  if (typeof Notification === "undefined") return false;
+  if (Notification.permission !== "granted") return false;
+  return localStorage.getItem(BROWSER_NOTIFICATIONS_KEY) !== "off";
+}
+
+function writeNotificationPreference(on: boolean) {
+  localStorage.setItem(BROWSER_NOTIFICATIONS_KEY, on ? "on" : "off");
+  preferenceListeners.forEach((listener) => listener());
+}
 
 interface MessagesInboxProps {
   initialThreads: SerializedThread[];
@@ -44,19 +76,11 @@ export function MessagesInbox({
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [locationFilter, setLocationFilter] = useState<string>("");
   const [search, setSearch] = useState("");
-  const [browserNotificationsOn, setBrowserNotificationsOn] = useState(false);
-
-  // Restore the notification preference after mount. Starts false so SSR and the
-  // first client render match, then turns on when the browser already has
-  // permission and the admin hasn't explicitly turned it off before. Without
-  // this, the toggle reset to off on every page load and desktop notifications
-  // never fired unless the admin re-clicked "Notify me" each visit.
-  useEffect(() => {
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission !== "granted") return;
-    const stored = localStorage.getItem(BROWSER_NOTIFICATIONS_KEY);
-    setBrowserNotificationsOn(stored !== "off");
-  }, []);
+  const browserNotificationsOn = useSyncExternalStore(
+    subscribeToNotificationPreference,
+    readNotificationPreference,
+    () => false
+  );
 
   // Reload threads when filters change.
   const fetchThreads = useCallback(async () => {
@@ -223,8 +247,7 @@ export function MessagesInbox({
 
   const toggleBrowserNotifications = useCallback(async () => {
     if (browserNotificationsOn) {
-      setBrowserNotificationsOn(false);
-      localStorage.setItem(BROWSER_NOTIFICATIONS_KEY, "off");
+      writeNotificationPreference(false);
       return;
     }
     if (typeof Notification === "undefined") {
@@ -239,9 +262,7 @@ export function MessagesInbox({
       Notification.permission === "granted"
         ? "granted"
         : await Notification.requestPermission();
-    const on = result === "granted";
-    setBrowserNotificationsOn(on);
-    localStorage.setItem(BROWSER_NOTIFICATIONS_KEY, on ? "on" : "off");
+    writeNotificationPreference(result === "granted");
   }, [browserNotificationsOn]);
 
   return (

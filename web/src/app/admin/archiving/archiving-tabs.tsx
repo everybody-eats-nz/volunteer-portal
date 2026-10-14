@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSWRConfig } from "swr";
+import { toast } from "sonner";
+import { describeError, fetchJson } from "@/lib/swr";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import {
@@ -13,7 +16,7 @@ import {
   BellRing,
   AlertTriangle,
 } from "lucide-react";
-import { ArchivingOverview } from "./archiving-overview";
+import { ArchivingOverview, ARCHIVE_STATS_KEY } from "./archiving-overview";
 import { PendingCategory } from "./pending-category";
 import { ArchivingLog } from "./archiving-log";
 import type { ArchiveCategory, ArchiveStats } from "@/lib/archive-service";
@@ -88,7 +91,6 @@ const CATEGORY_ACTIONS: Record<
 
 export function ArchivingTabs({ initialStats }: { initialStats: ArchiveStats }) {
   const [activeTab, setActiveTab] = useState<TabValue>("overview");
-  const [overviewRefreshKey, setOverviewRefreshKey] = useState(0);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -107,7 +109,15 @@ export function ArchivingTabs({ initialStats }: { initialStats: ArchiveStats }) 
     window.history.replaceState(null, "", `#${value}`);
   };
 
-  const bumpOverview = () => setOverviewRefreshKey((k) => k + 1);
+  // Refetch the overview stats after a pending-tab action. Passing the fetch
+  // (not just the key) updates the cache even while the overview tab is
+  // unmounted, so it shows fresh numbers when the admin goes back to it.
+  const { mutate } = useSWRConfig();
+  const refreshOverview = () => {
+    mutate(ARCHIVE_STATS_KEY, fetchJson<ArchiveStats>(ARCHIVE_STATS_KEY)).catch(
+      (e) => toast.error(describeError(e, "Failed to load archive stats"))
+    );
+  };
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -132,8 +142,6 @@ export function ArchivingTabs({ initialStats }: { initialStats: ArchiveStats }) 
       >
         <ArchivingOverview
           initialStats={initialStats}
-          refreshKey={overviewRefreshKey}
-          onRunComplete={bumpOverview}
         />
       </TabsContent>
 
@@ -158,7 +166,7 @@ export function ArchivingTabs({ initialStats }: { initialStats: ArchiveStats }) 
               category={category}
               description={CATEGORY_DESCRIPTIONS[category]}
               action={action}
-              onMutation={bumpOverview}
+              onMutation={refreshOverview}
             />
           </TabsContent>
         );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -49,15 +49,18 @@ export function BudgetFormDialog({
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
-  useEffect(() => {
-    if (target) {
-      setAnnualTarget(target.budget ? String(target.budget.annualTarget) : "");
-      setPlannedNights(
-        target.budget ? String(target.budget.plannedServiceNights) : ""
-      );
-      setBusy(false);
-    }
-  }, [target]);
+  // Each newly opened target starts the form from its saved budget. Done
+  // during render (not in an effect) so the fields never show the last
+  // target's values for a frame.
+  const [formTarget, setFormTarget] = useState<BudgetFormTarget | null>(null);
+  if (target && target !== formTarget) {
+    setFormTarget(target);
+    setAnnualTarget(target.budget ? String(target.budget.annualTarget) : "");
+    setPlannedNights(
+      target.budget ? String(target.budget.plannedServiceNights) : ""
+    );
+    setBusy(false);
+  }
 
   const annual = Number(annualTarget);
   const nights = Number(plannedNights);

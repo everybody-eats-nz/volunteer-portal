@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Megaphone, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,9 +52,9 @@ export function AnnouncementsContent({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Stable signature of the prefill query string — the effect below watches
-  // it so a fresh "Announce" link click re-seeds the composer even though
-  // this component never unmounts.
+  // Stable signature of the prefill query string, watched below so a fresh
+  // "Announce" link click re-seeds the composer even though this component
+  // never unmounts.
   const prefillSignature = [
     searchParams.get("userIds") ?? "",
     searchParams.get("shiftIds") ?? "",
@@ -76,13 +76,17 @@ export function AnnouncementsContent({
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!hasPrefill) return;
-    setPrefill(prefillFromParams(searchParams));
-    setComposerKey(prefillSignature);
-    setComposerOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefillSignature]);
+  // Re-seed during render whenever the prefill query string changes, so the
+  // composer opens already filled in rather than one render later.
+  const [seededSignature, setSeededSignature] = useState(prefillSignature);
+  if (prefillSignature !== seededSignature) {
+    setSeededSignature(prefillSignature);
+    if (hasPrefill) {
+      setPrefill(prefillFromParams(searchParams));
+      setComposerKey(prefillSignature);
+      setComposerOpen(true);
+    }
+  }
 
   const closeComposer = () => {
     setComposerOpen(false);

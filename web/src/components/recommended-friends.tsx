@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
@@ -51,29 +52,20 @@ function SuggestionsPanel({ children }: { children: React.ReactNode }) {
 
 export function RecommendedFriends() {
   const router = useRouter();
-  const [recommendedFriends, setRecommendedFriends] = useState<
-    RecommendedFriend[]
-  >([]);
-  const [loading, setLoading] = useState(true);
   const [sendingRequest, setSendingRequest] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchRecommendedFriends();
-  }, []);
-
-  const fetchRecommendedFriends = async () => {
-    try {
-      const response = await fetch("/api/friends/recommended");
-      if (response.ok) {
-        const data = await response.json();
-        setRecommendedFriends(data.recommendedFriends || []);
-      }
-    } catch (error) {
-      console.error("Error fetching recommended friends:", error);
-    } finally {
-      setLoading(false);
+  const {
+    data,
+    isLoading: loading,
+    mutate: refreshRecommendations,
+  } = useSWR<{ recommendedFriends?: RecommendedFriend[] }>(
+    "/api/friends/recommended",
+    {
+      onError: (error) =>
+        console.error("Error fetching recommended friends:", error),
     }
-  };
+  );
+  const recommendedFriends = data?.recommendedFriends ?? [];
 
   const handleSendRequest = async (userId: string, displayName: string) => {
     setSendingRequest((prev) => new Set(prev).add(userId));
@@ -85,7 +77,9 @@ export function RecommendedFriends() {
         toast.error(result.error);
       } else {
         toast.success(`Friend request sent to ${displayName}`);
-        // Refresh to update the recommendations list
+        // The new pending request drops them from the suggestions; refresh
+        // the server-rendered friends lists too.
+        void refreshRecommendations();
         router.refresh();
       }
     } catch (error) {

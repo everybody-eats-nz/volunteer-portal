@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import useSWR, { type SWRConfiguration } from "swr";
 import {
   ChevronDown,
   ChevronLeft,
@@ -134,6 +135,18 @@ export async function fetchReceipt(
 
 const ANY_LOCATION = "ANY";
 
+/**
+ * Coverage previews run every rule across the whole roster, so they only run
+ * when asked for - never on focus or reconnect - and a failure is shown rather
+ * than silently retried.
+ */
+export const COVERAGE_SWR_OPTIONS = {
+  keepPreviousData: true,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  shouldRetryOnError: false,
+} satisfies SWRConfiguration;
+
 const LEAD_TIMES = [
   { value: "1", label: "Tomorrow" },
   { value: "3", label: "In 3 days" },
@@ -148,45 +161,38 @@ export function CoverageTab({ options }: { options: AdminOptions }) {
   const [daysInAdvance, setDaysInAdvance] = useState("7");
 
   const [request, setRequest] = useState<CoverageRequest | null>(null);
+  const [runCount, setRunCount] = useState(0);
   const [query, setQuery] = useState<CoverageQuery>(DEFAULT_QUERY);
-  const [result, setResult] = useState<CoverageResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!shiftTypeId && options.shiftTypes.length > 0) {
-      setShiftTypeId(options.shiftTypes[0].id);
-    }
-  }, [options.shiftTypes, shiftTypeId]);
+  // Until the admin picks one, preview the first shift type.
+  const selectedShiftTypeId = shiftTypeId || (options.shiftTypes[0]?.id ?? "");
 
   const run = () => {
-    if (!shiftTypeId) return;
+    if (!selectedShiftTypeId) return;
     setQuery(DEFAULT_QUERY);
     setRequest({
       mode: "live",
-      shiftTypeId,
+      shiftTypeId: selectedShiftTypeId,
       location: location === ANY_LOCATION ? null : location,
       daysInAdvance: Number(daysInAdvance),
     });
+    // Pressing Preview again with the same inputs re-runs the live rules.
+    setRunCount((count) => count + 1);
   };
 
-  const load = useCallback(async () => {
-    if (!request) return;
-    setLoading(true);
-    setError(null);
-    try {
-      setResult(await fetchCoverage(request, query));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't run the preview");
-      setResult(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [request, query]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const {
+    data,
+    error: loadError,
+    isValidating: loading,
+  } = useSWR(
+    request ? ["auto-approval-coverage", runCount, request, query] : null,
+    ([, , request, query]) => fetchCoverage(request, query),
+    COVERAGE_SWR_OPTIONS
+  );
+  const result = loadError ? null : (data ?? null);
+  const error = loadError
+    ? loadError.message || "Couldn't run the preview"
+    : null;
 
   return (
     <div className="space-y-6">
@@ -203,7 +209,7 @@ export function CoverageTab({ options }: { options: AdminOptions }) {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="coverage-shift-type">Shift type</Label>
-              <Select value={shiftTypeId} onValueChange={setShiftTypeId}>
+              <Select value={selectedShiftTypeId} onValueChange={setShiftTypeId}>
                 <SelectTrigger id="coverage-shift-type" size="md">
                   <SelectValue placeholder="Pick a shift type" />
                 </SelectTrigger>
@@ -253,7 +259,7 @@ export function CoverageTab({ options }: { options: AdminOptions }) {
             <div className="flex items-end">
               <Button
                 onClick={run}
-                disabled={loading || !shiftTypeId}
+                disabled={loading || !selectedShiftTypeId}
                 className="w-full"
                 data-testid="run-coverage"
               >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -49,9 +49,13 @@ export function UserCustomLabelsManager({
   const [isRemoving, setIsRemoving] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
+  // Fresh labels from the server (e.g. after router.refresh()) replace the
+  // local copy. Done during render so the old list never shows for a frame.
+  const [syncedLabels, setSyncedLabels] = useState(currentLabels);
+  if (currentLabels !== syncedLabels) {
+    setSyncedLabels(currentLabels);
     setLabels(currentLabels);
-  }, [currentLabels]);
+  }
 
   const fetchAvailableLabels = async () => {
     try {

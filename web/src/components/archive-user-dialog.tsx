@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Archive, AlertTriangle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -72,44 +73,37 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [impact, setImpact] = useState<ArchiveImpact | null>(null);
-  // Tri-state, not just "impact === null": a failed preview must still let
-  // the admin archive, so "failed" and "ready" both unblock the button while
-  // "loading" holds it. Without this, clicking straight through a slow fetch
-  // would skip the warning the preview exists to show.
-  const [impactStatus, setImpactStatus] = useState<
-    "loading" | "ready" | "failed"
-  >("loading");
-
   const displayName =
     user.name ||
     `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
     user.email;
 
-  // Load the impact preview when the dialog opens. A failure here is not worth
-  // blocking the archive on - the warning block simply stays hidden.
-  useEffect(() => {
-    if (!isOpen) return;
-    let canceled = false;
-
-    setImpact(null);
-    setImpactStatus("loading");
-    fetch(`/api/admin/users/${user.id}/archive`)
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data: ArchiveImpact) => {
-        if (canceled) return;
-        setImpact(data);
-        setImpactStatus("ready");
-      })
-      .catch(() => {
-        // Non-fatal: archiving stays available without the preview.
-        if (!canceled) setImpactStatus("failed");
-      });
-
-    return () => {
-      canceled = true;
-    };
-  }, [isOpen, user.id]);
+  // Load the impact preview each time the dialog opens. A failure here is
+  // not worth blocking the archive on - the warning block simply stays hidden.
+  const {
+    data: impactData,
+    error: impactError,
+    isValidating: impactValidating,
+  } = useSWR<ArchiveImpact>(
+    isOpen ? `/api/admin/users/${user.id}/archive` : null,
+    {
+      // Keeps the preview in place while the dialog animates closed.
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+    }
+  );
+  // Tri-state, not just "impact === null": a failed preview must still let
+  // the admin archive, so "failed" and "ready" both unblock the button while
+  // "loading" holds it. Without this, clicking straight through a slow fetch
+  // would skip the warning the preview exists to show.
+  const impactStatus: "loading" | "ready" | "failed" = impactValidating
+    ? "loading"
+    : impactData
+      ? "ready"
+      : impactError
+        ? "failed"
+        : "loading";
+  const impact = impactStatus === "ready" ? (impactData ?? null) : null;
 
   const handleArchive = async () => {
     setIsSubmitting(true);
@@ -152,8 +146,6 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
     if (!open) {
       setNote("");
       setError("");
-      setImpact(null);
-      setImpactStatus("loading");
     }
   };
 

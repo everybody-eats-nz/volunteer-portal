@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import useSWR from "swr";
 import {
   Archive,
   ArrowDown,
@@ -48,10 +49,10 @@ import {
 import {
   CoverageResults,
   DEFAULT_QUERY,
+  COVERAGE_SWR_OPTIONS,
   fetchCoverage,
   type CoverageQuery,
   type CoverageRequest,
-  type CoverageResult,
 } from "./coverage-tab";
 import { RuleEditor } from "./rule-editor";
 import { EmptyState, ScopeBadges, TableSkeleton, type AdminOptions } from "./shared";
@@ -357,37 +358,6 @@ function RulePreviewDialog({
   options: AdminOptions;
   onClose: () => void;
 }) {
-  const [query, setQuery] = useState<CoverageQuery>(DEFAULT_QUERY);
-  const [result, setResult] = useState<CoverageResult | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const ruleId = preview?.rule.id;
-
-  // A fresh rule starts from an unfiltered first page.
-  useEffect(() => {
-    setQuery(DEFAULT_QUERY);
-    setResult(null);
-  }, [ruleId]);
-
-  const request = preview?.request;
-
-  const load = useCallback(async () => {
-    if (!request) return;
-    setLoading(true);
-    try {
-      setResult(await fetchCoverage(request, query));
-    } catch {
-      toast.error("Couldn't preview this rule");
-      setResult(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [request, query]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
   return (
     <Dialog open={preview !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -409,17 +379,51 @@ function RulePreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <CoverageResults
-          result={result}
-          loading={loading}
-          query={query}
-          onQueryChange={setQuery}
-          options={options}
-          request={preview?.request ?? null}
-          emphasis={preview?.rule.kind === "BLOCK" ? "BLOCKED" : "APPROVED"}
-        />
+        {preview && (
+          // Keyed by rule so a different rule starts from an unfiltered first
+          // page instead of flashing the last rule's numbers.
+          <RulePreviewResults
+            key={preview.rule.id}
+            rule={preview.rule}
+            request={preview.request}
+            options={options}
+          />
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RulePreviewResults({
+  rule,
+  request,
+  options,
+}: {
+  rule: SerializedRuleClient;
+  request: CoverageRequest;
+  options: AdminOptions;
+}) {
+  const [query, setQuery] = useState<CoverageQuery>(DEFAULT_QUERY);
+
+  const { data, error, isValidating } = useSWR(
+    ["auto-approval-rule-preview", request, query],
+    ([, request, query]) => fetchCoverage(request, query),
+    {
+      ...COVERAGE_SWR_OPTIONS,
+      onError: () => toast.error("Couldn't preview this rule"),
+    }
+  );
+
+  return (
+    <CoverageResults
+      result={error ? null : (data ?? null)}
+      loading={isValidating}
+      query={query}
+      onQueryChange={setQuery}
+      options={options}
+      request={request}
+      emphasis={rule.kind === "BLOCK" ? "BLOCKED" : "APPROVED"}
+    />
   );
 }
 

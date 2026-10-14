@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import useSWR from "swr";
 import { useTheme } from "next-themes";
 import {
   Activity,
@@ -92,23 +93,16 @@ const WINDOWS = [
 
 export function OverviewTab({ onJumpToDecisions }: { onJumpToDecisions: () => void }) {
   const [days, setDays] = useState<"7" | "30" | "90">("30");
-  const [data, setData] = useState<Overview | null>(null);
-  const [loading, setLoading] = useState(true);
   const { resolvedTheme } = useTheme();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/auto-approval/overview?days=${days}`);
-      setData(res.ok ? await res.json() : null);
-    } finally {
-      setLoading(false);
-    }
-  }, [days]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const {
+    data: overview,
+    error,
+    isLoading: loading,
+  } = useSWR<Overview>(`/api/admin/auto-approval/overview?days=${days}`, {
+    keepPreviousData: true,
+  });
+  const data = error ? null : overview;
 
   const tokens = useMemo(
     () => chartTokens(resolvedTheme === "dark" ? "dark" : "light"),

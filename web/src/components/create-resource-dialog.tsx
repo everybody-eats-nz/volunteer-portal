@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload, Loader2, Link as LinkIcon } from "lucide-react";
@@ -78,7 +78,7 @@ export function CreateResourceDialog({ children }: CreateResourceDialogProps) {
     },
   });
 
-  const resourceType = form.watch("type");
+  const resourceType = useWatch({ control: form.control, name: "type" });
   const isLinkOrVideo = resourceType === "LINK" || resourceType === "VIDEO";
 
   const onSubmit = async (values: FormValues) => {

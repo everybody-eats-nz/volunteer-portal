@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import useSWR from "swr";
 import { CheckCircle2, CircleSlash, Loader2, Tag, Users } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,6 +29,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { VOLUNTEER_GRADE_OPTIONS } from "@/lib/volunteer-grades";
 
+import { useDebounce } from "@/hooks/use-debounce";
+import { COVERAGE_SWR_OPTIONS } from "./coverage-tab";
 import type { AdminOptions } from "./shared";
 import type { SerializedRuleClient } from "./rules-tab";
 
@@ -154,12 +157,38 @@ export function RuleEditor({
   options: AdminOptions;
   onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-  const [saving, setSaving] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] sm:max-w-4xl overflow-y-auto">
+        {/* The form mounts with each open, so it always starts from the rule
+            being edited (or a blank one) rather than the last draft. */}
+        <RuleEditorForm
+          key={rule?.id ?? "new"}
+          rule={rule}
+          options={options}
+          onSaved={onSaved}
+          onClose={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-  useEffect(() => {
-    if (open) setDraft(rule ? toDraft(rule) : EMPTY);
-  }, [open, rule]);
+function RuleEditorForm({
+  rule,
+  options,
+  onSaved,
+  onClose,
+}: {
+  rule: SerializedRuleClient | null;
+  options: AdminOptions;
+  onSaved: () => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<Draft>(() =>
+    rule ? toDraft(rule) : EMPTY
+  );
+  const [saving, setSaving] = useState(false);
 
   const set = useCallback(
     <K extends keyof Draft>(key: K, value: Draft[K]) =>
@@ -189,7 +218,7 @@ export function RuleEditor({
       }
       toast.success(rule ? "Rule updated" : "Rule created");
       onSaved();
-      onOpenChange(false);
+      onClose();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save the rule");
     } finally {
@@ -198,320 +227,318 @@ export function RuleEditor({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] sm:max-w-4xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{rule ? "Edit rule" : "New rule"}</DialogTitle>
-          <DialogDescription>
-            {draft.kind === "BLOCK"
-              ? "Block rules run first. Anyone who matches is held for a person, whatever the approval rules say."
-              : "Approval rules confirm a signup on the spot when every condition you set is met."}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>{rule ? "Edit rule" : "New rule"}</DialogTitle>
+        <DialogDescription>
+          {draft.kind === "BLOCK"
+            ? "Block rules run first. Anyone who matches is held for a person, whatever the approval rules say."
+            : "Approval rules confirm a signup on the spot when every condition you set is met."}
+        </DialogDescription>
+      </DialogHeader>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-          <div className="space-y-6">
-            <KindPicker value={draft.kind} onChange={(v) => set("kind", v)} />
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className="space-y-6">
+          <KindPicker value={draft.kind} onChange={(v) => set("kind", v)} />
 
-            <section className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rule-name">Name</Label>
-                  <Input
-                    id="rule-name"
-                    value={draft.name}
-                    onChange={(e) => set("name", e.target.value)}
-                    placeholder="Trusted regulars"
-                    data-testid="rule-name-input"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rule-priority">Priority</Label>
-                  <Input
-                    id="rule-priority"
-                    type="number"
-                    min={0}
-                    value={draft.priority}
-                    onChange={(e) =>
-                      set("priority", Number(e.target.value) || 0)
-                    }
-                    className="tabular-nums"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Higher runs first
-                  </p>
-                </div>
-              </div>
-
+          <section className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
               <div className="space-y-1.5">
-                <Label htmlFor="rule-description">
-                  Note{" "}
-                  <span className="font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </Label>
-                <Textarea
-                  id="rule-description"
-                  value={draft.description}
-                  onChange={(e) => set("description", e.target.value)}
-                  placeholder="Why this rule exists, so the next person knows."
-                  rows={2}
+                <Label htmlFor="rule-name">Name</Label>
+                <Input
+                  id="rule-name"
+                  value={draft.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  placeholder="Trusted regulars"
+                  data-testid="rule-name-input"
                 />
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rule-scope">Applies to</Label>
-                  <Select value={draft.scope} onValueChange={(v) => set("scope", v)}>
-                    <SelectTrigger id="rule-scope">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={GLOBAL}>Every shift type</SelectItem>
-                      {options.shiftTypes.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="rule-location">At</Label>
-                  <Select
-                    value={draft.location}
-                    onValueChange={(v) => set("location", v)}
-                  >
-                    <SelectTrigger id="rule-location">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ALL_LOCATIONS}>Every location</SelectItem>
-                      {options.locations.map((l) => (
-                        <SelectItem key={l} value={l}>
-                          {l}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-priority">Priority</Label>
+                <Input
+                  id="rule-priority"
+                  type="number"
+                  min={0}
+                  value={draft.priority}
+                  onChange={(e) =>
+                    set("priority", Number(e.target.value) || 0)
+                  }
+                  className="tabular-nums"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Higher runs first
+                </p>
               </div>
-            </section>
+            </div>
 
-            <section className="space-y-4 rounded-lg border p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-medium">Conditions</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Leave a field empty to ignore it.
-                  </p>
-                </div>
-                <Select
-                  value={draft.criteriaLogic}
-                  onValueChange={(v) => set("criteriaLogic", v as "AND" | "OR")}
-                >
-                  <SelectTrigger className="w-auto" aria-label="Condition logic">
+            <div className="space-y-1.5">
+              <Label htmlFor="rule-description">
+                Note{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </Label>
+              <Textarea
+                id="rule-description"
+                value={draft.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder="Why this rule exists, so the next person knows."
+                rows={2}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-scope">Applies to</Label>
+                <Select value={draft.scope} onValueChange={(v) => set("scope", v)}>
+                  <SelectTrigger id="rule-scope">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="AND">Must meet all</SelectItem>
-                    <SelectItem value="OR">Must meet any one</SelectItem>
+                    <SelectItem value={GLOBAL}>Every shift type</SelectItem>
+                    {options.shiftTypes.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-location">At</Label>
+                <Select
+                  value={draft.location}
+                  onValueChange={(v) => set("location", v)}
+                >
+                  <SelectTrigger id="rule-location">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_LOCATIONS}>Every location</SelectItem>
+                    {options.locations.map((l) => (
+                      <SelectItem key={l} value={l}>
+                        {l}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4 rounded-lg border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-medium">Conditions</h3>
+                <p className="text-sm text-muted-foreground">
+                  Leave a field empty to ignore it.
+                </p>
+              </div>
+              <Select
+                value={draft.criteriaLogic}
+                onValueChange={(v) => set("criteriaLogic", v as "AND" | "OR")}
+              >
+                <SelectTrigger className="w-auto" aria-label="Condition logic">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AND">Must meet all</SelectItem>
+                  <SelectItem value="OR">Must meet any one</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 rounded-md border border-dashed p-3">
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <Label className="font-medium">Volunteer tags</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Name specific people by the tag they carry. Tag someone on
+                their profile and this rule picks them up — no other condition
+                needed.
+              </p>
+              {options.labels.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No tags exist yet. Create them under Custom Labels.
+                </p>
+              ) : (
+                <ul className="flex flex-wrap gap-2 pt-1">
+                  {options.labels.map((label) => {
+                    const checked = draft.requiredLabelIds.includes(label.id);
+                    return (
+                      <li key={label.id}>
+                        <label
+                          className={cn(
+                            "flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                            checked
+                              ? "border-primary bg-primary/10"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) =>
+                              set(
+                                "requiredLabelIds",
+                                v
+                                  ? [...draft.requiredLabelIds, label.id]
+                                  : draft.requiredLabelIds.filter(
+                                      (id) => id !== label.id
+                                    )
+                              )
+                            }
+                          />
+                          <span>
+                            {label.icon ? `${label.icon} ` : ""}
+                            {label.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {label.volunteerCount}
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-grade">Minimum grade</Label>
+                <Select
+                  value={draft.minVolunteerGrade}
+                  onValueChange={(v) => set("minVolunteerGrade", v)}
+                >
+                  <SelectTrigger id="rule-grade">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Any grade</SelectItem>
+                    {VOLUNTEER_GRADE_OPTIONS.map((g) => (
+                      <SelectItem key={g.value} value={g.value}>
+                        {g.icon} {g.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2 rounded-md border border-dashed p-3">
-                <div className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-muted-foreground" aria-hidden />
-                  <Label className="font-medium">Volunteer tags</Label>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Name specific people by the tag they carry. Tag someone on
-                  their profile and this rule picks them up — no other condition
-                  needed.
-                </p>
-                {options.labels.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No tags exist yet. Create them under Custom Labels.
-                  </p>
-                ) : (
-                  <ul className="flex flex-wrap gap-2 pt-1">
-                    {options.labels.map((label) => {
-                      const checked = draft.requiredLabelIds.includes(label.id);
-                      return (
-                        <li key={label.id}>
-                          <label
-                            className={cn(
-                              "flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                              checked
-                                ? "border-primary bg-primary/10"
-                                : "hover:bg-muted"
-                            )}
-                          >
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={(v) =>
-                                set(
-                                  "requiredLabelIds",
-                                  v
-                                    ? [...draft.requiredLabelIds, label.id]
-                                    : draft.requiredLabelIds.filter(
-                                        (id) => id !== label.id
-                                      )
-                                )
-                              }
-                            />
-                            <span>
-                              {label.icon ? `${label.icon} ` : ""}
-                              {label.name}
-                            </span>
-                            <span className="text-xs text-muted-foreground tabular-nums">
-                              {label.volunteerCount}
-                            </span>
-                          </label>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
+              <NumberField
+                id="rule-age"
+                label="Minimum age"
+                suffix="years"
+                value={draft.minVolunteerAge}
+                onChange={(v) => set("minVolunteerAge", v)}
+                placeholder="18"
+              />
+              <NumberField
+                id="rule-max-age"
+                label="Under"
+                suffix="years old"
+                value={draft.maxVolunteerAge}
+                onChange={(v) => set("maxVolunteerAge", v)}
+                placeholder="18"
+                max={120}
+              />
+              <NumberField
+                id="rule-account-age"
+                label="Signed up at least"
+                suffix="days ago"
+                value={draft.minAccountAgeDays}
+                onChange={(v) => set("minAccountAgeDays", v)}
+                placeholder="30"
+              />
+              <NumberField
+                id="rule-shifts"
+                label="Completed shifts"
+                suffix="or more"
+                value={draft.minCompletedShifts}
+                onChange={(v) => set("minCompletedShifts", v)}
+                placeholder="5"
+              />
+              <NumberField
+                id="rule-attendance"
+                label="Attendance"
+                suffix="% or better"
+                value={draft.minAttendanceRate}
+                onChange={(v) => set("minAttendanceRate", v)}
+                placeholder="85"
+                max={100}
+              />
+              <NumberField
+                id="rule-no-shows"
+                label="Fewer than"
+                suffix="no shows"
+                value={draft.maxNoShows}
+                onChange={(v) => set("maxNoShows", v)}
+                placeholder="3"
+              />
+              <NumberField
+                id="rule-lead-time"
+                label="Shift starts within"
+                suffix="days"
+                value={draft.maxDaysInAdvance}
+                onChange={(v) => set("maxDaysInAdvance", v)}
+                placeholder="14"
+              />
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rule-grade">Minimum grade</Label>
-                  <Select
-                    value={draft.minVolunteerGrade}
-                    onValueChange={(v) => set("minVolunteerGrade", v)}
-                  >
-                    <SelectTrigger id="rule-grade">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Any grade</SelectItem>
-                      {VOLUNTEER_GRADE_OPTIONS.map((g) => (
-                        <SelectItem key={g.value} value={g.value}>
-                          {g.icon} {g.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <NumberField
-                  id="rule-age"
-                  label="Minimum age"
-                  suffix="years"
-                  value={draft.minVolunteerAge}
-                  onChange={(v) => set("minVolunteerAge", v)}
-                  placeholder="18"
-                />
-                <NumberField
-                  id="rule-max-age"
-                  label="Under"
-                  suffix="years old"
-                  value={draft.maxVolunteerAge}
-                  onChange={(v) => set("maxVolunteerAge", v)}
-                  placeholder="18"
-                  max={120}
-                />
-                <NumberField
-                  id="rule-account-age"
-                  label="Signed up at least"
-                  suffix="days ago"
-                  value={draft.minAccountAgeDays}
-                  onChange={(v) => set("minAccountAgeDays", v)}
-                  placeholder="30"
-                />
-                <NumberField
-                  id="rule-shifts"
-                  label="Completed shifts"
-                  suffix="or more"
-                  value={draft.minCompletedShifts}
-                  onChange={(v) => set("minCompletedShifts", v)}
-                  placeholder="5"
-                />
-                <NumberField
-                  id="rule-attendance"
-                  label="Attendance"
-                  suffix="% or better"
-                  value={draft.minAttendanceRate}
-                  onChange={(v) => set("minAttendanceRate", v)}
-                  placeholder="85"
-                  max={100}
-                />
-                <NumberField
-                  id="rule-no-shows"
-                  label="Fewer than"
-                  suffix="no shows"
-                  value={draft.maxNoShows}
-                  onChange={(v) => set("maxNoShows", v)}
-                  placeholder="3"
-                />
-                <NumberField
-                  id="rule-lead-time"
-                  label="Shift starts within"
-                  suffix="days"
-                  value={draft.maxDaysInAdvance}
-                  onChange={(v) => set("maxDaysInAdvance", v)}
-                  placeholder="14"
-                />
-              </div>
-
-              <label className="flex items-start gap-3 rounded-md border p-3">
-                <Checkbox
-                  checked={draft.requireShiftTypeExperience}
-                  onCheckedChange={(v) =>
-                    set("requireShiftTypeExperience", Boolean(v))
-                  }
-                  className="mt-0.5"
-                />
-                <span>
-                  <span className="block text-sm font-medium">
-                    Has done this shift type before
-                  </span>
-                  <span className="block text-sm text-muted-foreground">
-                    Only counts shifts that have already finished.
-                  </span>
-                </span>
-              </label>
-
-              {conditionCount === 0 && (
-                <p className="text-sm text-destructive" role="alert">
-                  Set at least one condition. A rule with none can never match
-                  anyone.
-                </p>
-              )}
-            </section>
-
-            <label className="flex items-center justify-between rounded-lg border p-3">
+            <label className="flex items-start gap-3 rounded-md border p-3">
+              <Checkbox
+                checked={draft.requireShiftTypeExperience}
+                onCheckedChange={(v) =>
+                  set("requireShiftTypeExperience", Boolean(v))
+                }
+                className="mt-0.5"
+              />
               <span>
-                <span className="block text-sm font-medium">Rule is on</span>
+                <span className="block text-sm font-medium">
+                  Has done this shift type before
+                </span>
                 <span className="block text-sm text-muted-foreground">
-                  Turn off to keep the rule without it deciding anything.
+                  Only counts shifts that have already finished.
                 </span>
               </span>
-              <Switch
-                checked={draft.enabled}
-                onCheckedChange={(v) => set("enabled", v)}
-                aria-label="Rule is on"
-              />
             </label>
-          </div>
 
-          <LivePreview draft={draft} options={options} />
+            {conditionCount === 0 && (
+              <p className="text-sm text-destructive" role="alert">
+                Set at least one condition. A rule with none can never match
+                anyone.
+              </p>
+            )}
+          </section>
+
+          <label className="flex items-center justify-between rounded-lg border p-3">
+            <span>
+              <span className="block text-sm font-medium">Rule is on</span>
+              <span className="block text-sm text-muted-foreground">
+                Turn off to keep the rule without it deciding anything.
+              </span>
+            </span>
+            <Switch
+              checked={draft.enabled}
+              onCheckedChange={(v) => set("enabled", v)}
+              aria-label="Rule is on"
+            />
+          </label>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={!canSave} data-testid="save-rule">
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {rule ? "Save changes" : "Create rule"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <LivePreview draft={draft} options={options} />
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={save} disabled={!canSave} data-testid="save-rule">
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {rule ? "Save changes" : "Create rule"}
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
 
@@ -608,6 +635,34 @@ function NumberField({
   );
 }
 
+type DraftPreviewRequest = {
+  mode: "draft";
+  shiftTypeId: string;
+  location: string | null;
+  daysInAdvance: number;
+  outcome: "APPROVED" | "BLOCKED";
+  pageSize: number;
+  draft: ReturnType<typeof toPayload>;
+};
+
+type DraftPreview = {
+  matched: number;
+  summary: { total: number };
+  volunteers: { name: string | null; email: string }[];
+};
+
+async function fetchDraftPreview(
+  request: DraftPreviewRequest
+): Promise<DraftPreview> {
+  const res = await fetch("/api/admin/auto-approval/coverage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!res.ok) throw new Error("Couldn't preview this rule");
+  return res.json();
+}
+
 /**
  * Live answer to "who does this actually catch?" while the rule is still being
  * written. Runs the draft on its own - deliberately not alongside the other
@@ -620,32 +675,17 @@ function LivePreview({
   draft: Draft;
   options: AdminOptions;
 }) {
-  const [count, setCount] = useState<number | null>(null);
-  const [total, setTotal] = useState<number | null>(null);
-  const [names, setNames] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const requestId = useRef(0);
-
   const payload = useMemo(() => toPayload(draft), [draft]);
   const conditions = countConditions(draft);
 
   const previewShiftTypeId =
     draft.scope === GLOBAL ? options.shiftTypes[0]?.id : draft.scope;
 
-  useEffect(() => {
-    if (conditions === 0 || !previewShiftTypeId) {
-      setCount(null);
-      return;
-    }
-
-    const id = ++requestId.current;
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/admin/auto-approval/coverage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+  const request = useMemo<DraftPreviewRequest | null>(
+    () =>
+      conditions === 0 || !previewShiftTypeId
+        ? null
+        : {
             mode: "draft",
             shiftTypeId: previewShiftTypeId,
             location: payload.location,
@@ -655,24 +695,21 @@ function LivePreview({
             outcome: draft.kind === "BLOCK" ? "BLOCKED" : "APPROVED",
             pageSize: 6,
             draft: { ...payload, name: payload.name || "Draft rule" },
-          }),
-        });
-        if (!res.ok || id !== requestId.current) return;
-        const json = await res.json();
-        setCount(json.matched);
-        setTotal(json.summary.total);
-        setNames(
-          json.volunteers.map(
-            (v: { name: string | null; email: string }) => v.name ?? v.email
-          )
-        );
-      } finally {
-        if (id === requestId.current) setLoading(false);
-      }
-    }, 500);
+          },
+    [conditions, previewShiftTypeId, payload, draft.kind]
+  );
+  // Wait for a pause in editing before re-running the roster.
+  const debouncedRequest = useDebounce(request, 500);
 
-    return () => clearTimeout(timer);
-  }, [payload, conditions, previewShiftTypeId, draft.kind]);
+  const { data, isValidating } = useSWR(
+    debouncedRequest ? ["auto-approval-draft-preview", debouncedRequest] : null,
+    ([, request]) => fetchDraftPreview(request),
+    COVERAGE_SWR_OPTIONS
+  );
+  const loading = isValidating || request !== debouncedRequest;
+  const count = data?.matched ?? null;
+  const total = data?.summary.total ?? null;
+  const names = data?.volunteers.map((v) => v.name ?? v.email) ?? [];
 
   return (
     <aside className="h-fit space-y-3 rounded-lg border bg-muted/30 p-4 lg:sticky lg:top-0">

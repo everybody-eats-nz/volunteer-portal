@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,23 +30,10 @@ const EMPTY_OPTIONS: AdminOptions = {
 
 /** Shift types, locations and volunteer tags - shared by every tab. */
 export function useAdminOptions() {
-  const [options, setOptions] = useState<AdminOptions>(EMPTY_OPTIONS);
-  const [loading, setLoading] = useState(true);
-
-  const refresh = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/auto-approval/options");
-      if (res.ok) setOptions(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  return { options, loading, refresh };
+  const { data, isLoading, mutate } = useSWR<AdminOptions>(
+    "/api/admin/auto-approval/options"
+  );
+  return { options: data ?? EMPTY_OPTIONS, loading: isLoading, refresh: mutate };
 }
 
 export interface VolunteerLike {

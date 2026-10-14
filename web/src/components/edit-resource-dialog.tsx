@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload, Loader2, Link as LinkIcon } from "lucide-react";
@@ -70,6 +70,27 @@ export function EditResourceDialog({
   open,
   onOpenChange,
 }: EditResourceDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Mounted per open, so the form always starts from the saved
+            resource with no file picked. */}
+        <EditResourceForm
+          resource={resource}
+          onClose={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditResourceForm({
+  resource,
+  onClose,
+}: {
+  resource: Resource;
+  onClose: () => void;
+}) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -86,21 +107,8 @@ export function EditResourceDialog({
     },
   });
 
-  // Reset form when resource changes
-  useEffect(() => {
-    form.reset({
-      title: resource.title,
-      description: resource.description || "",
-      type: resource.type,
-      category: resource.category,
-      tags: resource.tags.join(", "),
-      url: resource.url || "",
-      isPublished: resource.isPublished,
-    });
-    setSelectedFile(null);
-  }, [resource, form]);
 
-  const resourceType = form.watch("type");
+  const resourceType = useWatch({ control: form.control, name: "type" });
   const isLinkOrVideo = resourceType === "LINK" || resourceType === "VIDEO";
 
   const onSubmit = async (values: FormValues) => {
@@ -163,7 +171,7 @@ export function EditResourceDialog({
       }
 
       toast.success("Resource updated successfully");
-      onOpenChange(false);
+      onClose();
       window.location.reload();
     } catch (error) {
       console.error("Error updating resource:", error);
@@ -189,239 +197,237 @@ export function EditResourceDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Resource</DialogTitle>
-          <DialogDescription>
-            Update the resource information and file.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit Resource</DialogTitle>
+        <DialogDescription>
+          Update the resource information and file.
+        </DialogDescription>
+      </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Resource Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="PDF">PDF Document</SelectItem>
-                      <SelectItem value="IMAGE">Image</SelectItem>
-                      <SelectItem value="DOCUMENT">
-                        Document (Word, Excel, etc.)
-                      </SelectItem>
-                      <SelectItem value="LINK">External Link</SelectItem>
-                      <SelectItem value="VIDEO">
-                        Video (YouTube, etc.)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Resource Type</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="PDF">PDF Document</SelectItem>
+                    <SelectItem value="IMAGE">Image</SelectItem>
+                    <SelectItem value="DOCUMENT">
+                      Document (Word, Excel, etc.)
+                    </SelectItem>
+                    <SelectItem value="LINK">External Link</SelectItem>
+                    <SelectItem value="VIDEO">
+                      Video (YouTube, etc.)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            {!isLinkOrVideo && (
-              <div>
-                <FormLabel>Current File</FormLabel>
-                <div className="mt-2 mb-4">
-                  <Badge variant="outline">
-                    {resource.fileName || "File"}
-                    {resource.fileSize && (
-                      <span className="ml-2 text-muted-foreground">
-                        ({formatFileSize(resource.fileSize)})
-                      </span>
-                    )}
-                  </Badge>
-                </div>
-
-                <FormLabel>Upload New File (optional)</FormLabel>
-                <div className="mt-2 flex items-center gap-4">
-                  <Input
-                    type="file"
-                    onChange={handleFileChange}
-                    accept={
-                      resourceType === "PDF"
-                        ? ".pdf"
-                        : resourceType === "IMAGE"
-                        ? "image/*"
-                        : ".doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                    }
-                  />
-                  {selectedFile && (
-                    <Badge variant="secondary">
-                      {formatFileSize(selectedFile.size)}
-                    </Badge>
+          {!isLinkOrVideo && (
+            <div>
+              <FormLabel>Current File</FormLabel>
+              <div className="mt-2 mb-4">
+                <Badge variant="outline">
+                  {resource.fileName || "File"}
+                  {resource.fileSize && (
+                    <span className="ml-2 text-muted-foreground">
+                      ({formatFileSize(resource.fileSize)})
+                    </span>
                   )}
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Leave empty to keep current file. Max:{" "}
-                  {MAX_FILE_SIZE / 1024 / 1024}MB
-                </p>
+                </Badge>
               </div>
-            )}
 
-            {isLinkOrVideo && (
-              <FormField
-                control={form.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2">
-                        <LinkIcon className="mt-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="https://example.com/resource"
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <FormLabel>Upload New File (optional)</FormLabel>
+              <div className="mt-2 flex items-center gap-4">
+                <Input
+                  type="file"
+                  onChange={handleFileChange}
+                  accept={
+                    resourceType === "PDF"
+                      ? ".pdf"
+                      : resourceType === "IMAGE"
+                      ? "image/*"
+                      : ".doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                  }
+                />
+                {selectedFile && (
+                  <Badge variant="secondary">
+                    {formatFileSize(selectedFile.size)}
+                  </Badge>
                 )}
-              />
-            )}
-
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Resource title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Brief description of the resource"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="TRAINING">Training</SelectItem>
-                      <SelectItem value="POLICIES">Policies</SelectItem>
-                      <SelectItem value="FORMS">Forms</SelectItem>
-                      <SelectItem value="GUIDES">Guides</SelectItem>
-                      <SelectItem value="RECIPES">Recipes</SelectItem>
-                      <SelectItem value="SAFETY">Safety</SelectItem>
-                      <SelectItem value="GENERAL">General</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="tags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="orientation, kitchen, food-safety (comma separated)"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Enter tags separated by commas for better organization
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isPublished"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Published</FormLabel>
-                    <FormDescription>
-                      Make this resource visible to volunteers
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isUpdating}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isUpdating}>
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Update Resource
-                  </>
-                )}
-              </Button>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Leave empty to keep current file. Max:{" "}
+                {MAX_FILE_SIZE / 1024 / 1024}MB
+              </p>
             </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          )}
+
+          {isLinkOrVideo && (
+            <FormField
+              control={form.control}
+              name="url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                      <LinkIcon className="mt-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="https://example.com/resource"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Resource title" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Brief description of the resource"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="TRAINING">Training</SelectItem>
+                    <SelectItem value="POLICIES">Policies</SelectItem>
+                    <SelectItem value="FORMS">Forms</SelectItem>
+                    <SelectItem value="GUIDES">Guides</SelectItem>
+                    <SelectItem value="RECIPES">Recipes</SelectItem>
+                    <SelectItem value="SAFETY">Safety</SelectItem>
+                    <SelectItem value="GENERAL">General</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="tags"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tags</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="orientation, kitchen, food-safety (comma separated)"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Enter tags separated by commas for better organization
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isPublished"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Published</FormLabel>
+                  <FormDescription>
+                    Make this resource visible to volunteers
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isUpdating}>
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Update Resource
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </>
   );
 }

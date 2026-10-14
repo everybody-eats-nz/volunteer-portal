@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,9 +47,7 @@ interface AdminNotesManagerProps {
 }
 
 export function AdminNotesManager({ volunteerId }: AdminNotesManagerProps) {
-  const [notes, setNotes] = useState<AdminNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setError] = useState<string | null>(null);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [newNoteContent, setNewNoteContent] = useState("");
@@ -56,26 +55,20 @@ export function AdminNotesManager({ volunteerId }: AdminNotesManagerProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
-  // Fetch notes
-  const fetchNotes = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/admin/admin-notes?volunteerId=${volunteerId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch notes');
-      }
-      const data = await response.json();
-      setNotes(data);
-    } catch (error) {
-      console.error('Error fetching notes:', error);
-      setError('Failed to load admin notes');
-    } finally {
-      setLoading(false);
-    }
-  }, [volunteerId]);
-
-  useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+  const {
+    data: notes = [],
+    error: loadError,
+    isLoading: loading,
+    mutate: mutateNotes,
+  } = useSWR<AdminNote[]>(`/api/admin/admin-notes?volunteerId=${volunteerId}`, {
+    onError: (error) => console.error("Error fetching notes:", error),
+  });
+  const error =
+    actionError ?? (loadError ? "Failed to load admin notes" : null);
+  // Saved changes land in the shared cache, so the notes dialog on the
+  // volunteer list sees them too.
+  const setNotes = (next: AdminNote[]) =>
+    void mutateNotes(next, { revalidate: false });
 
   // Add new note
   const handleAddNote = async () => {

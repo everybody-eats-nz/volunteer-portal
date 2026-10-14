@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import useSWR from "swr";
 import { format, subMonths } from "date-fns";
 import {
   Award,
@@ -705,38 +706,18 @@ function SpecificUsersPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<UserOption[]>([]);
-  const [loading, setLoading] = useState(false);
   const debouncedSearch = useDebounce(search, 250);
 
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    const controller = new AbortController();
-    const run = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (debouncedSearch) params.set("q", debouncedSearch);
-        params.set("limit", "50");
-        const r = await fetch(`/api/admin/users?${params}`, {
-          signal: controller.signal,
-        });
-        if (!r.ok) throw new Error("fetch failed");
-        const data = await r.json();
-        if (!cancelled) setResults(data);
-      } catch {
-        if (!cancelled) setResults([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    run();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [open, debouncedSearch]);
+  const params = new URLSearchParams();
+  if (debouncedSearch) params.set("q", debouncedSearch);
+  params.set("limit", "50");
+  // Only fetched while the picker is open.
+  const {
+    data,
+    error,
+    isLoading: loading,
+  } = useSWR<UserOption[]>(open ? `/api/admin/users?${params}` : null);
+  const results = (!error && data) || [];
 
   const selectedIds = new Set(selected.map((u) => u.id));
 
@@ -859,34 +840,18 @@ function SpecificShiftsPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [locationFilter, setLocationFilter] = useState<string>("");
-  const [shifts, setShifts] = useState<ShiftOption[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    const controller = new AbortController();
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (locationFilter) params.set("location", locationFilter);
-    fetch(`/api/admin/announcements/shifts?${params}`, {
-      signal: controller.signal,
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((data) => {
-        if (!cancelled) setShifts(data.shifts ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setShifts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [open, locationFilter]);
+  const params = new URLSearchParams();
+  if (locationFilter) params.set("location", locationFilter);
+  // Only fetched while the picker is open.
+  const {
+    data,
+    error,
+    isLoading: loading,
+  } = useSWR<{ shifts?: ShiftOption[] }>(
+    open ? `/api/admin/announcements/shifts?${params}` : null
+  );
+  const shifts = (!error && data?.shifts) || [];
 
   const selectedIds = new Set(selected.map((s) => s.id));
 

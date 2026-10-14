@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { useResettableState } from "@/hooks/use-resettable-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,38 +39,21 @@ interface LeaderboardData {
 }
 
 export function LeaderboardCard() {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<LeaderboardData | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [isOpen, setIsOpen] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  // Changing location goes back to the nearby view.
+  const [showAll, setShowAll] = useResettableState(false, selectedLocation);
 
-  useEffect(() => {
-    // Reset showAll when location changes
-    setShowAll(false);
-  }, [selectedLocation]);
-
-  useEffect(() => {
-    // Only fetch when panel is open
-    if (isOpen) {
-      fetchLeaderboard(selectedLocation, showAll);
+  // Only fetched once the panel is opened.
+  const { data, isLoading: loading } = useSWR<LeaderboardData>(
+    isOpen
+      ? `/api/leaderboard?location=${selectedLocation}&showAll=${showAll}`
+      : null,
+    {
+      keepPreviousData: true,
+      onError: (error) => console.error("Error fetching leaderboard:", error),
     }
-  }, [selectedLocation, isOpen, showAll]);
-
-  const fetchLeaderboard = async (location: string, showAllUsers: boolean) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/leaderboard?location=${location}&showAll=${showAllUsers}`);
-      if (response.ok) {
-        const leaderboardData = await response.json();
-        setData(leaderboardData);
-      }
-    } catch (error) {
-      console.error("Error fetching leaderboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  );
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>

@@ -304,16 +304,19 @@ export default function ProfileEditClient({
     [sections]
   );
 
-  // Handle deep linking to specific sections
-  useEffect(() => {
-    const step = searchParams.get("step");
-    if (step) {
-      const sectionIndex = sections.findIndex((section) => section.id === step);
-      if (sectionIndex !== -1) {
-        setCurrentSection(sectionIndex);
-      }
+  // Handle deep linking to specific sections. Applied during render whenever
+  // the ?step= param changes, so the page opens on the right section.
+  const stepParam = searchParams.get("step");
+  const [appliedStepParam, setAppliedStepParam] = useState<string | null>(null);
+  if (stepParam !== appliedStepParam) {
+    setAppliedStepParam(stepParam);
+    const sectionIndex = sections.findIndex(
+      (section) => section.id === stepParam
+    );
+    if (sectionIndex !== -1) {
+      setCurrentSection(sectionIndex);
     }
-  }, [searchParams, sections]);
+  }
 
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {

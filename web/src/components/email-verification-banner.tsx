@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import useSWR from "swr";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MotionSpinner } from "@/components/motion-spinner";
@@ -24,7 +25,6 @@ export function EmailVerificationBanner() {
   const pathname = usePathname();
   const turnstileRef = useRef<TurnstileHandle>(null);
 
-  const [confirmedUnverified, setConfirmedUnverified] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resent, setResent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,30 +32,21 @@ export function EmailVerificationBanner() {
   const sessionUnverified =
     status === "authenticated" && session?.user?.emailVerified === false;
 
-  // Re-check on navigation so the banner disappears soon after the user
-  // clicks the verification link (e.g. in another tab) - the JWT itself
-  // won't refresh until the next login.
-  useEffect(() => {
-    if (!sessionUnverified) {
-      setConfirmedUnverified(false);
-      return;
-    }
+  // Leaves the banner as-is if a check fails (SWR keeps the last answer).
+  const { data: profile, mutate: recheckProfile } = useSWR<{
+    emailVerified?: boolean;
+  }>(sessionUnverified ? "/api/profile" : null);
+  const confirmedUnverified = profile?.emailVerified === false;
 
-    let cancelled = false;
-    fetch("/api/profile")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((profile) => {
-        if (!cancelled && profile) {
-          setConfirmedUnverified(profile.emailVerified === false);
-        }
-      })
-      .catch(() => {
-        // Leave the banner as-is if the check fails
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionUnverified, pathname]);
+  // Re-check on navigation (and, via SWR, on refocus) so the banner
+  // disappears soon after the user clicks the verification link, e.g. in
+  // another tab - the JWT itself won't refresh until the next login.
+  const lastCheckedPathname = useRef(pathname);
+  useEffect(() => {
+    if (lastCheckedPathname.current === pathname) return;
+    lastCheckedPathname.current = pathname;
+    if (sessionUnverified) void recheckProfile();
+  }, [pathname, sessionUnverified, recheckProfile]);
 
   if (!sessionUnverified || !confirmedUnverified) {
     return null;

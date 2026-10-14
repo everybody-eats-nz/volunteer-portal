@@ -82,7 +82,10 @@ export function CustomLabelsContent({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLabel, setEditingLabel] = useState<LabelWithMeta | null>(null);
   const [labelToDelete, setLabelToDelete] = useState<LabelWithMeta | null>(null);
+  // The label outlives `membersOpen` so the dialog keeps its content while it
+  // animates closed.
   const [membersLabel, setMembersLabel] = useState<LabelWithMeta | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
 
   const { toast } = useToast();
 
@@ -364,7 +367,10 @@ export function CustomLabelsContent({
               label={label}
               index={i}
               maxUsers={maxUsers}
-              onViewMembers={() => setMembersLabel(label)}
+              onViewMembers={() => {
+                setMembersLabel(label);
+                setMembersOpen(true);
+              }}
               onEdit={() => {
                 setEditingLabel(label);
                 setDialogOpen(true);
@@ -388,8 +394,8 @@ export function CustomLabelsContent({
       />
 
       <LabelMembersDialog
-        open={membersLabel !== null}
-        onOpenChange={(o) => !o && setMembersLabel(null)}
+        open={membersOpen}
+        onOpenChange={setMembersOpen}
         label={membersLabel}
         onMemberRemoved={handleMemberRemoved}
       />
