@@ -1,4 +1,4 @@
-import { Page, expect } from "@playwright/test";
+import { Locator, Page, expect } from "@playwright/test";
 
 /**
  * Locate a testid scoped to its visible instance.
@@ -9,6 +9,27 @@ import { Page, expect } from "@playwright/test";
  */
 export function visibleTestId(page: Page, testId: string) {
   return page.locator(`[data-testid="${testId}"]:visible`);
+}
+
+/**
+ * Click `trigger` until `target` (usually a dialog) is visible.
+ *
+ * Server-rendered triggers are visible before React has hydrated and attached
+ * their click handlers, so a click in that window is silently dropped - most
+ * often on a cold dev-server compile in CI. Only re-clicks while the target is
+ * still hidden, so a slow open is never toggled shut by a second click.
+ */
+export async function clickUntilVisible(
+  trigger: Locator,
+  target: Locator,
+  timeout = 15_000
+) {
+  await expect(async () => {
+    if (!(await target.isVisible())) {
+      await trigger.click();
+    }
+    await expect(target).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout });
 }
 
 /**

@@ -1,6 +1,7 @@
 import { test, expect } from "./base";
 import type { Locator, Page } from "@playwright/test";
 import { loginAsVolunteer } from "./helpers/auth";
+import { clickUntilVisible } from "./helpers/test-helpers";
 
 // React streams the Suspense content into a hidden template div before
 // hydration moves it into place, so a testid can briefly resolve to two
@@ -21,18 +22,11 @@ function getShiftRows(page: Page) {
   return page.locator('[data-testid="shift-row"]:visible');
 }
 
-// Rows are server-rendered, so they can be visible before React has attached
-// the dialog trigger's click handler — a click in that window is silently
-// dropped. Retry the click until the dialog opens (only while it's closed, so
-// a slow open isn't toggled shut by a second click on the overlay).
+// Rows are server-rendered, so their dialog trigger can be clicked before
+// React has hydrated it; clickUntilVisible retries until the dialog opens.
 async function openShiftDialog(page: Page, row: Locator) {
   const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
-  await expect(async () => {
-    if (!(await dialog.isVisible())) {
-      await row.click();
-    }
-    await expect(dialog).toBeVisible({ timeout: 1_000 });
-  }).toPass({ timeout: 10_000 });
+  await clickUntilVisible(row, dialog, 10_000);
   return dialog;
 }
 
