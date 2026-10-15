@@ -1,3 +1,9 @@
+## [0.184.4] - 2026-10-15
+
+### Changes
+- chore(deps-dev): bump dev dependencies and fix react-hooks 7.1 lint with SWR ([#1347](https://github.com/everybody-eats-nz/volunteer-portal/pull/1347)) by @malinmalliyawadu
+
+
 ## [0.184.3] - 2026-10-12
 
 ### Changes
