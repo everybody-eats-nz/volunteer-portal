@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationItem } from "@/components/notification-item";
@@ -18,27 +19,27 @@ export function NotificationList({
   onNotificationsRead,
   onClose,
 }: NotificationListProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
   const [markingAllRead, setMarkingAllRead] = useState(false);
 
-  const fetchNotifications = async () => {
-    try {
-      const response = await fetch("/api/notifications?limit=20");
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications);
-      }
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isLoading: loading, mutate } = useSWR<{
+    notifications: Notification[];
+  }>("/api/notifications?limit=20", {
+    onError: (error) => console.error("Error fetching notifications:", error),
+  });
+  const notifications = data?.notifications ?? [];
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  /** Applies a local change to the cached list without refetching. */
+  const updateNotifications = (
+    update: (notifications: Notification[]) => Notification[]
+  ) =>
+    void mutate(
+      (current) =>
+        current && {
+          ...current,
+          notifications: update(current.notifications),
+        },
+      { revalidate: false }
+    );
 
   const handleMarkAllRead = async () => {
     if (markingAllRead) return;
@@ -55,7 +56,7 @@ export function NotificationList({
 
       if (response.ok) {
         // Update local state
-        setNotifications((prev) =>
+        updateNotifications((prev) =>
           prev.map((notification) => ({ ...notification, isRead: true }))
         );
         onNotificationsRead?.();
@@ -68,7 +69,7 @@ export function NotificationList({
   };
 
   const handleNotificationRead = (notificationId: string) => {
-    setNotifications((prev) =>
+    updateNotifications((prev) =>
       prev.map((notification) =>
         notification.id === notificationId
           ? { ...notification, isRead: true }
@@ -79,7 +80,7 @@ export function NotificationList({
   };
 
   const handleNotificationDelete = (notificationId: string) => {
-    setNotifications((prev) =>
+    updateNotifications((prev) =>
       prev.filter((notification) => notification.id !== notificationId)
     );
   };

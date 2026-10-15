@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { useDebounce } from "@/hooks/use-debounce";
 import { formatInNZT } from "@/lib/timezone";
 import { useRouter } from "next/navigation";
 import {
@@ -68,8 +70,6 @@ export function AssignVolunteerDialog({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(
     null
   );
@@ -81,48 +81,30 @@ export function AssignVolunteerDialog({
   const remaining = Math.max(0, shift.capacity - confirmedCount);
   const isOverCapacity = confirmedCount >= shift.capacity;
 
-  // Clear state when dialog opens/closes
-  useEffect(() => {
-    if (open) {
+  // Every open starts from a clean form.
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
       setError(null);
       setSuccessMessage(null);
       setSearchQuery("");
-      setVolunteers([]);
       setSelectedVolunteer(null);
       setNote("");
     }
-  }, [open]);
+    setOpen(nextOpen);
+  };
 
-  // Debounced search for volunteers
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setVolunteers([]);
-      return;
-    }
-
-    setIsSearching(true);
-    const timeoutId = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/admin/volunteers/search?q=${encodeURIComponent(searchQuery)}`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setVolunteers(data.volunteers || []);
-        } else {
-          console.error("Volunteer search failed:", response.status);
-          setVolunteers([]);
-        }
-      } catch (error) {
-        console.error("Error searching volunteers:", error);
-        setVolunteers([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300); // 300ms debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  const trimmedQuery = searchQuery.trim();
+  const debouncedQuery = useDebounce(trimmedQuery, 300);
+  const { data: searchData, isLoading: searchLoading } = useSWR<{
+    volunteers?: Volunteer[];
+  }>(
+    debouncedQuery
+      ? `/api/admin/volunteers/search?q=${encodeURIComponent(debouncedQuery)}`
+      : null,
+    { onError: (error) => console.error("Error searching volunteers:", error) }
+  );
+  const volunteers = (trimmedQuery && searchData?.volunteers) || [];
+  const isSearching = trimmedQuery !== debouncedQuery || searchLoading;
 
   const handleAssignVolunteer = async () => {
     if (!selectedVolunteer) {
@@ -192,7 +174,7 @@ export function AssignVolunteerDialog({
   };
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
       <ResponsiveDialogTrigger asChild data-testid="assign-volunteer-trigger">
         {children}
       </ResponsiveDialogTrigger>
@@ -372,7 +354,6 @@ export function AssignVolunteerDialog({
                       onClick={() => {
                         setSelectedVolunteer(volunteer);
                         setSearchQuery("");
-                        setVolunteers([]);
                       }}
                       data-testid={`volunteer-search-result-${volunteer.id}`}
                     >

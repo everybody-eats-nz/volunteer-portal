@@ -353,10 +353,10 @@ test.describe("Admin User Impersonation", () => {
       // Try to access admin page
       await page.goto("/admin/users");
 
-      // Should be redirected away
-      const currentUrl = page.url();
-      expect(currentUrl).not.toContain("/admin/users");
-      expect(currentUrl).toMatch(/\/(dashboard|login)/);
+      // Should be redirected away. The admin layout redirects non-admins, and
+      // with streaming that can land as a client-side redirect after "load",
+      // so wait for it rather than reading page.url() straight away.
+      await page.waitForURL(/\/(dashboard|login)/, { timeout: 15_000 });
     });
   });
 
@@ -383,9 +383,11 @@ test.describe("Admin User Impersonation", () => {
       // This should not work since volunteers can't access admin pages
       await page.goto("/admin/users");
 
-      // Should be redirected away since impersonating a volunteer
-      const currentUrl = page.url();
-      expect(currentUrl).not.toContain("/admin/users");
+      // Should be redirected away since impersonating a volunteer (waited
+      // for, as the redirect can land client-side after "load")
+      await page.waitForURL((url) => !url.pathname.startsWith("/admin"), {
+        timeout: 15_000,
+      });
     });
   });
 });

@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import { useResettableState } from "@/hooks/use-resettable-state";
 import {
   ChevronDown,
   ChevronLeft,
@@ -87,9 +89,6 @@ export function DecisionsTab({
   const [shiftTypeId, setShiftTypeId] = useState(ALL);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<Response | null>(null);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<Record<string, RuleTrace[]>>({});
   const [receiptError, setReceiptError] = useState<string | null>(null);
@@ -122,30 +121,28 @@ export function DecisionsTab({
     return () => clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [outcome, ruleId, location, shiftTypeId, query]);
+  const filters = new URLSearchParams();
+  if (outcome !== ALL) filters.set("outcome", outcome);
+  if (ruleId !== ALL) filters.set("ruleId", ruleId);
+  if (location !== ALL) filters.set("location", location);
+  if (shiftTypeId !== ALL) filters.set("shiftTypeId", shiftTypeId);
+  if (query) filters.set("q", query);
+  const filterKey = filters.toString();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ page: String(page) });
-    if (outcome !== ALL) params.set("outcome", outcome);
-    if (ruleId !== ALL) params.set("ruleId", ruleId);
-    if (location !== ALL) params.set("location", location);
-    if (shiftTypeId !== ALL) params.set("shiftTypeId", shiftTypeId);
-    if (query) params.set("q", query);
+  // Any change to the filters starts back at the first page.
+  const [page, setPage] = useResettableState(1, filterKey);
 
-    try {
-      const res = await fetch(`/api/admin/auto-approval/decisions?${params}`);
-      setData(res.ok ? await res.json() : null);
-    } finally {
-      setLoading(false);
+  const {
+    data: response,
+    error,
+    isValidating: loading,
+  } = useSWR<Response>(
+    `/api/admin/auto-approval/decisions?page=${page}${filterKey ? `&${filterKey}` : ""}`,
+    {
+      keepPreviousData: true,
     }
-  }, [page, outcome, ruleId, location, shiftTypeId, query]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  );
+  const data = error ? null : response;
 
   const filtersActive =
     outcome !== ALL ||

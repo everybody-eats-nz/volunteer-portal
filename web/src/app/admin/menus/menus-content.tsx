@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { format, parseISO } from "date-fns";
 import {
   Plus, Trash2, Save, UtensilsCrossed, Clock, ChefHat,
@@ -60,6 +61,39 @@ const emptyDraft = (): MenuDraft => ({
   drink: [],
   dessert: [""],
 });
+
+/** A saved menu as returned by GET /api/admin/menus?date=&location=. */
+interface SavedMenu {
+  id: string;
+  chefName: string | null;
+  announcement: string | null;
+  starter: unknown;
+  mains: unknown;
+  drink: unknown;
+  dessert: unknown;
+}
+
+/** Course items are stored as `{ name }` objects (legacy rows hold plain strings). */
+const itemNames = (raw: unknown): string[] =>
+  Array.isArray(raw)
+    ? raw.map((i) =>
+        typeof i === "string" ? i : ((i as { name?: string }).name ?? "")
+      )
+    : [];
+
+const withBlankRow = (items: string[]) => (items.length > 0 ? items : [""]);
+
+function draftFromMenu(menu: SavedMenu | null): MenuDraft {
+  if (!menu) return emptyDraft();
+  return {
+    chefName: menu.chefName ?? "",
+    announcement: menu.announcement ?? "",
+    starter: withBlankRow(itemNames(menu.starter)),
+    mains: withBlankRow(itemNames(menu.mains)),
+    drink: itemNames(menu.drink),
+    dessert: withBlankRow(itemNames(menu.dessert)),
+  };
+}
 
 function todayNZ(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Pacific/Auckland" });
@@ -241,60 +275,36 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
   );
   const [draft, setDraft] = useState<MenuDraft>(emptyDraft());
   const [existingId, setExistingId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pastDateConfirmOpen, setPastDateConfirmOpen] = useState(false);
-  const [recentMenus, setRecentMenus] = useState<RecentMenu[]>(initialRecentMenus);
 
-  const loadMenu = useCallback(async (date: string, location: string) => {
-    if (!date || !location) return;
-    setIsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/admin/menus?date=${date}&location=${encodeURIComponent(location)}`
-      );
-      if (!res.ok) throw new Error("Failed to load");
-      const data = await res.json();
+  const { data: recentMenus = initialRecentMenus, mutate: refreshRecentMenus } =
+    useSWR<RecentMenu[]>("/api/admin/menus", {
+      fallbackData: initialRecentMenus,
+      revalidateOnMount: false,
+    });
 
-      const toStrings = (raw: unknown): string[] => {
-        if (!Array.isArray(raw)) return [""];
-        if (raw.length === 0) return [""];
-        // Support both legacy {name} objects and plain strings
-        return raw.map((i) =>
-          typeof i === "string" ? i : (i as { name?: string }).name ?? ""
-        );
-      };
+  const menuKey =
+    selectedDate && selectedLocation
+      ? `/api/admin/menus?date=${selectedDate}&location=${encodeURIComponent(selectedLocation)}`
+      : null;
+  const { data: savedMenu, mutate: mutateSavedMenu } =
+    useSWR<SavedMenu | null>(menuKey, {
+      onError: () => toast.error("Failed to load menu"),
+    });
 
-      if (data) {
-        setExistingId(data.id);
-        setDraft({
-          chefName: data.chefName ?? "",
-          announcement: data.announcement ?? "",
-          starter: toStrings(data.starter),
-          mains: toStrings(data.mains),
-          drink: Array.isArray(data.drink) && data.drink.length > 0
-            ? data.drink.map((i: unknown) => typeof i === "string" ? i : (i as { name?: string }).name ?? "")
-            : [],
-          dessert: toStrings(data.dessert),
-        });
-      } else {
-        setExistingId(null);
-        setDraft(emptyDraft());
-      }
-    } catch {
-      toast.error("Failed to load menu");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedDate && selectedLocation) {
-      loadMenu(selectedDate, selectedLocation);
-    }
-  }, [selectedDate, selectedLocation, loadMenu]);
+  // Seed the editable draft once per date + location, as soon as its saved
+  // menu is known (saves and deletes below keep that cache current). Later
+  // background revalidation never overwrites edits in progress.
+  const [seededKey, setSeededKey] = useState<string | null>(null);
+  if (menuKey && seededKey !== menuKey && savedMenu !== undefined) {
+    setSeededKey(menuKey);
+    setExistingId(savedMenu?.id ?? null);
+    setDraft(draftFromMenu(savedMenu));
+  }
+  const isLoading = menuKey !== null && seededKey !== menuKey;
 
   const handleSave = () => {
     if (!selectedDate || !selectedLocation) return;
@@ -334,9 +344,8 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
       const saved = await res.json();
       setExistingId(saved.id);
       toast.success(existingId ? "Menu updated" : "Menu created");
-
-      const listRes = await fetch("/api/admin/menus");
-      if (listRes.ok) setRecentMenus(await listRes.json());
+      void mutateSavedMenu();
+      void refreshRecentMenus();
     } catch {
       toast.error("Failed to save menu");
     } finally {
@@ -352,8 +361,8 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
       setExistingId(null);
       setDraft(emptyDraft());
       toast.success("Menu deleted");
-      const listRes = await fetch("/api/admin/menus");
-      if (listRes.ok) setRecentMenus(await listRes.json());
+      void mutateSavedMenu(null, { revalidate: false });
+      void refreshRecentMenus();
     } catch {
       toast.error("Failed to delete menu");
     }

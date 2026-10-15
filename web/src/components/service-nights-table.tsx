@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { useResettableState } from "@/hooks/use-resettable-state";
 import {
   Card,
   CardContent,
@@ -128,51 +130,34 @@ const COLUMNS: {
 ];
 
 export function ServiceNightsTable({ months, location, days, from, to }: Props) {
-  const [rows, setRows] = useState<ServiceNightRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(25);
+  const pageSize = 25;
   const [sortBy, setSortBy] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [loading, setLoading] = useState(true);
 
-  // Reset to first page whenever the applied filters change
-  useEffect(() => {
-    setPage(1);
-  }, [months, location, days, from, to]);
+  const filters = new URLSearchParams({ months, location });
+  if (days) filters.set("days", days);
+  if (from && to) {
+    filters.set("from", from);
+    filters.set("to", to);
+  }
+  const filterKey = filters.toString();
 
-  const fetchRows = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        months,
-        location,
-        page: String(page),
-        pageSize: String(pageSize),
-        sortBy,
-        sortDir,
-      });
-      if (days) params.set("days", days);
-      if (from && to) {
-        params.set("from", from);
-        params.set("to", to);
-      }
-      const res = await fetch(`/api/admin/analytics/service-nights?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRows(data.rows);
-        setTotal(data.total);
-      }
-    } catch (error) {
-      console.error("Error loading service-night records:", error);
-    } finally {
-      setLoading(false);
+  // Back to the first page whenever the applied filters change
+  const [page, setPage] = useResettableState(1, filterKey);
+
+  const { data, isValidating: loading } = useSWR<{
+    rows: ServiceNightRow[];
+    total: number;
+  }>(
+    `/api/admin/analytics/service-nights?${filterKey}&page=${page}&pageSize=${pageSize}&sortBy=${sortBy}&sortDir=${sortDir}`,
+    {
+      keepPreviousData: true,
+      onError: (error) =>
+        console.error("Error loading service-night records:", error),
     }
-  }, [months, location, days, from, to, page, pageSize, sortBy, sortDir]);
-
-  useEffect(() => {
-    fetchRows();
-  }, [fetchRows]);
+  );
+  const rows = data?.rows ?? [];
+  const total = data?.total ?? 0;
 
   const toggleSort = (key: SortKey) => {
     if (sortBy === key) {

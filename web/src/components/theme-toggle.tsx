@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
 import { Moon, Sun, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,12 +15,9 @@ import {
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  // Avoid hydration mismatch
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  // The theme is only known on the client; render a placeholder until
+  // hydrated so the server HTML matches.
+  const mounted = useHydrated();
 
   // Round bordered icon button — matches the marketing site's theme toggle.
   const triggerClassName =

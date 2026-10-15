@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,30 +23,18 @@ type PreviewShift = {
 };
 
 export function UpcomingRegularShifts() {
-  const [shifts, setShifts] = useState<PreviewShift[]>([]);
-  const [loading, setLoading] = useState(true);
   const [previewWeeks, setPreviewWeeks] = useState(4);
 
-  const fetchPreview = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/profile/regular-schedule/preview?weeks=${previewWeeks}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setShifts(data.shifts || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch shift preview:", error);
-    } finally {
-      setLoading(false);
+  const { data, isLoading, isValidating, mutate } = useSWR<{
+    shifts?: PreviewShift[];
+  }>(
+    `/api/profile/regular-schedule/preview?weeks=${previewWeeks}`,
+    {
+      onError: (error) =>
+        console.error("Failed to fetch shift preview:", error),
     }
-  }, [previewWeeks]);
-
-  useEffect(() => {
-    fetchPreview();
-  }, [fetchPreview]);
+  );
+  const shifts = data?.shifts ?? [];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -84,18 +73,18 @@ export function UpcomingRegularShifts() {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchPreview}
-              disabled={loading}
+              onClick={() => mutate()}
+              disabled={isValidating}
             >
               <RefreshCw
-                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                className={`h-4 w-4 ${isValidating ? "animate-spin" : ""}`}
               />
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
             Loading upcoming shifts...
           </div>

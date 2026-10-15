@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import useSWR from "swr";
 import { getProfileEditHref } from "@/lib/profile-completion";
 import { formatInNZT } from "@/lib/timezone";
 import confetti from "canvas-confetti";
@@ -156,8 +157,6 @@ export function ShiftSignupDialog({
   const [selectedBackupShiftIds, setSelectedBackupShiftIds] = useState<
     string[]
   >([]);
-  const [isUnderage, setIsUnderage] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(true); // Default to true to avoid showing warning before check
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [verificationResent, setVerificationResent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,11 +165,6 @@ export function ShiftSignupDialog({
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>(
     []
   );
-  const [autoApprovalEligible, setAutoApprovalEligible] = useState<{
-    eligible: boolean;
-    ruleName?: string;
-    loading: boolean;
-  }>({ eligible: false, loading: true });
   const noteInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -179,105 +173,59 @@ export function ShiftSignupDialog({
     }
   }, [showNoteField]);
 
+  // Underage (14 and under) and email verification checks. Until the profile
+  // loads (or if it can't), assume an adult with a verified address so the
+  // dialog never blocks on the check.
+  const { data: profile } = useSWR<{
+    emailVerified?: boolean;
+    dateOfBirth?: string | null;
+  }>(open && session?.user ? "/api/profile" : null, {
+    onError: (error) => console.error("Error checking user data:", error),
+  });
+  const emailVerified = profile?.emailVerified ?? true;
+  const isUnderage = profile?.dateOfBirth
+    ? calculateAge(new Date(profile.dateOfBirth)) <= GUARDIAN_REQUIRED_AGE
+    : false;
+
+  // Auto-approval eligibility, for non-waitlist signups only. A check slower
+  // than 5s stops holding the dialog up and it carries on as a normal signup.
+  const eligibilityKey =
+    open && currentUserId && !isWaitlist
+      ? `/api/shifts/${shift.id}/auto-approval-check?userId=${currentUserId}`
+      : null;
+  const [slowEligibilityKey, setSlowEligibilityKey] = useState<string | null>(
+    null
+  );
+  const { data: eligibility, isLoading: eligibilityLoading } = useSWR<{
+    eligible: boolean;
+    ruleName?: string;
+  }>(eligibilityKey, {
+    loadingTimeout: 5000,
+    onLoadingSlow: (key) => setSlowEligibilityKey(key),
+    onError: (error) =>
+      console.error("Error checking auto-approval eligibility:", error),
+  });
+  const autoApprovalEligible = {
+    eligible: eligibility?.eligible ?? false,
+    ruleName: eligibility?.ruleName,
+    loading: eligibilityLoading && slowEligibilityKey !== eligibilityKey,
+  };
+
   const duration = getDurationInHours(shift.start, shift.end);
   const remaining = Math.max(0, shift.capacity - confirmedCount);
   const autoApproved =
     autoApprovalEligible.eligible && !autoApprovalEligible.loading;
 
-  // Clear error and reset fields when dialog opens
-  useEffect(() => {
-    if (open) {
+  // Every open starts with a clean slate.
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
       setError(null);
       setProfileIncomplete(false);
       setSelectedBackupShiftIds([]);
       setShowNoteField(false);
     }
-  }, [open]);
-
-  // Check if user is underage (14 and under) and email verification status
-  useEffect(() => {
-    if (open && session?.user) {
-      const checkUserData = async () => {
-        try {
-          const response = await fetch("/api/profile");
-          if (response.ok) {
-            const userData = await response.json();
-
-            // Check email verification status
-            setEmailVerified(userData.emailVerified ?? true);
-
-            // Check age
-            if (userData.dateOfBirth) {
-              const age = calculateAge(new Date(userData.dateOfBirth));
-              setIsUnderage(age <= GUARDIAN_REQUIRED_AGE);
-            }
-          } else {
-            console.warn("Profile fetch failed:", response.status);
-            setIsUnderage(false); // Default to not underage if we can't check
-            setEmailVerified(true); // Default to verified to avoid blocking
-          }
-        } catch (error) {
-          console.error("Error checking user data:", error);
-          setIsUnderage(false); // Default to not underage if there's an error
-          setEmailVerified(true); // Default to verified to avoid blocking
-        }
-      };
-
-      // Add timeout to prevent hanging
-      const timeoutId = setTimeout(() => {
-        console.warn("User data check timed out");
-        setIsUnderage(false);
-        setEmailVerified(true); // Default to verified to avoid blocking
-      }, 3000); // 3 second timeout
-
-      checkUserData().finally(() => {
-        clearTimeout(timeoutId);
-      });
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [open, session]);
-
-  // Check auto-approval eligibility when dialog opens (only for non-waitlist signups)
-  useEffect(() => {
-    if (open && currentUserId && !isWaitlist) {
-      const checkEligibility = async () => {
-        try {
-          const response = await fetch(
-            `/api/shifts/${shift.id}/auto-approval-check?userId=${currentUserId}`
-          );
-          if (response.ok) {
-            const data = await response.json();
-            setAutoApprovalEligible({
-              eligible: data.eligible,
-              ruleName: data.ruleName,
-              loading: false,
-            });
-          } else {
-            console.warn("Auto-approval check failed:", response.status);
-            setAutoApprovalEligible({ eligible: false, loading: false });
-          }
-        } catch (error) {
-          console.error("Error checking auto-approval eligibility:", error);
-          setAutoApprovalEligible({ eligible: false, loading: false });
-        }
-      };
-
-      // Add a small delay and timeout to prevent blocking the dialog
-      const timeoutId = setTimeout(() => {
-        setAutoApprovalEligible({ eligible: false, loading: false });
-      }, 5000); // 5 second timeout
-
-      checkEligibility().finally(() => {
-        clearTimeout(timeoutId);
-      });
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      // For waitlist or no user, skip eligibility check
-      setAutoApprovalEligible({ eligible: false, loading: false });
-    }
-  }, [open, currentUserId, shift.id, isWaitlist]);
+    setOpen(nextOpen);
+  };
 
   const handleResendVerification = async () => {
     setIsResendingVerification(true);
@@ -433,7 +381,7 @@ export function ShiftSignupDialog({
   };
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
       <ResponsiveDialogTrigger asChild data-testid="shift-signup-trigger">
         {children}
       </ResponsiveDialogTrigger>

@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { describeError } from "@/lib/swr";
 import Link from "next/link";
 import {
   Card,
@@ -70,31 +72,18 @@ const TRIGGER_LABEL: Record<LogEntry["triggerSource"], string> = {
 const PAGE_SIZE = 50;
 
 export function ArchivingLog() {
-  const [logs, setLogs] = useState<LogEntry[] | null>(null);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
 
-  const fetchLogs = useCallback(async (targetPage: number) => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/admin/archiving/log?page=${targetPage}&pageSize=${PAGE_SIZE}`
-      );
-      if (!res.ok) throw new Error("Failed to load log");
-      const data = await res.json();
-      setLogs(data.logs as LogEntry[]);
-      setTotal(data.total ?? 0);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load log");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchLogs(page);
-  }, [fetchLogs, page]);
+  const { data, isValidating, mutate } = useSWR<{
+    logs: LogEntry[];
+    total?: number;
+  }>(`/api/admin/archiving/log?page=${page}&pageSize=${PAGE_SIZE}`, {
+    keepPreviousData: true,
+    onError: (e) => toast.error(describeError(e, "Failed to load log")),
+  });
+  const logs = data?.logs ?? null;
+  const total = data?.total ?? 0;
+  const loading = isValidating;
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -118,7 +107,7 @@ export function ArchivingLog() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => fetchLogs(page)}
+          onClick={() => mutate()}
           disabled={loading}
           data-testid="archiving-log-refresh"
         >

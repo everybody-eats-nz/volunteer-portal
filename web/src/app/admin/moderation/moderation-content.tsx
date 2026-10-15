@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import useSWR from "swr";
 import { formatDistanceToNow } from "date-fns";
 import { Ban, Flag, RefreshCw, User } from "lucide-react";
 
@@ -86,45 +87,28 @@ function TargetTypeBadge({ type }: { type: string }) {
 }
 
 export function ModerationContent() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [blocks, setBlocks] = useState<Block[]>([]);
-  const [loadingReports, setLoadingReports] = useState(true);
-  const [loadingBlocks, setLoadingBlocks] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchReports = useCallback(async () => {
-    setLoadingReports(true);
-    try {
-      const res = await fetch("/api/admin/moderation/reports");
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setReports(data.reports);
-    } catch {
-      toast({ title: "Error", description: "Failed to load reports", variant: "destructive" });
-    } finally {
-      setLoadingReports(false);
-    }
-  }, [toast]);
+  const {
+    data: reportsData,
+    isValidating: loadingReports,
+    mutate: mutateReports,
+  } = useSWR<{ reports: Report[] }>("/api/admin/moderation/reports", {
+    onError: () =>
+      toast({ title: "Error", description: "Failed to load reports", variant: "destructive" }),
+  });
+  const reports = reportsData?.reports ?? [];
 
-  const fetchBlocks = useCallback(async () => {
-    setLoadingBlocks(true);
-    try {
-      const res = await fetch("/api/admin/moderation/blocks");
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setBlocks(data.blocks);
-    } catch {
-      toast({ title: "Error", description: "Failed to load blocks", variant: "destructive" });
-    } finally {
-      setLoadingBlocks(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchReports();
-    fetchBlocks();
-  }, [fetchReports, fetchBlocks]);
+  const {
+    data: blocksData,
+    isValidating: loadingBlocks,
+    mutate: refreshBlocks,
+  } = useSWR<{ blocks: Block[] }>("/api/admin/moderation/blocks", {
+    onError: () =>
+      toast({ title: "Error", description: "Failed to load blocks", variant: "destructive" }),
+  });
+  const blocks = blocksData?.blocks ?? [];
 
   const updateStatus = useCallback(
     async (id: string, status: "REVIEWED" | "RESOLVED") => {
@@ -136,8 +120,15 @@ export function ModerationContent() {
           body: JSON.stringify({ status }),
         });
         if (!res.ok) throw new Error();
-        setReports((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status } : r))
+        await mutateReports(
+          (current) =>
+            current && {
+              ...current,
+              reports: current.reports.map((r) =>
+                r.id === id ? { ...r, status } : r
+              ),
+            },
+          { revalidate: false }
         );
         toast({ title: "Updated", description: `Report marked as ${status.toLowerCase()}.` });
       } catch {
@@ -146,7 +137,7 @@ export function ModerationContent() {
         setUpdatingId(null);
       }
     },
-    [toast]
+    [mutateReports, toast]
   );
 
   const pendingCount = reports.filter((r) => r.status === "PENDING").length;
@@ -188,7 +179,7 @@ export function ModerationContent() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={fetchReports}
+              onClick={() => mutateReports()}
               disabled={loadingReports}
               className="gap-2"
             >
@@ -322,7 +313,7 @@ export function ModerationContent() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={fetchBlocks}
+              onClick={() => refreshBlocks()}
               disabled={loadingBlocks}
               className="gap-2"
             >

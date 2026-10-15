@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ClipboardList } from "lucide-react";
@@ -22,40 +21,15 @@ interface PendingSurvey {
 }
 
 interface DashboardSurveyBannerProps {
-  initialSurveys?: PendingSurvey[];
+  /** Loaded by DashboardSurveyBannerServer for the signed-in volunteer. */
+  initialSurveys: PendingSurvey[];
 }
 
-export function DashboardSurveyBanner({ initialSurveys }: DashboardSurveyBannerProps = {}) {
-  const { data: session } = useSession();
-  const [surveys, setSurveys] = useState<PendingSurvey[]>(initialSurveys ?? []);
-  const [loading, setLoading] = useState(!initialSurveys);
+export function DashboardSurveyBanner({
+  initialSurveys,
+}: DashboardSurveyBannerProps) {
+  const [surveys, setSurveys] = useState<PendingSurvey[]>(initialSurveys);
   const [dismissing, setDismissing] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Skip fetch if server provided initial data
-    if (initialSurveys) return;
-
-    if (!session?.user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    // Fetch pending surveys
-    fetch("/api/surveys/pending")
-      .then((res) => res.json())
-      .then((data) => {
-        // Only show non-dismissed surveys on dashboard
-        const pendingSurveys = Array.isArray(data)
-          ? data.filter((s: PendingSurvey) => s.status === "PENDING")
-          : [];
-        setSurveys(pendingSurveys);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching surveys:", err);
-        setLoading(false);
-      });
-  }, [session, initialSurveys]);
 
   const handleDismiss = async (assignmentId: string) => {
     setDismissing(assignmentId);
@@ -78,7 +52,7 @@ export function DashboardSurveyBanner({ initialSurveys }: DashboardSurveyBannerP
     }
   };
 
-  if (loading || !session?.user?.id || surveys.length === 0) {
+  if (surveys.length === 0) {
     return null;
   }
 

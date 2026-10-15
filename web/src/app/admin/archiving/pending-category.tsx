@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import useSWR from "swr";
+import { describeError } from "@/lib/swr";
 import Link from "next/link";
 import {
   Card,
@@ -53,29 +55,20 @@ export function PendingCategory({
   };
   onMutation: () => void;
 }) {
-  const [users, setUsers] = useState<PendingUser[] | null>(null);
-  const [loading, setLoading] = useState(false);
   const [workingUserId, setWorkingUserId] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/admin/archiving/pending?category=${category}`
-      );
-      if (!res.ok) throw new Error("Failed to load candidates");
-      const data = await res.json();
-      setUsers(data.users as PendingUser[]);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load candidates");
-    } finally {
-      setLoading(false);
+  const {
+    data,
+    isValidating: loading,
+    mutate: refreshUsers,
+  } = useSWR<{ users: PendingUser[] }>(
+    `/api/admin/archiving/pending?category=${category}`,
+    {
+      onError: (e) =>
+        toast.error(describeError(e, "Failed to load candidates")),
     }
-  }, [category]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  );
+  const users = data?.users ?? null;
 
   const runAction = useCallback(
     async (user: PendingUser) => {
@@ -111,7 +104,7 @@ export function PendingCategory({
             ? "Warning email sent"
             : "Nudge email sent"
         );
-        await fetchUsers();
+        await refreshUsers();
         onMutation();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Action failed");
@@ -119,7 +112,7 @@ export function PendingCategory({
         setWorkingUserId(null);
       }
     },
-    [action, fetchUsers, onMutation]
+    [action, refreshUsers, onMutation]
   );
 
   const displayName = (u: PendingUser) =>
@@ -137,7 +130,7 @@ export function PendingCategory({
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchUsers}
+          onClick={() => refreshUsers()}
           disabled={loading}
           data-testid={`pending-${category}-refresh`}
         >

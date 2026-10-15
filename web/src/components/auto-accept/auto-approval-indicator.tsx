@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,36 +30,15 @@ export function AutoApprovalIndicator({
   onSignupClick,
   isSignedUp = false,
 }: AutoApprovalIndicatorProps) {
-  const [eligibility, setEligibility] = useState<EligibilityResult | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isSignedUp) {
-      checkEligibility();
-    } else {
-      setLoading(false);
+  const { data: eligibility } = useSWR<EligibilityResult>(
+    isSignedUp ? null : `/api/shifts/${shiftId}/auto-approval-check`,
+    {
+      onError: (error) =>
+        console.error("Error checking auto-approval eligibility:", error),
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shiftId, isSignedUp]);
+  );
 
-  const checkEligibility = async () => {
-    try {
-      const response = await fetch(`/api/shifts/${shiftId}/auto-approval-check`);
-      if (response.ok) {
-        const data = await response.json();
-        setEligibility(data);
-      }
-    } catch (error) {
-      console.error("Error checking auto-approval eligibility:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return null; // Don't show anything while loading
-  }
-
+  // Nothing shows while the check loads, or once they're signed up.
   if (isSignedUp || !eligibility) {
     return null;
   }

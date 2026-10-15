@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -35,37 +36,41 @@ interface FriendPrivacySettingsProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const DEFAULT_SETTINGS: PrivacySettings = {
+  friendVisibility: "FRIENDS_ONLY",
+  allowFriendRequests: true,
+  allowFriendSuggestions: true,
+};
+
 export function FriendPrivacySettings({
   open,
   onOpenChange,
 }: FriendPrivacySettingsProps) {
-  const [settings, setSettings] = useState<PrivacySettings>({
-    friendVisibility: "FRIENDS_ONLY",
-    allowFriendRequests: true,
-    allowFriendSuggestions: true,
-  });
+  return (
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-lg">
+        {/* Mounted per open, so unsaved changes never carry over. */}
+        <FriendPrivacyForm onClose={() => onOpenChange(false)} />
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
+  );
+}
+
+function FriendPrivacyForm({ onClose }: { onClose: () => void }) {
+  const { data: saved, mutate: mutateSaved } = useSWR<PrivacySettings>(
+    "/api/friends/privacy",
+    {
+      onError: (error) =>
+        console.error("Error fetching privacy settings:", error),
+    }
+  );
+  // Only what the volunteer has changed in this sitting; everything else
+  // shows their saved settings as soon as those load.
+  const [edits, setEdits] = useState<Partial<PrivacySettings>>({});
+  const settings: PrivacySettings = { ...DEFAULT_SETTINGS, ...saved, ...edits };
+  const hasChanges = Object.keys(edits).length > 0;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [hasChanges, setHasChanges] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      fetchPrivacySettings();
-    }
-  }, [open]);
-
-  const fetchPrivacySettings = async () => {
-    try {
-      const response = await fetch("/api/friends/privacy");
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data);
-        setHasChanges(false);
-      }
-    } catch (error) {
-      console.error("Error fetching privacy settings:", error);
-    }
-  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -81,8 +86,8 @@ export function FriendPrivacySettings({
       });
 
       if (response.ok) {
-        setHasChanges(false);
-        onOpenChange(false);
+        await mutateSaved(settings, { revalidate: false });
+        onClose();
       } else {
         const data = await response.json();
         setError(data.error || "Failed to update privacy settings");
@@ -96,185 +101,168 @@ export function FriendPrivacySettings({
   };
 
   const handleVisibilityChange = (value: string) => {
-    setSettings((prev) => ({
+    setEdits((prev) => ({
       ...prev,
       friendVisibility: value as PrivacySettings["friendVisibility"],
     }));
-    setHasChanges(true);
   };
 
   const handleAllowRequestsChange = (checked: boolean) => {
-    setSettings((prev) => ({
-      ...prev,
-      allowFriendRequests: checked,
-    }));
-    setHasChanges(true);
+    setEdits((prev) => ({ ...prev, allowFriendRequests: checked }));
   };
 
   const handleAllowSuggestionsChange = (checked: boolean) => {
-    setSettings((prev) => ({
-      ...prev,
-      allowFriendSuggestions: checked,
-    }));
-    setHasChanges(true);
-  };
-
-  const handleClose = () => {
-    onOpenChange(false);
-    setError("");
-    setHasChanges(false);
+    setEdits((prev) => ({ ...prev, allowFriendSuggestions: checked }));
   };
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={handleClose}>
-      <ResponsiveDialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-lg">
-        <ResponsiveDialogHeader className="pb-4">
-          <ResponsiveDialogTitle className="display display-medium text-2xl tracking-tight text-forest-700 dark:text-cream-50">
-            Friend Privacy Settings
-          </ResponsiveDialogTitle>
-        </ResponsiveDialogHeader>
+    <>
+      <ResponsiveDialogHeader className="pb-4">
+        <ResponsiveDialogTitle className="display display-medium text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+          Friend Privacy Settings
+        </ResponsiveDialogTitle>
+      </ResponsiveDialogHeader>
 
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-3 flex items-center gap-2 text-base font-medium text-forest-700 dark:text-cream-50">
-                <Eye className="h-4 w-4" aria-hidden />
-                <span>Who can see your volunteer activity?</span>
-              </Label>
-              <RadioGroup
-                value={settings.friendVisibility}
-                onValueChange={handleVisibilityChange}
-                className="space-y-3"
-              >
-                <label htmlFor="public" className={optionRow}>
-                  <RadioGroupItem
-                    value="PUBLIC"
-                    id="public"
-                    className="mt-0.5"
-                  />
-                  <div className="space-y-1.5">
-                    <span className={optionTitle}>
-                      <Users className="h-4 w-4" aria-hidden />
-                      <span>Public</span>
-                    </span>
-                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
-                      Any logged-in volunteer can see your profile, shared shift
-                      history, and which shifts you&apos;ve signed up for on the
-                      browse shifts page.
-                    </p>
-                  </div>
-                </label>
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <Label className="mb-3 flex items-center gap-2 text-base font-medium text-forest-700 dark:text-cream-50">
+              <Eye className="h-4 w-4" aria-hidden />
+              <span>Who can see your volunteer activity?</span>
+            </Label>
+            <RadioGroup
+              value={settings.friendVisibility}
+              onValueChange={handleVisibilityChange}
+              className="space-y-3"
+            >
+              <label htmlFor="public" className={optionRow}>
+                <RadioGroupItem
+                  value="PUBLIC"
+                  id="public"
+                  className="mt-0.5"
+                />
+                <div className="space-y-1.5">
+                  <span className={optionTitle}>
+                    <Users className="h-4 w-4" aria-hidden />
+                    <span>Public</span>
+                  </span>
+                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                    Any logged-in volunteer can see your profile, shared shift
+                    history, and which shifts you&apos;ve signed up for on the
+                    browse shifts page.
+                  </p>
+                </div>
+              </label>
 
-                <label htmlFor="friends" className={optionRow}>
-                  <RadioGroupItem
-                    value="FRIENDS_ONLY"
-                    id="friends"
-                    className="mt-0.5"
-                  />
-                  <div className="space-y-1.5">
-                    <span className={optionTitle}>
-                      <UserCheck className="h-4 w-4" aria-hidden />
-                      <span>Friends Only</span>
-                    </span>
-                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
-                      Only your friends can see your profile, shared shift
-                      history, and which shifts you&apos;ve signed up for on the
-                      browse shifts page.
-                    </p>
-                  </div>
-                </label>
+              <label htmlFor="friends" className={optionRow}>
+                <RadioGroupItem
+                  value="FRIENDS_ONLY"
+                  id="friends"
+                  className="mt-0.5"
+                />
+                <div className="space-y-1.5">
+                  <span className={optionTitle}>
+                    <UserCheck className="h-4 w-4" aria-hidden />
+                    <span>Friends Only</span>
+                  </span>
+                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                    Only your friends can see your profile, shared shift
+                    history, and which shifts you&apos;ve signed up for on the
+                    browse shifts page.
+                  </p>
+                </div>
+              </label>
 
-                <label htmlFor="private" className={optionRow}>
-                  <RadioGroupItem
-                    value="PRIVATE"
-                    id="private"
-                    className="mt-0.5"
-                  />
-                  <div className="space-y-1.5">
-                    <span className={optionTitle}>
-                      <Lock className="h-4 w-4" aria-hidden />
-                      <span>Private</span>
-                    </span>
-                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
-                      Your profile cannot be viewed, you won&apos;t appear on
-                      the browse shifts page, and your shift history will be
-                      hidden from everyone.
-                    </p>
-                  </div>
-                </label>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-base font-medium text-forest-700 dark:text-cream-50">
-                Additional Settings
-              </Label>
-              <div className="space-y-3">
-                <label htmlFor="allowRequests" className={optionRow}>
-                  <Checkbox
-                    id="allowRequests"
-                    checked={settings.allowFriendRequests}
-                    onCheckedChange={handleAllowRequestsChange}
-                    className="mt-0.5"
-                  />
-                  <div className="space-y-1">
-                    <span className={optionTitle}>Allow friend requests</span>
-                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
-                      Other volunteers can send you friend requests
-                    </p>
-                  </div>
-                </label>
-
-                <label htmlFor="allowSuggestions" className={optionRow}>
-                  <Checkbox
-                    id="allowSuggestions"
-                    checked={settings.allowFriendSuggestions}
-                    onCheckedChange={handleAllowSuggestionsChange}
-                    className="mt-0.5"
-                  />
-                  <div className="space-y-1">
-                    <span className={optionTitle}>
-                      Appear in friend suggestions
-                    </span>
-                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
-                      Show up as a suggested friend for volunteers you&apos;ve
-                      recently worked with (3+ shared shifts in the last 3
-                      months)
-                    </p>
-                  </div>
-                </label>
-              </div>
-            </div>
+              <label htmlFor="private" className={optionRow}>
+                <RadioGroupItem
+                  value="PRIVATE"
+                  id="private"
+                  className="mt-0.5"
+                />
+                <div className="space-y-1.5">
+                  <span className={optionTitle}>
+                    <Lock className="h-4 w-4" aria-hidden />
+                    <span>Private</span>
+                  </span>
+                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                    Your profile cannot be viewed, you won&apos;t appear on
+                    the browse shifts page, and your shift history will be
+                    hidden from everyone.
+                  </p>
+                </div>
+              </label>
+            </RadioGroup>
           </div>
 
-          {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/40">
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-            </div>
-          )}
+          <div className="space-y-3">
+            <Label className="text-base font-medium text-forest-700 dark:text-cream-50">
+              Additional Settings
+            </Label>
+            <div className="space-y-3">
+              <label htmlFor="allowRequests" className={optionRow}>
+                <Checkbox
+                  id="allowRequests"
+                  checked={settings.allowFriendRequests}
+                  onCheckedChange={handleAllowRequestsChange}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <span className={optionTitle}>Allow friend requests</span>
+                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                    Other volunteers can send you friend requests
+                  </p>
+                </div>
+              </label>
 
-          <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={loading || !hasChanges}>
-              {loading ? (
-                <>
-                  <MotionSpinner size="sm" className="mr-2" />
-                  Saving...
-                </>
-              ) : (
-                "Save Settings"
-              )}
-            </Button>
+              <label htmlFor="allowSuggestions" className={optionRow}>
+                <Checkbox
+                  id="allowSuggestions"
+                  checked={settings.allowFriendSuggestions}
+                  onCheckedChange={handleAllowSuggestionsChange}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <span className={optionTitle}>
+                    Appear in friend suggestions
+                  </span>
+                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                    Show up as a suggested friend for volunteers you&apos;ve
+                    recently worked with (3+ shared shifts in the last 3
+                    months)
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
         </div>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/40">
+            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          </div>
+        )}
+
+        <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={loading || !hasChanges}>
+            {loading ? (
+              <>
+                <MotionSpinner size="sm" className="mr-2" />
+                Saving...
+              </>
+            ) : (
+              "Save Settings"
+            )}
+          </Button>
+        </div>
+      </div>
+    </>
   );
 }

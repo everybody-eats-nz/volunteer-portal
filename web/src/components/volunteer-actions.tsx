@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, X, Clock, UserMinus, AlertTriangle, ArrowRightLeft, CalendarOff, UserCheck, UserX, ListPlus } from "lucide-react";
@@ -334,64 +335,63 @@ function MoveVolunteerDialog({
   );
 }
 
+/**
+ * Every other shift on the day stays selectable, full or not. Backup
+ * preferences and free spots only affect ordering - restricting the list made
+ * moves one-way, since the shift a volunteer came from is often full or not
+ * among their nominated backups.
+ */
+function moveTargets(
+  shifts: Omit<MoveTargetShift, "isPreferred">[] | undefined,
+  currentShift: VolunteerActionsProps["currentShift"],
+  backupShiftIds: string[] | undefined
+): MoveTargetShift[] {
+  if (!shifts || !currentShift) return [];
+
+  const targets: MoveTargetShift[] = shifts
+    .filter((shift) => shift.id !== currentShift.id)
+    .map((shift) => ({
+      ...shift,
+      isPreferred: backupShiftIds?.includes(shift.id) ?? false,
+    }));
+
+  return targets.sort((a, b) => {
+    // 1. The volunteer's own backup preferences first
+    if (a.isPreferred !== b.isPreferred) {
+      return a.isPreferred ? -1 : 1;
+    }
+    // 2. Then shifts that still have room
+    const aHasRoom = a.confirmedCount < a.capacity;
+    const bHasRoom = b.confirmedCount < b.capacity;
+    if (aHasRoom !== bHasRoom) {
+      return aHasRoom ? -1 : 1;
+    }
+    // 3. Otherwise keep the start-time order the API returned
+    return 0;
+  });
+}
+
 export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPrefix, currentShift, volunteerName, backupShiftIds }: VolunteerActionsProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
-  const [availableShifts, setAvailableShifts] = useState<MoveTargetShift[]>([]);
   const [selectedTargetShift, setSelectedTargetShift] = useState<string>("");
   const [movementNotes, setMovementNotes] = useState("");
   const [moveError, setMoveError] = useState<string | null>(null);
   const [sendEmailOnReject, setSendEmailOnReject] = useState(true); // Default to checked
   const router = useRouter();
 
-  const fetchAvailableShifts = useCallback(async () => {
-    if (!currentShift) return;
-
-    try {
-      const shiftDate = formatInNZT(currentShift.start, "yyyy-MM-dd");
-      const response = await fetch(`/api/admin/shifts/available?date=${shiftDate}&location=${currentShift.location}`);
-      if (response.ok) {
-        const data: Omit<MoveTargetShift, "isPreferred">[] = await response.json();
-
-        // Every other shift on the day stays selectable, full or not. Backup
-        // preferences and free spots only affect ordering - restricting the list
-        // made moves one-way, since the shift a volunteer came from is often
-        // full or not among their nominated backups.
-        const targets: MoveTargetShift[] = data
-          .filter((shift) => shift.id !== currentShift.id)
-          .map((shift) => ({
-            ...shift,
-            isPreferred: backupShiftIds?.includes(shift.id) ?? false,
-          }));
-
-        targets.sort((a, b) => {
-          // 1. The volunteer's own backup preferences first
-          if (a.isPreferred !== b.isPreferred) {
-            return a.isPreferred ? -1 : 1;
-          }
-          // 2. Then shifts that still have room
-          const aHasRoom = a.confirmedCount < a.capacity;
-          const bHasRoom = b.confirmedCount < b.capacity;
-          if (aHasRoom !== bHasRoom) {
-            return aHasRoom ? -1 : 1;
-          }
-          // 3. Otherwise keep the start-time order the API returned
-          return 0;
-        });
-
-        setAvailableShifts(targets);
-      }
-    } catch (error) {
-      console.error("Error fetching available shifts:", error);
+  // Shifts to move to, fetched only while the move dialog is open. A shift
+  // with no location has no same-location shifts to move to.
+  const { data: sameDayShifts } = useSWR<Omit<MoveTargetShift, "isPreferred">[]>(
+    dialogOpen === "move" && currentShift?.location
+      ? `/api/admin/shifts/available?date=${formatInNZT(currentShift.start, "yyyy-MM-dd")}&location=${encodeURIComponent(currentShift.location)}`
+      : null,
+    {
+      keepPreviousData: true,
+      onError: (error) => console.error("Error fetching available shifts:", error),
     }
-  }, [currentShift, backupShiftIds]);
-
-  // Fetch available shifts for movement
-  useEffect(() => {
-    if (dialogOpen === "move" && currentShift) {
-      fetchAvailableShifts();
-    }
-  }, [dialogOpen, currentShift, fetchAvailableShifts]);
+  );
+  const availableShifts = moveTargets(sameDayShifts, currentShift, backupShiftIds);
 
   const handleVolunteerMove = async () => {
     if (!selectedTargetShift) return;

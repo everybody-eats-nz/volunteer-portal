@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Info, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -61,12 +61,16 @@ export function VenueFormDialog({
   const isEdit = venue !== null;
   const isRename = isEdit && values.name.trim() !== venue.name;
 
-  useEffect(() => {
+  // Each open starts from the venue being edited (or a blank form). Done
+  // during render so the fields never show the previous venue for a frame.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
       setValues(initialValues(venue));
       setBusy(false);
     }
-  }, [open, venue]);
+  }
 
   const valid =
     values.name.trim().length > 0 &&

@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import useSWR from "swr";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -66,52 +68,23 @@ export function UserSearchSelect({
 }: UserSearchSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
-  const [results, setResults] = React.useState<SearchableUser[]>([]);
-  const [isSearching, setIsSearching] = React.useState(false);
+  const trimmed = query.trim();
+  const debouncedQuery = useDebounce(trimmed, 300);
 
-  React.useEffect(() => {
-    const trimmed = query.trim();
-
-    if (!trimmed) {
-      setResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/admin/volunteers/search?q=${encodeURIComponent(trimmed)}`,
-          { signal: controller.signal }
-        );
-        if (!response.ok) throw new Error(`Search failed (${response.status})`);
-        const data = await response.json();
-        setResults(data.volunteers || []);
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-        console.error("User search failed:", error);
-        setResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeoutId);
-    };
-  }, [query]);
+  const { data, isLoading } = useSWR<{ volunteers?: SearchableUser[] }>(
+    debouncedQuery
+      ? `/api/admin/volunteers/search?q=${encodeURIComponent(debouncedQuery)}`
+      : null,
+    { onError: (error) => console.error("User search failed:", error) }
+  );
+  const results = (trimmed && data?.volunteers) || [];
+  const isSearching = Boolean(trimmed) && (trimmed !== debouncedQuery || isLoading);
 
   // Drop the previous query's results when reopening so the list never shows
   // stale matches from an earlier selection.
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-    if (!nextOpen) {
-      setQuery("");
-      setResults([]);
-    }
+    if (!nextOpen) setQuery("");
   };
 
   const emptyMessage = !query.trim()

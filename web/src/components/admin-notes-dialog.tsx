@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -46,38 +47,22 @@ export function AdminNotesDialog({
   volunteerName,
   trigger 
 }: AdminNotesDialogProps) {
-  const [notes, setNotes] = useState<AdminNote[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  // Fetch notes when dialog opens
-  const fetchNotes = useCallback(async () => {
-    if (!open) return; // Don't fetch if dialog isn't open
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/admin/admin-notes?volunteerId=${volunteerId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch notes');
-      }
-      const data = await response.json();
-      setNotes(data);
-    } catch (error) {
-      console.error('Error fetching notes:', error);
-      setError('Failed to load admin notes');
-    } finally {
-      setLoading(false);
+  // Only fetched while the dialog is open. Keeping the last result means the
+  // notes don't blank out while the dialog animates closed.
+  const {
+    data: notes = [],
+    error: loadError,
+    isLoading: loading,
+  } = useSWR<AdminNote[]>(
+    open ? `/api/admin/admin-notes?volunteerId=${volunteerId}` : null,
+    {
+      keepPreviousData: true,
+      onError: (error) => console.error("Error fetching notes:", error),
     }
-  }, [open, volunteerId]);
-
-  useEffect(() => {
-    if (open) {
-      fetchNotes();
-    }
-  }, [open, volunteerId, fetchNotes]);
+  );
+  const error = loadError ? "Failed to load admin notes" : null;
 
   // Get creator name
   const getCreatorName = (creator: AdminNote['creator']) => {

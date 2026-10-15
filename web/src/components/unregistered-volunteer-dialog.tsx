@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ResponsiveDialog,
@@ -43,13 +43,15 @@ export function UnregisteredVolunteerDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) {
+  // Opening always starts from the placeholder's saved details.
+  const handleOpenChange = (next: boolean) => {
+    if (next) {
       setName(placeholder?.name ?? "");
       setNotes(placeholder?.notes ?? "");
       setError(null);
     }
-  }, [open, placeholder?.name, placeholder?.notes]);
+    setOpen(next);
+  };
 
   const handleSubmit = async () => {
     const trimmed = name.trim();
@@ -95,7 +97,7 @@ export function UnregisteredVolunteerDialog({
   const TitleIcon = isEdit ? UserPen : UserPlus;
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+    <ResponsiveDialog open={open} onOpenChange={handleOpenChange}>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
       <ResponsiveDialogContent
         className="sm:max-w-md"

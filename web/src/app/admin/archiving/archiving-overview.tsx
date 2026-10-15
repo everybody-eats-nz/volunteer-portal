@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import useSWR from "swr";
+import { describeError } from "@/lib/swr";
 import {
   Card,
   CardContent,
@@ -43,40 +45,23 @@ type RunReport = {
   errors: Array<{ userId: string; stage: string; message: string }>;
 };
 
-export function ArchivingOverview({
-  initialStats,
-  refreshKey,
-  onRunComplete,
-}: {
-  initialStats: Stats;
-  refreshKey: number;
-  onRunComplete: () => void;
-}) {
-  const [stats, setStats] = useState<Stats | null>(initialStats);
-  const [loading, setLoading] = useState(false);
+export const ARCHIVE_STATS_KEY = "/api/admin/archiving/stats";
+
+export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
   const [running, setRunning] = useState(false);
   const [lastReport, setLastReport] = useState<RunReport | null>(null);
 
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/archiving/stats");
-      if (!res.ok) throw new Error("Failed to load stats");
-      const data = (await res.json()) as Stats;
-      setStats(data);
-    } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Failed to load archive stats"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   // The server renders the first stats; only refetch after a mutation.
-  useEffect(() => {
-    if (refreshKey > 0) fetchStats();
-  }, [fetchStats, refreshKey]);
+  const {
+    data: stats,
+    isValidating: loading,
+    mutate: refreshStats,
+  } = useSWR<Stats>(ARCHIVE_STATS_KEY, {
+    fallbackData: initialStats,
+    revalidateOnMount: false,
+    onError: (e) =>
+      toast.error(describeError(e, "Failed to load archive stats")),
+  });
 
   const runAll = useCallback(async () => {
     if (
@@ -100,13 +85,13 @@ export function ArchivingOverview({
       const data = await res.json();
       setLastReport(data.report as RunReport);
       toast.success("Archive pass complete");
-      onRunComplete();
+      void refreshStats();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Run failed");
     } finally {
       setRunning(false);
     }
-  }, [onRunComplete]);
+  }, [refreshStats]);
 
   const totalPending = stats
     ? Object.values(stats.pending).reduce((a, b) => a + b, 0)
@@ -131,7 +116,7 @@ export function ArchivingOverview({
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchStats}
+              onClick={() => refreshStats()}
               disabled={loading || running}
               data-testid="archiving-refresh-button"
             >

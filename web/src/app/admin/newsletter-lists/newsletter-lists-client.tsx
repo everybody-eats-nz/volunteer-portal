@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,38 +32,26 @@ interface NewsletterList {
 }
 
 export default function NewsletterListsClient() {
-  const [lists, setLists] = useState<NewsletterList[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingList, setEditingList] = useState<NewsletterList | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [listToDelete, setListToDelete] = useState<NewsletterList | null>(null);
   const { toast } = useToast();
 
-  const fetchLists = useCallback(async () => {
-    try {
-      const response = await fetch("/api/admin/newsletter-lists");
-      if (response.ok) {
-        const data = await response.json();
-        setLists(data);
-      } else {
-        throw new Error("Failed to fetch newsletter lists");
-      }
-    } catch (error) {
+  const {
+    data: lists = [],
+    isLoading: loading,
+    mutate: refreshLists,
+  } = useSWR<NewsletterList[]>("/api/admin/newsletter-lists", {
+    onError: (error) => {
       console.error("Error fetching lists:", error);
       toast({
         title: "Error",
         description: "Failed to load newsletter lists",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchLists();
-  }, [fetchLists]);
+    },
+  });
 
   const handleCreate = () => {
     setEditingList(null);
@@ -87,7 +76,7 @@ export default function NewsletterListsClient() {
           title: "Success",
           description: "Newsletter list deleted successfully",
         });
-        fetchLists();
+        void refreshLists();
       } else {
         throw new Error("Failed to delete newsletter list");
       }
@@ -117,7 +106,7 @@ export default function NewsletterListsClient() {
           title: "Success",
           description: `Newsletter list ${!list.active ? "activated" : "deactivated"}`,
         });
-        fetchLists();
+        void refreshLists();
       } else {
         throw new Error("Failed to update newsletter list");
       }
@@ -134,7 +123,7 @@ export default function NewsletterListsClient() {
   const handleDialogSuccess = () => {
     setDialogOpen(false);
     setEditingList(null);
-    fetchLists();
+    void refreshLists();
   };
 
   if (loading) {

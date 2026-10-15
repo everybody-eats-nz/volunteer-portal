@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
+import useSWR from "swr";
 import { Loader2, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,15 @@ interface ComposeButtonProps {
   onCreated: (threadId: string) => void;
 }
 
+interface UserSearchHit {
+  id: string;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string;
+  role: "VOLUNTEER" | "ADMIN";
+}
+
 interface VolunteerHit {
   id: string;
   name: string;
@@ -27,52 +37,23 @@ interface VolunteerHit {
 export function ComposeButton({ children, onCreated }: ComposeButtonProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<VolunteerHit[]>([]);
-  const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setResults([]);
-      return;
-    }
-    const ctrl = new AbortController();
-    setLoading(true);
-    fetch(`/api/admin/users?q=${encodeURIComponent(trimmed)}&limit=20`, {
-      signal: ctrl.signal,
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("search failed");
-        const data = (await res.json()) as Array<{
-          id: string;
-          name?: string | null;
-          firstName?: string | null;
-          lastName?: string | null;
-          email: string;
-          role: "VOLUNTEER" | "ADMIN";
-        }>;
-        setResults(
-          data
-            .filter((u) => u.role === "VOLUNTEER")
-            .slice(0, 10)
-            .map((u) => ({
-              id: u.id,
-              email: u.email,
-              name:
-                [u.firstName, u.lastName].filter(Boolean).join(" ") ||
-                u.name ||
-                u.email,
-            }))
-        );
-      })
-      .catch(() => {
-        // ignore aborted
-      })
-      .finally(() => setLoading(false));
-    return () => ctrl.abort();
-  }, [query, open]);
+  const trimmed = query.trim();
+  const { data: users, isLoading: loading } = useSWR<UserSearchHit[]>(
+    open && trimmed.length >= 2
+      ? `/api/admin/users?q=${encodeURIComponent(trimmed)}&limit=20`
+      : null
+  );
+  const results: VolunteerHit[] = (users ?? [])
+    .filter((u) => u.role === "VOLUNTEER")
+    .slice(0, 10)
+    .map((u) => ({
+      id: u.id,
+      email: u.email,
+      name:
+        [u.firstName, u.lastName].filter(Boolean).join(" ") || u.name || u.email,
+    }));
 
   const start = useCallback(
     async (volunteerId: string) => {
