@@ -1,3 +1,9 @@
+## [0.184.5] - 2026-10-15
+
+### Changes
+- chore(deps): bump uuid from 14.0.2 to 14.0.3 in /web ([#1342](https://github.com/everybody-eats-nz/volunteer-portal/pull/1342)) by @dependabot[bot]
+
+
 ## [0.184.4] - 2026-10-15
 
 ### Changes
