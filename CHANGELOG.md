@@ -1,3 +1,9 @@
+## [0.184.7] - 2026-10-18
+
+### Changes
+- chore(deps-dev): bump eslint from 9.39.2 to 10.12.0 in /web ([#1339](https://github.com/everybody-eats-nz/volunteer-portal/pull/1339)) by @dependabot[bot]
+
+
 ## [0.184.6] - 2026-10-18
 
 ### Changes
