@@ -1,3 +1,9 @@
+## [0.184.6] - 2026-10-18
+
+### Changes
+- chore(deps): bump @radix-ui/react-label from 2.1.15 to 2.1.17 in /web in the production-dependencies group across 1 directory ([#1351](https://github.com/everybody-eats-nz/volunteer-portal/pull/1351)) by @dependabot[bot]
+
+
 ## [0.184.5] - 2026-10-15
 
 ### Changes
