@@ -1,4 +1,5 @@
 import { Locator, Page, expect } from "@playwright/test";
+import { clearSession } from "./auth";
 
 /**
  * Locate a testid scoped to its visible instance.
@@ -92,6 +93,8 @@ export async function login(
   email: string,
   password: string
 ): Promise<void> {
+  // /login bounces an existing session to its home page, so start signed out
+  await clearSession(page);
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Password").fill(password);
