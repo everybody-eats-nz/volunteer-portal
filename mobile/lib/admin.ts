@@ -90,6 +90,12 @@ export interface PendingSignup {
   id: string;
   status: SignupStatus;
   createdAt: string;
+  /**
+   * Whether they asked to go on the waitlist if the shift fills before
+   * they're approved. Approving into a full shift releases them when false.
+   * Absent from servers that predate the question, which always waitlisted.
+   */
+  waitlistIfFull?: boolean;
   volunteer: {
     id: string;
     name: string;

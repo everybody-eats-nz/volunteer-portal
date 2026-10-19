@@ -56,10 +56,15 @@ export default function ApprovalsScreen() {
         );
         // Counts elsewhere (hub, tonight's shifts) may have shifted.
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
-        // Only worth interrupting for when the waitlist was a surprise. Asking
+        // Only worth interrupting for when the outcome was a surprise. Asking
         // to waitlist someone and being told they were waitlisted is noise.
         if (action === "approve" && res.message?.includes("waitlist")) {
           Alert.alert("Moved to waitlist", "The shift was full, so they were waitlisted.");
+        } else if (action === "approve" && res.message?.includes("released")) {
+          Alert.alert(
+            "Signup released",
+            "The shift was full and they'd asked not to wait, so we've let them know it filled up."
+          );
         }
       } catch (err) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -182,6 +187,9 @@ function PendingCard({
 }) {
   const grade = GRADE_COLORS[signup.volunteer.volunteerGrade];
   const full = signup.shift.confirmedCount >= signup.shift.capacity;
+  // Approving into a full shift waitlists them, unless they asked at signup
+  // not to wait - then it releases them. Older servers don't send the field.
+  const releaseIfFull = full && signup.waitlistIfFull === false;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: rule }]}>
@@ -230,7 +238,11 @@ function PendingCard({
           <Ionicons name="people-outline" size={14} color={full ? colors.destructive : colors.textSecondary} />
           <Text style={[styles.shiftMeta, { color: full ? colors.destructive : colors.textSecondary }]}>
             {signup.shift.confirmedCount}/{signup.shift.capacity} confirmed
-            {full ? " · full, will waitlist" : ""}
+            {releaseIfFull
+              ? " · full, won't wait"
+              : full
+              ? " · full, will waitlist"
+              : ""}
           </Text>
         </View>
       </View>
@@ -258,14 +270,22 @@ function PendingCard({
             { backgroundColor: Brand.green, opacity: pressed ? 0.85 : 1 },
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Approve signup"
+          accessibilityLabel={
+            releaseIfFull
+              ? "Release signup, the shift is full"
+              : full
+              ? "Waitlist signup, the shift is full"
+              : "Approve signup"
+          }
         >
           {busy ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
             <>
               <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.approveText}>{full ? "Waitlist" : "Approve"}</Text>
+              <Text style={styles.approveText}>
+                {releaseIfFull ? "Release" : full ? "Waitlist" : "Approve"}
+              </Text>
             </>
           )}
         </Pressable>

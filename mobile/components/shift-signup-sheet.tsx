@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -21,7 +21,12 @@ import { Colors, Brand, FontFamily, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, ApiError } from '@/lib/api';
 import { getShiftDescription } from '@/lib/shift-description';
-import { WAITLIST_EXPLAINER, waitlistSizeSentence } from '@/lib/waitlist';
+import {
+  WAITLIST_EXPLAINER,
+  WAITLIST_IF_FULL_HINT,
+  WAITLIST_IF_FULL_LABEL,
+  waitlistSizeSentence,
+} from '@/lib/waitlist';
 
 type ConcurrentShift = {
   id: string;
@@ -125,8 +130,26 @@ export function ShiftSignupSheet({
   const [error, setError] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [missingFields, setMissingFields] = useState<string[]>([]);
+  // Asked for signups that need approval: if the shift fills first, wait for
+  // a place or not? Unticked by default so nobody is waitlisted unasked.
+  const [waitlistIfFull, setWaitlistIfFull] = useState(false);
+  // The shift filled between opening the sheet and submitting. The server's
+  // fresh counts replace the stale ones so the waitlist view reads true.
+  const [filledWhileOpen, setFilledWhileOpen] = useState<{
+    signedUp: number;
+    capacity: number;
+    waitlistCount: number;
+  } | null>(null);
 
-  const spotsLeft = Math.max(0, shift.capacity - shift.signedUp);
+  const scrollRef = useRef<ScrollView>(null);
+  const waitlistMode = isWaitlist || filledWhileOpen !== null;
+  const signedUp = filledWhileOpen?.signedUp ?? shift.signedUp;
+  const currentWaitlistCount = filledWhileOpen?.waitlistCount ?? waitlistCount;
+  const capacity = filledWhileOpen?.capacity ?? shift.capacity;
+  const spotsLeft = Math.max(0, capacity - signedUp);
+  // Only when an admin will review it. An instant signup can't be overtaken.
+  const askWaitlistIfFull =
+    !waitlistMode && !autoApproval.loading && !autoApproval.eligible;
   const date = new Date(shift.start);
   const endDate = new Date(shift.end);
 
@@ -139,6 +162,8 @@ export function ShiftSignupSheet({
       setGuardianName('');
       setBackupShiftIds([]);
       setError(null);
+      setWaitlistIfFull(false);
+      setFilledWhileOpen(null);
       // Only block up front when the server told us what is missing. An
       // empty list with the flag set used to render "your profile is
       // incomplete" over a disabled button and no way to find out why.
@@ -148,6 +173,12 @@ export function ShiftSignupSheet({
       setAutoApproval({ eligible: false, loading: true });
     }
   }, [visible, knownProfileIncomplete, knownMissingFields]);
+
+  // The "just filled up" notice renders at the top of the sheet; bring it
+  // into view, since the volunteer is usually scrolled down to the button.
+  useEffect(() => {
+    if (filledWhileOpen) scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, [filledWhileOpen]);
 
   // Fetch auto-approval eligibility + concurrent shifts when sheet opens
   useEffect(() => {
@@ -199,7 +230,8 @@ export function ShiftSignupSheet({
     setIsSubmitting(true);
     try {
       const body: Record<string, unknown> = {};
-      if (isWaitlist) body.waitlist = true;
+      if (waitlistMode) body.waitlist = true;
+      if (askWaitlistIfFull) body.waitlistIfFull = waitlistIfFull;
 
       // The guardian name travels in the signup note (same convention as
       // the web dialog), which the server validates for underage volunteers.
@@ -222,8 +254,23 @@ export function ShiftSignupSheet({
       onClose();
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 400 && err.message === 'Shift is full') {
-          setError('This shift just filled up. You can join the waitlist instead.');
+        if (err.status === 400 && err.data?.waitlistAvailable === true) {
+          // Never waitlist them silently: switch to the waitlist view and
+          // let them decide.
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          const liveCapacity =
+            typeof err.data.capacity === 'number' ? err.data.capacity : shift.capacity;
+          setFilledWhileOpen({
+            capacity: liveCapacity,
+            signedUp:
+              typeof err.data.confirmedCount === 'number'
+                ? err.data.confirmedCount
+                : liveCapacity,
+            waitlistCount:
+              typeof err.data.waitlistCount === 'number'
+                ? err.data.waitlistCount
+                : waitlistCount,
+          });
         } else if (err.message === 'Profile incomplete') {
           setProfileIncomplete(true);
           const serverMissing = err.data?.missingFields;
@@ -241,7 +288,11 @@ export function ShiftSignupSheet({
     }
   }, [
     shift.id,
-    isWaitlist,
+    shift.capacity,
+    waitlistMode,
+    askWaitlistIfFull,
+    waitlistIfFull,
+    waitlistCount,
     note,
     guardianRequired,
     guardianName,
@@ -255,19 +306,19 @@ export function ShiftSignupSheet({
     router.push('/profile/edit');
   }, [onClose]);
 
-  const title = isWaitlist
+  const title = waitlistMode
     ? '📋 Join Waitlist'
     : autoApproval.eligible && !autoApproval.loading
       ? '🚀 Instant Signup'
       : '✨ Confirm Signup';
 
-  const subtitle = isWaitlist
-    ? waitlistSizeSentence(waitlistCount)
+  const subtitle = waitlistMode
+    ? waitlistSizeSentence(currentWaitlistCount)
     : autoApproval.eligible && !autoApproval.loading
       ? "You're eligible for instant approval!"
       : 'Your signup will be reviewed by an admin.';
 
-  const buttonLabel = isWaitlist
+  const buttonLabel = waitlistMode
     ? '📋 Join Waitlist'
     : autoApproval.eligible && !autoApproval.loading
       ? '🚀 Sign Up (Auto-Approved)'
@@ -313,10 +364,28 @@ export function ShiftSignupSheet({
         </View>
 
         <ScrollView
+          ref={scrollRef}
           style={{ flex: 1 }}
           contentContainerStyle={[ss.body, { paddingBottom: 20 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
+          {filledWhileOpen && (
+            <View
+              style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(234,88,12,0.14)' : '#fff7ed' }]}
+              accessibilityRole="alert">
+              <Text style={ss.infoEmoji}>⏳</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[ss.infoTitle, { color: isDark ? '#fdba74' : '#9a3412' }]}>
+                  This shift just filled up
+                </Text>
+                <Text style={[ss.infoText, { color: isDark ? '#fed7aa' : '#9a3412' }]}>
+                  The last place went while you were signing up. You can join the waitlist
+                  instead, or close this to look for another shift.
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Shift details card */}
           <View style={[ss.card, { backgroundColor: colors.surfaceSoft }]}>
             <Text style={[ss.cardTitle, { color: colors.text }]}>{shift.shiftType.name}</Text>
@@ -345,8 +414,8 @@ export function ShiftSignupSheet({
               <View style={ss.cardRow}>
                 <Text style={ss.cardIcon}>👥</Text>
                 <Text style={[ss.cardValue, { color: colors.text }]}>
-                  {shift.signedUp}/{shift.capacity} confirmed
-                  {!isWaitlist && spotsLeft > 0 && (
+                  {signedUp}/{capacity} confirmed
+                  {!waitlistMode && spotsLeft > 0 && (
                     <Text style={{ color: isDark ? colors.tint : Palette.forest400 }}> ({spotsLeft} spots left)</Text>
                   )}
                 </Text>
@@ -404,7 +473,7 @@ export function ShiftSignupSheet({
                 Checking eligibility...
               </Text>
             </View>
-          ) : autoApproval.eligible && !isWaitlist ? (
+          ) : autoApproval.eligible && !waitlistMode ? (
             <View style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(29,83,55,0.18)' : colors.primaryLight }]}>
               <Text style={ss.infoEmoji}>🎉</Text>
               <View style={{ flex: 1 }}>
@@ -418,13 +487,56 @@ export function ShiftSignupSheet({
             </View>
           ) : (
             <View style={[ss.infoBox, { backgroundColor: colors.surfaceSoft }]}>
-              <Text style={ss.infoEmoji}>{isWaitlist ? '📋' : 'ℹ️'}</Text>
+              <Text style={ss.infoEmoji}>{waitlistMode ? '📋' : 'ℹ️'}</Text>
               <Text style={[ss.infoText, { color: colors.textSecondary, flex: 1 }]}>
-                {isWaitlist
+                {waitlistMode
                   ? WAITLIST_EXPLAINER
                   : "Your signup will be reviewed by an administrator. You'll be notified once confirmed."}
               </Text>
             </View>
+          )}
+
+          {/* If the shift fills before an admin gets to them: wait or not? */}
+          {askWaitlistIfFull && (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setWaitlistIfFull((v) => !v);
+              }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: waitlistIfFull }}
+              accessibilityLabel={WAITLIST_IF_FULL_LABEL}
+              accessibilityHint={WAITLIST_IF_FULL_HINT}
+              testID="waitlist-if-full-toggle"
+              style={({ pressed }) => [
+                ss.backupRow,
+                ss.optInRow,
+                {
+                  borderColor: waitlistIfFull
+                    ? isDark ? colors.tint : Brand.green
+                    : colors.border,
+                  backgroundColor: waitlistIfFull
+                    ? isDark ? 'rgba(29,83,55,0.22)' : Brand.greenLight
+                    : 'transparent',
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}>
+              <View style={ss.backupCheck}>
+                {waitlistIfFull ? (
+                  <Ionicons name="checkbox" size={22} color={isDark ? colors.tint : Brand.green} />
+                ) : (
+                  <Ionicons name="square-outline" size={22} color={colors.textSecondary} />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[ss.backupName, { color: colors.text }]}>
+                  {WAITLIST_IF_FULL_LABEL}
+                </Text>
+                <Text style={[ss.optInHint, { color: colors.textSecondary }]}>
+                  {WAITLIST_IF_FULL_HINT}
+                </Text>
+              </View>
+            </Pressable>
           )}
 
           {/* Note field */}
@@ -930,6 +1042,15 @@ const ss = StyleSheet.create({
   backupCheck: {
     width: 24,
     alignItems: 'center',
+  },
+  optInRow: {
+    alignItems: 'flex-start',
+  },
+  optInHint: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+    marginTop: 2,
   },
   backupName: {
     fontSize: 14,

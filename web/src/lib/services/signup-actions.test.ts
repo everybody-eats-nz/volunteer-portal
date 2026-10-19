@@ -27,6 +27,7 @@ const notificationMocks = vi.hoisted(() => ({
   createShiftWaitlistedNotification: vi.fn().mockResolvedValue(undefined),
   createShiftCanceledNotification: vi.fn().mockResolvedValue(undefined),
   createWaitlistRemovedNotification: vi.fn().mockResolvedValue(undefined),
+  createShiftFilledNotification: vi.fn().mockResolvedValue(undefined),
 }));
 const emailMocks = vi.hoisted(() => ({
   sendShiftConfirmationNotification: vi.fn().mockResolvedValue(undefined),
@@ -57,7 +58,12 @@ type SignupStatus =
 
 function makeSignup(
   status: SignupStatus,
-  overrides: { capacity?: number; shiftStart?: Date; shiftEnd?: Date } = {}
+  overrides: {
+    capacity?: number;
+    shiftStart?: Date;
+    shiftEnd?: Date;
+    waitlistIfFull?: boolean;
+  } = {}
 ) {
   const start = overrides.shiftStart ?? new Date("2026-07-01T06:00:00.000Z");
   const end = overrides.shiftEnd ?? new Date("2026-07-01T09:00:00.000Z");
@@ -65,6 +71,7 @@ function makeSignup(
     id: "signup_1",
     status,
     shiftId: "shift_1",
+    waitlistIfFull: overrides.waitlistIfFull ?? true,
     shift: {
       id: "shift_1",
       start,
@@ -226,6 +233,53 @@ describe("applySignupAction", () => {
 
     expect(result.signup.status).toBe("WAITLISTED");
     expect(result.message).toBe("Shift was full, moved to waitlist");
+    expect(
+      notificationMocks.createShiftWaitlistedNotification
+    ).toHaveBeenCalled();
+  });
+
+  it("releases an approved signup into a full shift when they asked not to wait", async () => {
+    mockedFindUnique.mockResolvedValue(
+      makeSignup("PENDING", { capacity: 3, waitlistIfFull: false }) as never
+    );
+    mockedCount.mockResolvedValue(3 as never); // at capacity
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "approve",
+    });
+
+    expect(result.signup.status).toBe("CANCELED");
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "CANCELED" } })
+    );
+    expect(notificationMocks.createShiftFilledNotification).toHaveBeenCalledWith(
+      "user_1",
+      "Dishwashing",
+      expect.any(String),
+      "shift_1"
+    );
+    expect(
+      notificationMocks.createShiftWaitlistedNotification
+    ).not.toHaveBeenCalled();
+    // Mobile admin builds alert "Moved to waitlist" for any approve message
+    // containing "waitlist", so the release message must never say it.
+    expect(result.message).not.toMatch(/waitlist/i);
+    expect(result.message).toMatch(/released/);
+  });
+
+  it("confirms a signup that opted out of waiting when the shift still has room", async () => {
+    mockedFindUnique.mockResolvedValue(
+      makeSignup("PENDING", { capacity: 5, waitlistIfFull: false }) as never
+    );
+    mockedCount.mockResolvedValue(2 as never);
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "approve",
+    });
+
+    expect(result.signup.status).toBe("CONFIRMED");
   });
 
   it("blocks manually waitlisting a signup that is not pending", async () => {

@@ -36,6 +36,7 @@ export async function GET(req: Request) {
       id: true,
       status: true,
       createdAt: true,
+      waitlistIfFull: true,
       user: {
         select: {
           id: true,
@@ -65,6 +66,7 @@ export async function GET(req: Request) {
     id: s.id,
     status: s.status,
     createdAt: s.createdAt,
+    waitlistIfFull: s.waitlistIfFull,
     volunteer: {
       id: s.user.id,
       name:

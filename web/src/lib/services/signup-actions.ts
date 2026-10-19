@@ -4,6 +4,7 @@ import {
   createShiftWaitlistedNotification,
   createShiftCanceledNotification,
   createWaitlistRemovedNotification,
+  createShiftFilledNotification,
 } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
@@ -166,6 +167,33 @@ export async function applySignupAction({
     const confirmedCount = await prisma.signup.count({
       where: { shiftId: signup.shiftId, status: "CONFIRMED" },
     });
+
+    // Full, and they told us at signup they don't want to wait: release the
+    // signup rather than park them on a waitlist they never chose.
+    if (confirmedCount >= signup.shift.capacity && !signup.waitlistIfFull) {
+      const updatedSignup = await prisma.signup.update({
+        where: { id: signupId },
+        data: { status: "CANCELED" },
+      });
+
+      try {
+        await createShiftFilledNotification(
+          signup.user.id,
+          signup.shift.shiftType.name,
+          formatNZLongDate(signup.shift.start),
+          signup.shift.id
+        );
+      } catch (notificationError) {
+        console.error("Error creating shift-filled notification:", notificationError);
+      }
+
+      return {
+        signup: updatedSignup,
+        // Keep "waitlist" out of this message: mobile admin builds alert
+        // "Moved to waitlist" whenever an approve message contains it.
+        message: "Shift was full and they'd asked not to wait, so their signup was released",
+      };
+    }
 
     // Over capacity → waitlist instead of confirming.
     if (confirmedCount >= signup.shift.capacity) {
