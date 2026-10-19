@@ -1108,7 +1108,28 @@ model DailyMenu {
   @@index([date])
 }
 
-// ─── Content Moderation ────────────────────────────────────────────────────────
+// ─── Shift Day Themes ────────────────────────────────────────────────────────
+
+// A short free-text theme for one service day at one location ("Christmas
+// Lunch", "Pasta Night", "Private event"), shown to volunteers beside the date
+// on the shift calendar and the day's shift list. Admin-managed from the
+// Restaurant Schedule page.
+model ShiftDayTheme {
+  id        String   @id @default(cuid())
+  // The NZ calendar day itself (a SQL DATE, no time or timezone). Prisma reads
+  // it back as UTC midnight, so the "yyyy-MM-dd" key is toISOString().slice(0, 10).
+  date      DateTime @db.Date
+  location  String // Location name (matches Location.name)
+  theme     String   @db.VarChar(80) // A label, not a description: room for "Private event - Rotary Club fundraiser dinner", short enough to sit beside a date
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy String? // Admin user ID who last saved
+
+  @@unique([location, date])
+  @@index([date])
+}
+
+// ─── Content Moderation────────────────────────────────────────────────────────
 
 /// A report of objectionable content or an abusive user, filed by a volunteer.
 model ContentReport {

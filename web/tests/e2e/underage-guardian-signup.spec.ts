@@ -6,6 +6,7 @@ import {
   deleteTestShifts,
   getShiftTypeByName,
   deleteSignupsByShiftIds,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { randomUUID } from "crypto";
@@ -81,8 +82,12 @@ test.describe("Underage guardian requirement", () => {
       .first();
     await expect(shiftCard).toBeVisible({ timeout: 15000 });
 
-    await shiftCard.getByTestId("shift-signup-button").click();
-    await expect(page.getByTestId("shift-signup-dialog")).toBeVisible();
+    // The card is server-rendered, so it can be visible before the button's
+    // click handler hydrates; retry until the dialog actually opens.
+    await clickUntilVisible(
+      shiftCard.getByTestId("shift-signup-button"),
+      page.getByTestId("shift-signup-dialog")
+    );
   }
 
   test("signup dialog requires a guardian name for volunteers 14 and under", async ({

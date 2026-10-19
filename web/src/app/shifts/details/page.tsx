@@ -20,6 +20,8 @@ import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/utils";
 import { ShareShiftButton } from "@/components/share-shift-button";
+import { isDayKey, type ShiftDayThemeMap } from "@/lib/shift-day-themes";
+import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
 
 type SessionFilter = "day" | "evening" | undefined;
 
@@ -148,7 +150,22 @@ export default async function ShiftDetailsPage({
     : undefined;
 
   // Resolve the address fresh so a newly created location shows immediately.
-  const locationAddresses = await getLocationAddresses();
+  const [locationAddresses, dayThemeMap] = await Promise.all([
+    getLocationAddresses(),
+    isDayKey(dateParam)
+      ? getShiftDayThemes({
+          fromDayKey: dateParam,
+          toDayKey: dateParam,
+          locations: selectedLocation ? [selectedLocation] : undefined,
+        })
+      : Promise.resolve<ShiftDayThemeMap>({}),
+  ]);
+  // The day's theme per location ("Christmas Lunch"). With no location picked
+  // every restaurant's theme is listed, so each one is labelled with its name.
+  const dayThemes = Object.entries(dayThemeMap).map(([location, byDay]) => ({
+    location,
+    theme: byDay[dateParam],
+  }));
   const selectedLocationAddress = selectedLocation
     ? locationAddresses[selectedLocation]
     : undefined;
@@ -230,12 +247,32 @@ export default async function ShiftDetailsPage({
         <p className="eyebrow mb-4 text-forest-500/80 dark:text-cream-50/60">
           Pick a shift · join the mahi
         </p>
-        <h1
-          className="display text-3xl leading-[1.05] tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50"
-          data-testid="shifts-details-page-header"
-        >
-          {formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
-        </h1>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <h1
+            className="display text-3xl leading-[1.05] tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50"
+            data-testid="shifts-details-page-header"
+          >
+            {formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
+          </h1>
+          {dayThemes.map(({ location, theme }) => (
+            <p
+              key={location}
+              className="display rounded-xl bg-sun-200/80 px-3 py-1 text-xl italic leading-snug text-forest-800 sm:text-2xl dark:bg-sun-200/15 dark:text-sun-100"
+              data-testid="shifts-details-day-theme"
+            >
+              {selectedLocation ? (
+                theme
+              ) : (
+                <>
+                  <span className="not-italic text-forest-700/70 dark:text-sun-100/70">
+                    {location}:
+                  </span>{" "}
+                  {theme}
+                </>
+              )}
+            </p>
+          ))}
+        </div>
         {selectedLocation && (
           <div className="mt-4">
             <div

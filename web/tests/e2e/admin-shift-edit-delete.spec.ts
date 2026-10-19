@@ -7,6 +7,7 @@ import {
   deleteTestShifts,
   createSignup,
   getUserByEmail,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 import { gotoSettled } from "./helpers/streaming";
 import { randomUUID } from "crypto";
@@ -371,7 +372,8 @@ test.describe("Admin Shift Edit and Delete", () => {
         .locator('[data-testid^="delete-shift-button-"]')
         .first();
       await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(deleteButton, page.getByTestId("delete-shift-dialog"));
 
       // Wait for dialog to appear using testid (debug showed this works)
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible({
@@ -396,7 +398,8 @@ test.describe("Admin Shift Edit and Delete", () => {
       const deleteButton = page.getByTestId(
         `delete-shift-button-${testShiftId}`
       );
-      await deleteButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(deleteButton, page.getByTestId("delete-shift-dialog"));
 
       // Wait for dialog to appear
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();
@@ -418,7 +421,8 @@ test.describe("Admin Shift Edit and Delete", () => {
       const deleteButton = page.getByTestId(
         `delete-shift-button-${testShiftId}`
       );
-      await deleteButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(deleteButton, page.getByTestId("delete-shift-dialog"));
 
       // Wait for dialog to appear
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();
@@ -465,7 +469,8 @@ test.describe("Admin Shift Edit and Delete", () => {
       const deleteButton = page.getByTestId(
         `delete-shift-button-${testShiftId}`
       );
-      await deleteButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(deleteButton, page.getByTestId("delete-shift-dialog"));
 
       // Wait for dialog to appear
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();
@@ -501,7 +506,8 @@ test.describe("Admin Shift Edit and Delete", () => {
         .locator('[data-testid^="delete-shift-button-"]')
         .first();
       await expect(deleteButton).toBeVisible();
-      await deleteButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(deleteButton, page.getByTestId("delete-shift-dialog"));
 
       // Wait for dialog and confirm deletion
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible({
@@ -649,7 +655,8 @@ test.describe("Admin Shift Edit and Delete", () => {
       const deleteButton = page.getByTestId(
         `delete-shift-button-${testShiftId}`
       );
-      await deleteButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(deleteButton, page.getByTestId("delete-shift-dialog"));
 
       // Dialog should be properly displayed on mobile
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();

@@ -22,6 +22,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ShiftDayThemeMap } from "@/lib/shift-day-themes";
 
 /** Four-point sparkle — the marketing site's signature accent mark. */
 function Sparkle({ className }: { className?: string }) {
@@ -29,6 +30,70 @@ function Sparkle({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
       <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
     </svg>
+  );
+}
+
+/**
+ * The month's themed days written out in full, for phones and tablets - where
+ * calendar cells only have room to highlight the date. Days with shifts link
+ * through to them.
+ */
+function ThemedDayList({
+  location,
+  themes,
+  days,
+}: {
+  location: string;
+  themes: Record<string, string> | undefined;
+  days: Array<{ date: Date; shifts: unknown[] }>;
+}) {
+  if (!themes || days.length === 0) return null;
+
+  return (
+    <ul
+      className="mt-3 border-t border-forest-500/10 pt-2 sm:mt-5 sm:pt-3 lg:hidden dark:border-cream-50/10"
+      aria-label="Themed days"
+      data-testid="calendar-day-theme-list"
+    >
+      {days.map((day) => {
+        const key = format(day.date, "yyyy-MM-dd");
+        const row = (
+          <>
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sun-200 text-sm font-bold tabular-nums text-forest-800 dark:bg-sun-200/20 dark:text-sun-100">
+              {format(day.date, "d")}
+            </span>
+            <span className="w-8 shrink-0 text-xs font-semibold text-forest-700/60 dark:text-cream-50/55">
+              {format(day.date, "EEE")}
+            </span>
+            <span className="display min-w-0 flex-1 text-base italic leading-snug text-forest-800 dark:text-cream-50">
+              {themes[key]}
+            </span>
+          </>
+        );
+        return (
+          <li key={key}>
+            {day.shifts.length > 0 ? (
+              <Link
+                href={`/shifts/details?date=${key}&location=${encodeURIComponent(
+                  location
+                )}`}
+                className="flex min-h-11 items-center gap-2 rounded-xl px-1 py-1.5 transition-colors active:bg-forest-500/5"
+              >
+                {row}
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-forest-500/50 dark:text-cream-50/40"
+                  aria-hidden
+                />
+              </Link>
+            ) : (
+              <div className="flex min-h-11 items-center gap-2 px-1 py-1.5">
+                {row}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -59,6 +124,11 @@ interface ShiftSummary {
 
 interface ShiftsCalendarProps {
   shifts: ShiftSummary[];
+  /**
+   * Admin-set themes for upcoming days ("Christmas Lunch", "Pasta Night"),
+   * keyed by location then "yyyy-MM-dd" NZ day.
+   */
+  dayThemes?: ShiftDayThemeMap;
   selectedLocation?: string;
   /**
    * Server-rendered "now" as an epoch-ms timestamp. Seeding all time-dependent
@@ -100,6 +170,7 @@ interface DayShifts {
 
 export function ShiftsCalendar({
   shifts,
+  dayThemes = {},
   selectedLocation,
   serverNow,
   initialMonth,
@@ -383,6 +454,10 @@ export function ShiftsCalendar({
                     const meta = statusMeta(status, dayShifts.spotsAvailable);
                     const isInteractive =
                       isCurrentMonth && !isPastDate && status !== "none";
+                    const theme =
+                      isCurrentMonth && !isPastDate
+                        ? dayThemes[location]?.[dayKey]
+                        : undefined;
 
                     const dayContent = (
                       <div
@@ -411,11 +486,25 @@ export function ShiftsCalendar({
                             "cursor-pointer border border-forest-500/15 bg-card shadow-sm hover:-translate-y-0.5 hover:border-forest-500/50 hover:shadow-lg dark:border-cream-50/10 dark:bg-forest-800/50 dark:hover:border-forest-400/50"
                         )}
                         data-testid={`calendar-day-${dayKey}`}
+                        title={theme}
                       >
-                        {/* Date number — centered at the top of the tile */}
+                        {/* Date number — centered at the top of the tile, with
+                            the day's theme beside it on wide screens */}
+                        <div
+                          className={cn(
+                            "flex shrink-0 items-start",
+                            theme && "lg:w-full lg:gap-1.5"
+                          )}
+                        >
                         <span
                           className={cn(
                             "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums transition-colors",
+                            // Narrower screens have no room for the theme text,
+                            // so the number itself is highlighted and the
+                            // themes are listed in full beneath the grid.
+                            theme &&
+                              !isToday &&
+                              "max-lg:bg-sun-200 max-lg:text-forest-800 dark:max-lg:bg-sun-200/20 dark:max-lg:text-sun-100",
                             !isCurrentMonth &&
                               "text-forest-700/35 dark:text-cream-50/30",
                             isCurrentMonth &&
@@ -433,6 +522,19 @@ export function ShiftsCalendar({
                         >
                           {format(dayShifts.date, "d")}
                         </span>
+                        {theme && (
+                          <span
+                            className="hidden min-w-0 pt-[3px] text-left lg:block"
+                            data-testid={`calendar-day-theme-${dayKey}`}
+                          >
+                            <span className="display line-clamp-2 text-[13px] italic leading-[1.2] text-forest-800 dark:text-sun-100">
+                              <span className="box-decoration-clone rounded-[3px] bg-sun-200/80 px-1 dark:bg-sun-200/20">
+                                {theme}
+                              </span>
+                            </span>
+                          </span>
+                        )}
+                        </div>
 
                         {/* Mobile: a small availability dot under the number */}
                         {isInteractive && (
@@ -469,9 +571,12 @@ export function ShiftsCalendar({
                                   link to the day's shifts, and an <a> inside an
                                   <a> is invalid HTML that the browser re-parses,
                                   breaking hydration. Friend profiles stay
-                                  reachable from the shift detail page. */}
+                                  reachable from the shift detail page. Tablet
+                                  cells are too short for the avatars under the
+                                  chip, so they start at lg. */}
                               {dayShifts.totalConfirmed > 0 && (
                                 <AvatarList
+                                  className="hidden lg:flex"
                                   users={dayShifts.allFriendSignups.map(
                                     (signup) => signup.user
                                   )}
@@ -486,7 +591,7 @@ export function ShiftsCalendar({
                             <span className="text-[11px] font-semibold uppercase tracking-wide text-forest-700/70 dark:text-cream-50/60">
                               Today
                             </span>
-                          ) : isCurrentMonth && !isPastDate ? (
+                          ) : isCurrentMonth && !isPastDate && !theme ? (
                             <span
                               className="h-1 w-1 rounded-full bg-forest-500/25 dark:bg-cream-50/20"
                               aria-hidden
@@ -516,6 +621,21 @@ export function ShiftsCalendar({
                     );
                   })}
                 </div>
+
+                {/* Below lg the cells only highlight themed days, so spell
+                    the themes out here */}
+                <ThemedDayList
+                  location={location}
+                  themes={dayThemes[location]}
+                  days={locationDayShifts.filter((day) => {
+                    const key = format(day.date, "yyyy-MM-dd");
+                    return (
+                      isSameMonth(day.date, currentMonth) &&
+                      key >= todayKey &&
+                      Boolean(dayThemes[location]?.[key])
+                    );
+                  })}
+                />
               </CardContent>
             </Card>
           );

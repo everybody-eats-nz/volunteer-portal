@@ -8,6 +8,7 @@ import {
   deleteTestShifts,
   createSignup,
   getUserByEmail,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 
 /**
@@ -17,6 +18,17 @@ import {
  */
 function byTestId(page: Page, id: string) {
   return page.locator(`[data-testid="${id}"]:visible`).first();
+}
+
+/**
+ * Opens the email template preview. The button is server-rendered, so a click
+ * before hydration is dropped; clickUntilVisible retries until the dialog opens.
+ */
+async function openEmailPreview(page: Page) {
+  await clickUntilVisible(
+    byTestId(page, "preview-email-button"),
+    page.getByRole("dialog", { name: /Email Template Preview/i })
+  );
 }
 
 test.describe.serial("Admin Shift Shortage Notifications", () => {
@@ -234,13 +246,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   }) => {
     await page.goto("/admin/notifications");
 
-    // Click the preview button
-    await byTestId(page, "preview-email-button").click();
-
-    // Dialog should open
-    await expect(
-      page.getByRole("dialog", { name: /Email Template Preview/i })
-    ).toBeVisible();
+    await openEmailPreview(page);
 
     // Check dialog content headers
     await expect(
@@ -254,13 +260,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   test("should display email preview details in dialog", async ({ page }) => {
     await page.goto("/admin/notifications");
 
-    // Click the preview button
-    await byTestId(page, "preview-email-button").click();
-
-    // Wait for dialog to open
-    await expect(
-      page.getByRole("dialog", { name: /Email Template Preview/i })
-    ).toBeVisible();
+    await openEmailPreview(page);
 
     // Wait for preview to load (either real data or mock data in dev)
     await expect(
@@ -286,13 +286,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   test("should display note about placeholder variables", async ({ page }) => {
     await page.goto("/admin/notifications");
 
-    // Click the preview button
-    await byTestId(page, "preview-email-button").click();
-
-    // Wait for dialog to open
-    await expect(
-      page.getByRole("dialog", { name: /Email Template Preview/i })
-    ).toBeVisible();
+    await openEmailPreview(page);
 
     // Wait for preview content to load (note only appears after API data loads)
     await expect(
@@ -306,13 +300,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   test("should close email preview dialog", async ({ page }) => {
     await page.goto("/admin/notifications");
 
-    // Click the preview button
-    await byTestId(page, "preview-email-button").click();
-
-    // Dialog should open
-    await expect(
-      page.getByRole("dialog", { name: /Email Template Preview/i })
-    ).toBeVisible();
+    await openEmailPreview(page);
 
     // Close the dialog by pressing Escape
     await page.keyboard.press("Escape");

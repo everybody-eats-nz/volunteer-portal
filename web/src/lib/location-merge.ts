@@ -27,6 +27,8 @@ import { formatInNZT } from "@/lib/timezone";
  *   DailyMenu         repointed; on collision the `into` row wins and the
  *                     `from` row is deleted (menus are per-night records —
  *                     field-mixing would fabricate a menu nobody wrote).
+ *   ShiftDayTheme     repointed; on a (location, date) collision the
+ *                     `into` theme wins and the `from` row is deleted.
  *   MessagingHours    repointed; on a (location, dayOfWeek) collision the
  *                     `into` row wins and the `from` row is deleted.
  *   RegularVolunteer, AutoAcceptRule, User.defaultLocation   repointed.
@@ -68,6 +70,7 @@ export interface LocationMergePlan {
   };
   mealsServed: { total: number; collisionDates: string[] };
   dailyMenus: { total: number; collisionDates: string[] };
+  dayThemes: { total: number; collisionDates: string[] };
   messagingHours: { total: number; collisions: number };
   regularVolunteers: number;
   autoAcceptRules: number;
@@ -135,6 +138,7 @@ interface MergeWork {
   templateIdsToRepoint: string[];
   mealCollisions: Prisma.MealsServedGetPayload<object>[];
   menuCollisionIds: string[];
+  themeCollisionIds: string[];
   hourCollisionIds: string[];
   availableRewrites: { id: string; rewritten: string }[];
 }
@@ -208,30 +212,46 @@ async function computeMerge(
     (t) => !intoTemplateNames.has(t.name)
   );
 
-  const [fromMeals, intoMeals, fromMenus, intoMenus, fromHours, intoHours] =
-    await Promise.all([
-      db.mealsServed.findMany({ where: { location: from } }),
-      db.mealsServed.findMany({
-        where: { location: into },
-        select: { date: true },
-      }),
-      db.dailyMenu.findMany({
-        where: { location: from },
-        select: { id: true, date: true },
-      }),
-      db.dailyMenu.findMany({
-        where: { location: into },
-        select: { date: true },
-      }),
-      db.messagingHours.findMany({
-        where: { location: from },
-        select: { id: true, dayOfWeek: true },
-      }),
-      db.messagingHours.findMany({
-        where: { location: into },
-        select: { dayOfWeek: true },
-      }),
-    ]);
+  const [
+    fromMeals,
+    intoMeals,
+    fromMenus,
+    intoMenus,
+    fromThemes,
+    intoThemes,
+    fromHours,
+    intoHours,
+  ] = await Promise.all([
+    db.mealsServed.findMany({ where: { location: from } }),
+    db.mealsServed.findMany({
+      where: { location: into },
+      select: { date: true },
+    }),
+    db.dailyMenu.findMany({
+      where: { location: from },
+      select: { id: true, date: true },
+    }),
+    db.dailyMenu.findMany({
+      where: { location: into },
+      select: { date: true },
+    }),
+    db.shiftDayTheme.findMany({
+      where: { location: from },
+      select: { id: true, date: true },
+    }),
+    db.shiftDayTheme.findMany({
+      where: { location: into },
+      select: { date: true },
+    }),
+    db.messagingHours.findMany({
+      where: { location: from },
+      select: { id: true, dayOfWeek: true },
+    }),
+    db.messagingHours.findMany({
+      where: { location: into },
+      select: { dayOfWeek: true },
+    }),
+  ]);
 
   const intoMealDates = new Set(intoMeals.map((m) => m.date.toISOString()));
   const mealCollisions = fromMeals.filter((m) =>
@@ -240,6 +260,12 @@ async function computeMerge(
   const intoMenuDates = new Set(intoMenus.map((m) => m.date.toISOString()));
   const menuCollisions = fromMenus.filter((m) =>
     intoMenuDates.has(m.date.toISOString())
+  );
+  const intoThemeDates = new Set(
+    intoThemes.map((t) => t.date.toISOString())
+  );
+  const themeCollisions = fromThemes.filter((t) =>
+    intoThemeDates.has(t.date.toISOString())
   );
   const intoHourDays = new Set(intoHours.map((h) => h.dayOfWeek));
   const hourCollisions = fromHours.filter((h) =>
@@ -304,6 +330,11 @@ async function computeMerge(
         total: fromMenus.length,
         collisionDates: menuCollisions.map((m) => nzDate(m.date)),
       },
+      dayThemes: {
+        total: fromThemes.length,
+        // DATE columns read back as UTC midnight, which is the same day in NZ.
+        collisionDates: themeCollisions.map((t) => nzDate(t.date)),
+      },
       messagingHours: {
         total: fromHours.length,
         collisions: hourCollisions.length,
@@ -323,6 +354,7 @@ async function computeMerge(
       templateIdsToRepoint: templatesToRepoint.map((t) => t.id),
       mealCollisions,
       menuCollisionIds: menuCollisions.map((m) => m.id),
+      themeCollisionIds: themeCollisions.map((t) => t.id),
       hourCollisionIds: hourCollisions.map((h) => h.id),
       availableRewrites,
     },
@@ -433,6 +465,17 @@ export async function applyLocationMerge(
       });
     }
     await tx.dailyMenu.updateMany({
+      where: { location: from },
+      data: { location: into },
+    });
+
+    // Day themes: the surviving location's theme wins a same-day collision.
+    if (work.themeCollisionIds.length > 0) {
+      await tx.shiftDayTheme.deleteMany({
+        where: { id: { in: work.themeCollisionIds } },
+      });
+    }
+    await tx.shiftDayTheme.updateMany({
       where: { location: from },
       data: { location: into },
     });

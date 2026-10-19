@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 import {
   createTestUser,
   deleteTestUsers,
@@ -71,8 +72,7 @@ test.describe("Admin Resource Management", () => {
       page,
     }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
 
       // Verify admin resources page loads
       await expect(
@@ -112,8 +112,7 @@ test.describe("Admin Resource Management", () => {
   test.describe("Resource Management Interface", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
     });
 
     test("should display upload resource button", async ({ page }) => {
@@ -142,8 +141,7 @@ test.describe("Admin Resource Management", () => {
   test.describe("Create Resource Dialog", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
     });
 
     test("should open create resource dialog", async ({ page }) => {
@@ -234,8 +232,7 @@ test.describe("Admin Resource Management", () => {
   test.describe("Resource Table Display", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
     });
 
     test("should display resource rows if resources exist", async ({
@@ -260,8 +257,7 @@ test.describe("Admin Resource Management", () => {
   test.describe("Filtering", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
     });
 
     test("should have filter controls", async ({ page }) => {
@@ -270,24 +266,21 @@ test.describe("Admin Resource Management", () => {
     });
 
     test("should filter by category via URL", async ({ page }) => {
-      await page.goto("/admin/resources?category=TRAINING");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources?category=TRAINING");
 
       // URL should persist the filter
       expect(page.url()).toContain("category=TRAINING");
     });
 
     test("should filter by type via URL", async ({ page }) => {
-      await page.goto("/admin/resources?type=PDF");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources?type=PDF");
 
       // URL should persist the filter
       expect(page.url()).toContain("type=PDF");
     });
 
     test("should filter by published status via URL", async ({ page }) => {
-      await page.goto("/admin/resources?published=true");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources?published=true");
 
       // URL should persist the filter
       expect(page.url()).toContain("published=true");
@@ -297,8 +290,7 @@ test.describe("Admin Resource Management", () => {
   test.describe("Edit Resource", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
     });
 
     test("should open edit dialog when edit button clicked", async ({
@@ -334,8 +326,7 @@ test.describe("Admin Resource Management", () => {
   test.describe("Delete Resource", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
     });
 
     test("should show delete confirmation dialog", async ({ page }) => {
@@ -367,8 +358,7 @@ test.describe("Admin Resource Management", () => {
   test.describe("Resource Preview/Download", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
     });
 
     test("should have view/download options for file resources", async ({
@@ -389,8 +379,7 @@ test.describe("Admin Resource Management", () => {
 
     test("should display properly on mobile viewport", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
 
       // Verify header is visible
       await expect(
@@ -405,8 +394,7 @@ test.describe("Admin Resource Management", () => {
 
     test("should display properly on desktop viewport", async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 720 });
-      await page.goto("/admin/resources");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/resources");
 
       // Verify header is visible
       await expect(
