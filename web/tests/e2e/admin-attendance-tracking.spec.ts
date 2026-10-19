@@ -9,6 +9,7 @@ import {
   createSignup,
   deleteSignupsByShiftIds,
   getShiftTypeByName,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 import { gotoSettled } from "./helpers/streaming";
 import { format } from "date-fns";
@@ -50,7 +51,8 @@ test.describe("Admin Attendance Tracking", () => {
       const calendarButton = page
         .locator("button")
         .filter({ hasText: /\d{4}/ });
-      await calendarButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(calendarButton, page.getByRole("dialog"));
 
       // Check calendar dialog is visible
       await expect(page.getByRole("dialog")).toBeVisible();
