@@ -9,6 +9,8 @@ import {
   shiftCapacityCountSelect,
   SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
+import { formatInNZT } from "@/lib/timezone";
+import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
 
 const DEFAULT_PAGE_SIZE = 15;
 
@@ -28,6 +30,8 @@ const HOME_WINDOW_DAYS = 7;
  * - myShifts: upcoming shifts the user is signed up for (always returns all)
  * - available: upcoming shifts the user is NOT signed up for, within a 3-month window (unpaginated)
  * - past: past shifts the user attended (paginated)
+ * - dayThemes: admin-set themes for days in the calendar window ("Christmas
+ *   Lunch"), keyed by location then "yyyy-MM-dd" NZ day. Not in scope=home.
  *
  * Query params:
  * - scope: "home" trims the response to what the home tab actually renders —
@@ -78,93 +82,108 @@ export async function GET(request: Request) {
   // Everything the response needs that doesn't depend on another query, in one
   // round trip. This used to be six sequential awaits — on a mobile client
   // that latency is paid on every home-tab load.
-  const [mySignups, windowShifts, pastSignups, friendships, liveLocations] =
-    await Promise.all([
-      // Upcoming shifts the user is signed up for (always all — typically small).
-      // Bucket by `end >= now` (not `start`) so a shift that is currently in progress
-      // (started but not yet ended) still appears in the user's shifts. This mirrors the
-      // `past` query below (`end < now`), so every signup falls into exactly one bucket
-      // with no gap — otherwise an in-progress confirmed shift vanishes from the app.
-      prisma.signup.findMany({
-        where: {
-          userId,
-          status: { in: [...activeStatuses] },
-          shift: { end: { gte: now } },
-        },
-        include: {
-          shift: {
-            include: {
-              shiftType: true,
-              _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
-            },
+  const [
+    mySignups,
+    windowShifts,
+    pastSignups,
+    friendships,
+    liveLocations,
+    dayThemes,
+  ] = await Promise.all([
+    // Upcoming shifts the user is signed up for (always all — typically small).
+    // Bucket by `end >= now` (not `start`) so a shift that is currently in progress
+    // (started but not yet ended) still appears in the user's shifts. This mirrors the
+    // `past` query below (`end < now`), so every signup falls into exactly one bucket
+    // with no gap — otherwise an in-progress confirmed shift vanishes from the app.
+    prisma.signup.findMany({
+      where: {
+        userId,
+        status: { in: [...activeStatuses] },
+        shift: { end: { gte: now } },
+      },
+      include: {
+        shift: {
+          include: {
+            shiftType: true,
+            _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
           },
         },
-        orderBy: { shift: { start: "asc" } },
-      }),
+      },
+      orderBy: { shift: { start: "asc" } },
+    }),
 
-      // Every upcoming shift in the calendar window (unpaginated — bounded by
-      // date range). The user's own signups are subtracted in memory below
-      // rather than with a `NOT IN`, so this doesn't have to wait on the
-      // signup query and Postgres doesn't get handed a growing id list.
-      prisma.shift.findMany({
-        where: {
-          start: { gte: now, lt: availableWindowEnd },
-          // Home only surfaces shifts the volunteer could realistically take;
-          // other restaurants aren't actionable for them. No filter when they
-          // haven't picked a home restaurant yet.
-          ...(isHomeScope && userDefaultLocation
-            ? { location: userDefaultLocation }
-            : {}),
-        },
-        include: {
-          shiftType: true,
-          _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
-        },
-        // Tie-break on id: a location runs several roles at the same start
-        // time, and ordering on `start` alone lets Postgres return them in
-        // whatever order the chosen plan produces — so the list visibly
-        // reshuffles between refreshes.
-        orderBy: [{ start: "asc" }, { id: "asc" }],
-      }),
+    // Every upcoming shift in the calendar window (unpaginated — bounded by
+    // date range). The user's own signups are subtracted in memory below
+    // rather than with a `NOT IN`, so this doesn't have to wait on the
+    // signup query and Postgres doesn't get handed a growing id list.
+    prisma.shift.findMany({
+      where: {
+        start: { gte: now, lt: availableWindowEnd },
+        // Home only surfaces shifts the volunteer could realistically take;
+        // other restaurants aren't actionable for them. No filter when they
+        // haven't picked a home restaurant yet.
+        ...(isHomeScope && userDefaultLocation
+          ? { location: userDefaultLocation }
+          : {}),
+      },
+      include: {
+        shiftType: true,
+        _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
+      },
+      // Tie-break on id: a location runs several roles at the same start
+      // time, and ordering on `start` alone lets Postgres return them in
+      // whatever order the chosen plan produces — so the list visibly
+      // reshuffles between refreshes.
+      orderBy: [{ start: "asc" }, { id: "asc" }],
+    }),
 
-      // Past shifts the user attended (paginated). The home tab never renders
-      // them, so the home scope skips the query and returns an empty page.
-      isHomeScope
-        ? []
-        : prisma.signup.findMany({
-            where: {
-              userId,
-              status: { in: ["CONFIRMED"] },
-              shift: { end: { lt: now } },
-            },
-            include: {
-              shift: {
-                include: {
-                  shiftType: true,
-                  _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
-                },
+    // Past shifts the user attended (paginated). The home tab never renders
+    // them, so the home scope skips the query and returns an empty page.
+    isHomeScope
+      ? []
+      : prisma.signup.findMany({
+          where: {
+            userId,
+            status: { in: ["CONFIRMED"] },
+            shift: { end: { lt: now } },
+          },
+          include: {
+            shift: {
+              include: {
+                shiftType: true,
+                _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
               },
             },
-            orderBy: { shift: { start: "desc" } },
-            take: limit + 1,
-            ...(pastCursor
-              ? { cursor: { id: pastCursor }, skip: 1 }
-              : {}),
-          }),
+          },
+          orderBy: { shift: { start: "desc" } },
+          take: limit + 1,
+          ...(pastCursor
+            ? { cursor: { id: pastCursor }, skip: 1 }
+            : {}),
+        }),
 
-      // The user's friends, for the friend maps built further down.
-      prisma.friendship.findMany({
-        where: {
-          status: "ACCEPTED",
-          OR: [{ userId }, { friendId: userId }],
-        },
-        select: { userId: true, friendId: true },
-      }),
+    // The user's friends, for the friend maps built further down.
+    prisma.friendship.findMany({
+      where: {
+        status: "ACCEPTED",
+        OR: [{ userId }, { friendId: userId }],
+      },
+      select: { userId: true, friendId: true },
+    }),
 
-      // Locations volunteers can browse (live = has upcoming shifts, not
-      // disabled), with the "New" flag for recently launched restaurants.
-      getLiveLocations(),
-    ]);
+    // Locations volunteers can browse (live = has upcoming shifts, not
+    // disabled), with the "New" flag for recently launched restaurants.
+    getLiveLocations(),
+
+    // Day themes shown beside the date on the Shifts tab. Home doesn't
+    // render them, so the home scope skips the query.
+    isHomeScope
+      ? null
+      : getShiftDayThemes({
+          fromDayKey: formatInNZT(now, "yyyy-MM-dd"),
+          toDayKey: formatInNZT(availableWindowEnd, "yyyy-MM-dd"),
+        }),
+  ]);
 
   const userSignedUpShiftIds = new Set(mySignups.map((s) => s.shift.id));
   const availableShifts = windowShifts.filter(
@@ -354,5 +373,6 @@ export async function GET(request: Request) {
     userDefaultLocation,
     periodFriends,
     shiftFriends,
+    ...(dayThemes ? { dayThemes } : {}),
   });
 }

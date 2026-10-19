@@ -6,6 +6,7 @@ import {
   deleteTestUsers,
   deleteTestShifts,
   getUserByEmail,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 import { randomUUID } from "crypto";
 
@@ -207,7 +208,11 @@ test.describe("Admin - Assign Volunteers to Past Shifts", () => {
       `[data-testid="assign-volunteer-button-${pastShift.id}"]`
     ).first();
     await expect(assignButton).toBeVisible();
-    await assignButton.click();
+    // Retries until the dialog opens: a click before hydration is dropped
+    await clickUntilVisible(
+      assignButton,
+      page.getByTestId("assign-volunteer-dialog")
+    );
 
     // Check that the dialog opened
     const dialog = page.getByTestId("assign-volunteer-dialog");
@@ -237,7 +242,11 @@ test.describe("Admin - Assign Volunteers to Past Shifts", () => {
     const assignButton = page.locator(
       `[data-testid="assign-volunteer-button-${pastShift.id}"]`
     ).first();
-    await assignButton.click();
+    // Retries until the dialog opens: a click before hydration is dropped
+    await clickUntilVisible(
+      assignButton,
+      page.getByTestId("assign-volunteer-dialog")
+    );
 
     // Wait for dialog to open
     const dialog = page.getByTestId("assign-volunteer-dialog");
@@ -331,7 +340,11 @@ test.describe("Admin - Assign Volunteers to Past Shifts", () => {
     const assignButton = page.locator(
       `[data-testid="assign-volunteer-button-${pastShift.id}"]`
     ).first();
-    await assignButton.click();
+    // Retries until the dialog opens: a click before hydration is dropped
+    await clickUntilVisible(
+      assignButton,
+      page.getByTestId("assign-volunteer-dialog")
+    );
 
     // Search for the same volunteer
     const searchInput = page.getByTestId("volunteer-search-input");
@@ -404,7 +417,11 @@ test.describe("Admin - Assign Volunteers to Past Shifts", () => {
     const assignButton = page.locator(
       `[data-testid="assign-volunteer-button-${smallShift.id}"]`
     ).first();
-    await assignButton.click();
+    // Retries until the dialog opens: a click before hydration is dropped
+    await clickUntilVisible(
+      assignButton,
+      page.getByTestId("assign-volunteer-dialog")
+    );
 
     // Check for capacity warning
     const capacityWarning = page.getByTestId("capacity-warning");

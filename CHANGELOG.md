@@ -1,3 +1,9 @@
+## [0.185.0] - 2026-10-19
+
+### Changes
+- feat: add day themes to the shift calendar ([#1353](https://github.com/everybody-eats-nz/volunteer-portal/pull/1353)) by @malinmalliyawadu
+
+
 ## [0.184.8] - 2026-10-18
 
 ### Changes

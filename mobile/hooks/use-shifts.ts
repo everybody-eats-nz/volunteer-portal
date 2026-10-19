@@ -35,6 +35,15 @@ function normalizeFriendMap(
   );
 }
 
+/**
+ * Admin-set themes for upcoming days ("Christmas Lunch", "Pasta Night"),
+ * keyed by location name, then "YYYY-MM-DD" NZ day.
+ */
+export type DayThemes = Record<string, Record<string, string>>;
+
+/** Stable fallback so memos keyed on dayThemes don't recompute every render. */
+const NO_DAY_THEMES: DayThemes = {};
+
 export type BrowsableLocation = {
   name: string;
   /** Recently launched restaurant - shows a subtle "New" badge in the picker. */
@@ -51,6 +60,8 @@ type ShiftsResponse = {
   locations?: BrowsableLocation[];
   periodFriends: Record<string, FriendPayload[]>;
   shiftFriends?: Record<string, FriendPayload[]>;
+  /** Older API builds omit it. */
+  dayThemes?: DayThemes;
 };
 
 type UseShiftsReturn = {
@@ -70,6 +81,8 @@ type UseShiftsReturn = {
   periodFriends: Record<string, PeriodFriend[]>;
   /** Friends keyed by shift ID — friends signed up for that specific role */
   shiftFriends: Record<string, PeriodFriend[]>;
+  /** Themes for upcoming days, by location then "YYYY-MM-DD" */
+  dayThemes: DayThemes;
 };
 
 type UseHomeShiftsReturn = Pick<
@@ -203,5 +216,6 @@ export function useShifts(): UseShiftsReturn {
     browsableLocations: firstPage?.locations ?? [],
     periodFriends,
     shiftFriends,
+    dayThemes: firstPage?.dayThemes ?? NO_DAY_THEMES,
   };
 }

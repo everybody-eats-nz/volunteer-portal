@@ -175,6 +175,7 @@ export async function PATCH(request: NextRequest) {
           tx.autoAcceptRule.updateMany({ where, data }),
           tx.mealsServed.updateMany({ where, data }),
           tx.dailyMenu.updateMany({ where, data }),
+          tx.shiftDayTheme.updateMany({ where, data }),
           tx.messagingHours.updateMany({ where, data }),
           tx.user.updateMany({
             where: { defaultLocation: oldName },

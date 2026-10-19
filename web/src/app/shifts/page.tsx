@@ -20,6 +20,8 @@ import { getAuthInfo } from "@/lib/auth-utils";
 import { LocationAddress } from "@/components/location-address";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import { formatInNZT } from "@/lib/timezone";
+import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
 import {
   captureFunnelEvent,
   FunnelEvent,
@@ -201,25 +203,32 @@ export default async function ShiftsCalendarPage({
   // the calendar so SSR and client hydration agree on "now" (see ShiftsCalendar).
   const now = new Date();
 
-  // Fetch shifts for calendar view - simplified data structure
-  const shifts = await prisma.shift.findMany({
-    where: {
-      start: { gte: now },
-      ...(filterLocations.length > 0
-        ? { location: { in: filterLocations } }
-        : {}),
-    },
-    orderBy: { start: "asc" },
-    include: {
-      shiftType: {
-        select: {
-          name: true,
-          description: true,
-        },
+  // Fetch shifts for calendar view - simplified data structure, alongside the
+  // themes admins have given upcoming days ("Christmas Lunch", "Pasta Night").
+  const [shifts, dayThemes] = await Promise.all([
+    prisma.shift.findMany({
+      where: {
+        start: { gte: now },
+        ...(filterLocations.length > 0
+          ? { location: { in: filterLocations } }
+          : {}),
       },
-      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
-    },
-  });
+      orderBy: { start: "asc" },
+      include: {
+        shiftType: {
+          select: {
+            name: true,
+            description: true,
+          },
+        },
+        _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
+      },
+    }),
+    getShiftDayThemes({
+      fromDayKey: formatInNZT(now, "yyyy-MM-dd"),
+      locations: filterLocations,
+    }),
+  ]);
 
   // Fetch all signups and filter by privacy settings
   type FriendSignup = {
@@ -534,6 +543,7 @@ export default async function ShiftsCalendarPage({
         {/* Calendar View */}
         <ShiftsCalendar
           shifts={shiftSummaries}
+          dayThemes={dayThemes}
           selectedLocation={selectedLocation}
           serverNow={now.getTime()}
           initialMonth={initialMonth}

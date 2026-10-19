@@ -136,6 +136,11 @@ test.describe("Admin Navigation", () => {
     test("sidebar navigation works from different admin pages", async ({
       page,
     }) => {
+      // Four admin pages in one test, each a cold `next dev` compile on CI
+      // (the Restaurant Schedule alone can take most of the default budget),
+      // so give it the slow-test timeout rather than racing the compiler.
+      test.slow();
+
       // Login as admin
       await loginAsAdmin(page);
 
