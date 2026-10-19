@@ -1,3 +1,9 @@
+## [0.186.0] - 2026-10-19
+
+### Changes
+- feat: ask volunteers before putting them on a waitlist ([#1355](https://github.com/everybody-eats-nz/volunteer-portal/pull/1355)) by @malinmalliyawadu
+
+
 ## [0.185.0] - 2026-10-19
 
 ### Changes
