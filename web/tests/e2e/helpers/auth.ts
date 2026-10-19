@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { gotoSettled } from "./streaming";
 
 /**
  * Drops whatever session the page's browser context holds, and proves it is
@@ -48,8 +49,10 @@ export async function loginAsAdmin(page: Page) {
   await clearSession(page);
 
   try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
+    // Settled, not just loaded: until React clears its hidden streaming
+    // staging container, every login control exists twice and the quick-login
+    // and form locators below hit strict-mode violations.
+    await gotoSettled(page, "/login");
 
     // Use .first(): the subtree briefly exists in React's hidden streaming
     // staging container too. See helpers/streaming.ts for the full explanation.
@@ -84,8 +87,7 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
   await clearSession(page);
 
   try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/login");
 
     if (customEmail) {
       // Use credentials form for custom email
@@ -99,9 +101,9 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
       await page.getByTestId("login-submit-button").click();
     } else {
       // Use quick login for default volunteer
-      const volunteerLoginButton = page.getByTestId(
-        "quick-login-volunteer-button"
-      );
+      const volunteerLoginButton = page
+        .getByTestId("quick-login-volunteer-button")
+        .first();
       await volunteerLoginButton.waitFor({ state: "visible", timeout: 10000 });
       await volunteerLoginButton.click();
     }
