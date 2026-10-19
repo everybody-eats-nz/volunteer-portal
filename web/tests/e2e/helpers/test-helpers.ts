@@ -1,4 +1,5 @@
 import { Locator, Page, expect } from "@playwright/test";
+import { clearSession } from "./auth";
 
 /**
  * Locate a testid scoped to its visible instance.
@@ -30,6 +31,27 @@ export async function clickUntilVisible(
     }
     await expect(target).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout });
+}
+
+/**
+ * DELETE a test fixture, retrying transport-level failures.
+ *
+ * Cleanup requests run on Playwright's keep-alive connection pool, and the dev
+ * server can close an idle socket just as a request is written to it, which
+ * surfaces as "read ECONNRESET" and fails a test that already passed. The
+ * deletes are idempotent, so a reset is safe to retry. HTTP error responses
+ * are returned as before, never retried.
+ */
+async function cleanupDelete(page: Page, url: string) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await page.request.delete(url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isConnectionReset = /ECONNRESET|socket hang up|EPIPE/.test(message);
+      if (!isConnectionReset || attempt >= 3) throw error;
+    }
+  }
 }
 
 /**
@@ -78,7 +100,7 @@ export async function deleteTestUsers(
   emails: string[]
 ): Promise<void> {
   for (const email of emails) {
-    await page.request.delete(
+    await cleanupDelete(page, 
       `/api/test/users?email=${encodeURIComponent(email)}`
     );
   }
@@ -92,6 +114,8 @@ export async function login(
   email: string,
   password: string
 ): Promise<void> {
+  // /login bounces an existing session to its home page, so start signed out
+  await clearSession(page);
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Password").fill(password);
@@ -162,7 +186,7 @@ export async function deleteTestShifts(
 
   // Delete shifts one by one using admin API
   for (const shiftId of shiftIds) {
-    await page.request.delete(`/api/admin/shifts/${shiftId}`);
+    await cleanupDelete(page, `/api/admin/shifts/${shiftId}`);
   }
 }
 
@@ -203,7 +227,7 @@ export async function deleteShiftTemplates(
   templateIds: string[]
 ): Promise<void> {
   for (const templateId of templateIds) {
-    await page.request.delete(`/api/admin/shift-templates/${templateId}`);
+    await cleanupDelete(page, `/api/admin/shift-templates/${templateId}`);
   }
 }
 
@@ -251,7 +275,7 @@ export async function deleteSignupsByShiftIds(
   shiftIds: string[]
 ): Promise<void> {
   if (shiftIds.length === 0) return;
-  await page.request.delete(`/api/test/signups?shiftIds=${shiftIds.join(",")}`);
+  await cleanupDelete(page, `/api/test/signups?shiftIds=${shiftIds.join(",")}`);
 }
 
 /**
@@ -300,7 +324,7 @@ export async function deleteNotifications(
   if (filters.userId) params.set("userId", filters.userId);
   if (filters.type) params.set("type", filters.type);
 
-  await page.request.delete(`/api/test/notifications?${params.toString()}`);
+  await cleanupDelete(page, `/api/test/notifications?${params.toString()}`);
 }
 
 /**
@@ -376,7 +400,7 @@ export async function deleteTestSurveys(
   surveyIds: string[]
 ): Promise<void> {
   for (const surveyId of surveyIds) {
-    await page.request.delete(
+    await cleanupDelete(page, 
       `/api/test/surveys?surveyId=${encodeURIComponent(surveyId)}`
     );
   }
@@ -421,7 +445,7 @@ export async function deleteTestResources(
   resourceIds: string[]
 ): Promise<void> {
   for (const resourceId of resourceIds) {
-    await page.request.delete(
+    await cleanupDelete(page, 
       `/api/test/resources?resourceId=${encodeURIComponent(resourceId)}`
     );
   }
