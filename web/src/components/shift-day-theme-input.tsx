@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Loader2, Pencil, Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,9 @@ interface ShiftDayThemeInputProps {
 
 /**
  * Admin editor for the day's theme ("Christmas Lunch", "Pasta Night"),
- * which volunteers see beside the date on the shift calendar.
+ * which volunteers see beside the date on the shift calendar. Themes are
+ * rare, so it stays collapsed - an "Add day theme" button, or a one-line
+ * summary once a theme is set - until an admin opens it.
  */
 export function ShiftDayThemeInput({
   date,
@@ -34,6 +36,7 @@ export function ShiftDayThemeInput({
   const [savedTheme, setSavedTheme] = useState(initialTheme ?? "");
   const [value, setValue] = useState(initialTheme ?? "");
   const [saving, setSaving] = useState<"save" | "remove" | null>(null);
+  const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
 
   const trimmed = normalizeTheme(value);
@@ -57,6 +60,7 @@ export function ShiftDayThemeInput({
       const next: string = data?.theme ?? "";
       setSavedTheme(next);
       setValue(next);
+      setOpen(false);
       toast.success(next ? "Day theme saved" : "Day theme removed");
       startTransition(() => router.refresh());
     } catch {
@@ -65,6 +69,51 @@ export function ShiftDayThemeInput({
       setSaving(null);
     }
   };
+
+  const cancel = () => {
+    setValue(savedTheme);
+    setOpen(false);
+  };
+
+  if (!open) {
+    return savedTheme ? (
+      <div
+        className="mb-6 flex min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-2 shadow-sm"
+        data-testid="shift-day-theme-summary"
+      >
+        <Sparkles className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <span className="shrink-0 text-sm text-muted-foreground">Day theme</span>
+        <span className="min-w-0 truncate rounded-md bg-amber-100 px-2 py-0.5 font-accent text-sm italic text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+          {savedTheme}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="ml-auto shrink-0 gap-1.5 text-muted-foreground"
+          onClick={() => setOpen(true)}
+          data-testid="shift-day-theme-edit"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Edit
+        </Button>
+      </div>
+    ) : (
+      <div className="mb-6">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-ml-2 gap-1.5 text-muted-foreground"
+          onClick={() => setOpen(true)}
+          data-testid="shift-day-theme-add"
+        >
+          <Plus className="h-4 w-4" />
+          Add day theme
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Card
@@ -76,6 +125,9 @@ export function ShiftDayThemeInput({
         onSubmit={(e) => {
           e.preventDefault();
           if (isDirty && !saving) persist(trimmed, trimmed ? "save" : "remove");
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && !saving) cancel();
         }}
       >
         <div className="flex min-w-0 items-center gap-3 @3xl:w-72 @3xl:shrink-0">
@@ -100,6 +152,7 @@ export function ShiftDayThemeInput({
               onChange={(e) => setValue(e.target.value)}
               maxLength={SHIFT_DAY_THEME_MAX_LENGTH}
               placeholder="e.g. Christmas Lunch or Pasta Night"
+              autoFocus
               className="h-10 pr-12"
               data-testid="shift-day-theme-input"
             />
@@ -131,6 +184,17 @@ export function ShiftDayThemeInput({
               ) : (
                 "Save"
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-10 text-muted-foreground"
+              disabled={saving !== null}
+              onClick={cancel}
+              data-testid="shift-day-theme-cancel"
+            >
+              Cancel
             </Button>
             {savedTheme && (
               <Button

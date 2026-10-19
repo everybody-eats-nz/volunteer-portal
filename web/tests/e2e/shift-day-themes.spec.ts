@@ -1,7 +1,11 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
-import { createShift, deleteTestShifts } from "./helpers/test-helpers";
+import {
+  clickUntilVisible,
+  createShift,
+  deleteTestShifts,
+} from "./helpers/test-helpers";
 import { gotoSettled } from "./helpers/streaming";
 import { randomUUID } from "crypto";
 import { addDays, format } from "date-fns";
@@ -82,13 +86,20 @@ test.describe("Shift day themes", () => {
       `/admin/shifts?date=${dayKey}&location=${LOCATION}`
     );
 
+    // Themes are rare, so the editor starts collapsed
     const input = page.getByTestId("shift-day-theme-input");
+    await expect(input).toBeHidden();
+    await clickUntilVisible(page.getByTestId("shift-day-theme-add"), input);
     await expect(input).toHaveValue("");
     await input.fill(`  ${theme}  `);
     await page.getByTestId("shift-day-theme-save").click();
     await expect(page.getByText("Day theme saved")).toBeVisible();
-    await expect(input).toHaveValue(theme);
-    await expect(page.getByTestId("shift-day-theme-remove")).toBeVisible();
+
+    // Saving collapses it to a one-line summary of the theme
+    await expect(input).toBeHidden();
+    await expect(page.getByTestId("shift-day-theme-summary")).toContainText(
+      theme
+    );
 
     await loginAsVolunteer(page);
 
@@ -125,13 +136,17 @@ test.describe("Shift day themes", () => {
       page,
       `/admin/shifts?date=${dayKey}&location=${LOCATION}`
     );
+    await expect(page.getByTestId("shift-day-theme-summary")).toContainText(
+      theme
+    );
     const input = page.getByTestId("shift-day-theme-input");
+    await clickUntilVisible(page.getByTestId("shift-day-theme-edit"), input);
     await expect(input).toHaveValue(theme);
 
     await page.getByTestId("shift-day-theme-remove").click();
     await expect(page.getByText("Day theme removed")).toBeVisible();
-    await expect(input).toHaveValue("");
-    await expect(page.getByTestId("shift-day-theme-remove")).toBeHidden();
+    await expect(page.getByTestId("shift-day-theme-summary")).toBeHidden();
+    await expect(page.getByTestId("shift-day-theme-add")).toBeVisible();
 
     await gotoSettled(page, `/shifts/details?date=${dayKey}&location=${LOCATION}`);
     await expect(page.getByTestId("shifts-details-page-header")).toBeVisible();
