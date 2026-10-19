@@ -27,6 +27,8 @@ import { formatInNZT } from "@/lib/timezone";
  *   DailyMenu         repointed; on collision the `into` row wins and the
  *                     `from` row is deleted (menus are per-night records —
  *                     field-mixing would fabricate a menu nobody wrote).
+ *   ShiftDayTheme     repointed; on a (location, date) collision the
+ *                     `into` theme wins and the `from` row is deleted.
  *   MessagingHours    repointed; on a (location, dayOfWeek) collision the
  *                     `into` row wins and the `from` row is deleted.
  *   RegularVolunteer, AutoAcceptRule, User.defaultLocation   repointed.

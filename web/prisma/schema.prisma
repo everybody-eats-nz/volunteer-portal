@@ -1113,7 +1113,7 @@ model ShiftDayTheme {
   // it back as UTC midnight, so the "yyyy-MM-dd" key is toISOString().slice(0, 10).
   date      DateTime @db.Date
   location  String // Location name (matches Location.name)
-  theme     String   @db.VarChar(80)
+  theme     String   @db.VarChar(80) // A label, not a description: room for "Private event - Rotary Club fundraiser dinner", short enough to sit beside a date
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   updatedBy String? // Admin user ID who last saved
