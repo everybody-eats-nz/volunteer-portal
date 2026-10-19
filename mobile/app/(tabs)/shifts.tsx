@@ -192,6 +192,7 @@ export default function ShiftsScreen() {
     userDefaultLocation,
     browsableLocations,
     shiftFriends,
+    dayThemes,
   } = useShifts();
 
   /* Location filter - persisted so a switch survives app restarts. Until the
@@ -323,6 +324,30 @@ export default function ShiftsScreen() {
   }, [params.location]);
 
   const selectedDateKey = formatDateKey(selectedDate);
+
+  /* Day themes ("Christmas Lunch", "Pasta Night") for the restaurant in view,
+     or every restaurant when browsing all of them. */
+  const visibleDayThemes = useMemo(
+    () =>
+      Object.entries(dayThemes).filter(
+        ([location]) => !locationFilter || location === locationFilter
+      ),
+    [dayThemes, locationFilter]
+  );
+  const themedDates = useMemo(
+    () =>
+      new Set(visibleDayThemes.flatMap(([, byDay]) => Object.keys(byDay))),
+    [visibleDayThemes]
+  );
+  const selectedDayThemes = useMemo(
+    () =>
+      visibleDayThemes.flatMap(([location, byDay]) =>
+        byDay[selectedDateKey]
+          ? [{ location, theme: byDay[selectedDateKey] }]
+          : []
+      ),
+    [visibleDayThemes, selectedDateKey]
+  );
 
   /* Calendar signals — merge available + signups (past + upcoming) for density dots */
   const shiftCountByDate = useMemo(() => {
@@ -553,6 +578,7 @@ export default function ShiftsScreen() {
                 friendDates={friendDates}
                 signedUpDates={signedUpDates}
                 pastAttendedDates={pastAttendedDates}
+                themedDates={themedDates}
                 isDark={isDark}
               />
             </View>
@@ -561,6 +587,8 @@ export default function ShiftsScreen() {
             <DateNavHeader
               selectedDate={selectedDate}
               onNudge={nudgeDay}
+              themes={selectedDayThemes}
+              showThemeLocation={!locationFilter}
               isDark={isDark}
             />
 
@@ -982,10 +1010,16 @@ function NextShiftPill({
 function DateNavHeader({
   selectedDate,
   onNudge,
+  themes,
+  showThemeLocation,
   isDark,
 }: {
   selectedDate: Date;
   onNudge: (delta: number) => void;
+  /** The day's admin-set themes, one per restaurant that has one */
+  themes: { location: string; theme: string }[];
+  /** Name the restaurant on each theme (when browsing all locations) */
+  showThemeLocation: boolean;
   isDark: boolean;
 }) {
   const colors = Colors[isDark ? "dark" : "light"];
@@ -1047,6 +1081,37 @@ function DateNavHeader({
               {relative}
             </Text>
           </View>
+          {themes.map(({ location, theme }) => (
+            <View
+              key={location}
+              style={[
+                styles.dateNavThemePill,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(248, 251, 105, 0.16)"
+                    : Brand.accent,
+                },
+              ]}
+              accessibilityLabel={`${
+                showThemeLocation ? `${location}: ` : ""
+              }${theme}`}
+              testID="shifts-day-theme"
+            >
+              <Text
+                style={[
+                  styles.dateNavThemeText,
+                  { color: isDark ? Palette.sun100 : Palette.ink },
+                ]}
+              >
+                {showThemeLocation && (
+                  <Text style={styles.dateNavThemeLocation}>
+                    {location}:{" "}
+                  </Text>
+                )}
+                {theme}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -1842,7 +1907,10 @@ const styles = StyleSheet.create({
   },
   dateNavRelativeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
   },
   dateNavRelativePill: {
     paddingHorizontal: 10,
@@ -1853,6 +1921,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.3,
+  },
+  dateNavThemePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 999,
+    maxWidth: "100%",
+  },
+  dateNavThemeText: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontFamily: FontFamily.displayItalic,
+    textAlign: "center",
+  },
+  dateNavThemeLocation: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
   },
 
   // Empty states

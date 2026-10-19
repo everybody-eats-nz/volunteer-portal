@@ -34,6 +34,8 @@ type ShiftMonthCalendarProps = {
   signedUpDates: Set<string>;
   /** Key "YYYY-MM-DD" → true if user attended a shift on that past day */
   pastAttendedDates: Set<string>;
+  /** Key "YYYY-MM-DD" → true if an admin gave the day a theme ("Pasta Night") */
+  themedDates?: Set<string>;
   isDark: boolean;
   /** Force initial visible month (defaults to selectedDate's month) */
   initialMonth?: Date;
@@ -52,6 +54,7 @@ export function ShiftMonthCalendar({
   friendDates,
   signedUpDates,
   pastAttendedDates,
+  themedDates,
   isDark,
   initialMonth,
 }: ShiftMonthCalendarProps) {
@@ -82,6 +85,15 @@ export function ShiftMonthCalendar({
     }
     return rows;
   }, [visibleMonth]);
+
+  // Only explain the special-day mark when this month shows one.
+  const hasThemedDayInView = weeks.some((week) =>
+    week.some(
+      (day) =>
+        isSameMonth(day, visibleMonth) &&
+        (themedDates?.has(formatDateKey(day)) ?? false)
+    )
+  );
 
   const goToPrevMonth = () => {
     Haptics.selectionAsync();
@@ -173,8 +185,12 @@ export function ShiftMonthCalendar({
               const isSelected = isSameDay(day, selectedDate);
               const inMonth = isSameMonth(day, visibleMonth);
               const isTodayCell = isToday(day);
+              const isThemed = themedDates?.has(key) ?? false;
 
-              const hasContent = shiftCount > 0 || isSignedUp || isPastAttended;
+              // A themed day is worth opening even without shifts - the
+              // theme may be the news ("Labour Day - closed").
+              const hasContent =
+                shiftCount > 0 || isSignedUp || isPastAttended || isThemed;
 
               return (
                 <DayCell
@@ -187,6 +203,7 @@ export function ShiftMonthCalendar({
                   isSelected={isSelected}
                   inMonth={inMonth}
                   isToday={isTodayCell}
+                  isThemed={isThemed}
                   hasContent={hasContent}
                   isDark={isDark}
                   onPress={() => handleSelectDay(day, hasContent)}
@@ -238,12 +255,29 @@ export function ShiftMonthCalendar({
             Friends going
           </Text>
         </View>
+        {hasThemedDayInView && (
+          <View style={styles.legendItem}>
+            <Ionicons
+              name="sparkles"
+              size={10}
+              color={themeMarkColor(isDark)}
+            />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+              Special day
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
 /* ── Day cell ── */
+
+/** Sparkle for themed days - forest on cream, sun on dark (sun is too faint on cream). */
+function themeMarkColor(isDark: boolean) {
+  return isDark ? Palette.sun200 : Palette.forest400;
+}
 
 function DayCell({
   day,
@@ -254,6 +288,7 @@ function DayCell({
   isSelected,
   inMonth,
   isToday,
+  isThemed,
   hasContent,
   isDark,
   onPress,
@@ -266,6 +301,7 @@ function DayCell({
   isSelected: boolean;
   inMonth: boolean;
   isToday: boolean;
+  isThemed: boolean;
   hasContent: boolean;
   isDark: boolean;
   onPress: () => void;
@@ -333,7 +369,9 @@ function DayCell({
         shiftCount > 0 ? `, ${shiftCount} shifts` : ", no shifts"
       }${hasFriends ? ", friends going" : ""}${
         isSignedUp ? ", you're signed up" : ""
-      }${isPastAttended ? ", shift attended" : ""}`}
+      }${isPastAttended ? ", shift attended" : ""}${
+        isThemed ? ", special day" : ""
+      }`}
       accessibilityRole="button"
       accessibilityState={{ selected: isSelected, disabled: !hasContent }}
     >
@@ -359,6 +397,16 @@ function DayCell({
         >
           {dayNumber}
         </Text>
+
+        {/* Special-day mark in the corner, clear of the dots below */}
+        {isThemed && (
+          <Ionicons
+            name="sparkles"
+            size={9}
+            color={isSelected ? Brand.accent : themeMarkColor(isDark)}
+            style={styles.themeMark}
+          />
+        )}
 
         {/* Past-attended + friend dots */}
         <View style={styles.dotRow}>
@@ -471,11 +519,18 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
+  themeMark: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+  },
   // Legend
   legend: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "center",
-    gap: 16,
+    columnGap: 16,
+    rowGap: 6,
     paddingTop: 14,
     paddingBottom: 4,
   },

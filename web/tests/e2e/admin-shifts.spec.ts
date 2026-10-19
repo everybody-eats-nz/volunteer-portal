@@ -8,6 +8,7 @@ import {
   deleteSignupsByShiftIds,
   getUserByEmail,
   createSignup,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 import { gotoSettled } from "./helpers/streaming";
 import { randomUUID } from "crypto";
@@ -85,7 +86,8 @@ test.describe("Admin Shifts Page", () => {
 
     // Click the calendar button
     const calendarButton = page.locator("button").filter({ hasText: /\d{4}/ });
-    await calendarButton.click();
+    // Retries until the dialog opens: a click before hydration is dropped
+    await clickUntilVisible(calendarButton, page.getByRole("dialog"));
 
     // Check that calendar popup is visible
     await expect(page.getByRole("dialog")).toBeVisible();
@@ -311,7 +313,8 @@ test.describe("Admin Shifts Page", () => {
       const calendarButton = page
         .locator("button")
         .filter({ hasText: /\d{4}/ });
-      await calendarButton.click();
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(calendarButton, page.getByRole("dialog"));
 
       // Check calendar is visible
       await expect(page.getByRole("dialog")).toBeVisible();
