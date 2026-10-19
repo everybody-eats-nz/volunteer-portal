@@ -25,6 +25,8 @@ import {
 } from "@/lib/locations";
 import { MealsServedInput } from "@/components/meals-served-input";
 import { DeleteShiftsMenu } from "@/components/delete-shifts-menu";
+import { ShiftDayThemeInput } from "@/components/shift-day-theme-input";
+import { dayKeyToDbDate, isDayKey } from "@/lib/shift-day-themes";
 
 interface AdminShiftsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -176,6 +178,18 @@ export default async function AdminShiftsPage({
   });
 
   const shifts = allShifts;
+
+  const dayTheme = isDayKey(dateString)
+    ? await prisma.shiftDayTheme.findUnique({
+        where: {
+          location_date: {
+            location: selectedLocation,
+            date: dayKeyToDbDate(dateString),
+          },
+        },
+        select: { theme: true },
+      })
+    : null;
 
   // Get shift data for the calendar with location, capacity, and confirmed counts
   // Include past shifts for attendance tracking - show last 30 days + future shifts
@@ -406,6 +420,18 @@ export default async function AdminShiftsPage({
             />
           </div>
         </div>
+
+        {/* Day theme - shown to volunteers beside the date. Available on empty
+            days too, so special nights can be announced before shifts exist.
+            Keyed so switching day/location resets the editor's draft. */}
+        {isDayKey(dateString) && (
+          <ShiftDayThemeInput
+            key={`${dateString}|${selectedLocation}`}
+            date={dateString}
+            location={selectedLocation}
+            initialTheme={dayTheme?.theme ?? null}
+          />
+        )}
 
         {/* Meals Served Input - Only show if shifts exist for this day */}
         {shifts.length > 0 && (

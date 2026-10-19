@@ -678,6 +678,16 @@ function MergeManifest({
           : ""),
     });
   }
+  if (plan.dayThemes.total > 0) {
+    rows.push({
+      label: "Day themes",
+      detail:
+        `${plan.dayThemes.total} ${moved}` +
+        (plan.dayThemes.collisionDates.length > 0
+          ? ` (${count(plan.dayThemes.collisionDates.length, "duplicate")} ${removed}: ${listDates(plan.dayThemes.collisionDates)})`
+          : ""),
+    });
+  }
   if (plan.messagingHours.total > 0) {
     rows.push({
       label: "Messaging hours",

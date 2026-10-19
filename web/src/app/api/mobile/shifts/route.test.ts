@@ -20,11 +20,17 @@ vi.mock("@/lib/live-locations", () => ({
   getLiveLocations: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("@/lib/shift-day-themes.server", () => ({
+  getShiftDayThemes: vi.fn(),
+}));
+
 import { GET } from "./route";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/prisma";
+import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
 
 const mockRequireMobileUser = requireMobileUser as ReturnType<typeof vi.fn>;
+const mockGetShiftDayThemes = getShiftDayThemes as ReturnType<typeof vi.fn>;
 const mockPrisma = prisma as unknown as {
   user: { findUnique: ReturnType<typeof vi.fn> };
   signup: {
@@ -108,6 +114,7 @@ describe("GET /api/mobile/shifts", () => {
     mockPrisma.friendship.findMany.mockResolvedValue([]);
     // Waitlist sizes for the shifts in the response — none waiting by default.
     mockPrisma.signup.groupBy.mockResolvedValue([]);
+    mockGetShiftDayThemes.mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -251,6 +258,9 @@ describe("GET /api/mobile/shifts", () => {
       expect(Object.keys(json.periodFriends)).toHaveLength(1);
       // shiftFriends is the Shifts tab's map — home never reads it.
       expect(json.shiftFriends).toEqual({});
+      // Day themes are only rendered on the Shifts tab.
+      expect(json.dayThemes).toBeUndefined();
+      expect(mockGetShiftDayThemes).not.toHaveBeenCalled();
       // No signup.findMany call filtered on past shifts.
       expect(
         mockPrisma.signup.findMany.mock.calls.some(
@@ -285,6 +295,7 @@ describe("GET /api/mobile/shifts", () => {
     // Old app builds still get every key they did before.
     expect(Object.keys(json).sort()).toEqual([
       "available",
+      "dayThemes",
       "locations",
       "myShifts",
       "past",
@@ -293,6 +304,21 @@ describe("GET /api/mobile/shifts", () => {
       "shiftFriends",
       "userDefaultLocation",
     ]);
+  });
+
+  it("returns the calendar window's day themes", async () => {
+    stubSignupQueries();
+    const themes = { Onehunga: { "2026-07-18": "Pasta Night" } };
+    mockGetShiftDayThemes.mockResolvedValue(themes);
+
+    const json = await (await GET(makeRequest())).json();
+
+    expect(json.dayThemes).toEqual(themes);
+    // NZ days, matching the calendar window: 16 Jul NZT to 16 Oct NZDT.
+    expect(mockGetShiftDayThemes).toHaveBeenCalledWith({
+      fromDayKey: "2026-07-16",
+      toDayKey: "2026-10-16",
+    });
   });
 
   it("returns 401 when not authenticated", async () => {
