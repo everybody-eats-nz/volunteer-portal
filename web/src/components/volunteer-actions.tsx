@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, X, Clock, UserMinus, AlertTriangle, ArrowRightLeft, CalendarOff, UserCheck, UserX, ListPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -457,6 +458,17 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `Failed to ${action} signup`);
+      }
+
+      // Approving into a full shift doesn't confirm anyone: it waitlists them,
+      // or releases them if they asked not to wait. Say so, or the row just
+      // vanishes from Pending with no explanation.
+      if (action === "approve") {
+        const result: { status?: string; message?: string } =
+          await response.json();
+        if (result.status !== "CONFIRMED" && result.message) {
+          toast.info(result.message);
+        }
       }
 
       router.refresh();

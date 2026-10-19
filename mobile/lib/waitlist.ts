@@ -46,3 +46,13 @@ export function yourWaitlistStandingSentence(count: number): string {
  */
 export const WAITLIST_EXPLAINER =
   "If a confirmed volunteer cancels, the place is offered to whoever has been waiting longest - so keep an eye out, you'll have a short window to say yes.";
+
+/**
+ * The question asked at signup, for a signup that needs an admin's approval:
+ * if the shift fills before then, does the volunteer want to wait for a place?
+ * Asked up front so nobody lands on a waitlist they never chose.
+ */
+export const WAITLIST_IF_FULL_LABEL = "Put me on the waitlist if it fills up";
+
+export const WAITLIST_IF_FULL_HINT =
+  "If the shift fills before you're approved, you'll go on the waitlist. Leave this unticked and your signup is released instead.";

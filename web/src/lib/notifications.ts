@@ -669,6 +669,29 @@ export async function createShiftCanceledNotification(
 }
 
 /**
+ * Tell a volunteer their pending signup was released because the shift filled
+ * before it could be approved, and they'd asked not to go on the waitlist.
+ *
+ * Worded as "filled up" rather than "canceled": nothing they held was taken
+ * away, and they chose this outcome when they signed up.
+ */
+export async function createShiftFilledNotification(
+  userId: string,
+  shiftName: string,
+  shiftDate: string,
+  shiftId: string
+) {
+  return createNotification({
+    userId,
+    type: "SHIFT_CANCELED",
+    title: "Shift filled up",
+    message: `${shiftName} on ${shiftDate} filled up before we could confirm you. As you asked, we haven't put you on the waitlist.`,
+    actionUrl: `/shifts/${shiftId}`,
+    relatedId: shiftId,
+  });
+}
+
+/**
  * Create a waitlist-removal notification.
  *
  * Separate from {@link createShiftCanceledNotification} because a waitlisted

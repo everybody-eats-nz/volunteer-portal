@@ -21,6 +21,7 @@ import {
 import { getMissingProfileFields } from "@/lib/profile-completion";
 import { syncProfileCompletedFlag } from "@/lib/profile-completion.server";
 import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
+import { parseWaitlistIfFull } from "@/lib/waitlist";
 
 /**
  * HTML sanitizer for serverless environment.
@@ -118,14 +119,16 @@ export async function POST(
 
   const confirmedCount = getShiftConfirmedCount(shift);
 
-  // Read optional waitlist flag, backup shift IDs, and note from form body
+  // Read optional waitlist flags, backup shift IDs, and note from form body
   let waitlistRequested = false;
+  let waitlistIfFull = true;
   let backupShiftIds: string[] = [];
   let note: string | null = null;
   try {
     const form = await req.formData();
     const val = form.get("waitlist");
     waitlistRequested = val === "1" || val === "true" || val === "on";
+    waitlistIfFull = parseWaitlistIfFull(form.get("waitlistIfFull"));
 
     // Parse backup shift IDs (comma-separated or JSON array)
     const backupVal = form.get("backupShiftIds");
@@ -211,8 +214,17 @@ export async function POST(
 
   if (confirmedCount >= shift.capacity) {
     if (!waitlistRequested) {
+      // Never waitlist someone who didn't ask. The dialog uses these fields to
+      // switch to its "Join Waitlist" view so the volunteer can choose.
       return NextResponse.json(
-        { error: "Shift is full; waitlist available" },
+        {
+          error: "Shift is full; waitlist available",
+          waitlistAvailable: true,
+          confirmedCount,
+          capacity: shift.capacity,
+          waitlistCount: shift.signups.filter((s) => s.status === "WAITLISTED")
+            .length,
+        },
         { status: 400 }
       );
     }
@@ -252,6 +264,7 @@ export async function POST(
         status: "PENDING",
         note: note,
         backupForShiftIds: backupShiftIds,
+        waitlistIfFull,
       },
     });
 

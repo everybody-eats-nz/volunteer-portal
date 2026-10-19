@@ -25,7 +25,12 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { calculateAge, GUARDIAN_REQUIRED_AGE } from "@/lib/utils";
 import { getShiftDescription } from "@/lib/shift-description";
-import { WAITLIST_EXPLAINER, waitlistSizeSentence } from "@/lib/waitlist";
+import {
+  WAITLIST_EXPLAINER,
+  WAITLIST_IF_FULL_HINT,
+  WAITLIST_IF_FULL_LABEL,
+  waitlistSizeSentence,
+} from "@/lib/waitlist";
 import {
   MessageSquareDot,
   User,
@@ -35,6 +40,7 @@ import {
   Users,
   AlertCircle,
   CheckCircle2,
+  Hourglass,
   Info,
 } from "lucide-react";
 import Link from "next/link";
@@ -52,7 +58,7 @@ function DialogPanel({
   children,
   testId,
 }: {
-  variant?: "forest" | "green" | "red";
+  variant?: "forest" | "green" | "red" | "amber";
   icon: React.ReactNode;
   title: string;
   children?: React.ReactNode;
@@ -64,21 +70,26 @@ function DialogPanel({
     green:
       "border-green-200 bg-green-50 dark:border-green-800/50 dark:bg-green-950/30",
     red: "border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/40",
+    amber:
+      "border-orange-200 bg-orange-50 dark:border-orange-900/60 dark:bg-orange-950/30",
   }[variant];
   const iconColor = {
     forest: "text-forest-500 dark:text-cream-50/60",
     green: "text-green-600 dark:text-green-400",
     red: "text-red-600 dark:text-red-400",
+    amber: "text-orange-600 dark:text-orange-400",
   }[variant];
   const titleColor = {
     forest: "text-forest-700 dark:text-cream-50",
     green: "text-green-900 dark:text-green-100",
     red: "text-red-900 dark:text-red-100",
+    amber: "text-orange-900 dark:text-orange-100",
   }[variant];
   const contentColor = {
     forest: "text-forest-700/70 dark:text-cream-50/65",
     green: "text-green-700 dark:text-green-300",
     red: "text-red-700 dark:text-red-300",
+    amber: "text-orange-800 dark:text-orange-200",
   }[variant];
   return (
     <div className={`rounded-2xl border p-4 ${container}`} data-testid={testId}>
@@ -138,9 +149,9 @@ function getDurationInHours(start: Date, end: Date): string {
 
 export function ShiftSignupDialog({
   shift,
-  confirmedCount,
-  isWaitlist = false,
-  waitlistCount = 0,
+  confirmedCount: initialConfirmedCount,
+  isWaitlist: initialIsWaitlist = false,
+  waitlistCount: initialWaitlistCount = 0,
   currentUserId,
   onSignupSuccess,
   concurrentShifts = [],
@@ -165,13 +176,35 @@ export function ShiftSignupDialog({
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>(
     []
   );
+  // Asked for signups that need approval: if the shift fills first, wait for
+  // a place or not? Unticked by default so nobody is waitlisted unasked.
+  const [waitlistIfFull, setWaitlistIfFull] = useState(false);
+  // The shift filled between opening the dialog and confirming. The server's
+  // fresh counts replace the page's stale ones so the waitlist view reads true.
+  const [filledWhileOpen, setFilledWhileOpen] = useState<{
+    confirmedCount: number;
+    capacity: number;
+    waitlistCount: number;
+  } | null>(null);
+  const isWaitlist = initialIsWaitlist || filledWhileOpen !== null;
+  const confirmedCount =
+    filledWhileOpen?.confirmedCount ?? initialConfirmedCount;
+  const waitlistCount = filledWhileOpen?.waitlistCount ?? initialWaitlistCount;
+  const capacity = filledWhileOpen?.capacity ?? shift.capacity;
   const noteInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (showNoteField) {
       noteInputRef.current?.focus();
     }
   }, [showNoteField]);
+
+  // The "just filled up" notice renders at the top of the body; bring it into
+  // view, since the volunteer is usually scrolled down at the confirm button.
+  useEffect(() => {
+    if (filledWhileOpen) bodyRef.current?.scrollTo({ top: 0 });
+  }, [filledWhileOpen]);
 
   // Underage (14 and under) and email verification checks. Until the profile
   // loads (or if it can't), assume an adult with a verified address so the
@@ -190,7 +223,7 @@ export function ShiftSignupDialog({
   // Auto-approval eligibility, for non-waitlist signups only. A check slower
   // than 5s stops holding the dialog up and it carries on as a normal signup.
   const eligibilityKey =
-    open && currentUserId && !isWaitlist
+    open && currentUserId && !initialIsWaitlist
       ? `/api/shifts/${shift.id}/auto-approval-check?userId=${currentUserId}`
       : null;
   const [slowEligibilityKey, setSlowEligibilityKey] = useState<string | null>(
@@ -212,9 +245,12 @@ export function ShiftSignupDialog({
   };
 
   const duration = getDurationInHours(shift.start, shift.end);
-  const remaining = Math.max(0, shift.capacity - confirmedCount);
+  const remaining = Math.max(0, capacity - confirmedCount);
   const autoApproved =
     autoApprovalEligible.eligible && !autoApprovalEligible.loading;
+  // Only when an admin will review it. An instant signup can't be overtaken.
+  const askWaitlistIfFull =
+    !isWaitlist && !autoApprovalEligible.loading && !autoApproved;
 
   // Every open starts with a clean slate.
   const handleOpenChange = (nextOpen: boolean) => {
@@ -223,6 +259,8 @@ export function ShiftSignupDialog({
       setProfileIncomplete(false);
       setSelectedBackupShiftIds([]);
       setShowNoteField(false);
+      setWaitlistIfFull(false);
+      setFilledWhileOpen(null);
     }
     setOpen(nextOpen);
   };
@@ -270,6 +308,9 @@ export function ShiftSignupDialog({
       const formData = new FormData();
       if (isWaitlist) {
         formData.append("waitlist", "1");
+      }
+      if (askWaitlistIfFull) {
+        formData.append("waitlistIfFull", waitlistIfFull ? "1" : "0");
       }
 
       // Add backup shift IDs if any selected
@@ -357,7 +398,25 @@ export function ShiftSignupDialog({
         }
       } else {
         const errorData = await response.json();
-        if (errorData.error === "Profile incomplete") {
+        if (errorData.waitlistAvailable === true) {
+          // Never waitlist them silently: switch to the waitlist view and let
+          // them decide.
+          const liveCapacity =
+            typeof errorData.capacity === "number"
+              ? errorData.capacity
+              : shift.capacity;
+          setFilledWhileOpen({
+            capacity: liveCapacity,
+            confirmedCount:
+              typeof errorData.confirmedCount === "number"
+                ? errorData.confirmedCount
+                : liveCapacity,
+            waitlistCount:
+              typeof errorData.waitlistCount === "number"
+                ? errorData.waitlistCount
+                : initialWaitlistCount,
+          });
+        } else if (errorData.error === "Profile incomplete") {
           setProfileIncomplete(true);
           setMissingProfileFields(
             Array.isArray(errorData.missingFields)
@@ -420,6 +479,7 @@ export function ShiftSignupDialog({
         </ResponsiveDialogHeader>
 
         <div
+          ref={bodyRef}
           className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0"
           data-testid="shift-signup-dialog-content-body"
         >
@@ -464,6 +524,20 @@ export function ShiftSignupDialog({
                   </Button>
                 )}
               </div>
+            </DialogPanel>
+          )}
+
+          {filledWhileOpen && (
+            <DialogPanel
+              variant="amber"
+              icon={<Hourglass className="h-4 w-4" />}
+              title="This shift just filled up"
+              testId="shift-filled-notice"
+            >
+              <span role="alert">
+                The last place went while you were signing up. You can join the
+                waitlist instead, or cancel to look for another shift.
+              </span>
             </DialogPanel>
           )}
 
@@ -531,7 +605,7 @@ export function ShiftSignupDialog({
               >
                 <Users className="h-4 w-4 shrink-0 text-forest-500 dark:text-cream-50/55" />
                 <span className="tabular-nums">
-                  {confirmedCount}/{shift.capacity} confirmed
+                  {confirmedCount}/{capacity} confirmed
                   {!isWaitlist && remaining > 0 && (
                     <span className="ml-1 font-medium text-forest-600 dark:text-forest-300">
                       ({remaining} {remaining === 1 ? "spot" : "spots"} left)
@@ -756,6 +830,31 @@ export function ShiftSignupDialog({
                 "Your signup will be reviewed by an administrator. You'll receive an email confirmation if you're approved for this shift."
               )}
             </DialogPanel>
+          )}
+
+          {/* If the shift fills before an admin gets to them: wait or not? */}
+          {askWaitlistIfFull && (
+            <label htmlFor="waitlist-if-full" className={optionRow}>
+              <Checkbox
+                id="waitlist-if-full"
+                checked={waitlistIfFull}
+                onCheckedChange={(checked) => setWaitlistIfFull(checked === true)}
+                className="mt-0.5"
+                aria-describedby="waitlist-if-full-hint"
+                data-testid="waitlist-if-full-checkbox"
+              />
+              <div className="flex-1 space-y-1">
+                <span className="text-sm font-medium text-forest-700 dark:text-cream-50">
+                  {WAITLIST_IF_FULL_LABEL}
+                </span>
+                <p
+                  id="waitlist-if-full-hint"
+                  className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60"
+                >
+                  {WAITLIST_IF_FULL_HINT}
+                </p>
+              </div>
+            </label>
           )}
         </div>
 
