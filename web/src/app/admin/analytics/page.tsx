@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/page-container";
 import { AnalyticsDashboard } from "./_components/analytics-dashboard";
 import { getActiveLocationNames } from "@/lib/locations";
 import { prisma } from "@/lib/prisma";
+import { SERVICE_NIGHTS_ONLY } from "@/lib/day-reports";
 import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
 import { getRestaurantReports } from "@/lib/restaurant-reports";
 import { parseDaysParam } from "@/lib/parse-days-param";
@@ -61,6 +62,7 @@ export default async function AnalyticsPage({
   // union the active main venues so they always appear even with no data yet.
   const dataLocations = (
     await prisma.mealsServed.findMany({
+      where: SERVICE_NIGHTS_ONLY,
       distinct: ["location"],
       select: { location: true },
     })

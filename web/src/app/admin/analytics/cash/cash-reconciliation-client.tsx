@@ -42,6 +42,7 @@ import {
   CASH_RANGE_PRESETS,
   CASH_FLAG_LABEL,
   buildCashCopyText,
+  cashDayTypeLabel,
   formatCashRange,
   formatMoney as money,
   formatNight as nightLabel,
@@ -61,6 +62,17 @@ const FLAG_HINT: Record<CashFlag, string> = {
 
 function plural(n: number, word: string) {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+// "12 service nights", or "12 days, incl. 1 event and 2 cafe days".
+function describeDays(totals: CashReconciliation["totals"] | undefined) {
+  if (!totals) return plural(0, "service night");
+  const others = [
+    totals.events > 0 ? plural(totals.events, "event") : null,
+    totals.cafeDays > 0 ? plural(totals.cafeDays, "cafe day") : null,
+  ].filter(Boolean);
+  if (others.length === 0) return plural(totals.nights, "service night");
+  return `${plural(totals.nights, "day")}, incl. ${others.join(" and ")}`;
 }
 
 interface Props {
@@ -338,7 +350,7 @@ export function CashReconciliationClient({
                 <span aria-hidden className="hidden xl:inline print:hidden">
                   ·
                 </span>
-                <span>{plural(totals?.nights ?? 0, "service night")}</span>
+                <span>{describeDays(totals)}</span>
               </p>
             </div>
 
@@ -381,7 +393,7 @@ export function CashReconciliationClient({
           <Table data-testid="cash-nights-table">
             <TableHeader>
               <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="pl-4 text-xs">Service night</TableHead>
+                <TableHead className="pl-4 text-xs">Day</TableHead>
                 <TableHead className="text-right text-xs">Cash</TableHead>
                 <TableHead className="hidden text-right text-xs sm:table-cell">
                   EFTPOS
@@ -401,7 +413,8 @@ export function CashReconciliationClient({
                     colSpan={5}
                     className="h-32 text-center text-sm text-muted-foreground"
                   >
-                    No service nights at {location} in this range.
+                    No service nights, events or cafe days at {location} in
+                    this range.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -416,7 +429,10 @@ export function CashReconciliationClient({
                   <TableCell className="pl-4 py-3 font-semibold">
                     Total
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      {plural(totals.nights, "night")}
+                      {plural(
+                        totals.nights,
+                        totals.events + totals.cafeDays > 0 ? "day" : "night"
+                      )}
                     </span>
                   </TableCell>
                   <TableCell
@@ -479,6 +495,7 @@ function SlipFigure({
 
 function NightRow({ night, location }: { night: CashNight; location: string }) {
   const flagged = night.status !== "recorded";
+  const typeLabel = cashDayTypeLabel(night);
   const minor = (v: number | null) =>
     v === null ? (
       <span className="text-muted-foreground/50">–</span>
@@ -497,6 +514,20 @@ function NightRow({ night, location }: { night: CashNight; location: string }) {
           {format(keyToDate(night.date), "EEE d MMM")}
         </span>
         <span className="hidden sm:inline">{nightLabel(night.date)}</span>
+        {typeLabel && (
+          <span
+            className={cn(
+              "mt-0.5 block max-w-[14rem] truncate text-xs font-medium",
+              night.type === "EVENT"
+                ? "text-violet-700 dark:text-violet-300"
+                : "text-sky-700 dark:text-sky-300"
+            )}
+            title={typeLabel}
+            data-testid={`cash-night-type-${night.date}`}
+          >
+            {typeLabel}
+          </span>
+        )}
       </TableCell>
       <TableCell className="whitespace-nowrap py-2.5 text-right text-sm tabular-nums">
         {night.status === "recorded" && night.cash !== null ? (

@@ -10,7 +10,7 @@ export default function CashReconciliationLoading() {
   return (
     <AdminPageSkeleton
       title="Cash Reconciliation"
-      description="Cash koha per service night for one restaurant, totalled to check against a bank deposit"
+      description="Cash per day for one restaurant, service nights, events and cafe days alike, totalled to check against a bank deposit"
       className="space-y-5"
     >
       {/* Controls */}

@@ -1,6 +1,7 @@
 import { endOfDay, startOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
+import { summariseEventIncome } from "@/lib/day-reports";
 import {
   buildCashNights,
   type CashReconciliation,
@@ -28,7 +29,17 @@ export async function getCashReconciliation({
   const [records, shifts] = await Promise.all([
     prisma.mealsServed.findMany({
       where: { location, date: { gte: start, lte: end } },
-      select: { date: true, cash: true, eftpos: true, stripe: true },
+      select: {
+        date: true,
+        reportType: true,
+        eventName: true,
+        cash: true,
+        eftpos: true,
+        stripe: true,
+        income: {
+          select: { source: true, category: true, amount: true, gstIncluded: true },
+        },
+      },
     }),
     // Only shifts that have finished: tonight's service isn't missing its
     // cash yet.
@@ -39,12 +50,33 @@ export async function getCashReconciliation({
   ]);
 
   const { nights, totals } = buildCashNights(
-    records.map((r) => ({
-      date: formatInNZT(r.date, "yyyy-MM-dd"),
-      cash: decimal(r.cash),
-      eftpos: decimal(r.eftpos),
-      stripe: decimal(r.stripe),
-    })),
+    records.map((r) => {
+      const date = formatInNZT(r.date, "yyyy-MM-dd");
+      if (r.reportType !== "EVENT") {
+        return {
+          date,
+          type: r.reportType,
+          cash: decimal(r.cash),
+          eftpos: decimal(r.eftpos),
+          stripe: decimal(r.stripe),
+        };
+      }
+      // An event's takings are itemised by source. Until any income is
+      // entered its cash is unknown (flagged); after that, no cash lines
+      // genuinely means $0 cash. Invoices are paid later, not banked tonight.
+      const recorded = r.income.length > 0;
+      const { bySource } = summariseEventIncome(
+        r.income.map((line) => ({ ...line, amount: Number(line.amount) }))
+      );
+      return {
+        date,
+        type: r.reportType,
+        eventName: r.eventName,
+        cash: recorded ? bySource.CASH : null,
+        eftpos: recorded ? bySource.EFTPOS : null,
+        stripe: recorded ? bySource.STRIPE : null,
+      };
+    }),
     [...new Set(shifts.map((s) => formatInNZT(s.start, "yyyy-MM-dd")))]
   );
 

@@ -3,6 +3,7 @@ import {
   addDaysToKey,
   buildCashCopyText,
   buildCashNights,
+  cashDayTypeLabel,
   formatCashRange,
   isDateKey,
   parseCashRangeParams,
@@ -111,8 +112,8 @@ describe("buildCashNights", () => {
   it("lists nights oldest first and totals each method in cents", () => {
     const { nights, totals } = buildCashNights(
       [
-        { date: "2026-10-01", cash: 0.1, eftpos: 50, stripe: null },
-        { date: "2026-09-30", cash: 0.2, eftpos: 25.5, stripe: 12 },
+        { date: "2026-10-01", type: "SERVICE_NIGHT", cash: 0.1, eftpos: 50, stripe: null },
+        { date: "2026-09-30", type: "SERVICE_NIGHT", cash: 0.2, eftpos: 25.5, stripe: 12 },
       ],
       []
     );
@@ -123,14 +124,16 @@ describe("buildCashNights", () => {
       stripe: 12,
       nights: 2,
       flagged: 0,
+      events: 0,
+      cafeDays: 0,
     });
   });
 
   it("flags a recorded night with blank cash, but not an explicit $0", () => {
     const { nights, totals } = buildCashNights(
       [
-        { date: "2026-09-30", cash: null, eftpos: 80, stripe: null },
-        { date: "2026-10-01", cash: 0, eftpos: null, stripe: null },
+        { date: "2026-09-30", type: "SERVICE_NIGHT", cash: null, eftpos: 80, stripe: null },
+        { date: "2026-10-01", type: "SERVICE_NIGHT", cash: 0, eftpos: null, stripe: null },
       ],
       []
     );
@@ -140,12 +143,14 @@ describe("buildCashNights", () => {
 
   it("adds nights where shifts ran but nothing was recorded", () => {
     const { nights, totals } = buildCashNights(
-      [{ date: "2026-09-30", cash: 120, eftpos: null, stripe: null }],
+      [{ date: "2026-09-30", type: "SERVICE_NIGHT", cash: 120, eftpos: null, stripe: null }],
       ["2026-09-30", "2026-10-01"]
     );
     expect(nights).toEqual([
       {
         date: "2026-09-30",
+        type: "SERVICE_NIGHT",
+        eventName: null,
         cash: 120,
         eftpos: null,
         stripe: null,
@@ -153,6 +158,8 @@ describe("buildCashNights", () => {
       },
       {
         date: "2026-10-01",
+        type: "SERVICE_NIGHT",
+        eventName: null,
         cash: null,
         eftpos: null,
         stripe: null,
@@ -179,8 +186,8 @@ describe("buildCashCopyText", () => {
   it("lists each night's cash, flags blanks, and ends with the total", () => {
     const { nights, totals } = buildCashNights(
       [
-        { date: "2026-09-30", cash: 1234.5, eftpos: null, stripe: null },
-        { date: "2026-10-01", cash: null, eftpos: 10, stripe: null },
+        { date: "2026-09-30", type: "SERVICE_NIGHT", cash: 1234.5, eftpos: null, stripe: null },
+        { date: "2026-10-01", type: "SERVICE_NIGHT", cash: null, eftpos: 10, stripe: null },
       ],
       ["2026-10-02"]
     );
@@ -202,9 +209,58 @@ describe("buildCashCopyText", () => {
         "Fri 2 Oct 2026\tNight not recorded",
         "",
         "Total cash\t$1,234.50",
-        "Service nights\t3",
+        "Days\t3",
         "Nights with no cash recorded\t2",
       ].join("\n")
     );
+  });
+});
+
+describe("event and cafe days", () => {
+  it("lists them beside service nights, counted and labelled", () => {
+    const data = {
+      location: "Wellington",
+      from: "2026-10-05",
+      to: "2026-10-07",
+      ...buildCashNights(
+        [
+          { date: "2026-10-05", type: "SERVICE_NIGHT", cash: 100, eftpos: 50, stripe: null },
+          {
+            date: "2026-10-06",
+            type: "EVENT",
+            eventName: "Quiz night",
+            cash: 300,
+            eftpos: 0,
+            stripe: null,
+          },
+          { date: "2026-10-07", type: "CAFE", cash: 80.5, eftpos: 120, stripe: null },
+        ],
+        []
+      ),
+    };
+    expect(data.totals).toMatchObject({
+      cash: 480.5,
+      nights: 3,
+      events: 1,
+      cafeDays: 1,
+    });
+    expect(data.nights.map(cashDayTypeLabel)).toEqual([
+      null,
+      "Event · Quiz night",
+      "Cafe",
+    ]);
+    expect(buildCashCopyText(data).split("\n")).toEqual([
+      "Cash reconciliation - Wellington",
+      "Mon 5 Oct – Wed 7 Oct 2026",
+      "",
+      "Mon 5 Oct 2026\t$100.00",
+      "Tue 6 Oct 2026 (Event · Quiz night)\t$300.00",
+      "Wed 7 Oct 2026 (Cafe)\t$80.50",
+      "",
+      "Total cash\t$480.50",
+      "Days\t3",
+      "Events\t1",
+      "Cafe days\t1",
+    ]);
   });
 });

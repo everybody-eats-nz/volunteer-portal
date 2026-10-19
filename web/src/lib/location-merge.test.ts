@@ -3,9 +3,11 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: vi.fn() } }));
 
 import { prisma } from "@/lib/prisma";
+import { ALL_REPORT_FIELDS } from "@/lib/day-reports";
 import {
   applyLocationMerge,
   partitionShiftsForMerge,
+  planMealCollision,
   shiftMergeKey,
 } from "./location-merge";
 
@@ -145,5 +147,54 @@ describe("applyLocationMerge day themes", () => {
     expect(deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
       updateMany.mock.invocationCallOrder[0]
     );
+  });
+});
+
+describe("planMealCollision", () => {
+  // A row as Prisma returns it: every column present, blank ones null.
+  const blank: Record<string, unknown> = Object.fromEntries(
+    [...ALL_REPORT_FIELDS, "mealsServed", "notes", "newVolunteers"].map(
+      (field) => [field, null]
+    )
+  );
+  const none = { into: 0, from: 0 };
+
+  it("back-fills blanks within one report type", () => {
+    const { data, moveIncome } = planMealCollision(
+      { ...blank, reportType: "SERVICE_NIGHT", cash: 100 },
+      { ...blank, reportType: "SERVICE_NIGHT", cash: 5, eftpos: 200, notes: "x" },
+      none
+    );
+    expect(data).toEqual({ notes: "x", eftpos: 200 });
+    expect(moveIncome).toBe(false);
+  });
+
+  it("never turns cafe takings into koha", () => {
+    const { data } = planMealCollision(
+      { ...blank, reportType: "SERVICE_NIGHT", cash: 100 },
+      { ...blank, reportType: "CAFE", cash: 50, eftpos: 70, mealsServed: 30 },
+      none
+    );
+    expect(data).toEqual({ mealsServed: 30 });
+  });
+
+  it("gives a blank survivor the duplicate's whole event, income included", () => {
+    const { data, moveIncome } = planMealCollision(
+      { ...blank, reportType: "SERVICE_NIGHT", notes: "kept" },
+      { ...blank, reportType: "EVENT", eventName: "Gala", notes: "dropped" },
+      { into: 0, from: 3 }
+    );
+    expect(data).toEqual({ reportType: "EVENT", eventName: "Gala" });
+    expect(moveIncome).toBe(true);
+  });
+
+  it("keeps the survivor's own event income", () => {
+    expect(
+      planMealCollision(
+        { ...blank, reportType: "EVENT" },
+        { ...blank, reportType: "EVENT" },
+        { into: 2, from: 3 }
+      ).moveIncome
+    ).toBe(false);
   });
 });

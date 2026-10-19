@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SERVICE_NIGHTS_ONLY } from "@/lib/day-reports";
 import { formatInNZT } from "@/lib/timezone";
 import {
   budgetStatus,
@@ -84,7 +85,10 @@ export async function getBudgetTracking(
       },
       orderBy: { name: "asc" },
     }),
-    prisma.mealsServed.aggregate({ _min: { date: true } }),
+    prisma.mealsServed.aggregate({
+      where: SERVICE_NIGHTS_ONLY,
+      _min: { date: true },
+    }),
     prisma.locationBudget.findMany({
       distinct: ["year"],
       select: { year: true },
@@ -93,7 +97,12 @@ export async function getBudgetTracking(
 
   const names = locations.map((l) => l.name);
   const records = await prisma.mealsServed.findMany({
-    where: { date: { gte: start, lt: end }, location: { in: names } },
+    // Only service nights are koha against the budget.
+    where: {
+      ...SERVICE_NIGHTS_ONLY,
+      date: { gte: start, lt: end },
+      location: { in: names },
+    },
     select: {
       date: true,
       location: true,

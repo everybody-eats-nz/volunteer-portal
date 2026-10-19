@@ -421,10 +421,15 @@ export default async function AdminShiftsPage({
           </div>
         </div>
 
-        {/* Meals Served Input - Only show if shifts exist for this day */}
-        {shifts.length > 0 && (
-          <MealsServedInput date={dateString} location={selectedLocation} />
-        )}
+        {/* The day's report. Days without shifts offer it behind a prompt,
+            for events and cafe days run without rostered shifts. Keyed so a
+            new day or location never inherits the last one's figures. */}
+        <MealsServedInput
+          key={`day-report|${dateString}|${selectedLocation}`}
+          date={dateString}
+          location={selectedLocation}
+          hasShifts={shifts.length > 0}
+        />
 
         {/* Day theme - shown to volunteers beside the date. Available on empty
             days too, so special nights can be announced before shifts exist.

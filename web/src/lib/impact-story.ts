@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SERVICE_NIGHTS_ONLY } from "@/lib/day-reports";
 import { formatInNZT, toNZT } from "@/lib/timezone";
 import {
   FOOD_SAVED_KG_PER_MEAL,
@@ -145,8 +146,10 @@ export async function getPublicImpactStory(): Promise<PublicImpactStory> {
   const currentYear = toNZT(now).getFullYear();
 
   const [rows, headline, milestoneRows, volunteerCountRows] = await Promise.all([
+    // The koha story is service nights only; events and cafe days are other
+    // commercial activity (their people still count in the headline).
     prisma.mealsServed.findMany({
-      where: { mealsServed: { not: null } },
+      where: { ...SERVICE_NIGHTS_ONLY, mealsServed: { not: null } },
       select: {
         date: true,
         location: true,

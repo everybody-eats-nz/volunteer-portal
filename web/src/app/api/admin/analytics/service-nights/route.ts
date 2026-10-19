@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { SERVICE_NIGHTS_ONLY } from "@/lib/day-reports";
 import { formatInNZT, nowInNZT, toNZT } from "@/lib/timezone";
 import { parseDaysParam } from "@/lib/parse-days-param";
 
@@ -139,6 +140,7 @@ export async function GET(request: NextRequest) {
   try {
     const records = await prisma.mealsServed.findMany({
       where: {
+        ...SERVICE_NIGHTS_ONLY,
         date: { gte: startDate, lte: endDate },
         ...(isLocationFiltered ? { location: location! } : {}),
       },

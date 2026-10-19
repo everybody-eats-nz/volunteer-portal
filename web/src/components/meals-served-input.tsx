@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { ServiceNightReportSkeleton } from "@/components/service-night-report-skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -29,25 +28,59 @@ import {
   UserPlus,
   UtensilsCrossed,
   CalendarDays,
-  Calculator,
   MapPin,
   CheckCircle2,
   Sparkles,
   ChevronDown,
   Pencil,
+  Ticket,
+  Clock,
+  Info,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { computeNightDerived } from "@/lib/restaurant-stats";
 import type { NightlyTarget } from "@/lib/budget-calculations";
 import { NightlyTargetStrip } from "@/components/nightly-target-strip";
+import {
+  DAY_REPORT_TYPE_META,
+  formatDuration,
+  isDayReportType,
+  openMinutes,
+  summariseEventIncome,
+  type DayReportType,
+  type EventIncomeCategory,
+  type EventIncomeSource,
+} from "@/lib/day-reports";
+import {
+  CountField,
+  DerivedField,
+  Field,
+  HeroStat,
+  MoneyField,
+  SectionCard,
+} from "@/components/day-report/fields";
+import { ReportTypePicker } from "@/components/day-report/report-type-picker";
+import {
+  EventIncomeEditor,
+  isBlankIncomeDraft,
+  newIncomeDraft,
+  type IncomeDraft,
+} from "@/components/day-report/event-income-editor";
 
 interface MealsServedInputProps {
   date: string; // ISO date string (YYYY-MM-DD)
   location: string;
+  /**
+   * Whether any shifts run this day. Without shifts the report stays tucked
+   * behind a one-line prompt (unless one is already recorded), since an empty
+   * day is usually not a service; events and cafe days can still be recorded.
+   */
+  hasShifts?: boolean;
 }
 
-// Keys for every stored stat field (mirrors the API / Prisma model).
+// Keys for every stored text/number field (mirrors the API / Prisma model).
 type StatKey =
   | "mealsServed"
   | "notes"
@@ -61,7 +94,10 @@ type StatKey =
   | "eftpos"
   | "stripe"
   | "suggestedValue"
-  | "protein";
+  | "protein"
+  | "eventName"
+  | "opensAt"
+  | "closesAt";
 
 type FormState = Record<StatKey, string>; // all held as strings; "" === empty
 
@@ -79,9 +115,71 @@ const EMPTY_FORM: FormState = {
   stripe: "",
   suggestedValue: "",
   protein: "",
+  eventName: "",
+  opensAt: "",
+  closesAt: "",
 };
 
-const FILLABLE_KEYS = Object.keys(EMPTY_FORM) as StatKey[];
+const ALL_KEYS = Object.keys(EMPTY_FORM) as StatKey[];
+
+// What each report asks for, which drives its "Logged x/y" progress. Event
+// income lines count as one more item (see `filledCount`).
+const REPORT_KEYS: Record<DayReportType, StatKey[]> = {
+  SERVICE_NIGHT: [
+    "mealsServed",
+    "notes",
+    "weather",
+    "bookingsPax",
+    "nonPayingCount",
+    "vege",
+    "takeaways",
+    "eftposTransactions",
+    "cash",
+    "eftpos",
+    "stripe",
+    "suggestedValue",
+    "protein",
+  ],
+  EVENT: ["eventName", "mealsServed", "notes"],
+  CAFE: ["opensAt", "closesAt", "mealsServed", "cash", "eftpos", "notes"],
+};
+
+// Each report wears its own accent, so the type reads before any label does.
+const ACCENT: Record<
+  DayReportType,
+  { header: string; eyebrow: string; icon: string; button: string }
+> = {
+  SERVICE_NIGHT: {
+    header:
+      "border-emerald-900/10 from-[var(--ee-muted)]/55 dark:border-emerald-400/10 dark:from-emerald-950/30",
+    eyebrow: "text-emerald-700 dark:text-emerald-400",
+    icon: "text-emerald-600 dark:text-emerald-400",
+    button:
+      "bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500",
+  },
+  EVENT: {
+    header:
+      "border-violet-900/10 from-violet-100/60 dark:border-violet-400/10 dark:from-violet-950/30",
+    eyebrow: "text-violet-700 dark:text-violet-300",
+    icon: "text-violet-600 dark:text-violet-300",
+    button:
+      "bg-violet-700 hover:bg-violet-800 dark:bg-violet-600 dark:hover:bg-violet-500",
+  },
+  CAFE: {
+    header:
+      "border-sky-900/10 from-sky-100/60 dark:border-sky-400/10 dark:from-sky-950/30",
+    eyebrow: "text-sky-700 dark:text-sky-300",
+    icon: "text-sky-600 dark:text-sky-300",
+    button: "bg-sky-700 hover:bg-sky-800 dark:bg-sky-600 dark:hover:bg-sky-500",
+  },
+};
+
+// What a save clears when the day changes type.
+const CLEARED_ON_SWITCH: Record<DayReportType, string> = {
+  SERVICE_NIGHT: "its koha and service stats",
+  EVENT: "its income lines and event name",
+  CAFE: "its cafe hours and takings",
+};
 
 const NZD = new Intl.NumberFormat("en-NZ", {
   style: "currency",
@@ -106,9 +204,45 @@ const num = (v: string | undefined | null): number | null => {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
+const article = (type: DayReportType) =>
+  type === "EVENT"
+    ? "an event"
+    : type === "CAFE"
+      ? "a cafe day"
+      : "a service night";
 
-export function MealsServedInput({ date, location }: MealsServedInputProps) {
+interface ApiIncomeLine {
+  source: EventIncomeSource;
+  category: EventIncomeCategory;
+  description: string | null;
+  amount: number;
+  gstIncluded: boolean;
+}
+
+export function MealsServedInput({
+  date,
+  location,
+  hasShifts = true,
+}: MealsServedInputProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [reportType, setReportType] = useState<DayReportType>("SERVICE_NIGHT");
+  // The type as last saved, so switching can warn what a save would clear.
+  const [savedType, setSavedType] = useState<DayReportType>("SERVICE_NIGHT");
+  const [income, setIncome] = useState<IncomeDraft[]>([]);
+  // Each type's own figures, parked while another type is selected, so
+  // flicking between types never moves cafe takings into koha (both use the
+  // cash and EFTPOS columns) and switching back restores what was typed.
+  const parked = useRef<
+    Partial<
+      Record<
+        DayReportType,
+        { fields: Partial<FormState>; income: IncomeDraft[] }
+      >
+    >
+  >({});
+  // On a day without shifts, the report opens only when asked for.
+  const [started, setStarted] = useState(false);
+  const [dayTheme, setDayTheme] = useState<string | null>(null);
   const [defaultValue, setDefaultValue] = useState<number>(60);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -175,14 +309,34 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
 
         const next: FormState = { ...EMPTY_FORM };
         let hasRecord = false;
-        FILLABLE_KEYS.forEach((key) => {
+        ALL_KEYS.forEach((key) => {
           if (data[key] !== undefined && data[key] !== null) {
             next[key] = toFormString(data[key]);
             if (next[key] !== "") hasRecord = true;
           }
         });
+        const type: DayReportType = isDayReportType(data.reportType)
+          ? data.reportType
+          : "SERVICE_NIGHT";
+        const lines: ApiIncomeLine[] = Array.isArray(data.income)
+          ? data.income
+          : [];
+        // An event or cafe day is a record even before any figures go in.
+        if (type !== "SERVICE_NIGHT" || lines.length > 0) hasRecord = true;
 
         setForm(next);
+        setReportType(type);
+        setSavedType(type);
+        setIncome(
+          lines.map((line) =>
+            newIncomeDraft({
+              ...line,
+              description: line.description ?? "",
+              amount: line.amount.toFixed(2),
+            })
+          )
+        );
+        setDayTheme(typeof data.dayTheme === "string" ? data.dayTheme : null);
         setHasExistingRecord(hasRecord);
         setNewVolunteers(
           typeof data.newVolunteers === "number" ? data.newVolunteers : null
@@ -193,8 +347,8 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
           setDefaultValue(data.defaultMealsServed);
         }
 
-        // Auto-fill weather when none is recorded yet for this night.
-        if (next.weather === "") {
+        // Auto-fill weather when none is recorded yet for a service night.
+        if (type === "SERVICE_NIGHT" && next.weather === "" && hasShifts) {
           applyWeather(true);
         }
       } catch (error) {
@@ -208,7 +362,34 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
     return () => {
       active = false;
     };
-  }, [date, location, applyWeather]);
+  }, [date, location, applyWeather, hasShifts]);
+
+  const changeType = (type: DayReportType) => {
+    if (type === reportType) return;
+    // Park the outgoing type's own figures, and bring back (or blank) the
+    // incoming type's. Headcount and notes are shared and stay put.
+    const shared = new Set<StatKey>(["mealsServed", "notes"]);
+    const own = (t: DayReportType) =>
+      REPORT_KEYS[t].filter((k) => !shared.has(k));
+    parked.current[reportType] = {
+      fields: Object.fromEntries(own(reportType).map((k) => [k, form[k]])),
+      income,
+    };
+    const restored = parked.current[type];
+    const next: FormState = { ...form };
+    for (const k of own(type)) next[k] = restored?.fields[k] ?? "";
+    // The day's theme is usually the event's name ("Rotary fundraiser dinner").
+    if (type === "EVENT" && next.eventName.trim() === "" && dayTheme) {
+      next.eventName = dayTheme;
+    }
+    setForm(next);
+    setIncome(restored?.income ?? []);
+    setReportType(type);
+    setOpen(true);
+    if (type === "SERVICE_NIGHT" && next.weather === "") {
+      applyWeather(true);
+    }
+  };
 
   // Live derived figures (mirror the spreadsheet formulas)
   const derived = useMemo(
@@ -222,15 +403,41 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
       }),
     [form.mealsServed, form.nonPayingCount, form.cash, form.eftpos, form.stripe]
   );
+  const incomeSummary = useMemo(
+    () =>
+      summariseEventIncome(
+        income
+          .filter((line) => num(line.amount) !== null)
+          .map((line) => ({ ...line, amount: num(line.amount) ?? 0 }))
+      ),
+    [income]
+  );
   const eftposTotal = num(form.eftpos);
   const customers = num(form.mealsServed);
+  const cafeSales =
+    num(form.cash) === null && eftposTotal === null
+      ? null
+      : (num(form.cash) ?? 0) + (eftposTotal ?? 0);
+  const cafeMinutes = openMinutes(form.opensAt, form.closesAt);
+  const hoursInvalid =
+    form.opensAt !== "" && form.closesAt !== "" && cafeMinutes === null;
 
-  const filledCount = FILLABLE_KEYS.filter(
-    (k) => form[k].trim() !== ""
-  ).length;
-  const totalCount = FILLABLE_KEYS.length;
+  const reportKeys = REPORT_KEYS[reportType];
+  const incomeEntered =
+    reportType === "EVENT" && income.some((line) => !isBlankIncomeDraft(line));
+  const filledCount =
+    reportKeys.filter((k) => form[k].trim() !== "").length +
+    (incomeEntered ? 1 : 0);
+  const totalCount = reportKeys.length + (reportType === "EVENT" ? 1 : 0);
   const completionPct = Math.round((filledCount / totalCount) * 100);
-  const canSave = filledCount > 0;
+  // Marking a day as an event or cafe is worth saving on its own.
+  const switching = hasExistingRecord && reportType !== savedType;
+  // Marking a day as an event or cafe is worth saving on its own, and so is
+  // switching a recorded day back to a (still blank) service night.
+  const canSave =
+    reportType !== "SERVICE_NIGHT" || filledCount > 0 || switching;
+  const accent = ACCENT[reportType];
+  const meta = DAY_REPORT_TYPE_META[reportType];
 
   const dateLabel = useMemo(() => {
     const d = new Date(`${date}T00:00:00`);
@@ -293,14 +500,45 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
       toast.error("Enter at least one stat before saving");
       return;
     }
+    const lines = income.filter((line) => !isBlankIncomeDraft(line));
+    if (
+      reportType === "EVENT" &&
+      lines.some((line) => num(line.amount) === null)
+    ) {
+      setOpen(true);
+      toast.error("Enter an amount for every income line", {
+        description: "Or remove the lines you don't need.",
+      });
+      return;
+    }
+    if (reportType === "CAFE" && hoursInvalid) {
+      setOpen(true);
+      toast.error("Closing time must be after opening time");
+      return;
+    }
 
     setLoading(true);
     try {
       // Send raw strings — the API's Zod schema coerces/validates them.
-      const payload: Record<string, unknown> = { date, location };
-      FILLABLE_KEYS.forEach((key) => {
-        payload[key] = form[key].trim() === "" ? null : form[key].trim();
+      const payload: Record<string, unknown> = { date, location, reportType };
+      // Only this report's own fields: another type's leftovers (say, cafe
+      // hours) must neither be saved nor fail validation out of sight.
+      ALL_KEYS.forEach((key) => {
+        payload[key] =
+          !reportKeys.includes(key) || form[key].trim() === ""
+            ? null
+            : form[key].trim();
       });
+      payload.income =
+        reportType === "EVENT"
+          ? lines.map((line) => ({
+              source: line.source,
+              category: line.category,
+              description: line.description.trim() || null,
+              amount: line.amount.trim(),
+              gstIncluded: line.gstIncluded,
+            }))
+          : [];
 
       const response = await fetch("/api/admin/meals-served", {
         method: "POST",
@@ -310,13 +548,20 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
 
       if (response.ok) {
         setHasExistingRecord(true);
-        toast.success("Service-night report saved");
+        setSavedType(reportType);
+        // Saving cleared every other type's figures on the server.
+        parked.current = {};
+        // The server keeps only this report's fields; mirror that so the
+        // form never shows figures that weren't saved.
+        if (reportType === "EVENT") setIncome(lines);
+        else setIncome([]);
+        toast.success(`${meta.reportTitle} saved`);
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to save report");
       }
     } catch (error) {
-      console.error("Error saving service-night stats:", error);
+      console.error("Error saving day report:", error);
       toast.error("Failed to save report");
     } finally {
       setLoading(false);
@@ -324,21 +569,57 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
   };
 
   if (fetching) {
-    return <ServiceNightReportSkeleton />;
+    return hasShifts ? <ServiceNightReportSkeleton /> : null;
+  }
+
+  if (!hasShifts && !hasExistingRecord && !started) {
+    return (
+      <div className="mb-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-ml-2 gap-1.5 text-muted-foreground"
+          onClick={() => {
+            setStarted(true);
+            changeType("EVENT");
+          }}
+          data-testid="day-report-start"
+        >
+          <Plus className="h-4 w-4" />
+          Record an event or cafe day
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <Card className="mb-6 gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
+    <Card
+      className="mb-6 gap-0 overflow-hidden border-border/70 py-0 shadow-sm"
+      data-testid="day-report"
+      data-report-type={reportType}
+    >
       <Collapsible open={open} onOpenChange={setOpen}>
         {/* ── Report header (always visible) ─────────────────────── */}
-        <header className="border-b border-emerald-900/10 bg-gradient-to-br from-[var(--ee-muted)]/55 via-card to-card px-6 py-5 dark:border-emerald-400/10 dark:from-emerald-950/30 dark:via-card dark:to-card">
+        <header
+          className={cn(
+            "border-b bg-gradient-to-br via-card to-card px-6 py-5 dark:via-card dark:to-card",
+            accent.header
+          )}
+        >
           <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-400">
-                Service Night Report
+              <p
+                className={cn(
+                  "text-[11px] font-semibold uppercase tracking-[0.18em]",
+                  accent.eyebrow
+                )}
+                data-testid="day-report-title"
+              >
+                {meta.reportTitle}
               </p>
               <h2 className="mt-1 flex items-center gap-1.5 font-accent text-2xl font-semibold leading-none tracking-tight text-foreground">
-                <MapPin className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <MapPin className={cn("h-5 w-5 shrink-0", accent.icon)} />
                 <em>{location}</em>
               </h2>
               <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -369,7 +650,12 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
                   )}
                 </Badge>
                 <CollapsibleTrigger asChild>
-                  <Button type="button" variant={open ? "ghost" : "outline"} size="sm" className="gap-1">
+                  <Button
+                    type="button"
+                    variant={open ? "ghost" : "outline"}
+                    size="sm"
+                    className="gap-1"
+                  >
                     {open ? (
                       "Hide"
                     ) : hasExistingRecord ? (
@@ -380,7 +666,10 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
                       "Record stats"
                     )}
                     <ChevronDown
-                      className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        open && "rotate-180"
+                      )}
                     />
                   </Button>
                 </CollapsibleTrigger>
@@ -402,43 +691,138 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
             </div>
           </div>
 
-        <div className="mt-5 space-y-2.5">
-        {/* Koha against tonight's target. Pop-ups without one skip it. */}
-        {(target || !isPopupLocation) && (
-          <NightlyTargetStrip
-            location={location}
-            target={target}
-            koha={derived.totalDonations}
-          />
-        )}
+          {/* What the day was: drives which report and which totals it feeds */}
+          <div className="mt-4">
+            <ReportTypePicker value={reportType} onChange={changeType} />
+          </div>
 
-        {/* Hero totals — the night's headline result, building live */}
-        <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          <HeroStat
-            featured
-            label="Total koha"
-            value={
-              derived.totalDonations === null
-                ? "—"
-                : NZD.format(derived.totalDonations)
-            }
-          />
-          {/* Headcount is the figure the team wants at a glance */}
-          <HeroStat
-            label="Pax"
-            value={customers === null ? "—" : customers.toLocaleString("en-NZ")}
-          />
-          {/* EFTPOS is reconciled against Xero daily, so keep it on the summary */}
-          <HeroStat
-            label="EFTPOS"
-            value={eftposTotal === null ? "—" : NZD.format(eftposTotal)}
-          />
-          <HeroStat
-            label="$ per head"
-            value={derived.perHead === null ? "—" : NZD.format(derived.perHead)}
-          />
-        </dl>
-        </div>
+          {switching && (
+            <p
+              role="status"
+              className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200"
+              data-testid="report-type-switch-note"
+            >
+              <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>
+                Saving records this day as {article(reportType)} and clears{" "}
+                {CLEARED_ON_SWITCH[savedType]}.
+              </span>
+            </p>
+          )}
+
+          <div className="mt-5 space-y-2.5">
+            {reportType === "SERVICE_NIGHT" && (
+              <>
+                {/* Koha against tonight's target. Pop-ups without one skip it. */}
+                {(target || !isPopupLocation) && (
+                  <NightlyTargetStrip
+                    location={location}
+                    target={target}
+                    koha={derived.totalDonations}
+                  />
+                )}
+
+                {/* Hero totals — the night's headline result, building live */}
+                <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  <HeroStat
+                    featured
+                    label="Total koha"
+                    value={
+                      derived.totalDonations === null
+                        ? "—"
+                        : NZD.format(derived.totalDonations)
+                    }
+                  />
+                  {/* Headcount is the figure the team wants at a glance */}
+                  <HeroStat
+                    label="Pax"
+                    value={
+                      customers === null
+                        ? "—"
+                        : customers.toLocaleString("en-NZ")
+                    }
+                  />
+                  {/* EFTPOS is reconciled against Xero daily, so keep it on the summary */}
+                  <HeroStat
+                    label="EFTPOS"
+                    value={eftposTotal === null ? "—" : NZD.format(eftposTotal)}
+                  />
+                  <HeroStat
+                    label="$ per head"
+                    value={
+                      derived.perHead === null
+                        ? "—"
+                        : NZD.format(derived.perHead)
+                    }
+                  />
+                </dl>
+              </>
+            )}
+
+            {reportType === "EVENT" && (
+              <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <HeroStat
+                  featured
+                  tone="violet"
+                  label="Event income"
+                  value={NZD.format(incomeSummary.total)}
+                  hint="Incl. GST, not koha"
+                  testId="event-hero-total"
+                />
+                <HeroStat
+                  label="Excl. GST"
+                  value={NZD.format(incomeSummary.totalExGst)}
+                />
+                <HeroStat
+                  label="Pax"
+                  value={
+                    customers === null ? "—" : customers.toLocaleString("en-NZ")
+                  }
+                />
+                <HeroStat
+                  label="$ per head"
+                  value={
+                    customers && incomeSummary.total > 0
+                      ? NZD.format(incomeSummary.total / customers)
+                      : "—"
+                  }
+                />
+              </dl>
+            )}
+
+            {reportType === "CAFE" && (
+              <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <HeroStat
+                  featured
+                  tone="sky"
+                  label="Cafe takings"
+                  value={cafeSales === null ? "—" : NZD.format(cafeSales)}
+                  hint="Not koha"
+                  testId="cafe-hero-total"
+                />
+                <HeroStat
+                  label="Customers"
+                  value={
+                    customers === null ? "—" : customers.toLocaleString("en-NZ")
+                  }
+                />
+                <HeroStat
+                  label="Open"
+                  value={
+                    cafeMinutes === null ? "—" : formatDuration(cafeMinutes)
+                  }
+                />
+                <HeroStat
+                  label="$ per customer"
+                  value={
+                    customers && cafeSales !== null
+                      ? NZD.format(cafeSales / customers)
+                      : "—"
+                  }
+                />
+              </dl>
+            )}
+          </div>
         </header>
 
         {/* Notes — always visible; jotted during service, not just after */}
@@ -448,7 +832,11 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
               id="notes"
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder="Jot anything during or after service…"
+              placeholder={
+                reportType === "SERVICE_NIGHT"
+                  ? "Jot anything during or after service…"
+                  : "Jot anything during or after the day…"
+              }
               rows={2}
             />
           </Field>
@@ -457,198 +845,149 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
         <CollapsibleContent>
           {/* ── Report body ────────────────────────────────────────── */}
           <div className="space-y-5 px-6 py-6">
-        {/* Attendance & service */}
-        <SectionCard icon={Users} title="Attendance & service" tone="emerald">
-          {/* Headline count — featured, spans the row */}
-          <div className="sm:col-span-2">
-            <Field htmlFor="mealsServed" label="Customers served">
-              <Input
-                id="mealsServed"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                value={form.mealsServed}
-                onChange={(e) => set("mealsServed", e.target.value)}
-                placeholder={`e.g. ${defaultValue}`}
-                className="h-11 max-w-xs text-lg font-semibold tabular-nums"
+            {reportType === "SERVICE_NIGHT" && (
+              <ServiceNightBody
+                form={form}
+                set={set}
+                defaultValue={defaultValue}
+                newVolunteers={newVolunteers}
+                weatherLoading={weatherLoading}
+                onWeather={() => applyWeather(false)}
+                stripeSyncing={stripeSyncing}
+                onStripeSync={isPopupLocation ? undefined : handleStripeSync}
+                derived={derived}
               />
-            </Field>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              People served tonight — the headline count.
-            </p>
-          </div>
+            )}
 
-          <CountField
-            id="bookingsPax"
-            label="Bookings (pax)"
-            value={form.bookingsPax}
-            onChange={(v) => set("bookingsPax", v)}
-          />
+            {reportType === "EVENT" && (
+              <>
+                <SectionCard icon={Ticket} title="The event" tone="violet">
+                  <div className="sm:col-span-2">
+                    <Field
+                      htmlFor="eventName"
+                      label="Event name"
+                      action={
+                        dayTheme && form.eventName.trim() !== dayTheme ? (
+                          <button
+                            type="button"
+                            onClick={() => set("eventName", dayTheme)}
+                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-violet-700 hover:bg-violet-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:text-violet-300 dark:hover:bg-violet-900/40"
+                          >
+                            Use day theme
+                          </button>
+                        ) : undefined
+                      }
+                    >
+                      <Input
+                        id="eventName"
+                        value={form.eventName}
+                        maxLength={120}
+                        onChange={(e) => set("eventName", e.target.value)}
+                        placeholder="e.g. Matariki fundraiser dinner"
+                        className="h-11 text-base font-medium"
+                      />
+                    </Field>
+                  </div>
+                  <CountField
+                    id="mealsServed"
+                    label="Guests (pax)"
+                    value={form.mealsServed}
+                    onChange={(v) => set("mealsServed", v)}
+                    hint="Counts towards people served."
+                  />
+                  <NewVolunteersField value={newVolunteers} />
+                </SectionCard>
 
-          {/* New volunteers — derived from confirmed attendance, read-only */}
-          <Field
-            htmlFor="newVolunteers"
-            label="New volunteers"
-            hint="Counted automatically from confirmed attendance."
-          >
-            <div className="flex h-9 items-center gap-2 rounded-md border border-dashed border-input bg-muted/40 px-3 text-sm tabular-nums text-foreground">
-              <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
-              {newVolunteers === null ? "—" : newVolunteers}
-            </div>
-          </Field>
-
-          {/* Weather — auto-pulled from Open-Meteo, still editable */}
-          <Field
-            htmlFor="weather"
-            label="Weather"
-            action={
-              <button
-                type="button"
-                onClick={() => applyWeather(false)}
-                disabled={weatherLoading}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 disabled:cursor-default disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
-              >
-                {weatherLoading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3 w-3" />
-                )}
-                {weatherLoading ? "Fetching…" : "Get weather"}
-              </button>
-            }
-          >
-            <Input
-              id="weather"
-              type="text"
-              value={form.weather}
-              onChange={(e) => set("weather", e.target.value)}
-              placeholder="e.g. Overcast, 15°C"
-            />
-          </Field>
-
-          <Field htmlFor="protein" label="Protein">
-            <Select
-              value={form.protein || undefined}
-              onValueChange={(v) => set("protein", v)}
-            >
-              <SelectTrigger id="protein" size="md" className="w-full">
-                <SelectValue placeholder="Select protein" />
-              </SelectTrigger>
-              <SelectContent>
-                {PROTEIN_OPTIONS.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </SectionCard>
-
-        {/* Koha */}
-        <SectionCard
-          icon={HandCoins}
-          title="Koha collected"
-          tone="amber"
-          action={
-            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
-              {derived.totalDonations === null
-                ? "$0"
-                : NZD.format(derived.totalDonations)}
-            </span>
-          }
-        >
-          <MoneyField
-            id="cash"
-            label="Cash"
-            value={form.cash}
-            onChange={(v) => set("cash", v)}
-          />
-          <MoneyField
-            id="eftpos"
-            label="Eftpos"
-            value={form.eftpos}
-            onChange={(v) => set("eftpos", v)}
-          />
-          <MoneyField
-            id="stripe"
-            label="Stripe"
-            value={form.stripe}
-            onChange={(v) => set("stripe", v)}
-            action={
-              isPopupLocation ? undefined : (
-                <button
-                  type="button"
-                  onClick={handleStripeSync}
-                  disabled={stripeSyncing}
-                  aria-label="Sync Stripe koha for this night"
-                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 disabled:cursor-default disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                <SectionCard
+                  icon={HandCoins}
+                  title="Income"
+                  tone="violet"
+                  action={
+                    <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-violet-800 dark:bg-violet-950/50 dark:text-violet-300">
+                      {NZD.format(incomeSummary.total)}
+                    </span>
+                  }
                 >
-                  {stripeSyncing ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3 w-3" />
-                  )}
-                  {stripeSyncing ? "Syncing…" : "Sync"}
-                </button>
-              )
-            }
-          />
-          <MoneyField
-            id="suggestedValue"
-            label="Suggested value"
-            value={form.suggestedValue}
-            onChange={(v) => set("suggestedValue", v)}
-          />
-          <CountField
-            id="eftposTransactions"
-            label="Eftpos transactions"
-            value={form.eftposTransactions}
-            onChange={(v) => set("eftposTransactions", v)}
-          />
-          <CountField
-            id="nonPayingCount"
-            label="Non-paying customers"
-            value={form.nonPayingCount}
-            onChange={(v) => set("nonPayingCount", v)}
-          />
+                  <EventIncomeEditor
+                    lines={income}
+                    onChange={setIncome}
+                    summary={incomeSummary}
+                  />
+                </SectionCard>
+              </>
+            )}
 
-          {/* Derived ratios — calculated, not entered */}
-          <DerivedField
-            id="perPaying"
-            label="Per paying customer"
-            value={
-              derived.perPaying === null ? "—" : NZD.format(derived.perPaying)
-            }
-            hint="Koha divided by paying customers."
-          />
-          <DerivedField
-            id="nonPayingRatio"
-            label="Non-paying"
-            value={
-              derived.nonPayingRatio === null
-                ? "—"
-                : `${Math.round(derived.nonPayingRatio * 100)}%`
-            }
-            hint="Share of customers served."
-          />
-        </SectionCard>
+            {reportType === "CAFE" && (
+              <>
+                <SectionCard icon={Clock} title="Hours & customers" tone="sky">
+                  <Field htmlFor="opensAt" label="Opened">
+                    <Input
+                      id="opensAt"
+                      type="time"
+                      step={300}
+                      value={form.opensAt}
+                      onChange={(e) => set("opensAt", e.target.value)}
+                      className="tabular-nums"
+                    />
+                  </Field>
+                  <Field
+                    htmlFor="closesAt"
+                    label="Closed"
+                    hint={
+                      hoursInvalid
+                        ? "Closing time must be after opening time."
+                        : undefined
+                    }
+                  >
+                    <Input
+                      id="closesAt"
+                      type="time"
+                      step={300}
+                      value={form.closesAt}
+                      onChange={(e) => set("closesAt", e.target.value)}
+                      aria-invalid={hoursInvalid || undefined}
+                      className="tabular-nums"
+                    />
+                  </Field>
+                  <CountField
+                    id="mealsServed"
+                    label="Customers served"
+                    value={form.mealsServed}
+                    onChange={(v) => set("mealsServed", v)}
+                    hint="Counts towards people served."
+                  />
+                  <NewVolunteersField value={newVolunteers} />
+                </SectionCard>
 
-            {/* Meals */}
-            <SectionCard icon={UtensilsCrossed} title="Meals" tone="violet">
-              <CountField
-                id="takeaways"
-                label="Takeaways"
-                value={form.takeaways}
-                onChange={(v) => set("takeaways", v)}
-              />
-              <CountField
-                id="vege"
-                label="Vege meals"
-                value={form.vege}
-                onChange={(v) => set("vege", v)}
-              />
-            </SectionCard>
+                <SectionCard
+                  icon={HandCoins}
+                  title="Takings"
+                  tone="sky"
+                  action={
+                    <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-sky-800 dark:bg-sky-950/50 dark:text-sky-300">
+                      {cafeSales === null ? "$0" : NZD.format(cafeSales)}
+                    </span>
+                  }
+                >
+                  <MoneyField
+                    id="cash"
+                    label="Cash"
+                    value={form.cash}
+                    onChange={(v) => set("cash", v)}
+                  />
+                  <MoneyField
+                    id="eftpos"
+                    label="EFTPOS"
+                    value={form.eftpos}
+                    onChange={(v) => set("eftpos", v)}
+                  />
+                  <p className="text-[11px] text-muted-foreground sm:col-span-2">
+                    Cafe takings are kept out of koha totals. Cash still shows
+                    in cash reconciliation, labelled as a cafe day.
+                  </p>
+                </SectionCard>
+              </>
+            )}
           </div>
         </CollapsibleContent>
 
@@ -656,13 +995,16 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/30 px-6 py-4">
           <p className="text-xs text-muted-foreground">
             {hasExistingRecord
-              ? "Update tonight's figures any time."
-              : "Jot notes during service — expand to record the full stats."}
+              ? "Update the figures any time."
+              : reportType === "SERVICE_NIGHT"
+                ? "Jot notes during service — expand to record the full stats."
+                : `Save to record this day as ${article(reportType)}.`}
           </p>
           <Button
             onClick={handleSave}
             disabled={loading || !canSave}
-            className="bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+            className={cn("text-white", accent.button)}
+            data-testid="day-report-save"
           >
             {loading ? (
               <>
@@ -682,201 +1024,230 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
   );
 }
 
-// ── Presentational helpers (module scope so identity is stable) ──────
-
-function HeroStat({
-  label,
-  value,
-  featured = false,
-  className,
-}: {
-  label: string;
-  value: string;
-  featured?: boolean;
-  className?: string;
-}) {
+function NewVolunteersField({ value }: { value: number | null }) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border px-3.5 py-2.5",
-        featured
-          ? "border-amber-300/70 bg-amber-50/80 dark:border-amber-800/60 dark:bg-amber-950/30"
-          : "border-border/70 bg-card/70",
-        className
-      )}
+    <Field
+      htmlFor="newVolunteers"
+      label="New volunteers"
+      hint="Counted automatically from confirmed attendance."
     >
-      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "font-accent font-semibold tabular-nums leading-tight",
-          featured
-            ? "text-2xl text-amber-700 dark:text-amber-300"
-            : "text-xl text-foreground"
-        )}
-      >
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-const TONES = {
-  emerald:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
-  amber:
-    "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
-  violet:
-    "bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
-} as const;
-
-function SectionCard({
-  icon: Icon,
-  title,
-  tone,
-  action,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  tone: keyof typeof TONES;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-border/70 bg-card/40 p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <span
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-lg",
-              TONES[tone]
-            )}
-          >
-            <Icon className="h-4 w-4" />
-          </span>
-          {title}
-        </h3>
-        {action}
-      </div>
-      <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function Field({
-  htmlFor,
-  label,
-  hint,
-  action,
-  children,
-}: {
-  htmlFor?: string;
-  label: string;
-  hint?: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="flex min-h-5 items-center justify-between gap-2">
-        <Label htmlFor={htmlFor} className="text-xs font-medium text-foreground/80">
-          {label}
-        </Label>
-        {action}
-      </div>
-      <div className="mt-1.5">{children}</div>
-      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function CountField({
-  id,
-  label,
-  value,
-  onChange,
-  hint,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  hint?: string;
-}) {
-  return (
-    <Field htmlFor={id} label={label} hint={hint}>
-      <Input
-        id={id}
-        type="number"
-        inputMode="numeric"
-        min="0"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="tabular-nums"
-      />
-    </Field>
-  );
-}
-
-function DerivedField({
-  id,
-  label,
-  value,
-  hint,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <Field htmlFor={id} label={label} hint={hint}>
       <div
-        id={id}
+        id="newVolunteers"
         className="flex h-9 items-center gap-2 rounded-md border border-dashed border-input bg-muted/40 px-3 text-sm tabular-nums text-foreground"
       >
-        <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
-        {value}
+        <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+        {value === null ? "—" : value}
       </div>
     </Field>
   );
 }
 
-function MoneyField({
-  id,
-  label,
-  value,
-  onChange,
-  action,
+function ServiceNightBody({
+  form,
+  set,
+  defaultValue,
+  newVolunteers,
+  weatherLoading,
+  onWeather,
+  stripeSyncing,
+  onStripeSync,
+  derived,
 }: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  action?: React.ReactNode;
+  form: FormState;
+  set: (key: StatKey, value: string) => void;
+  defaultValue: number;
+  newVolunteers: number | null;
+  weatherLoading: boolean;
+  onWeather: () => void;
+  stripeSyncing: boolean;
+  onStripeSync?: () => void;
+  derived: ReturnType<typeof computeNightDerived>;
 }) {
   return (
-    <Field htmlFor={id} label={label} action={action}>
-      <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-          $
-        </span>
-        <Input
-          id={id}
-          type="number"
-          inputMode="decimal"
-          step="0.01"
-          min="0"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="0.00"
-          className="pl-7 tabular-nums"
+    <>
+      {/* Attendance & service */}
+      <SectionCard icon={Users} title="Attendance & service" tone="emerald">
+        {/* Headline count — featured, spans the row */}
+        <div className="sm:col-span-2">
+          <Field htmlFor="mealsServed" label="Customers served">
+            <Input
+              id="mealsServed"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={form.mealsServed}
+              onChange={(e) => set("mealsServed", e.target.value)}
+              placeholder={`e.g. ${defaultValue}`}
+              className="h-11 max-w-xs text-lg font-semibold tabular-nums"
+            />
+          </Field>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            People served tonight — the headline count.
+          </p>
+        </div>
+
+        <CountField
+          id="bookingsPax"
+          label="Bookings (pax)"
+          value={form.bookingsPax}
+          onChange={(v) => set("bookingsPax", v)}
         />
-      </div>
-    </Field>
+
+        {/* New volunteers — derived from confirmed attendance, read-only */}
+        <NewVolunteersField value={newVolunteers} />
+
+        {/* Weather — auto-pulled from Open-Meteo, still editable */}
+        <Field
+          htmlFor="weather"
+          label="Weather"
+          action={
+            <button
+              type="button"
+              onClick={onWeather}
+              disabled={weatherLoading}
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 disabled:cursor-default disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+            >
+              {weatherLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              {weatherLoading ? "Fetching…" : "Get weather"}
+            </button>
+          }
+        >
+          <Input
+            id="weather"
+            type="text"
+            value={form.weather}
+            onChange={(e) => set("weather", e.target.value)}
+            placeholder="e.g. Overcast, 15°C"
+          />
+        </Field>
+
+        <Field htmlFor="protein" label="Protein">
+          <Select
+            value={form.protein || undefined}
+            onValueChange={(v) => set("protein", v)}
+          >
+            <SelectTrigger id="protein" size="md" className="w-full">
+              <SelectValue placeholder="Select protein" />
+            </SelectTrigger>
+            <SelectContent>
+              {PROTEIN_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </SectionCard>
+
+      {/* Koha */}
+      <SectionCard
+        icon={HandCoins}
+        title="Koha collected"
+        tone="amber"
+        action={
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+            {derived.totalDonations === null
+              ? "$0"
+              : NZD.format(derived.totalDonations)}
+          </span>
+        }
+      >
+        <MoneyField
+          id="cash"
+          label="Cash"
+          value={form.cash}
+          onChange={(v) => set("cash", v)}
+        />
+        <MoneyField
+          id="eftpos"
+          label="Eftpos"
+          value={form.eftpos}
+          onChange={(v) => set("eftpos", v)}
+        />
+        <MoneyField
+          id="stripe"
+          label="Stripe"
+          value={form.stripe}
+          onChange={(v) => set("stripe", v)}
+          action={
+            onStripeSync ? (
+              <button
+                type="button"
+                onClick={onStripeSync}
+                disabled={stripeSyncing}
+                aria-label="Sync Stripe koha for this night"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 disabled:cursor-default disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+              >
+                {stripeSyncing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                {stripeSyncing ? "Syncing…" : "Sync"}
+              </button>
+            ) : undefined
+          }
+        />
+        <MoneyField
+          id="suggestedValue"
+          label="Suggested value"
+          value={form.suggestedValue}
+          onChange={(v) => set("suggestedValue", v)}
+        />
+        <CountField
+          id="eftposTransactions"
+          label="Eftpos transactions"
+          value={form.eftposTransactions}
+          onChange={(v) => set("eftposTransactions", v)}
+        />
+        <CountField
+          id="nonPayingCount"
+          label="Non-paying customers"
+          value={form.nonPayingCount}
+          onChange={(v) => set("nonPayingCount", v)}
+        />
+
+        {/* Derived ratios — calculated, not entered */}
+        <DerivedField
+          id="perPaying"
+          label="Per paying customer"
+          value={
+            derived.perPaying === null ? "—" : NZD.format(derived.perPaying)
+          }
+          hint="Koha divided by paying customers."
+        />
+        <DerivedField
+          id="nonPayingRatio"
+          label="Non-paying"
+          value={
+            derived.nonPayingRatio === null
+              ? "—"
+              : `${Math.round(derived.nonPayingRatio * 100)}%`
+          }
+          hint="Share of customers served."
+        />
+      </SectionCard>
+
+      {/* Meals */}
+      <SectionCard icon={UtensilsCrossed} title="Meals" tone="violet">
+        <CountField
+          id="takeaways"
+          label="Takeaways"
+          value={form.takeaways}
+          onChange={(v) => set("takeaways", v)}
+        />
+        <CountField
+          id="vege"
+          label="Vege meals"
+          value={form.vege}
+          onChange={(v) => set("vege", v)}
+        />
+      </SectionCard>
+    </>
   );
 }
