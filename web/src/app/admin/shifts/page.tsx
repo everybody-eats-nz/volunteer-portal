@@ -421,6 +421,11 @@ export default async function AdminShiftsPage({
           </div>
         </div>
 
+        {/* Meals Served Input - Only show if shifts exist for this day */}
+        {shifts.length > 0 && (
+          <MealsServedInput date={dateString} location={selectedLocation} />
+        )}
+
         {/* Day theme - shown to volunteers beside the date. Available on empty
             days too, so special nights can be announced before shifts exist.
             Keyed so switching day/location resets the editor's draft. */}
@@ -431,11 +436,6 @@ export default async function AdminShiftsPage({
             location={selectedLocation}
             initialTheme={dayTheme?.theme ?? null}
           />
-        )}
-
-        {/* Meals Served Input - Only show if shifts exist for this day */}
-        {shifts.length > 0 && (
-          <MealsServedInput date={dateString} location={selectedLocation} />
         )}
 
         {/* Shifts Display */}
