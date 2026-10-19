@@ -11,6 +11,7 @@ import {
   getShiftTypeByName,
   createNotification,
   deleteNotifications,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { randomUUID } from "crypto";
@@ -200,9 +201,8 @@ test.describe("General Volunteer Movement System", () => {
         'button[title="Move to different shift"]'
       );
       await expect(moveButton).toBeVisible({ timeout: 10000 });
-      await moveButton.click();
-
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(moveButton, page.getByRole("dialog"));
 
       await page.getByRole("combobox").click();
 
@@ -269,9 +269,8 @@ test.describe("General Volunteer Movement System", () => {
         'button[title="Move to different shift"]'
       );
       await expect(moveButton).toBeVisible({ timeout: 10000 });
-      await moveButton.click();
-
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(moveButton, page.getByRole("dialog"));
       await page.getByRole("combobox").click();
 
       const targetOption = page.locator(
@@ -336,10 +335,9 @@ test.describe("General Volunteer Movement System", () => {
         'button[title="Move to different shift"]'
       );
       await expect(moveButton).toBeVisible({ timeout: 10000 });
-      await moveButton.click();
-
       const dialog = page.getByRole("dialog");
-      await expect(dialog).toBeVisible({ timeout: 10000 });
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(moveButton, dialog);
 
       await page.getByRole("combobox").click();
       const targetOption = page.locator(
@@ -397,10 +395,8 @@ test.describe("General Volunteer Movement System", () => {
       );
       await expect(moveButton).toBeVisible({ timeout: 10000 });
       await expect(moveButton).toBeEnabled();
-      await moveButton.click();
-
-      // Dialog should open
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(moveButton, page.getByRole("dialog"));
       await expect(page.getByText("Currently on")).toBeVisible();
 
       // Open the target-shift dropdown
@@ -487,9 +483,8 @@ test.describe("General Volunteer Movement System", () => {
         'button[title="Move to different shift"]'
       );
       await expect(moveButton).toBeVisible({ timeout: 10000 });
-      await moveButton.click();
-
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
+      // Retries until the dialog opens: a click before hydration is dropped
+      await clickUntilVisible(moveButton, page.getByRole("dialog"));
       await page.getByRole("combobox").click();
 
       // The full shift is still offered, flagged rather than hidden
