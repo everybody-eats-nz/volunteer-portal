@@ -1,14 +1,19 @@
 /**
- * The Events & Cafe report: fundraiser income and cafe takings over a
- * period. Pure aggregation over already-fetched day reports, shared by the
+ * The Events & Cafe report: fundraiser income, costs and profit, and cafe
+ * takings over a period. Pure aggregation over already-fetched day reports, shared by the
  * page and its tests. Neither is koha, so none of this touches koha totals.
  */
 
 import {
+  EVENT_EXPENSE_CATEGORIES,
   EVENT_INCOME_CATEGORIES,
   EVENT_INCOME_SOURCES,
+  eventProfit,
   openMinutes,
+  summariseEventExpenses,
   summariseEventIncome,
+  type EventExpenseCategory,
+  type EventExpenseLine,
   type EventIncomeCategory,
   type EventIncomeLine,
   type EventIncomeSource,
@@ -20,6 +25,7 @@ export interface EventDayInput {
   eventName: string | null;
   pax: number | null;
   income: EventIncomeLine[];
+  expenses: EventExpenseLine[];
 }
 
 export interface CafeDayInput {
@@ -40,6 +46,10 @@ export interface EventRow {
   total: number;
   totalExGst: number;
   lineCount: number;
+  expenses: number;
+  expenseLineCount: number;
+  profit: number;
+  profitExGst: number;
 }
 
 export interface EventsReport {
@@ -52,6 +62,11 @@ export interface EventsReport {
     totalExGst: number;
     byCategory: Record<EventIncomeCategory, number>;
     bySource: Record<EventIncomeSource, number>;
+    expenses: number;
+    expensesExGst: number;
+    expensesByCategory: Record<EventExpenseCategory, number>;
+    profit: number;
+    profitExGst: number;
   };
 }
 
@@ -92,17 +107,22 @@ const newestFirst = <T extends { date: string; location: string }>(
 
 export function buildEventsReport(days: EventDayInput[]): EventsReport {
   const all = summariseEventIncome(days.flatMap((d) => d.income));
+  const allExpenses = summariseEventExpenses(days.flatMap((d) => d.expenses));
   const rows = days
     .map((d) => {
-      const s = summariseEventIncome(d.income);
+      const income = summariseEventIncome(d.income);
+      const expenses = summariseEventExpenses(d.expenses);
       return {
         date: d.date,
         location: d.location,
         eventName: d.eventName,
         pax: d.pax,
-        total: s.total,
-        totalExGst: s.totalExGst,
+        total: income.total,
+        totalExGst: income.totalExGst,
         lineCount: d.income.length,
+        expenses: expenses.total,
+        expenseLineCount: d.expenses.length,
+        ...eventProfit(income, expenses),
       };
     })
     .sort(newestFirst);
@@ -117,6 +137,10 @@ export function buildEventsReport(days: EventDayInput[]): EventsReport {
       totalExGst: all.totalExGst,
       byCategory: all.byCategory,
       bySource: all.bySource,
+      expenses: allExpenses.total,
+      expensesExGst: allExpenses.totalExGst,
+      expensesByCategory: allExpenses.byCategory,
+      ...eventProfit(all, allExpenses),
     },
   };
 }
@@ -194,4 +218,5 @@ export function rankedShares<K extends string>(
 }
 
 export const CATEGORY_KEYS = EVENT_INCOME_CATEGORIES;
+export const EXPENSE_CATEGORY_KEYS = EVENT_EXPENSE_CATEGORIES;
 export const SOURCE_KEYS = EVENT_INCOME_SOURCES;

@@ -10,7 +10,8 @@ import { gotoSettled } from "./helpers/streaming";
 
 /**
  * A day's report can be a service night, an event (fundraiser) or a cafe day.
- * Events itemise their income with a GST flag per line; cafe days record
+ * Events itemise their income and expenses with a GST flag per line, and
+ * work out the profit; cafe days record
  * hours and takings. Neither is koha: both stay out of koha analytics but
  * still show in cash reconciliation and on the Events & Cafe page.
  *
@@ -88,24 +89,67 @@ test.describe("Day report types", () => {
     await report.getByLabel("Guests (pax)").fill("50");
 
     // Line 1: ticket sales on EFTPOS, GST-inclusive by default.
-    await report.getByTestId("event-income-add").click();
-    await report.getByLabel("Description, line 1").fill("Tickets");
-    await report.getByLabel("Amount, line 1").fill("2300");
-    await expect(report.getByLabel("Line 1 includes GST")).toBeChecked();
+    const income = report.getByTestId("event-income-editor");
+    await income.getByTestId("event-income-add").click();
+    await report.getByLabel("Description, income line 1").fill("Tickets");
+    await report.getByLabel("Amount, income line 1").fill("2300");
+    await expect(report.getByLabel("Income line 1 includes GST")).toBeChecked();
 
     // Line 2: cash koha at the door, no GST.
-    await report.getByTestId("event-income-add").click();
-    await report.getByLabel("Category, line 2").click();
+    await income.getByTestId("event-income-add").click();
+    await report.getByLabel("Category, income line 2").click();
     await page.getByRole("option", { name: /^Koha/ }).click();
-    await report.getByLabel("Paid by, line 2").click();
+    await report.getByLabel("Paid by, income line 2").click();
     await page.getByRole("option", { name: "Cash" }).click();
-    await expect(report.getByLabel("Line 2 includes GST")).not.toBeChecked();
-    await report.getByLabel("Amount, line 2").fill("150.50");
+    await expect(
+      report.getByLabel("Income line 2 includes GST")
+    ).not.toBeChecked();
+    await report.getByLabel("Amount, income line 2").fill("150.50");
 
-    await expect(report.getByTestId("event-total")).toHaveText("$2,450.50");
-    await expect(report.getByTestId("event-gst")).toHaveText("$300.00");
-    await expect(report.getByTestId("event-total-ex-gst")).toHaveText(
-      "$2,150.50"
+    // Line 3: a venue hire invoice, paid by invoice and GST-inclusive.
+    await income.getByTestId("event-income-add").click();
+    await report.getByLabel("Category, income line 3").click();
+    await page.getByRole("option", { name: /^Invoice/ }).click();
+    await expect(report.getByLabel("Paid by, income line 3")).toHaveText(
+      "Invoice"
+    );
+    await expect(report.getByLabel("Income line 3 includes GST")).toBeChecked();
+    await report.getByLabel("Description, income line 3").fill("Venue hire");
+    await report.getByLabel("Amount, income line 3").fill("1150");
+
+    await expect(report.getByTestId("event-income-total")).toHaveText(
+      "$3,600.50"
+    );
+    await expect(report.getByTestId("event-income-gst")).toHaveText("$450.00");
+    await expect(report.getByTestId("event-income-total-ex-gst")).toHaveText(
+      "$3,150.50"
+    );
+
+    // Expenses: food with GST, then staff wages without.
+    const expenses = report.getByTestId("event-expense-editor");
+    await expenses.getByTestId("event-expense-add").click();
+    await report.getByLabel("Description, expense line 1").fill("Catering");
+    await report.getByLabel("Amount, expense line 1").fill("575");
+    await expect(
+      report.getByLabel("Expense line 1 includes GST")
+    ).toBeChecked();
+    await expenses.getByTestId("event-expense-add").click();
+    await report.getByLabel("Category, expense line 2").click();
+    await page.getByRole("option", { name: /^Staffing/ }).click();
+    await expect(
+      report.getByLabel("Expense line 2 includes GST")
+    ).not.toBeChecked();
+    await report.getByLabel("Amount, expense line 2").fill("400");
+
+    await expect(report.getByTestId("event-expense-total")).toHaveText(
+      "$975.00"
+    );
+    await expect(report.getByTestId("event-expense-gst")).toHaveText("$75.00");
+    await expect(report.getByTestId("event-profit-total")).toHaveText(
+      "$2,625.50"
+    );
+    await expect(report.getByTestId("event-profit-ex-gst")).toHaveText(
+      "$2,250.50"
     );
 
     await report.getByTestId("day-report-save").click();
@@ -115,7 +159,13 @@ test.describe("Day report types", () => {
     const reloaded = await openReport(page, name);
     await expect(reloaded).toHaveAttribute("data-report-type", "EVENT");
     await expect(reloaded.getByTestId("event-hero-total")).toHaveText(
-      "$2,450.50"
+      "$3,600.50"
+    );
+    await expect(reloaded.getByTestId("event-hero-expenses")).toHaveText(
+      "$975.00"
+    );
+    await expect(reloaded.getByTestId("event-hero-profit")).toHaveText(
+      "$2,625.50"
     );
 
     // Not koha: absent from service-night analytics...
@@ -129,10 +179,18 @@ test.describe("Day report types", () => {
       page,
       `/admin/analytics/events?year=${FY}&location=${encodeURIComponent(name)}`
     );
-    await expect(visibleTestId(page, "events-total")).toHaveText("$2,450.50");
+    await expect(visibleTestId(page, "events-total")).toHaveText("$3,600.50");
+    await expect(visibleTestId(page, "events-expenses")).toHaveText("$975.00");
+    await expect(visibleTestId(page, "events-profit")).toHaveText("$2,625.50");
+    await expect(visibleTestId(page, "events-profit-ex-gst")).toHaveText(
+      "$2,250.50"
+    );
+    await expect(
+      visibleTestId(page, "events-expense-breakdown")
+    ).toContainText("Staffing");
     const row = visibleTestId(page, `events-row-${DATE}`);
     await expect(row).toContainText("Quiz night");
-    await expect(row).toContainText("$2,150.50");
+    await expect(row).toContainText("$2,625.50");
 
     // ...and its cash in cash reconciliation, labelled as an event.
     await gotoSettled(
@@ -190,6 +248,7 @@ test.describe("Day report types", () => {
           reportType: "EVENT",
           eventName: "Gala",
           income: [{ source: "CASH", category: "DONATION", amount: 500 }],
+          expenses: [{ category: "DECOR", amount: 80 }],
         })
       ).ok()
     ).toBe(true);
@@ -198,7 +257,7 @@ test.describe("Day report types", () => {
     const report = await openReport(page, name);
     await report.getByRole("radio", { name: "Service night" }).click();
     await expect(report.getByTestId("report-type-switch-note")).toContainText(
-      "clears its income lines and event name"
+      "clears its event name, income and expenses"
     );
 
     expect((await save({ reportType: "SERVICE_NIGHT", cash: 80 })).ok()).toBe(
@@ -213,6 +272,7 @@ test.describe("Day report types", () => {
       reportType: "SERVICE_NIGHT",
       eventName: null,
       income: [],
+      expenses: [],
       cash: 80,
     });
   });

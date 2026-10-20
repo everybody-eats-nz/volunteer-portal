@@ -11,12 +11,15 @@ import { REPORT_FIELDS, ALL_REPORT_FIELDS } from "@/lib/day-reports";
 import { dayKeyToDbDate, isDayKey } from "@/lib/shift-day-themes";
 import type { Prisma } from "@/generated/client";
 
-const withIncome = {
-  include: { income: { orderBy: { position: "asc" } } },
+const withLines = {
+  include: {
+    income: { orderBy: { position: "asc" } },
+    expenses: { orderBy: { position: "asc" } },
+  },
 } as const satisfies Prisma.MealsServedDefaultArgs;
 
 // Decimal columns come back as Prisma.Decimal — serialize to plain numbers for JSON.
-type MealsServedRecord = Prisma.MealsServedGetPayload<typeof withIncome>;
+type MealsServedRecord = Prisma.MealsServedGetPayload<typeof withLines>;
 
 function serializeStats(record: MealsServedRecord) {
   const toNumber = (v: Prisma.Decimal | null) => (v === null ? null : Number(v));
@@ -27,6 +30,12 @@ function serializeStats(record: MealsServedRecord) {
     closesAt: record.closesAt,
     income: record.income.map((line) => ({
       source: line.source,
+      category: line.category,
+      description: line.description,
+      amount: Number(line.amount),
+      gstIncluded: line.gstIncluded,
+    })),
+    expenses: record.expenses.map((line) => ({
       category: line.category,
       description: line.description,
       amount: Number(line.amount),
@@ -89,7 +98,7 @@ export async function GET(request: NextRequest) {
             location,
           },
         },
-        ...withIncome,
+        ...withLines,
       }),
       prisma.location.findUnique({
         where: { name: location },
@@ -134,6 +143,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         reportType: "SERVICE_NIGHT",
         income: [],
+        expenses: [],
         mealsServed: null,
         defaultMealsServed: locationConfig?.defaultMealsServed || 60,
         notes: null,
@@ -183,6 +193,7 @@ export async function POST(request: NextRequest) {
       date,
       location,
       income,
+      expenses,
       reportType: requestedType,
       ...fields
     } = parsed.data;
@@ -204,20 +215,22 @@ export async function POST(request: NextRequest) {
     // Keep only the columns this report type owns (plus the shared headcount
     // and notes). Switching a day from a service night to an event clears its
     // koha, so it can't linger in koha totals; switching away from an event
-    // drops its income lines below.
+    // drops its income and expense lines below.
     const owned = new Set(REPORT_FIELDS[reportType]);
     const stats = { ...fields } as Record<string, unknown>;
     for (const field of ALL_REPORT_FIELDS) {
       if (!owned.has(field)) stats[field] = null;
     }
-    const lines = reportType === "EVENT" ? income : [];
+    const incomeLines = reportType === "EVENT" ? income : [];
+    const expenseLines = reportType === "EVENT" ? expenses : [];
 
     // Require something to save — don't create empty rows. Marking a day as
     // an event or cafe is itself worth recording, and an existing day may be
     // cleared (say, an event switched back to a not-yet-recorded service night).
     const hasAnyValue =
       reportType !== "SERVICE_NIGHT" ||
-      lines.length > 0 ||
+      incomeLines.length > 0 ||
+      expenseLines.length > 0 ||
       existing !== null ||
       Object.values(stats).some((v) => v !== null);
     if (!hasAnyValue) {
@@ -241,8 +254,9 @@ export async function POST(request: NextRequest) {
       createdBy: session.user.id,
     };
 
-    // Upsert the day report and replace its income lines in one go, so the
-    // saved lines always match what the admin saw when they pressed Save.
+    // Upsert the day report and replace its income and expense lines in one
+    // go, so the saved lines always match what the admin saw when they
+    // pressed Save.
     const mealsRecord = await prisma.$transaction(async (tx) => {
       const report = await tx.mealsServed.upsert({
         where: {
@@ -256,9 +270,19 @@ export async function POST(request: NextRequest) {
         select: { id: true },
       });
       await tx.eventIncome.deleteMany({ where: { reportId: report.id } });
-      if (lines.length > 0) {
+      if (incomeLines.length > 0) {
         await tx.eventIncome.createMany({
-          data: lines.map((line, position) => ({
+          data: incomeLines.map((line, position) => ({
+            ...line,
+            reportId: report.id,
+            position,
+          })),
+        });
+      }
+      await tx.eventExpense.deleteMany({ where: { reportId: report.id } });
+      if (expenseLines.length > 0) {
+        await tx.eventExpense.createMany({
+          data: expenseLines.map((line, position) => ({
             ...line,
             reportId: report.id,
             position,
@@ -267,7 +291,7 @@ export async function POST(request: NextRequest) {
       }
       return tx.mealsServed.findUniqueOrThrow({
         where: { id: report.id },
-        ...withIncome,
+        ...withLines,
       });
     });
 

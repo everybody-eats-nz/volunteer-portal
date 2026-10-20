@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Test-only endpoint: delete every day report (and, by cascade, its event
- * income) at one location, so e2e tests leave no records behind.
+ * income and expenses) at one location, so e2e tests leave no records behind.
  * Only available in development/test environments.
  */
 export async function DELETE(request: NextRequest) {

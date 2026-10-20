@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 import { budgetYearLabel } from "@/lib/budget-calculations";
 import {
+  EVENT_EXPENSE_CATEGORY_LABEL,
   EVENT_INCOME_CATEGORY_LABEL,
   EVENT_INCOME_SOURCE_LABEL,
   formatDuration,
@@ -38,6 +39,7 @@ import {
 } from "@/lib/day-reports";
 import {
   CATEGORY_KEYS,
+  EXPENSE_CATEGORY_KEYS,
   SOURCE_KEYS,
   rankedShares,
   type CafeReport,
@@ -261,13 +263,17 @@ function EventsView({
       <EmptyState
         icon={Ticket}
         title={`No events recorded for ${placeLabel} in ${periodLabel}`}
-        body="To record a fundraiser, open the day in Shifts, choose Event on its report, and add the night's income line by line."
+        body="To record a fundraiser, open the day in Shifts, choose Event on its report, and add the night's income and expenses line by line."
       />
     );
   }
 
   const categories = rankedShares(totals.byCategory, CATEGORY_KEYS);
   const sources = rankedShares(totals.bySource, SOURCE_KEYS);
+  const expenseCategories = rankedShares(
+    totals.expensesByCategory,
+    EXPENSE_CATEGORY_KEYS
+  );
 
   return (
     <>
@@ -278,16 +284,34 @@ function EventsView({
         testId="events-total"
         caption={`${plural(totals.events, "event")} at ${placeLabel} in ${periodLabel}, including GST.`}
         figures={[
-          { label: "Excl. GST", value: money(totals.totalExGst) },
+          { label: "Income excl. GST", value: money(totals.totalExGst) },
           { label: "GST", value: money(totals.gst) },
+          {
+            label: "Expenses",
+            value: money(totals.expenses),
+            testId: "events-expenses",
+          },
+          {
+            label: totals.profit < 0 ? "Loss" : "Profit",
+            value: money(totals.profit),
+            negative: totals.profit < 0,
+            testId: "events-profit",
+          },
+          {
+            label: totals.profitExGst < 0 ? "Loss excl. GST" : "Profit excl. GST",
+            value: money(totals.profitExGst),
+            negative: totals.profitExGst < 0,
+            testId: "events-profit-ex-gst",
+          },
           { label: "Guests", value: totals.pax.toLocaleString("en-NZ") },
         ]}
       />
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <Breakdown
-          title="By category"
+          title="Income by category"
           tone="violet"
+          empty="No income entered yet."
           rows={categories.map((c) => ({
             label: EVENT_INCOME_CATEGORY_LABEL[c.key],
             amount: c.amount,
@@ -295,12 +319,25 @@ function EventsView({
           }))}
         />
         <Breakdown
-          title="Paid by"
+          title="Income paid by"
           tone="violet"
+          empty="No income entered yet."
           rows={sources.map((s) => ({
             label: EVENT_INCOME_SOURCE_LABEL[s.key],
             amount: s.amount,
             share: s.share,
+          }))}
+        />
+        <Breakdown
+          title="Expenses by category"
+          tone="slate"
+          empty="No expenses entered yet."
+          className="md:col-span-2 lg:col-span-1"
+          testId="events-expense-breakdown"
+          rows={expenseCategories.map((c) => ({
+            label: EVENT_EXPENSE_CATEGORY_LABEL[c.key],
+            amount: c.amount,
+            share: c.share,
           }))}
         />
       </div>
@@ -313,13 +350,16 @@ function EventsView({
               <TableHead className="hidden text-xs md:table-cell">
                 Restaurant
               </TableHead>
-              <TableHead className="hidden text-right text-xs sm:table-cell">
+              <TableHead className="hidden text-right text-xs lg:table-cell">
                 Guests
               </TableHead>
-              <TableHead className="text-right text-xs">Income</TableHead>
-              <TableHead className="hidden text-right text-xs lg:table-cell">
-                Excl. GST
+              <TableHead className="hidden text-right text-xs sm:table-cell">
+                Income
               </TableHead>
+              <TableHead className="hidden text-right text-xs sm:table-cell">
+                Expenses
+              </TableHead>
+              <TableHead className="text-right text-xs">Profit</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -331,7 +371,7 @@ function EventsView({
                 key={`${row.date}-${row.location}`}
                 data-testid={`events-row-${row.date}`}
               >
-                <TableCell className="py-2.5 pl-4">
+                <TableCell className="whitespace-normal py-2.5 pl-4">
                   <p className="font-medium text-foreground">
                     {row.eventName || (
                       <span className="text-muted-foreground">
@@ -347,14 +387,14 @@ function EventsView({
                 <TableCell className="hidden py-2.5 text-sm md:table-cell">
                   {row.location}
                 </TableCell>
-                <TableCell className="hidden py-2.5 text-right text-sm tabular-nums sm:table-cell">
+                <TableCell className="hidden py-2.5 text-right text-sm tabular-nums lg:table-cell">
                   {row.pax === null ? (
                     <Dash />
                   ) : (
                     row.pax.toLocaleString("en-NZ")
                   )}
                 </TableCell>
-                <TableCell className="py-2.5 text-right text-sm font-medium tabular-nums">
+                <TableCell className="hidden py-2.5 text-right text-sm font-medium tabular-nums sm:table-cell">
                   {row.lineCount === 0 ? (
                     <span className="text-xs font-normal text-amber-700 dark:text-amber-300">
                       No income yet
@@ -363,8 +403,15 @@ function EventsView({
                     money(row.total)
                   )}
                 </TableCell>
-                <TableCell className="hidden py-2.5 text-right text-sm tabular-nums text-muted-foreground lg:table-cell">
-                  {row.lineCount === 0 ? <Dash /> : money(row.totalExGst)}
+                <TableCell className="hidden py-2.5 text-right text-sm tabular-nums text-muted-foreground sm:table-cell">
+                  {row.expenseLineCount === 0 ? <Dash /> : money(row.expenses)}
+                </TableCell>
+                <TableCell className="py-2.5 text-right text-sm font-medium tabular-nums">
+                  {row.lineCount === 0 && row.expenseLineCount === 0 ? (
+                    <Dash />
+                  ) : (
+                    <Profit amount={row.profit} exGst={row.profitExGst} />
+                  )}
                 </TableCell>
                 <TableCell className="py-2.5 pr-4 text-right">
                   <ReportLink date={row.date} location={row.location} />
@@ -381,14 +428,17 @@ function EventsView({
                 </span>
               </TableCell>
               <TableCell className="hidden md:table-cell" />
-              <TableCell className="hidden py-3 text-right tabular-nums sm:table-cell">
+              <TableCell className="hidden py-3 text-right tabular-nums lg:table-cell">
                 {totals.pax.toLocaleString("en-NZ")}
               </TableCell>
-              <TableCell className="py-3 text-right font-semibold tabular-nums">
+              <TableCell className="hidden py-3 text-right font-semibold tabular-nums sm:table-cell">
                 {money(totals.total)}
               </TableCell>
-              <TableCell className="hidden py-3 text-right tabular-nums text-muted-foreground lg:table-cell">
-                {money(totals.totalExGst)}
+              <TableCell className="hidden py-3 text-right tabular-nums text-muted-foreground sm:table-cell">
+                {money(totals.expenses)}
+              </TableCell>
+              <TableCell className="py-3 text-right font-semibold tabular-nums">
+                <Profit amount={totals.profit} exGst={totals.profitExGst} />
               </TableCell>
               <TableCell />
             </TableRow>
@@ -579,7 +629,16 @@ const TONE = {
     bar: "bg-sky-500 dark:bg-sky-400",
     ring: "ring-sky-500/20",
   },
+  // Money going out: quieter than the takings it's set against.
+  slate: {
+    total: "text-slate-800 dark:text-slate-200",
+    label: "text-slate-700 dark:text-slate-300",
+    bar: "bg-slate-400 dark:bg-slate-500",
+    ring: "ring-slate-500/20",
+  },
 } as const;
+
+const NEGATIVE = "text-rose-700 dark:text-rose-300";
 
 function Slip({
   tone,
@@ -593,7 +652,12 @@ function Slip({
   label: string;
   total: string;
   caption: string;
-  figures: { label: string; value: string }[];
+  figures: {
+    label: string;
+    value: string;
+    negative?: boolean;
+    testId?: string;
+  }[];
   testId: string;
 }) {
   const t = TONE[tone];
@@ -636,7 +700,13 @@ function Slip({
               className="flex flex-col justify-center bg-card px-4 py-4 sm:px-6"
             >
               <dt className="text-xs text-muted-foreground">{f.label}</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
+              <dd
+                className={cn(
+                  "mt-1 text-lg font-semibold tabular-nums",
+                  f.negative && NEGATIVE
+                )}
+                data-testid={f.testId}
+              >
                 {f.value}
               </dd>
             </div>
@@ -651,18 +721,25 @@ function Breakdown({
   title,
   tone,
   rows,
+  empty,
+  className,
+  testId,
 }: {
   title: string;
   tone: keyof typeof TONE;
   rows: { label: string; amount: number; share: number }[];
+  empty: string;
+  className?: string;
+  testId?: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div
+      className={cn("rounded-xl border bg-card p-5", className)}
+      data-testid={testId}
+    >
       <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       {rows.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          No income entered yet.
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
       ) : (
         <ul className="mt-4 space-y-3">
           {rows.map((r) => (
@@ -730,6 +807,23 @@ function ReportLink({ date, location }: { date: string; location: string }) {
       Open
       <ArrowUpRight className="h-3 w-3" aria-hidden />
     </Link>
+  );
+}
+
+/** An event's profit, red when it made a loss, with the excl. GST figure. */
+function Profit({ amount, exGst }: { amount: number; exGst: number }) {
+  return (
+    <span className="inline-flex flex-col items-end">
+      <span className={cn(amount < 0 && NEGATIVE)}>{money(amount)}</span>
+      <span
+        className={cn(
+          "whitespace-nowrap text-[11px] font-normal",
+          exGst < 0 ? NEGATIVE : "text-muted-foreground"
+        )}
+      >
+        {money(exGst)} excl. GST
+      </span>
+    </span>
   );
 }
 

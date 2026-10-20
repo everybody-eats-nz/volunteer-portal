@@ -157,16 +157,23 @@ describe("planMealCollision", () => {
       (field) => [field, null]
     )
   );
-  const none = { into: 0, from: 0 };
+  const lines = (
+    income: [number, number] = [0, 0],
+    expenses: [number, number] = [0, 0]
+  ) => ({
+    income: { into: income[0], from: income[1] },
+    expenses: { into: expenses[0], from: expenses[1] },
+  });
+  const none = lines();
 
   it("back-fills blanks within one report type", () => {
-    const { data, moveIncome } = planMealCollision(
+    const { data, move } = planMealCollision(
       { ...blank, reportType: "SERVICE_NIGHT", cash: 100 },
       { ...blank, reportType: "SERVICE_NIGHT", cash: 5, eftpos: 200, notes: "x" },
       none
     );
     expect(data).toEqual({ notes: "x", eftpos: 200 });
-    expect(moveIncome).toBe(false);
+    expect(move).toEqual({ income: false, expenses: false });
   });
 
   it("never turns cafe takings into koha", () => {
@@ -178,23 +185,33 @@ describe("planMealCollision", () => {
     expect(data).toEqual({ mealsServed: 30 });
   });
 
-  it("gives a blank survivor the duplicate's whole event, income included", () => {
-    const { data, moveIncome } = planMealCollision(
+  it("gives a blank survivor the duplicate's whole event, lines included", () => {
+    const { data, move } = planMealCollision(
       { ...blank, reportType: "SERVICE_NIGHT", notes: "kept" },
       { ...blank, reportType: "EVENT", eventName: "Gala", notes: "dropped" },
-      { into: 0, from: 3 }
+      lines([0, 3], [0, 2])
     );
     expect(data).toEqual({ reportType: "EVENT", eventName: "Gala" });
-    expect(moveIncome).toBe(true);
+    expect(move).toEqual({ income: true, expenses: true });
   });
 
-  it("keeps the survivor's own event income", () => {
+  it("keeps the survivor's own event income and expenses", () => {
     expect(
       planMealCollision(
         { ...blank, reportType: "EVENT" },
         { ...blank, reportType: "EVENT" },
-        { into: 2, from: 3 }
-      ).moveIncome
-    ).toBe(false);
+        lines([2, 3], [1, 4])
+      ).move
+    ).toEqual({ income: false, expenses: false });
+  });
+
+  it("fills in whichever kind of event line the survivor is missing", () => {
+    expect(
+      planMealCollision(
+        { ...blank, reportType: "EVENT" },
+        { ...blank, reportType: "EVENT" },
+        lines([2, 3], [0, 4])
+      ).move
+    ).toEqual({ income: false, expenses: true });
   });
 });

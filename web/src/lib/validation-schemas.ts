@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getActiveLocationNames } from "@/lib/locations";
 import {
   DAY_REPORT_TYPES,
+  EVENT_EXPENSE_CATEGORIES,
   EVENT_INCOME_CATEGORIES,
   EVENT_INCOME_SOURCES,
 } from "@/lib/day-reports";
@@ -57,6 +58,23 @@ const optionalTime = optionalString.refine(
   "Opening hours must be times like 07:30"
 );
 
+// The dollar amount of one itemised event line. Blank must fail, not coerce
+// to $0 (Number("") and Number(null) are 0).
+const lineAmount = (kind: "income" | "expense") =>
+  z
+    .preprocess(
+      (v) =>
+        v === null || (typeof v === "string" && v.trim() === "")
+          ? undefined
+          : v,
+      z.coerce
+        .number({ error: `Enter an amount for every ${kind} line` })
+        .finite(`Enter an amount for every ${kind} line`)
+        .min(0, `${kind === "income" ? "Income" : "Expense"} amounts can't be negative`)
+        .max(99_999_999.99, "That amount is too large")
+    )
+    .transform((v) => Math.round(v * 100) / 100);
+
 // One itemised line of event (fundraiser) takings.
 export const eventIncomeLineSchema = z.object({
   source: z.enum(EVENT_INCOME_SOURCES, { error: "Choose where the money came in" }),
@@ -65,24 +83,26 @@ export const eventIncomeLineSchema = z.object({
     (v) => v === null || v.length <= 120,
     "Keep income descriptions under 120 characters"
   ),
-  // Blank must fail, not coerce to $0 (Number("") and Number(null) are 0).
-  amount: z
-    .preprocess(
-      (v) =>
-        v === null || (typeof v === "string" && v.trim() === "")
-          ? undefined
-          : v,
-      z.coerce
-        .number({ error: "Enter an amount for every income line" })
-        .finite("Enter an amount for every income line")
-        .min(0, "Income amounts can't be negative")
-        .max(99_999_999.99, "That amount is too large")
-    )
-    .transform((v) => Math.round(v * 100) / 100),
+  amount: lineAmount("income"),
   gstIncluded: z.boolean().default(false),
 });
 
 export type EventIncomeLineInput = z.infer<typeof eventIncomeLineSchema>;
+
+// One itemised line of event (fundraiser) costs.
+export const eventExpenseLineSchema = z.object({
+  category: z.enum(EVENT_EXPENSE_CATEGORIES, {
+    error: "Choose an expense category",
+  }),
+  description: optionalString.refine(
+    (v) => v === null || v.length <= 120,
+    "Keep expense descriptions under 120 characters"
+  ),
+  amount: lineAmount("expense"),
+  gstIncluded: z.boolean().default(false),
+});
+
+export type EventExpenseLineInput = z.infer<typeof eventExpenseLineSchema>;
 
 // Body for POST /api/admin/meals-served — a full day report (service night,
 // event or cafe). `date` (YYYY-MM-DD) and `location` identify the day;
@@ -99,6 +119,10 @@ export const restaurantNightStatsSchema = z.object({
   income: z
     .array(eventIncomeLineSchema)
     .max(100, "That's a lot of income lines - combine some")
+    .default([]),
+  expenses: z
+    .array(eventExpenseLineSchema)
+    .max(100, "That's a lot of expense lines - combine some")
     .default([]),
   opensAt: optionalTime,
   closesAt: optionalTime,

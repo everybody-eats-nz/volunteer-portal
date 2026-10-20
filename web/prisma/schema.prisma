@@ -930,10 +930,11 @@ model MealsServed {
   mealsServed Int? // Customers / people served that day — headline count (nullable — admins may save notes without a count). Event pax and cafe customers for those report types.
   notes       String? // Optional notes about the day
 
-  // Event (fundraiser) report. Takings are itemised in EventIncome, not in
-  // the koha columns below.
-  eventName String?       @db.VarChar(120)
+  // Event (fundraiser) report. Takings are itemised in EventIncome and costs
+  // in EventExpense, not in the koha columns below.
+  eventName String?        @db.VarChar(120)
   income    EventIncome[]
+  expenses  EventExpense[]
 
   // Cafe report. Opening hours as NZ wall-clock "HH:mm"; takings use the cash
   // and eftpos columns below.
@@ -974,6 +975,7 @@ enum EventIncomeSource {
 enum EventIncomeCategory {
   KOHA
   SALES // Tickets, merch
+  INVOICE // Events hire or catering, billed to a client
   AUCTION
   DONATION
   OTHER
@@ -989,6 +991,32 @@ model EventIncome {
   amount      Decimal             @db.Decimal(10, 2) // GST-inclusive when gstIncluded
   gstIncluded Boolean             @default(false) // Taxable: the amount includes 15% GST
   position    Int                 @default(0) // Display order within the report
+
+  report MealsServed @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+enum EventExpenseCategory {
+  STAFFING
+  FOOD
+  LICENCES
+  EQUIPMENT_HIRE
+  DECOR
+  DRINKS
+  OTHER
+}
+
+// One line of costs for an event (fundraiser), e.g. "Equipment hire, $350".
+// Income less expenses is the event's profit.
+model EventExpense {
+  id          String               @id @default(cuid())
+  reportId    String
+  category    EventExpenseCategory
+  description String?              @db.VarChar(120)
+  amount      Decimal              @db.Decimal(10, 2) // GST-inclusive when gstIncluded
+  gstIncluded Boolean              @default(false) // The amount includes 15% GST (claimable)
+  position    Int                  @default(0) // Display order within the report
 
   report MealsServed @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
