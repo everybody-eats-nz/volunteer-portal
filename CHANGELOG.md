@@ -1,3 +1,9 @@
+## [0.189.0] - 2026-10-20
+
+### Changes
+- feat: show cafe takings excl. GST ([#1359](https://github.com/everybody-eats-nz/volunteer-portal/pull/1359)) by @malinmalliyawadu
+
+
 ## [0.188.0] - 2026-10-20
 
 ### Changes
