@@ -1,3 +1,9 @@
+## [0.187.0] - 2026-10-20
+
+### Changes
+- Record events (fundraisers) and cafe days separately from koha ([#1356](https://github.com/everybody-eats-nz/volunteer-portal/pull/1356)) by @malinmalliyawadu
+
+
 ## [0.186.0] - 2026-10-19
 
 ### Changes
