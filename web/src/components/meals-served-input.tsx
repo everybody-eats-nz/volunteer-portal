@@ -48,6 +48,7 @@ import {
   DAY_REPORT_TYPE_META,
   eventProfit,
   formatDuration,
+  gstPortion,
   isDayReportType,
   openMinutes,
   summariseEventExpenses,
@@ -453,6 +454,10 @@ export function MealsServedInput({
     num(form.cash) === null && eftposTotal === null
       ? null
       : (num(form.cash) ?? 0) + (eftposTotal ?? 0);
+  // Cafe sales are taxable: the takings entered include 15% GST.
+  const cafeGst = cafeSales === null ? null : gstPortion(cafeSales);
+  const cafeSalesExGst =
+    cafeSales === null || cafeGst === null ? null : cafeSales - cafeGst;
   const cafeMinutes = openMinutes(form.opensAt, form.closesAt);
   const hoursInvalid =
     form.opensAt !== "" && form.closesAt !== "" && cafeMinutes === null;
@@ -853,19 +858,30 @@ export function MealsServedInput({
                   tone="sky"
                   label="Cafe takings"
                   value={cafeSales === null ? "—" : NZD.format(cafeSales)}
-                  hint="Not koha"
+                  hint="Incl. GST, not koha"
                   testId="cafe-hero-total"
+                />
+                <HeroStat
+                  label="Excl. GST"
+                  value={
+                    cafeSalesExGst === null ? "—" : NZD.format(cafeSalesExGst)
+                  }
+                  hint={
+                    cafeGst === null
+                      ? undefined
+                      : `${NZD.format(cafeGst)} GST`
+                  }
+                  testId="cafe-hero-ex-gst"
                 />
                 <HeroStat
                   label="Customers"
                   value={
                     customers === null ? "—" : customers.toLocaleString("en-NZ")
                   }
-                />
-                <HeroStat
-                  label="Open"
-                  value={
-                    cafeMinutes === null ? "—" : formatDuration(cafeMinutes)
+                  hint={
+                    cafeMinutes === null
+                      ? undefined
+                      : `Open ${formatDuration(cafeMinutes)}`
                   }
                 />
                 <HeroStat
@@ -1062,9 +1078,32 @@ export function MealsServedInput({
                     value={form.eftpos}
                     onChange={(v) => set("eftpos", v)}
                   />
+                  {cafeSales !== null && (
+                    <dl
+                      className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-0.5 rounded-xl bg-muted/40 px-4 py-3.5 text-sm sm:col-start-2"
+                      data-testid="cafe-takings-summary"
+                    >
+                      <dt className="text-muted-foreground">Total incl. GST</dt>
+                      <dd className="text-right font-semibold tabular-nums">
+                        {NZD.format(cafeSales)}
+                      </dd>
+                      <dt className="text-muted-foreground">GST</dt>
+                      <dd className="text-right tabular-nums" data-testid="cafe-gst">
+                        {NZD.format(cafeGst ?? 0)}
+                      </dd>
+                      <dt className="text-muted-foreground">Total excl. GST</dt>
+                      <dd
+                        className="text-right tabular-nums"
+                        data-testid="cafe-total-ex-gst"
+                      >
+                        {NZD.format(cafeSalesExGst ?? 0)}
+                      </dd>
+                    </dl>
+                  )}
                   <p className="text-[11px] text-muted-foreground sm:col-span-2">
-                    Cafe takings are kept out of koha totals. Cash still shows
-                    in cash reconciliation, labelled as a cafe day.
+                    Enter takings as taken, including GST. Cafe takings are
+                    kept out of koha totals. Cash still shows in cash
+                    reconciliation, labelled as a cafe day.
                   </p>
                 </SectionCard>
               </>

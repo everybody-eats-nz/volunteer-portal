@@ -106,6 +106,8 @@ describe("buildCafeReport", () => {
     ]);
 
     expect(report.rows.map((r) => r.total)).toEqual([100, null, 400]);
+    // GST-inclusive takings: $100 holds $13.04 GST, $400 holds $52.17.
+    expect(report.rows.map((r) => r.totalExGst)).toEqual([86.96, null, 347.83]);
     expect(report.rows[2].minutesOpen).toBe(390);
     expect(report.totals).toEqual({
       days: 3,
@@ -114,6 +116,8 @@ describe("buildCafeReport", () => {
       cash: 220.5,
       eftpos: 279.5,
       total: 500,
+      totalExGst: 434.79, // day by day, so the table adds up
+      gst: 65.21,
       perDay: 250, // two days with takings
       perCustomer: 10, // only the day with both: $400 / 40
     });

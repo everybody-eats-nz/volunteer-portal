@@ -479,7 +479,12 @@ function CafeView({
         label="Cafe takings"
         total={money(totals.total)}
         testId="cafe-total"
-        caption={`${plural(totals.days, "cafe day")} at ${placeLabel} in ${periodLabel}.`}
+        subtotal={{
+          value: `${money(totals.totalExGst)} excl. GST`,
+          detail: `${money(totals.gst)} GST`,
+          testId: "cafe-total-ex-gst",
+        }}
+        caption={`${plural(totals.days, "cafe day")} at ${placeLabel} in ${periodLabel}, including GST.`}
         figures={[
           { label: "Cash", value: money(totals.cash) },
           { label: "EFTPOS", value: money(totals.eftpos) },
@@ -575,7 +580,7 @@ function CafeView({
                       No takings yet
                     </span>
                   ) : (
-                    money(row.total)
+                    <WithExGst amount={row.total} exGst={row.totalExGst ?? 0} />
                   )}
                 </TableCell>
                 <TableCell className="py-2.5 pr-4 text-right">
@@ -603,7 +608,7 @@ function CafeView({
                 {money(totals.eftpos)}
               </TableCell>
               <TableCell className="py-3 text-right font-semibold tabular-nums">
-                {money(totals.total)}
+                <WithExGst amount={totals.total} exGst={totals.totalExGst} />
               </TableCell>
               <TableCell />
             </TableRow>
@@ -645,6 +650,7 @@ function Slip({
   label,
   total,
   caption,
+  subtotal,
   figures,
   testId,
 }: {
@@ -652,6 +658,8 @@ function Slip({
   label: string;
   total: string;
   caption: string;
+  /** A second figure for the headline total, e.g. the total excl. GST. */
+  subtotal?: { value: string; detail?: string; testId?: string };
   figures: {
     label: string;
     value: string;
@@ -680,6 +688,21 @@ function Slip({
           >
             {total}
           </p>
+          {subtotal && (
+            <p className="mt-2 text-base tabular-nums">
+              <span
+                className="font-semibold text-foreground"
+                data-testid={subtotal.testId}
+              >
+                {subtotal.value}
+              </span>
+              {subtotal.detail && (
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {subtotal.detail}
+                </span>
+              )}
+            </p>
+          )}
           <p className="mt-3 max-w-prose text-sm text-muted-foreground">
             {caption}
           </p>
@@ -813,8 +836,23 @@ function ReportLink({ date, location }: { date: string; location: string }) {
 /** An event's profit, red when it made a loss, with the excl. GST figure. */
 function Profit({ amount, exGst }: { amount: number; exGst: number }) {
   return (
+    <WithExGst amount={amount} exGst={exGst} negative={amount < 0} />
+  );
+}
+
+/** A GST-inclusive amount with its excl. GST figure beneath. */
+function WithExGst({
+  amount,
+  exGst,
+  negative = false,
+}: {
+  amount: number;
+  exGst: number;
+  negative?: boolean;
+}) {
+  return (
     <span className="inline-flex flex-col items-end">
-      <span className={cn(amount < 0 && NEGATIVE)}>{money(amount)}</span>
+      <span className={cn(negative && NEGATIVE)}>{money(amount)}</span>
       <span
         className={cn(
           "whitespace-nowrap text-[11px] font-normal",

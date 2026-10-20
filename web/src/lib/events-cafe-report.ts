@@ -9,6 +9,7 @@ import {
   EVENT_INCOME_CATEGORIES,
   EVENT_INCOME_SOURCES,
   eventProfit,
+  gstPortion,
   openMinutes,
   summariseEventExpenses,
   summariseEventIncome,
@@ -80,6 +81,7 @@ export interface CafeRow {
   cash: number | null;
   eftpos: number | null;
   total: number | null; // null when no takings were entered
+  totalExGst: number | null; // takings are GST-inclusive
 }
 
 export interface CafeReport {
@@ -92,6 +94,9 @@ export interface CafeReport {
     cash: number;
     eftpos: number;
     total: number;
+    /** Takings less the GST in them, worked out day by day. */
+    totalExGst: number;
+    gst: number;
     /** Average takings over the days that recorded any. */
     perDay: number | null;
     /** Takings ÷ customers, over the days that recorded both. */
@@ -149,6 +154,7 @@ export function buildCafeReport(days: CafeDayInput[]): CafeReport {
   let cash = 0;
   let eftpos = 0;
   let customers = 0;
+  let totalExGst = 0;
   let minutesOpen = 0;
   let daysWithTakings = 0;
   let pairedTakings = 0;
@@ -158,6 +164,9 @@ export function buildCafeReport(days: CafeDayInput[]): CafeReport {
     .map((d) => {
       const hasTakings = d.cash !== null || d.eftpos !== null;
       const total = hasTakings ? cents((d.cash ?? 0) + (d.eftpos ?? 0)) : null;
+      // Cafe sales are taxable: what's taken includes 15% GST.
+      const exGst = total === null ? null : cents(total - gstPortion(total));
+      totalExGst += exGst ?? 0;
       cash += d.cash ?? 0;
       eftpos += d.eftpos ?? 0;
       customers += d.customers ?? 0;
@@ -180,6 +189,7 @@ export function buildCafeReport(days: CafeDayInput[]): CafeReport {
         cash: d.cash,
         eftpos: d.eftpos,
         total,
+        totalExGst: exGst,
       };
     })
     .sort(newestFirst);
@@ -194,6 +204,8 @@ export function buildCafeReport(days: CafeDayInput[]): CafeReport {
       cash: cents(cash),
       eftpos: cents(eftpos),
       total,
+      totalExGst: cents(totalExGst),
+      gst: cents(total - totalExGst),
       perDay: daysWithTakings > 0 ? cents(total / daysWithTakings) : null,
       perCustomer:
         pairedCustomers > 0 ? cents(pairedTakings / pairedCustomers) : null,

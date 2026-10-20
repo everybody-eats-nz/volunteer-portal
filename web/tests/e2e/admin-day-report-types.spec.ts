@@ -11,9 +11,9 @@ import { gotoSettled } from "./helpers/streaming";
 /**
  * A day's report can be a service night, an event (fundraiser) or a cafe day.
  * Events itemise their income and expenses with a GST flag per line, and
- * work out the profit; cafe days record
- * hours and takings. Neither is koha: both stay out of koha analytics but
- * still show in cash reconciliation and on the Events & Cafe page.
+ * work out the profit; cafe days record hours and takings, shown incl. and
+ * excl. GST. Neither is koha: both stay out of koha analytics but still show
+ * in cash reconciliation and on the Events & Cafe page.
  *
  * Each test uses a fresh location and a day long before any real data
  * (financial year 2015/16), and deletes its reports afterwards.
@@ -215,6 +215,12 @@ test.describe("Day report types", () => {
     await report.getByLabel("EFTPOS").fill("300");
 
     await expect(report.getByTestId("cafe-hero-total")).toHaveText("$400.00");
+    // Takings include GST: $400 holds $52.17 of it.
+    await expect(report.getByTestId("cafe-hero-ex-gst")).toHaveText("$347.83");
+    await expect(report.getByTestId("cafe-gst")).toHaveText("$52.17");
+    await expect(report.getByTestId("cafe-total-ex-gst")).toHaveText(
+      "$347.83"
+    );
     await report.getByTestId("day-report-save").click();
     await expect(page.getByText("Cafe Report saved")).toBeVisible();
 
@@ -228,9 +234,12 @@ test.describe("Day report types", () => {
       `/admin/analytics/events?year=${FY}&location=${encodeURIComponent(name)}&view=cafe`
     );
     await expect(visibleTestId(page, "cafe-total")).toHaveText("$400.00");
-    await expect(visibleTestId(page, `cafe-row-${DATE}`)).toContainText(
-      "7:30am to 2pm"
+    await expect(visibleTestId(page, "cafe-total-ex-gst")).toHaveText(
+      "$347.83 excl. GST"
     );
+    const cafeRow = visibleTestId(page, `cafe-row-${DATE}`);
+    await expect(cafeRow).toContainText("7:30am to 2pm");
+    await expect(cafeRow).toContainText("$347.83 excl. GST");
   });
 
   test("switching a day's type clears the other report's figures", async ({
