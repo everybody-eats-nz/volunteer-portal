@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-// `./api` pulls in expo-secure-store, which has no native module under vitest.
-vi.mock("expo-secure-store", () => ({ getItemAsync: vi.fn() }));
-
 import { ApiError } from "./api";
 import { surveyProblem } from "./survey-problem";
+
+// `./api` pulls in expo-secure-store, which has no native module under vitest.
+// vi.mock is hoisted above the imports, so this still runs first.
+vi.mock("expo-secure-store", () => ({ getItemAsync: vi.fn() }));
 
 describe("surveyProblem", () => {
   it("recognises a survey that was already answered", () => {
