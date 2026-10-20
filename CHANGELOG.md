@@ -1,3 +1,9 @@
+## [0.191.0] - 2026-10-20
+
+### Changes
+- feat: mark a day closed with a reason on the shift calendar ([#1366](https://github.com/everybody-eats-nz/volunteer-portal/pull/1366)) by @malinmalliyawadu
+
+
 ## [0.190.0] - 2026-10-20
 
 ### Changes
