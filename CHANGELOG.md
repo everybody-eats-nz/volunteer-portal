@@ -1,3 +1,9 @@
+## [0.188.0] - 2026-10-20
+
+### Changes
+- feat: record event expenses and profit, and invoice income ([#1358](https://github.com/everybody-eats-nz/volunteer-portal/pull/1358)) by @malinmalliyawadu
+
+
 ## [0.187.0] - 2026-10-20
 
 ### Changes
