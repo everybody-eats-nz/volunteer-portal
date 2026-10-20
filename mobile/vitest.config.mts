@@ -1,5 +1,5 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import path from "path";
 
 // Mobile unit tests cover pure modules (e.g. lib/dates) plus the shared UI
 // primitives, which render via react-test-renderer with `react-native` mocked
@@ -18,7 +18,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "."),
+      "@": fileURLToPath(new URL(".", import.meta.url)),
     },
   },
 });

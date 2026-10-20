@@ -5,9 +5,15 @@ import { navigateToNotificationTarget } from "@/lib/notification-routing";
 // `vi.mock` is hoisted above the import, so the module under test resolves
 // these stubs instead of the real expo-router / web-browser / store.
 const pushMock = vi.fn();
+const dismissToMock = vi.fn();
 const setPendingIdMock = vi.fn();
 
-vi.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => pushMock(...args) } }));
+vi.mock("expo-router", () => ({
+  router: {
+    push: (...args: unknown[]) => pushMock(...args),
+    dismissTo: (...args: unknown[]) => dismissToMock(...args),
+  },
+}));
 vi.mock("@/hooks/use-pending-feed-item", () => ({
   usePendingFeedItemStore: {
     getState: () => ({ setPendingId: setPendingIdMock }),
@@ -39,7 +45,7 @@ describe("navigateToNotificationTarget", () => {
     // 404ing with "Shift not found".
     it("routes a multi-shift shortage link to the shifts tab, not a shift id", () => {
       navigateToNotificationTarget("/shifts/details?date=2026-06-30");
-      expect(pushMock).toHaveBeenCalledWith({
+      expect(dismissToMock).toHaveBeenCalledWith({
         pathname: "/(tabs)/shifts",
         params: { date: "2026-06-30" },
       });
@@ -56,7 +62,7 @@ describe("navigateToNotificationTarget", () => {
       navigateToNotificationTarget(
         "/shifts/details?date=2026-06-30&location=Hopper%20Cafe"
       );
-      expect(pushMock).toHaveBeenCalledWith({
+      expect(dismissToMock).toHaveBeenCalledWith({
         pathname: "/(tabs)/shifts",
         params: { date: "2026-06-30", location: "Hopper Cafe" },
       });
@@ -64,7 +70,7 @@ describe("navigateToNotificationTarget", () => {
 
     it("forwards just the date when no location is given", () => {
       navigateToNotificationTarget("/shifts/details?date=2026-06-30");
-      expect(pushMock).toHaveBeenCalledWith({
+      expect(dismissToMock).toHaveBeenCalledWith({
         pathname: "/(tabs)/shifts",
         params: { date: "2026-06-30" },
       });
@@ -72,12 +78,12 @@ describe("navigateToNotificationTarget", () => {
 
     it("falls back to the shifts tab when /shifts/details carries no date", () => {
       navigateToNotificationTarget("/shifts/details");
-      expect(pushMock).toHaveBeenCalledWith("/(tabs)/shifts");
+      expect(dismissToMock).toHaveBeenCalledWith("/(tabs)/shifts");
     });
 
     it("treats /shifts/mine as the shifts tab, not a shift id", () => {
       navigateToNotificationTarget("/shifts/mine");
-      expect(pushMock).toHaveBeenCalledWith("/(tabs)/shifts");
+      expect(dismissToMock).toHaveBeenCalledWith("/(tabs)/shifts");
       expect(pushMock).not.toHaveBeenCalledWith(
         expect.objectContaining({ pathname: "/shift/[id]" })
       );
@@ -91,7 +97,7 @@ describe("navigateToNotificationTarget", () => {
         pathname: "/shift/[id]",
         params: { id: "shift-123" },
       });
-      expect(pushMock).not.toHaveBeenCalledWith("/(tabs)/shifts");
+      expect(dismissToMock).not.toHaveBeenCalled();
     });
   });
 
@@ -99,7 +105,11 @@ describe("navigateToNotificationTarget", () => {
     it("stashes the feed item id and opens the home tab for /dashboard", () => {
       navigateToNotificationTarget("/dashboard?feedItemId=feed42");
       expect(setPendingIdMock).toHaveBeenCalledWith("feed42");
-      expect(pushMock).toHaveBeenCalledWith("/(tabs)");
+      // dismissTo, not push: from the notification list a push stacks a
+      // second tab navigator, whose fresh home tab is not the one the user
+      // goes back to.
+      expect(dismissToMock).toHaveBeenCalledWith("/(tabs)");
+      expect(pushMock).not.toHaveBeenCalled();
     });
 
     it("opens a survey on its own screen, carrying the token across", () => {

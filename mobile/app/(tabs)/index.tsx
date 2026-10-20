@@ -87,6 +87,7 @@ export default function HomeScreen() {
     items: feedItems,
     isLoading: feedLoading,
     refresh: refreshFeed,
+    refetchItems: refetchFeedItems,
     updateItem: updateFeedItem,
     removeItemsByUser,
   } = useFeed();
@@ -200,23 +201,51 @@ export default function HomeScreen() {
   }, []);
 
   // Notification deep link: when a tap stashes a feed item id (e.g. an
-  // announcement push), open that item's sheet as soon as the feed has
-  // finished loading and contains it. Clear the pending id either way so
-  // we don't re-open it on every feed refresh.
+  // announcement push), open that item's sheet once the feed has loaded.
+  // The id is claimed (cleared) straight away so a later feed refresh can't
+  // re-open it. An announcement is usually tapped minutes after it was
+  // published, when the cached feed predates it, so a miss refetches the
+  // feed before giving up. `latestPendingRef` stops a slow refetch from
+  // opening an older item over one tapped after it.
   const pendingFeedItemId = usePendingFeedItemStore((s) => s.pendingId);
   const clearPendingFeedItem = usePendingFeedItemStore((s) => s.clear);
+  const latestPendingRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!pendingFeedItemId) return;
-    if (feedLoading) return;
-    const target = feedItems.find((i) => i.id === pendingFeedItemId);
-    if (target) handleOpenSheet(target);
+    if (!pendingFeedItemId || feedLoading) return;
+    const id = pendingFeedItemId;
+    latestPendingRef.current = id;
     clearPendingFeedItem();
+
+    const cached = feedItems.find((i) => i.id === id);
+    if (cached) {
+      handleOpenSheet(cached);
+      return;
+    }
+    refetchFeedItems().then(
+      (items) => {
+        if (latestPendingRef.current !== id) return;
+        const fresh = items.find((i) => i.id === id);
+        if (fresh) {
+          handleOpenSheet(fresh);
+          return;
+        }
+        // Gone from the feed: expired, deleted, or older than its window.
+        Alert.alert(
+          "No longer available",
+          "This post has been taken down or is no longer in your feed."
+        );
+      },
+      // Offline or a server error: the feed shows its own error state, and
+      // saying the post is gone would be wrong.
+      () => {}
+    );
   }, [
     pendingFeedItemId,
     feedLoading,
     feedItems,
     handleOpenSheet,
     clearPendingFeedItem,
+    refetchFeedItems,
   ]);
 
   const addComment = useCallback(
