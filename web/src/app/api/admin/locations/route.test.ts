@@ -75,6 +75,18 @@ describe("PATCH /api/admin/locations rename", () => {
     });
   });
 
+  it("carries the chef and FOH manager roster and overrides to the new name", async () => {
+    const res = await patch({ id: "loc-1", name: "Tāmaki" });
+
+    expect(res.status).toBe(200);
+    for (const model of ["dayLeadRoster", "dayLeadOverride"]) {
+      expect(tx.fn(model, "updateMany")).toHaveBeenCalledWith({
+        where: { location: "Glen Innes" },
+        data: { location: "Tāmaki" },
+      });
+    }
+  });
+
   it("leaves day themes alone when the name is unchanged", async () => {
     const res = await patch({ id: "loc-1", address: "1 Main Road" });
 

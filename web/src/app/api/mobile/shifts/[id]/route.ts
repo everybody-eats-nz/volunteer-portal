@@ -14,6 +14,8 @@ import {
 } from "@/lib/profile-completion";
 import { requiresGuardianName } from "@/lib/guardian-validation";
 import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
+import { getDayLeadsForShifts } from "@/lib/day-leads.server";
+import { formatInNZT } from "@/lib/timezone";
 
 /**
  * GET /api/mobile/shifts/[id]
@@ -25,6 +27,8 @@ import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
  * - The current user's signup status for this shift (if any)
  * - List of signups with friend status
  * - Marketing CMS events at the same restaurant on the same day
+ * - dayLeads: the Chef and FOH Manager (first names) running the shift's day,
+ *   or null when neither is listed
  */
 export async function GET(
   request: Request,
@@ -113,7 +117,15 @@ export async function GET(
 
   // Marketing CMS events at this restaurant on the shift's day, so volunteers
   // know when a special event runs during their service.
-  const cmsEvents = await getCmsEventsForShift(shift.location, shift.start);
+  // ...and who's running that day, so they know who they'll be working with.
+  const [cmsEvents, dayLeadsMap] = await Promise.all([
+    getCmsEventsForShift(shift.location, shift.start),
+    getDayLeadsForShifts([shift]),
+  ]);
+  const dayLeads = shift.location
+    ? (dayLeadsMap[shift.location]?.[formatInNZT(shift.start, "yyyy-MM-dd")] ??
+      null)
+    : null;
 
   // Find the current user's signup for this shift (any active status)
   const userSignup = shift.signups.find((s) => s.userId === userId);
@@ -178,6 +190,7 @@ export async function GET(
     waitlistOfferExpiresLabel,
     notes: shift.notes,
     signups,
+    dayLeads,
     events: cmsEvents.map((event) => ({
       id: event.id,
       name: event.name,

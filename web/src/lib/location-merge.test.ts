@@ -150,6 +150,63 @@ describe("applyLocationMerge day themes", () => {
   });
 });
 
+describe("applyLocationMerge chef and FOH manager", () => {
+  const day = (key: string) => new Date(`${key}T00:00:00.000Z`);
+
+  it("repoints overrides and roster, keeping the target's on a collision", async () => {
+    const { db, fn } = mockDb();
+    fn("location", "findUnique").mockImplementation(async ({ where }) =>
+      where.name === "Wellington" ? { id: "loc-wgtn" } : null
+    );
+    fn("dayLeadOverride", "findMany").mockImplementation(async ({ where }) =>
+      where.location === "Wellington (old)"
+        ? [
+            { id: "override-dup", date: day("2026-12-23") },
+            { id: "override-only", date: day("2026-12-28") },
+          ]
+        : [{ date: day("2026-12-23") }]
+    );
+    fn("dayLeadRoster", "findMany").mockImplementation(async ({ where }) =>
+      where.location === "Wellington (old)"
+        ? [
+            { id: "roster-dup", dayOfWeek: 2 },
+            { id: "roster-only", dayOfWeek: 3 },
+          ]
+        : [{ dayOfWeek: 2 }]
+    );
+    (prisma.$transaction as unknown as MockFn).mockImplementation(
+      async (run: (tx: unknown) => unknown) => run(db)
+    );
+
+    const plan = await applyLocationMerge("Wellington (old)", "Wellington");
+
+    expect(plan.dayLeadOverrides).toEqual({
+      total: 2,
+      collisionDates: ["23 Dec 2026"],
+    });
+    expect(plan.dayLeadRoster).toEqual({ total: 2, collisions: 1 });
+
+    for (const [model, duplicateId] of [
+      ["dayLeadOverride", "override-dup"],
+      ["dayLeadRoster", "roster-dup"],
+    ]) {
+      const deleteMany = fn(model, "deleteMany");
+      const updateMany = fn(model, "updateMany");
+      expect(deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: [duplicateId] } },
+      });
+      expect(updateMany).toHaveBeenCalledWith({
+        where: { location: "Wellington (old)" },
+        data: { location: "Wellington" },
+      });
+      // Duplicates go first, or the unique constraint rejects the repoint.
+      expect(deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+        updateMany.mock.invocationCallOrder[0]
+      );
+    }
+  });
+});
+
 describe("planMealCollision", () => {
   // A row as Prisma returns it: every column present, blank ones null.
   const blank: Record<string, unknown> = Object.fromEntries(

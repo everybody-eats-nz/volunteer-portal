@@ -49,6 +49,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/utils";
+import { getDayLeadsForShifts } from "@/lib/day-leads.server";
+import { DayLeadsStrip } from "@/components/day-leads-strip";
 
 /** Four-point sparkle — the marketing site's signature accent mark. */
 function Sparkle({ className }: { className?: string }) {
@@ -160,6 +162,7 @@ export default async function ShiftDetailPage({
     concurrentShifts,
     cmsEvents,
     waitlistCount,
+    dayLeads,
   ] =
     await Promise.all([
       // Friends
@@ -214,7 +217,14 @@ export default async function ShiftDetailPage({
       // How many volunteers are already waiting, so nobody has to guess
       // whether standby is worth holding
       getWaitlistCount(id),
+
+      // The Chef and FOH Manager running the shift's day
+      getDayLeadsForShifts([shift]),
     ]);
+
+  const shiftDayLeads = shift.location
+    ? dayLeads[shift.location]?.[formatInNZT(shift.start, "yyyy-MM-dd")]
+    : undefined;
 
   const userFriendIds = friendships.flatMap((f) =>
     f.userId === userId ? [f.friendId] : [f.userId]
@@ -433,6 +443,14 @@ export default async function ShiftDetailPage({
                   </a>
                 </Button>
               </div>
+              {shiftDayLeads && (
+                <div className="space-y-3 border-t border-forest-500/10 px-6 py-5 sm:px-7 dark:border-cream-50/10">
+                  <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+                    Running the day
+                  </p>
+                  <DayLeadsStrip leads={shiftDayLeads} testId="shift-day-leads" />
+                </div>
+              )}
               <div className="h-56 w-full border-t border-forest-500/10 dark:border-cream-50/10">
                 <iframe
                   title="Shift location map"
