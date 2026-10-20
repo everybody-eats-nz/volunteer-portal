@@ -19,6 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  ChefHat,
+  ConciergeBell,
   MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,6 +29,7 @@ import {
   type ShiftDayTheme,
   type ShiftDayThemeMap,
 } from "@/lib/shift-day-themes";
+import type { DayLeads, DayLeadsMap } from "@/lib/day-leads";
 
 /** Four-point sparkle — the marketing site's signature accent mark. */
 function Sparkle({ className }: { className?: string }) {
@@ -125,6 +128,40 @@ function ThemedDayList({
   );
 }
 
+/**
+ * The Chef and FOH Manager by first name, tucked under a day's availability.
+ * Wide screens only - narrower cells have no room, and the day's page lists
+ * them in full.
+ */
+function DayLeadsLine({ dayKey, leads }: { dayKey: string; leads: DayLeads }) {
+  const roles = [
+    { label: "Chef", name: leads.chef, Icon: ChefHat },
+    { label: "FOH Manager", name: leads.fohManager, Icon: ConciergeBell },
+  ].filter((role) => role.name);
+
+  return (
+    <ul
+      className="hidden w-full min-w-0 flex-col items-center gap-px text-[11px] leading-tight text-forest-700/75 lg:flex dark:text-cream-50/70"
+      data-testid={`calendar-day-leads-${dayKey}`}
+    >
+      {roles.map(({ label, name, Icon }) => (
+        <li
+          key={label}
+          className="flex max-w-full min-w-0 items-center gap-1"
+          title={`${label}: ${name}`}
+        >
+          <Icon
+            className="h-3 w-3 shrink-0 text-forest-500/70 dark:text-cream-50/50"
+            aria-hidden
+          />
+          <span className="sr-only">{label}:</span>
+          <span className="truncate font-medium">{name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 interface ShiftSummary {
   id: string;
   start: Date;
@@ -157,6 +194,11 @@ interface ShiftsCalendarProps {
    * upcoming days, keyed by location then "yyyy-MM-dd" NZ day.
    */
   dayThemes?: ShiftDayThemeMap;
+  /**
+   * The Chef and FOH Manager running each day, by first name, keyed by
+   * location then "yyyy-MM-dd" NZ day.
+   */
+  dayLeads?: DayLeadsMap;
   selectedLocation?: string;
   /**
    * Server-rendered "now" as an epoch-ms timestamp. Seeding all time-dependent
@@ -199,6 +241,7 @@ interface DayShifts {
 export function ShiftsCalendar({
   shifts,
   dayThemes = {},
+  dayLeads = {},
   selectedLocation,
   serverNow,
   initialMonth,
@@ -489,6 +532,9 @@ export function ShiftsCalendar({
                     const isClosed = dayTheme?.closed === true;
                     // The theme text, or on a closed day the reason (if any)
                     const theme = dayTheme?.theme || undefined;
+                    const leads = isInteractive
+                      ? dayLeads[location]?.[dayKey]
+                      : undefined;
 
                     const dayContent = (
                       <div
@@ -641,6 +687,9 @@ export function ShiftsCalendar({
                                   enableLinks={false}
                                 />
                               )}
+                              {leads && (
+                                <DayLeadsLine dayKey={dayKey} leads={leads} />
+                              )}
                             </>
                           ) : isCurrentMonth && !isPastDate && isToday ? (
                             <span className="text-[11px] font-semibold uppercase tracking-wide text-forest-700/70 dark:text-cream-50/60">
@@ -676,6 +725,25 @@ export function ShiftsCalendar({
                     );
                   })}
                 </div>
+
+                {/* Key for the Chef / FOH Manager icons in the cells */}
+                {Object.keys(dayLeads[location] ?? {}).some((key) =>
+                  key.startsWith(format(currentMonth, "yyyy-MM"))
+                ) && (
+                  <p
+                    className="mt-4 hidden items-center justify-end gap-4 text-xs text-forest-700/60 lg:flex dark:text-cream-50/55"
+                    data-testid="calendar-day-leads-key"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <ChefHat className="h-3.5 w-3.5" aria-hidden />
+                      Chef
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <ConciergeBell className="h-3.5 w-3.5" aria-hidden />
+                      FOH Manager
+                    </span>
+                  </p>
+                )}
 
                 {/* Below lg the cells only highlight themed days, so spell
                     the themes out here */}

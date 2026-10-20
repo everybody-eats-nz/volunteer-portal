@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Shift, ShiftSignup } from "@/lib/dummy-data";
 import { queryKeys } from "@/lib/query-keys";
+import type { DayLeads } from "@/hooks/use-shifts";
 import {
   normalizeSignupStatus,
   type SignupStatus,
@@ -41,6 +42,8 @@ type ShiftDetailResponse = {
     status?: "CONFIRMED" | "PENDING" | "WAITLISTED" | "REGULAR_PENDING";
   }[];
   events?: ShiftEvent[];
+  /** Chef and FOH Manager for the shift's day. Older API builds omit it. */
+  dayLeads?: DayLeads | null;
   eligibility?: ShiftEligibility;
 };
 
@@ -122,6 +125,8 @@ type UseShiftDetailReturn = {
   waitlistOfferExpiresLabel: string | null;
   /** Marketing CMS events at this restaurant on the shift's day */
   events: ShiftEvent[];
+  /** The Chef and FOH Manager running the shift's day, by first name */
+  dayLeads: DayLeads | null;
   /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
   periodFriends: PeriodFriend[];
   /** Account-level signup gates (email/profile/parental consent); null until loaded */
@@ -196,6 +201,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
     waitlistOfferExpiresAt: data?.waitlistOfferExpiresAt ?? null,
     waitlistOfferExpiresLabel: data?.waitlistOfferExpiresLabel ?? null,
     events: data?.events ?? [],
+    dayLeads: data?.dayLeads ?? null,
     periodFriends,
     eligibility: data?.eligibility ?? null,
     isLoading: enabled ? detail.isPending : false,

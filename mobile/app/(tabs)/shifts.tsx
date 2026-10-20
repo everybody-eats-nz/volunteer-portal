@@ -35,6 +35,7 @@ import { Image } from "expo-image";
 
 import { ClosedDayCard } from "@/components/closed-day-card";
 import { ShiftMonthCalendar } from "@/components/shift-month-calendar";
+import { DayLeadsRow } from "@/components/day-leads-row";
 import { ThemedText } from "@/components/themed-text";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
@@ -194,6 +195,7 @@ export default function ShiftsScreen() {
     browsableLocations,
     shiftFriends,
     dayThemes,
+    dayLeads,
   } = useShifts();
 
   /* Location filter - persisted so a switch survives app restarts. Until the
@@ -355,6 +357,18 @@ export default function ShiftsScreen() {
   const selectedDayClosures = useMemo(
     () => selectedDayThemes.filter((t) => t.closed),
     [selectedDayThemes]
+  );
+
+  /* The Chef and FOH Manager running the selected day, per restaurant in view */
+  const selectedDayLeads = useMemo(
+    () =>
+      Object.entries(dayLeads).flatMap(([location, byDay]) =>
+        (!locationFilter || location === locationFilter) &&
+        byDay[selectedDateKey]
+          ? [{ location, leads: byDay[selectedDateKey] }]
+          : []
+      ),
+    [dayLeads, locationFilter, selectedDateKey]
   );
 
   /* Calendar signals — merge available + signups (past + upcoming) for density dots */
@@ -631,6 +645,22 @@ export default function ShiftsScreen() {
               showThemeLocation={!locationFilter}
               isDark={isDark}
             />
+
+            {/* Who's running the day, per restaurant in view */}
+            {selectedDayLeads.length > 0 && (
+              <View style={styles.dayLeads}>
+                {selectedDayLeads.map(({ location, leads }) => (
+                  <DayLeadsRow
+                    key={location}
+                    leads={leads}
+                    variant="strip"
+                    isDark={isDark}
+                    location={locationFilter ? undefined : location}
+                    testID="shifts-day-leads"
+                  />
+                ))}
+              </View>
+            )}
 
             {/* Day shifts */}
             {totalDayShifts === 0 && selectedDayClosures.length > 0 ? (
@@ -2022,6 +2052,11 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontFamily: FontFamily.displayItalic,
     textAlign: "center",
+  },
+  dayLeads: {
+    paddingHorizontal: 20,
+    marginTop: 14,
+    gap: 8,
   },
   dateNavThemeLocation: {
     fontFamily: FontFamily.semiBold,

@@ -12,6 +12,7 @@ import {
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
 import { toDayThemeLabelMap } from "@/lib/shift-day-themes";
+import { getDayLeadsForShifts } from "@/lib/day-leads.server";
 
 const DEFAULT_PAGE_SIZE = 15;
 
@@ -36,6 +37,8 @@ const HOME_WINDOW_DAYS = 7;
  *   NZ day, as { theme, closed }. Not in scope=home.
  * - dayThemes: the same days as one string each ("Closed - Labour Day
  *   weekend"), for app builds from before closed days. Not in scope=home.
+ * - dayLeads: the Chef and FOH Manager (first names) for each upcoming day
+ *   with shifts, keyed the same way. Not in scope=home.
  *
  * Query params:
  * - scope: "home" trims the response to what the home tab actually renders —
@@ -245,7 +248,7 @@ export async function GET(request: Request) {
   // visibleSignups includes signups by either actual friends (any non-PRIVATE
   // visibility) or users who set their profile to PUBLIC visibility. This
   // matches the web shifts page logic.
-  const [waitlistCounts, visibleSignups] = await Promise.all([
+  const [waitlistCounts, visibleSignups, dayLeads] = await Promise.all([
     getWaitlistCounts(allUpcomingShiftIds),
     allUpcomingShiftIds.length > 0
       ? prisma.signup.findMany({
@@ -282,6 +285,13 @@ export async function GET(request: Request) {
           },
         })
       : [],
+    // Who's running each day on the Shifts tab. Home doesn't render them.
+    isHomeScope
+      ? null
+      : getDayLeadsForShifts([
+          ...windowShifts,
+          ...mySignups.map((signup) => signup.shift),
+        ]),
   ]);
 
   // Transform to the mobile app's Shift shape
@@ -383,5 +393,6 @@ export async function GET(request: Request) {
           dayThemes: toDayThemeLabelMap(dayThemes),
         }
       : {}),
+    ...(dayLeads ? { dayLeads } : {}),
   });
 }

@@ -24,11 +24,17 @@ vi.mock("@/lib/shift-day-themes.server", () => ({
   getShiftDayThemes: vi.fn(),
 }));
 
+vi.mock("@/lib/day-leads.server", () => ({
+  getDayLeadsForShifts: vi.fn().mockResolvedValue({}),
+}));
+
 import { GET } from "./route";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/prisma";
 import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
+import { getDayLeadsForShifts } from "@/lib/day-leads.server";
 
+const mockGetDayLeadsForShifts = getDayLeadsForShifts as ReturnType<typeof vi.fn>;
 const mockRequireMobileUser = requireMobileUser as ReturnType<typeof vi.fn>;
 const mockGetShiftDayThemes = getShiftDayThemes as ReturnType<typeof vi.fn>;
 const mockPrisma = prisma as unknown as {
@@ -262,6 +268,9 @@ describe("GET /api/mobile/shifts", () => {
       expect(json.dayThemes).toBeUndefined();
       expect(json.dayThemeDetails).toBeUndefined();
       expect(mockGetShiftDayThemes).not.toHaveBeenCalled();
+      // So are the day's Chef and FOH Manager.
+      expect(json.dayLeads).toBeUndefined();
+      expect(mockGetDayLeadsForShifts).not.toHaveBeenCalled();
       // No signup.findMany call filtered on past shifts.
       expect(
         mockPrisma.signup.findMany.mock.calls.some(
@@ -296,6 +305,7 @@ describe("GET /api/mobile/shifts", () => {
     // Old app builds still get every key they did before.
     expect(Object.keys(json).sort()).toEqual([
       "available",
+      "dayLeads",
       "dayThemeDetails",
       "dayThemes",
       "locations",
@@ -333,6 +343,19 @@ describe("GET /api/mobile/shifts", () => {
       fromDayKey: "2026-07-16",
       toDayKey: "2026-10-16",
     });
+  });
+
+  it("returns each upcoming day's chef and FOH manager", async () => {
+    stubSignupQueries();
+    const leads = {
+      Onehunga: { "2026-07-18": { chef: "Hemi", fohManager: "Tui" } },
+    };
+    mockGetDayLeadsForShifts.mockResolvedValue(leads);
+
+    const json = await (await GET(makeRequest())).json();
+
+    expect(json.dayLeads).toEqual(leads);
+    expect(mockGetDayLeadsForShifts).toHaveBeenCalledTimes(1);
   });
 
   it("returns 401 when not authenticated", async () => {

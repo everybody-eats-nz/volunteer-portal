@@ -30,6 +30,10 @@ import { REPORT_FIELDS, type DayReportType } from "@/lib/day-reports";
  *                     field-mixing would fabricate a menu nobody wrote).
  *   ShiftDayTheme     repointed; on a (location, date) collision the
  *                     `into` theme wins and the `from` row is deleted.
+ *   DayLeadOverride   repointed; on a (location, date) collision the
+ *                     `into` override wins and the `from` row is deleted.
+ *   DayLeadRoster     repointed; on a (location, dayOfWeek) collision the
+ *                     `into` weekday wins and the `from` row is deleted.
  *   MessagingHours    repointed; on a (location, dayOfWeek) collision the
  *                     `into` row wins and the `from` row is deleted.
  *   RegularVolunteer, AutoAcceptRule, User.defaultLocation   repointed.
@@ -72,6 +76,8 @@ export interface LocationMergePlan {
   mealsServed: { total: number; collisionDates: string[] };
   dailyMenus: { total: number; collisionDates: string[] };
   dayThemes: { total: number; collisionDates: string[] };
+  dayLeadOverrides: { total: number; collisionDates: string[] };
+  dayLeadRoster: { total: number; collisions: number };
   messagingHours: { total: number; collisions: number };
   regularVolunteers: number;
   autoAcceptRules: number;
@@ -140,6 +146,8 @@ interface MergeWork {
   mealCollisions: Prisma.MealsServedGetPayload<object>[];
   menuCollisionIds: string[];
   themeCollisionIds: string[];
+  leadOverrideCollisionIds: string[];
+  leadRosterCollisionIds: string[];
   hourCollisionIds: string[];
   availableRewrites: { id: string; rewritten: string }[];
 }
@@ -220,6 +228,10 @@ async function computeMerge(
     intoMenus,
     fromThemes,
     intoThemes,
+    fromLeadOverrides,
+    intoLeadOverrides,
+    fromLeadRoster,
+    intoLeadRoster,
     fromHours,
     intoHours,
   ] = await Promise.all([
@@ -244,6 +256,22 @@ async function computeMerge(
       where: { location: into },
       select: { date: true },
     }),
+    db.dayLeadOverride.findMany({
+      where: { location: from },
+      select: { id: true, date: true },
+    }),
+    db.dayLeadOverride.findMany({
+      where: { location: into },
+      select: { date: true },
+    }),
+    db.dayLeadRoster.findMany({
+      where: { location: from },
+      select: { id: true, dayOfWeek: true },
+    }),
+    db.dayLeadRoster.findMany({
+      where: { location: into },
+      select: { dayOfWeek: true },
+    }),
     db.messagingHours.findMany({
       where: { location: from },
       select: { id: true, dayOfWeek: true },
@@ -267,6 +295,16 @@ async function computeMerge(
   );
   const themeCollisions = fromThemes.filter((t) =>
     intoThemeDates.has(t.date.toISOString())
+  );
+  const intoLeadOverrideDates = new Set(
+    intoLeadOverrides.map((o) => o.date.toISOString())
+  );
+  const leadOverrideCollisions = fromLeadOverrides.filter((o) =>
+    intoLeadOverrideDates.has(o.date.toISOString())
+  );
+  const intoLeadRosterDays = new Set(intoLeadRoster.map((r) => r.dayOfWeek));
+  const leadRosterCollisions = fromLeadRoster.filter((r) =>
+    intoLeadRosterDays.has(r.dayOfWeek)
   );
   const intoHourDays = new Set(intoHours.map((h) => h.dayOfWeek));
   const hourCollisions = fromHours.filter((h) =>
@@ -336,6 +374,14 @@ async function computeMerge(
         // DATE columns read back as UTC midnight, which is the same day in NZ.
         collisionDates: themeCollisions.map((t) => nzDate(t.date)),
       },
+      dayLeadOverrides: {
+        total: fromLeadOverrides.length,
+        collisionDates: leadOverrideCollisions.map((o) => nzDate(o.date)),
+      },
+      dayLeadRoster: {
+        total: fromLeadRoster.length,
+        collisions: leadRosterCollisions.length,
+      },
       messagingHours: {
         total: fromHours.length,
         collisions: hourCollisions.length,
@@ -356,6 +402,8 @@ async function computeMerge(
       mealCollisions,
       menuCollisionIds: menuCollisions.map((m) => m.id),
       themeCollisionIds: themeCollisions.map((t) => t.id),
+      leadOverrideCollisionIds: leadOverrideCollisions.map((o) => o.id),
+      leadRosterCollisionIds: leadRosterCollisions.map((r) => r.id),
       hourCollisionIds: hourCollisions.map((h) => h.id),
       availableRewrites,
     },
@@ -545,6 +593,27 @@ export async function applyLocationMerge(
       });
     }
     await tx.shiftDayTheme.updateMany({
+      where: { location: from },
+      data: { location: into },
+    });
+
+    // Chef / FOH Manager: the surviving location's override wins a same-day
+    // collision, and its standard roster wins a same-weekday one.
+    if (work.leadOverrideCollisionIds.length > 0) {
+      await tx.dayLeadOverride.deleteMany({
+        where: { id: { in: work.leadOverrideCollisionIds } },
+      });
+    }
+    await tx.dayLeadOverride.updateMany({
+      where: { location: from },
+      data: { location: into },
+    });
+    if (work.leadRosterCollisionIds.length > 0) {
+      await tx.dayLeadRoster.deleteMany({
+        where: { id: { in: work.leadRosterCollisionIds } },
+      });
+    }
+    await tx.dayLeadRoster.updateMany({
       where: { location: from },
       data: { location: into },
     });

@@ -22,6 +22,7 @@ import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
+import { getDayLeadsForShifts } from "@/lib/day-leads.server";
 import {
   captureFunnelEvent,
   FunnelEvent,
@@ -229,6 +230,9 @@ export default async function ShiftsCalendarPage({
       locations: filterLocations,
     }),
   ]);
+
+  // The Chef and FOH Manager running each day that has shifts
+  const dayLeads = await getDayLeadsForShifts(shifts);
 
   // Fetch all signups and filter by privacy settings
   type FriendSignup = {
@@ -544,6 +548,7 @@ export default async function ShiftsCalendarPage({
         <ShiftsCalendar
           shifts={shiftSummaries}
           dayThemes={dayThemes}
+          dayLeads={dayLeads}
           selectedLocation={selectedLocation}
           serverNow={now.getTime()}
           initialMonth={initialMonth}

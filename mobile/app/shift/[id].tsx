@@ -55,6 +55,7 @@ import {
   removeShiftFromCalendar,
 } from "@/lib/calendar-sync";
 import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
+import { DayLeadsRow } from "@/components/day-leads-row";
 import { WaitlistOfferCard } from "@/components/waitlist-offer-card";
 import { GlassButton } from "@/components/glass-button";
 import { Eyebrow } from "@/components/ui/eyebrow";
@@ -152,6 +153,7 @@ export default function ShiftDetailScreen() {
     waitlistOfferExpiresAt,
     waitlistOfferExpiresLabel,
     events,
+    dayLeads,
     periodFriends,
     eligibility,
     isLoading,
@@ -760,6 +762,23 @@ export default function ShiftDetailScreen() {
               shiftId={shift.id}
               deadlineLabel={waitlistOfferExpiresLabel}
               onAnswered={refresh}
+            />
+          </View>
+        )}
+
+        {/* ═══ Who's running the day ═══ */}
+        {dayLeads && (dayLeads.chef || dayLeads.fohManager) && (
+          <View style={s.section}>
+            <SectionHeader
+              label="Running the day"
+              title="Your team leads"
+              colors={colors}
+            />
+            <DayLeadsRow
+              leads={dayLeads}
+              variant="card"
+              isDark={isDark}
+              testID="shift-day-leads"
             />
           </View>
         )}

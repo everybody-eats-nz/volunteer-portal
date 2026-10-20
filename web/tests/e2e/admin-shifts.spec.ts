@@ -136,7 +136,9 @@ test.describe("Admin Shifts Page", () => {
     await gotoSettled(page, "/admin/shifts");
 
     await page.getByTestId("create-shift-button").click();
-    await expect(page).toHaveURL("/admin/shifts/new");
+    // waitForURL, not toHaveURL: the first visit compiles the page in dev,
+    // which can outlast the 5s expect timeout.
+    await page.waitForURL("/admin/shifts/new");
   });
 
   test("should display no shifts message when no shifts exist", async ({
