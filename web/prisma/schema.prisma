@@ -910,13 +910,35 @@ model SiteSetting {
   @@index([category])
 }
 
+// The end-of-day report for one day at one location. Most days are restaurant
+// service nights; an admin can instead mark the day an EVENT (fundraiser) or a
+// CAFE day. Only service nights are koha: event and cafe takings are other
+// commercial activity and stay out of every koha / budget figure, while
+// mealsServed (people served) still counts towards impact for every type.
+enum DayReportType {
+  SERVICE_NIGHT
+  EVENT
+  CAFE
+}
+
 // Meals served tracking (per day, per location)
 model MealsServed {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   date        DateTime // Service night, stored as NZ-midnight expressed in UTC (e.g. NZ Jul 1 -> 2024-06-30T12:00Z). Read with toNZT()/formatInNZT() — a raw UTC slice lands a day early.
   location    String // Location name (Wellington, Glen Innes, Onehunga)
-  mealsServed Int? // Customers / people served that day — headline count (nullable — admins may save notes without a count)
+  reportType  DayReportType @default(SERVICE_NIGHT)
+  mealsServed Int? // Customers / people served that day — headline count (nullable — admins may save notes without a count). Event pax and cafe customers for those report types.
   notes       String? // Optional notes about the day
+
+  // Event (fundraiser) report. Takings are itemised in EventIncome, not in
+  // the koha columns below.
+  eventName String?       @db.VarChar(120)
+  income    EventIncome[]
+
+  // Cafe report. Opening hours as NZ wall-clock "HH:mm"; takings use the cash
+  // and eftpos columns below.
+  opensAt  String? @db.VarChar(5)
+  closesAt String? @db.VarChar(5)
 
   // Service-night stats (migrated from the WGTN "Numbers" spreadsheet). All nullable.
   weather            String? // Weather on the night (free text, e.g. "Overcast")
@@ -939,6 +961,38 @@ model MealsServed {
   @@unique([date, location]) // One record per day per location
   @@index([location, date])
   @@index([date])
+  @@index([reportType, date])
+}
+
+enum EventIncomeSource {
+  CASH
+  EFTPOS
+  STRIPE
+  INVOICE
+}
+
+enum EventIncomeCategory {
+  KOHA
+  SALES // Tickets, merch
+  AUCTION
+  DONATION
+  OTHER
+}
+
+// One line of takings at an event (fundraiser), e.g. "Auction, EFTPOS, $1,200".
+model EventIncome {
+  id          String              @id @default(cuid())
+  reportId    String
+  source      EventIncomeSource
+  category    EventIncomeCategory
+  description String?             @db.VarChar(120)
+  amount      Decimal             @db.Decimal(10, 2) // GST-inclusive when gstIncluded
+  gstIncluded Boolean             @default(false) // Taxable: the amount includes 15% GST
+  position    Int                 @default(0) // Display order within the report
+
+  report MealsServed @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
 }
 
 // Newsletter list management

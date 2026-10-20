@@ -231,7 +231,7 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 - **AutoAcceptRule** / **AutoApproval** — Automatic shift approval rules
 - **RegularVolunteer** / **RegularSignup** — Regular volunteer scheduling
 - **RestaurantManager** — Manager assignments
-- **MealsServed** — Meal count tracking per shift
+- **MealsServed** - The end-of-day report per location per day. `reportType` (`DayReportType`) makes it a service night (koha), an event / fundraiser (itemised **EventIncome** lines with a GST flag each) or a cafe day (opening hours, cash, EFTPOS). Only service nights are koha: filter with `SERVICE_NIGHTS_ONLY` from `src/lib/day-reports.ts` in any koha / budget query. Event and cafe takings are reported at `/admin/analytics/events`
 - **Resource** — Resource hub content (`ResourceType`, `ResourceCategory` enums)
 - **SiteSetting** — Dynamic site configuration
 
@@ -243,7 +243,7 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 **Surveys**:
 - **Survey** / **SurveyAssignment** / **SurveyToken** / **SurveyResponse** — Full survey system with triggers
 
-**Key Enums**: `Role`, `SignupStatus`, `VolunteerGrade`, `NotificationType`, `AchievementCategory`, `FriendshipStatus`, `Frequency`, `CriteriaLogic`, `ResourceType`, `ResourceCategory`, `SurveyTriggerType`
+**Key Enums**: `Role`, `DayReportType`, `SignupStatus`, `VolunteerGrade`, `NotificationType`, `AchievementCategory`, `FriendshipStatus`, `Frequency`, `CriteriaLogic`, `ResourceType`, `ResourceCategory`, `SurveyTriggerType`
 
 ### Achievement System
 

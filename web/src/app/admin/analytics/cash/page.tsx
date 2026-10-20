@@ -74,7 +74,7 @@ export default async function CashReconciliationPage({
   return (
     <AdminPageWrapper
       title="Cash Reconciliation"
-      description="Cash koha per service night for one restaurant, totalled to check against a bank deposit"
+      description="Cash per day for one restaurant, service nights, events and cafe days alike, totalled to check against a bank deposit"
     >
       <PageContainer testid="cash-reconciliation-page">
         <CashReconciliationClient

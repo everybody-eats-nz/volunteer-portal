@@ -1,8 +1,10 @@
 import { format } from "date-fns";
+import { DAY_REPORT_TYPE_META, type DayReportType } from "@/lib/day-reports";
 
 /**
- * Cash reconciliation: one location's cash koha, night by night, over a date
- * range, so a bank deposit can be checked against it.
+ * Cash reconciliation: one location's cash, day by day, over a date range, so
+ * a bank deposit can be checked against it. Service nights, events and cafe
+ * days all go to the same bank, so all three are listed, each labelled.
  *
  * All dates here are NZ calendar days as "yyyy-MM-dd" strings. Calendar maths
  * is done on UTC-midnight Dates so DST never shifts a day.
@@ -101,6 +103,10 @@ export const CASH_FLAG_LABEL: Record<CashFlag, string> = {
 
 export interface CashNight {
   date: string;
+  /** What the day was; a day with shifts but no record counts as a service night. */
+  type: DayReportType;
+  /** The event's name, for an event. */
+  eventName: string | null;
   cash: number | null;
   eftpos: number | null;
   stripe: number | null;
@@ -113,6 +119,9 @@ export interface CashTotals {
   stripe: number;
   nights: number;
   flagged: number;
+  /** Days that weren't service nights, so the summary can say so. */
+  events: number;
+  cafeDays: number;
 }
 
 export interface CashReconciliation {
@@ -125,6 +134,8 @@ export interface CashReconciliation {
 
 export interface CashRecordInput {
   date: string;
+  type: DayReportType;
+  eventName?: string | null;
   cash: number | null;
   eftpos: number | null;
   stripe: number | null;
@@ -153,6 +164,8 @@ export function buildCashNights(
   for (const r of records) {
     byDate.set(r.date, {
       date: r.date,
+      type: r.type,
+      eventName: r.eventName ?? null,
       cash: r.cash,
       eftpos: r.eftpos,
       stripe: r.stripe,
@@ -163,6 +176,8 @@ export function buildCashNights(
     if (!byDate.has(date)) {
       byDate.set(date, {
         date,
+        type: "SERVICE_NIGHT",
+        eventName: null,
         cash: null,
         eftpos: null,
         stripe: null,
@@ -183,6 +198,8 @@ export function buildCashNights(
       stripe: sumCents(nights.map((n) => n.stripe)),
       nights: nights.length,
       flagged: nights.filter((n) => n.status !== "recorded").length,
+      events: nights.filter((n) => n.type === "EVENT").length,
+      cafeDays: nights.filter((n) => n.type === "CAFE").length,
     },
   };
 }
@@ -199,6 +216,15 @@ export const keyToLocalDate = (key: string) => new Date(`${key}T00:00:00`);
 
 export const formatNight = (key: string) =>
   format(keyToLocalDate(key), "EEE d MMM yyyy");
+
+/** "Event · Quiz night", "Cafe", or null for a service night. */
+export function cashDayTypeLabel(
+  night: Pick<CashNight, "type" | "eventName">
+): string | null {
+  if (night.type === "SERVICE_NIGHT") return null;
+  const label = DAY_REPORT_TYPE_META[night.type].label;
+  return night.eventName ? `${label} · ${night.eventName}` : label;
+}
 
 export function formatCashRange(from: string, to: string): string {
   if (from === to) return formatNight(from);
@@ -219,18 +245,20 @@ export function buildCashCopyText(data: CashReconciliation): string {
     `Cash reconciliation - ${data.location}`,
     formatCashRange(data.from, data.to),
     "",
-    ...data.nights.map(
-      (n) =>
-        `${formatNight(n.date)}\t${
-          n.status === "recorded" && n.cash !== null
-            ? formatMoney(n.cash)
-            : CASH_FLAG_LABEL[n.status as CashFlag]
-        }`
-    ),
+    ...data.nights.map((n) => {
+      const typeLabel = cashDayTypeLabel(n);
+      return `${formatNight(n.date)}${typeLabel ? ` (${typeLabel})` : ""}\t${
+        n.status === "recorded" && n.cash !== null
+          ? formatMoney(n.cash)
+          : CASH_FLAG_LABEL[n.status as CashFlag]
+      }`;
+    }),
     "",
     `Total cash\t${formatMoney(data.totals.cash)}`,
-    `Service nights\t${data.totals.nights}`,
+    `Days\t${data.totals.nights}`,
   ];
+  if (data.totals.events > 0) lines.push(`Events\t${data.totals.events}`);
+  if (data.totals.cafeDays > 0) lines.push(`Cafe days\t${data.totals.cafeDays}`);
   if (data.totals.flagged > 0) {
     lines.push(`Nights with no cash recorded\t${data.totals.flagged}`);
   }

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SERVICE_NIGHTS_ONLY } from "@/lib/day-reports";
 import { nowInNZT, toNZT } from "@/lib/timezone";
 
 /**
@@ -124,7 +125,10 @@ export async function getRestaurantReports(
   } else if (months <= 0) {
     // All time — span from the earliest recorded night to today
     const bounds = await prisma.mealsServed.aggregate({
-      where: isLocationFiltered ? { location: location! } : {},
+      where: {
+        ...SERVICE_NIGHTS_ONLY,
+        ...(isLocationFiltered ? { location: location! } : {}),
+      },
       _min: { date: true },
     });
     startDate = bounds._min.date ?? new Date(2017, 0, 1);
@@ -136,6 +140,7 @@ export async function getRestaurantReports(
 
   const records = await prisma.mealsServed.findMany({
     where: {
+      ...SERVICE_NIGHTS_ONLY,
       date: { gte: startDate, lte: endDate },
       ...(isLocationFiltered ? { location: location! } : {}),
     },

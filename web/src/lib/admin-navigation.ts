@@ -33,6 +33,7 @@ import {
   IdCard,
   Building2,
   Target,
+  Ticket,
   Banknote,
 } from "lucide-react";
 
@@ -89,6 +90,14 @@ export const adminNavCategories: AdminNavCategory[] = [
         description:
           "Koha against each restaurant's annual budget, night by night",
         commandKey: "budget",
+      },
+      {
+        title: "Events & Cafe",
+        href: "/admin/analytics/events",
+        icon: Ticket,
+        description:
+          "Fundraiser income and cafe takings, kept separate from koha",
+        commandKey: "events-cafe",
       },
       {
         title: "Volunteer Engagement",

@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 import { renameLocationInStoredList } from "@/lib/parse-availability";
 import { formatInNZT } from "@/lib/timezone";
+import { REPORT_FIELDS, type DayReportType } from "@/lib/day-reports";
 
 /**
  * Merge one location into another after an accidental duplication.
@@ -370,22 +371,58 @@ export async function planLocationMerge(
   return plan;
 }
 
-const MEAL_BACKFILL_FIELDS = [
-  "mealsServed",
-  "notes",
-  "weather",
-  "bookingsPax",
-  "newVolunteers",
-  "nonPayingCount",
-  "vege",
-  "takeaways",
-  "eftposTransactions",
-  "cash",
-  "eftpos",
-  "stripe",
-  "suggestedValue",
-  "protein",
-] as const;
+// Columns every report type shares; the rest belong to one type (see
+// REPORT_FIELDS).
+const SHARED_MEAL_FIELDS = ["mealsServed", "notes", "newVolunteers"] as const;
+
+type MealRow = { reportType: DayReportType } & Record<string, unknown>;
+
+/**
+ * How to fold a colliding day report from the merged-away location into the
+ * surviving one. Blank fields are back-filled from the duplicate, but only
+ * within one report type: a cafe day's takings must never land on a service
+ * night as koha. When the types differ, a survivor with nothing of its own
+ * takes the duplicate's whole report (type, figures and event income);
+ * otherwise the survivor's report wins and only shared fields are filled.
+ */
+export function planMealCollision(
+  into: MealRow,
+  from: MealRow,
+  income: { into: number; from: number }
+): { data: Record<string, unknown>; moveIncome: boolean } {
+  const data: Record<string, unknown> = {};
+  const fill = (fields: readonly string[]) => {
+    for (const field of fields) {
+      if (into[field] === null && from[field] !== null) {
+        data[field] = from[field];
+      }
+    }
+  };
+  fill(SHARED_MEAL_FIELDS);
+
+  if (into.reportType === from.reportType) {
+    fill(REPORT_FIELDS[into.reportType]);
+    return {
+      data,
+      moveIncome:
+        into.reportType === "EVENT" && income.into === 0 && income.from > 0,
+    };
+  }
+
+  const intoBlank =
+    income.into === 0 &&
+    REPORT_FIELDS[into.reportType].every((field) => into[field] === null);
+  if (!intoBlank) return { data, moveIncome: false };
+
+  data.reportType = from.reportType;
+  for (const field of REPORT_FIELDS[from.reportType]) {
+    data[field] = from[field];
+  }
+  return {
+    data,
+    moveIncome: from.reportType === "EVENT" && income.from > 0,
+  };
+}
 
 /**
  * Execute the merge. The plan is recomputed inside the transaction, so a
@@ -439,16 +476,22 @@ export async function applyLocationMerge(
     for (const fromMeal of work.mealCollisions) {
       const intoMeal = intoMealsByDate.get(fromMeal.date.toISOString());
       if (intoMeal) {
-        const backfill: Record<string, unknown> = {};
-        for (const field of MEAL_BACKFILL_FIELDS) {
-          if (intoMeal[field] === null && fromMeal[field] !== null) {
-            backfill[field] = fromMeal[field];
-          }
+        const [intoIncome, fromIncome] = await Promise.all([
+          tx.eventIncome.count({ where: { reportId: intoMeal.id } }),
+          tx.eventIncome.count({ where: { reportId: fromMeal.id } }),
+        ]);
+        const { data, moveIncome } = planMealCollision(intoMeal, fromMeal, {
+          into: intoIncome,
+          from: fromIncome,
+        });
+        if (Object.keys(data).length > 0) {
+          await tx.mealsServed.update({ where: { id: intoMeal.id }, data });
         }
-        if (Object.keys(backfill).length > 0) {
-          await tx.mealsServed.update({
-            where: { id: intoMeal.id },
-            data: backfill,
+        // Event income lines would cascade away with the duplicate.
+        if (moveIncome) {
+          await tx.eventIncome.updateMany({
+            where: { reportId: fromMeal.id },
+            data: { reportId: intoMeal.id },
           });
         }
       }

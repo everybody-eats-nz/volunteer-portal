@@ -7,14 +7,31 @@ import { parseISOInNZT, toUTC } from "@/lib/timezone";
 import { restaurantNightStatsSchema } from "@/lib/validation-schemas";
 import { countNewVolunteers } from "@/lib/service-night-attendance";
 import { budgetYearOf, resolveNightlyTarget } from "@/lib/budget-calculations";
+import { REPORT_FIELDS, ALL_REPORT_FIELDS } from "@/lib/day-reports";
+import { dayKeyToDbDate, isDayKey } from "@/lib/shift-day-themes";
 import type { Prisma } from "@/generated/client";
 
+const withIncome = {
+  include: { income: { orderBy: { position: "asc" } } },
+} as const satisfies Prisma.MealsServedDefaultArgs;
+
 // Decimal columns come back as Prisma.Decimal — serialize to plain numbers for JSON.
-type MealsServedRecord = Prisma.MealsServedGetPayload<object>;
+type MealsServedRecord = Prisma.MealsServedGetPayload<typeof withIncome>;
 
 function serializeStats(record: MealsServedRecord) {
   const toNumber = (v: Prisma.Decimal | null) => (v === null ? null : Number(v));
   return {
+    reportType: record.reportType,
+    eventName: record.eventName,
+    opensAt: record.opensAt,
+    closesAt: record.closesAt,
+    income: record.income.map((line) => ({
+      source: line.source,
+      category: line.category,
+      description: line.description,
+      amount: Number(line.amount),
+      gstIncluded: line.gstIncluded,
+    })),
     mealsServed: record.mealsServed,
     notes: record.notes,
     weather: record.weather,
@@ -64,7 +81,7 @@ export async function GET(request: NextRequest) {
       end: endOfDayUTC,
     });
 
-    const [mealsRecord, locationConfig] = await Promise.all([
+    const [mealsRecord, locationConfig, dayTheme] = await Promise.all([
       prisma.mealsServed.findUnique({
         where: {
           date_location: {
@@ -72,12 +89,24 @@ export async function GET(request: NextRequest) {
             location,
           },
         },
+        ...withIncome,
       }),
       prisma.location.findUnique({
         where: { name: location },
         include: { budgets: { where: { year: budgetYearOf(startOfDayUTC) } } },
       }),
+      // The day's theme ("Rotary Club fundraiser dinner") is the natural
+      // name for an event, so the form can offer it.
+      isDayKey(date)
+        ? prisma.shiftDayTheme.findUnique({
+            where: {
+              location_date: { location, date: dayKeyToDbDate(date) },
+            },
+            select: { theme: true },
+          })
+        : null,
     ]);
+    const dayThemeName = dayTheme?.theme ?? null;
 
     // Pop-up / special-event venues are koha-manual-only (no Stripe sync).
     const isPopup = locationConfig?.isPopup ?? false;
@@ -103,12 +132,15 @@ export async function GET(request: NextRequest) {
     // If no record exists, get the default from Location model
     if (!mealsRecord) {
       return NextResponse.json({
+        reportType: "SERVICE_NIGHT",
+        income: [],
         mealsServed: null,
         defaultMealsServed: locationConfig?.defaultMealsServed || 60,
         notes: null,
         newVolunteers,
         isPopup,
         target,
+        dayTheme: dayThemeName,
       });
     }
 
@@ -118,6 +150,7 @@ export async function GET(request: NextRequest) {
       defaultMealsServed: null,
       isPopup,
       target,
+      dayTheme: dayThemeName,
     });
   } catch (error) {
     console.error("Error fetching meals served:", error);
@@ -128,7 +161,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST/PUT - Update or create meals served record
+// POST/PUT - Update or create the day report (service night, event or cafe)
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -146,21 +179,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { date, location, ...stats } = parsed.data;
+    const {
+      date,
+      location,
+      income,
+      reportType: requestedType,
+      ...fields
+    } = parsed.data;
 
-    // Require at least one stat/note — don't create empty rows.
-    const hasAnyValue = Object.values(stats).some((v) => v !== null);
+    // Parse date in NZ timezone and get the UTC bounds of the NZ service day
+    const dateNZT = parseISOInNZT(date);
+    const startOfDayUTC = toUTC(startOfDay(dateNZT));
+    const endOfDayUTC = toUTC(endOfDay(dateNZT));
+
+    const existing = await prisma.mealsServed.findUnique({
+      where: { date_location: { date: startOfDayUTC, location } },
+      select: { reportType: true },
+    });
+    // A client that doesn't send a type (an older build) must never turn an
+    // event or cafe day back into a service night and wipe its figures.
+    const reportType =
+      requestedType ?? existing?.reportType ?? "SERVICE_NIGHT";
+
+    // Keep only the columns this report type owns (plus the shared headcount
+    // and notes). Switching a day from a service night to an event clears its
+    // koha, so it can't linger in koha totals; switching away from an event
+    // drops its income lines below.
+    const owned = new Set(REPORT_FIELDS[reportType]);
+    const stats = { ...fields } as Record<string, unknown>;
+    for (const field of ALL_REPORT_FIELDS) {
+      if (!owned.has(field)) stats[field] = null;
+    }
+    const lines = reportType === "EVENT" ? income : [];
+
+    // Require something to save — don't create empty rows. Marking a day as
+    // an event or cafe is itself worth recording, and an existing day may be
+    // cleared (say, an event switched back to a not-yet-recorded service night).
+    const hasAnyValue =
+      reportType !== "SERVICE_NIGHT" ||
+      lines.length > 0 ||
+      existing !== null ||
+      Object.values(stats).some((v) => v !== null);
     if (!hasAnyValue) {
       return NextResponse.json(
         { error: "Enter at least one stat before saving" },
         { status: 400 }
       );
     }
-
-    // Parse date in NZ timezone and get the UTC bounds of the NZ service day
-    const dateNZT = parseISOInNZT(date);
-    const startOfDayUTC = toUTC(startOfDay(dateNZT));
-    const endOfDayUTC = toUTC(endOfDay(dateNZT));
 
     // New volunteers are derived from attendance, not from the request body.
     const newVolunteers = await countNewVolunteers({
@@ -169,22 +234,41 @@ export async function POST(request: NextRequest) {
       end: endOfDayUTC,
     });
 
-    // Upsert the service-night record
-    const mealsRecord = await prisma.mealsServed.upsert({
-      where: {
-        date_location: {
-          date: startOfDayUTC,
-          location,
+    const data = {
+      ...(stats as Omit<Prisma.MealsServedUncheckedCreateInput, "date" | "location">),
+      reportType,
+      newVolunteers,
+      createdBy: session.user.id,
+    };
+
+    // Upsert the day report and replace its income lines in one go, so the
+    // saved lines always match what the admin saw when they pressed Save.
+    const mealsRecord = await prisma.$transaction(async (tx) => {
+      const report = await tx.mealsServed.upsert({
+        where: {
+          date_location: {
+            date: startOfDayUTC,
+            location,
+          },
         },
-      },
-      update: { ...stats, newVolunteers, createdBy: session.user.id },
-      create: {
-        date: startOfDayUTC,
-        location,
-        ...stats,
-        newVolunteers,
-        createdBy: session.user.id,
-      },
+        update: data,
+        create: { date: startOfDayUTC, location, ...data },
+        select: { id: true },
+      });
+      await tx.eventIncome.deleteMany({ where: { reportId: report.id } });
+      if (lines.length > 0) {
+        await tx.eventIncome.createMany({
+          data: lines.map((line, position) => ({
+            ...line,
+            reportId: report.id,
+            position,
+          })),
+        });
+      }
+      return tx.mealsServed.findUniqueOrThrow({
+        where: { id: report.id },
+        ...withIncome,
+      });
     });
 
     return NextResponse.json({
