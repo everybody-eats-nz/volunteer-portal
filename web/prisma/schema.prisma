@@ -1211,6 +1211,41 @@ model ShiftDayTheme {
   @@index([date])
 }
 
+// Day leads: the Chef and FOH Manager running a service day at a location,
+// shown to volunteers by first name on the shift calendar. A service day's
+// leads come from its location's standard weekly roster unless the day has an
+// override (a swap or a cover), field by field.
+
+// The standard roster: who usually runs each weekday at a location.
+model DayLeadRoster {
+  id         String   @id @default(cuid())
+  location   String // Location name (matches Location.name)
+  dayOfWeek  Int // 0=Sun ... 6=Sat (NZ day)
+  chef       String?  @db.VarChar(40) // First name
+  fohManager String?  @db.VarChar(40) // First name
+  updatedAt  DateTime @updatedAt
+  updatedBy  String? // Admin user ID who last saved
+
+  @@unique([location, dayOfWeek])
+}
+
+// One day's changes to the standard roster. A null field means "use the
+// standard roster", so a row only exists while at least one field is set.
+model DayLeadOverride {
+  id         String   @id @default(cuid())
+  // The NZ calendar day itself (a SQL DATE), keyed like ShiftDayTheme.date.
+  date       DateTime @db.Date
+  location   String // Location name (matches Location.name)
+  chef       String?  @db.VarChar(40) // First name
+  fohManager String?  @db.VarChar(40) // First name
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  updatedBy  String? // Admin user ID who last saved
+
+  @@unique([location, date])
+  @@index([date])
+}
+
 // ─── Content Moderation────────────────────────────────────────────────────────
 
 /// A report of objectionable content or an abusive user, filed by a volunteer.

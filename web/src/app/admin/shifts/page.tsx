@@ -27,6 +27,9 @@ import { MealsServedInput } from "@/components/meals-served-input";
 import { DeleteShiftsMenu } from "@/components/delete-shifts-menu";
 import { ShiftDayThemeInput } from "@/components/shift-day-theme-input";
 import { dayKeyToDbDate, isDayKey } from "@/lib/shift-day-themes";
+import { DayLeadsInput } from "@/components/day-leads-input";
+import { getDayLeadsEditorState } from "@/lib/day-leads.server";
+import { dayOfWeekForDayKey } from "@/lib/day-leads";
 
 interface AdminShiftsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -179,17 +182,20 @@ export default async function AdminShiftsPage({
 
   const shifts = allShifts;
 
-  const dayTheme = isDayKey(dateString)
-    ? await prisma.shiftDayTheme.findUnique({
-        where: {
-          location_date: {
-            location: selectedLocation,
-            date: dayKeyToDbDate(dateString),
+  const [dayTheme, dayLeads] = isDayKey(dateString)
+    ? await Promise.all([
+        prisma.shiftDayTheme.findUnique({
+          where: {
+            location_date: {
+              location: selectedLocation,
+              date: dayKeyToDbDate(dateString),
+            },
           },
-        },
-        select: { theme: true },
-      })
-    : null;
+          select: { theme: true },
+        }),
+        getDayLeadsEditorState(selectedLocation, dateString),
+      ])
+    : [null, null];
 
   // Get shift data for the calendar with location, capacity, and confirmed counts
   // Include past shifts for attendance tracking - show last 30 days + future shifts
@@ -430,6 +436,23 @@ export default async function AdminShiftsPage({
           location={selectedLocation}
           hasShifts={shifts.length > 0}
         />
+
+        {/* Chef and FOH Manager - shown to volunteers on the calendar. Filled
+            from the location's standard roster, changeable for this day.
+            Keyed so switching day/location resets the editor's draft. */}
+        {dayLeads && (
+          <DayLeadsInput
+            key={`day-leads|${dateString}|${selectedLocation}`}
+            date={dateString}
+            location={selectedLocation}
+            weekdayLabel={formatInNZT(selectedDateNZT, "EEEE")}
+            dayOfWeek={dayOfWeekForDayKey(dateString)}
+            standard={dayLeads.standard}
+            override={dayLeads.override}
+            roster={dayLeads.roster}
+            suggestions={dayLeads.suggestions}
+          />
+        )}
 
         {/* Day theme - shown to volunteers beside the date. Available on empty
             days too, so special nights can be announced before shifts exist.

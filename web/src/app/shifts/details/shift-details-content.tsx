@@ -33,6 +33,8 @@ import { ShiftCardDescription } from "@/components/shift-card-description";
 import { checkProfileCompletion } from "@/lib/profile-completion.server";
 import { ShareShiftButton } from "@/components/share-shift-button";
 import { getBaseUrl } from "@/lib/utils";
+import { DayLeadsStrip } from "@/components/day-leads-strip";
+import { getDayLeadsForShifts } from "@/lib/day-leads.server";
 
 function getDurationInHours(start: Date, end: Date): string {
   const durationMs = end.getTime() - start.getTime();
@@ -467,6 +469,9 @@ export async function ShiftDetailsContent({
     },
   })) as ShiftWithRelations[];
 
+  // The Chef and FOH Manager running the day at each location
+  const dayLeads = await getDayLeadsForShifts(allShifts);
+
   const isDayShift = (shift: ShiftWithRelations) => {
     const hour = parseInt(formatInNZT(shift.start, "HH"));
     return hour < DAY_EVENING_CUTOFF_HOUR;
@@ -551,6 +556,11 @@ export async function ShiftDetailsContent({
                 </div>
               </div>
             )}
+
+            <DayLeadsStrip
+              leads={dayLeads[locationKey]?.[dateParam]}
+              testId={`shifts-day-leads-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}
+            />
 
             {showAM && (
               <div className="space-y-4" data-testid={`shifts-am-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>

@@ -44,6 +44,14 @@ export type DayThemes = Record<string, Record<string, string>>;
 /** Stable fallback so memos keyed on dayThemes don't recompute every render. */
 const NO_DAY_THEMES: DayThemes = {};
 
+/** The Chef and FOH Manager running a day, by first name. */
+export type DayLeads = { chef: string | null; fohManager: string | null };
+
+/** Day leads keyed by location name, then "YYYY-MM-DD" NZ day. */
+export type DayLeadsMap = Record<string, Record<string, DayLeads>>;
+
+const NO_DAY_LEADS: DayLeadsMap = {};
+
 export type BrowsableLocation = {
   name: string;
   /** Recently launched restaurant - shows a subtle "New" badge in the picker. */
@@ -62,6 +70,8 @@ type ShiftsResponse = {
   shiftFriends?: Record<string, FriendPayload[]>;
   /** Older API builds omit it. */
   dayThemes?: DayThemes;
+  /** Older API builds omit it. */
+  dayLeads?: DayLeadsMap;
 };
 
 type UseShiftsReturn = {
@@ -83,6 +93,8 @@ type UseShiftsReturn = {
   shiftFriends: Record<string, PeriodFriend[]>;
   /** Themes for upcoming days, by location then "YYYY-MM-DD" */
   dayThemes: DayThemes;
+  /** Chef and FOH Manager for upcoming days, by location then "YYYY-MM-DD" */
+  dayLeads: DayLeadsMap;
 };
 
 type UseHomeShiftsReturn = Pick<
@@ -217,5 +229,6 @@ export function useShifts(): UseShiftsReturn {
     periodFriends,
     shiftFriends,
     dayThemes: firstPage?.dayThemes ?? NO_DAY_THEMES,
+    dayLeads: firstPage?.dayLeads ?? NO_DAY_LEADS,
   };
 }

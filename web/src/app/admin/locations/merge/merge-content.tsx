@@ -605,6 +605,8 @@ const MANIFEST_ICONS: Record<string, React.ReactNode> = {
   "Shift templates": <LayoutTemplate className="h-3.5 w-3.5" />,
   "Service night records": <UtensilsCrossed className="h-3.5 w-3.5" />,
   "Daily menus": <ChefHat className="h-3.5 w-3.5" />,
+  "Chef & FOH Manager days": <ChefHat className="h-3.5 w-3.5" />,
+  "Chef & FOH Manager roster": <ChefHat className="h-3.5 w-3.5" />,
   "Messaging hours": <Clock className="h-3.5 w-3.5" />,
   "Regular volunteers": <Users className="h-3.5 w-3.5" />,
   "Auto-accept rules": <Zap className="h-3.5 w-3.5" />,
@@ -685,6 +687,26 @@ function MergeManifest({
         `${plan.dayThemes.total} ${moved}` +
         (plan.dayThemes.collisionDates.length > 0
           ? ` (${count(plan.dayThemes.collisionDates.length, "duplicate")} ${removed}: ${listDates(plan.dayThemes.collisionDates)})`
+          : ""),
+    });
+  }
+  if (plan.dayLeadOverrides.total > 0) {
+    rows.push({
+      label: "Chef & FOH Manager days",
+      detail:
+        `${plan.dayLeadOverrides.total} ${moved}` +
+        (plan.dayLeadOverrides.collisionDates.length > 0
+          ? ` (${count(plan.dayLeadOverrides.collisionDates.length, "duplicate")} ${removed}: ${listDates(plan.dayLeadOverrides.collisionDates)})`
+          : ""),
+    });
+  }
+  if (plan.dayLeadRoster.total > 0) {
+    rows.push({
+      label: "Chef & FOH Manager roster",
+      detail:
+        `${plan.dayLeadRoster.total} weekday${plan.dayLeadRoster.total === 1 ? "" : "s"} ${moved}` +
+        (plan.dayLeadRoster.collisions > 0
+          ? ` (${count(plan.dayLeadRoster.collisions, "duplicate")} ${removed})`
           : ""),
     });
   }
