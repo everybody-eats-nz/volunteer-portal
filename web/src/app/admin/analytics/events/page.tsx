@@ -105,6 +105,9 @@ export default async function EventsCafePage({
           gstIncluded: true,
         },
       },
+      expenses: {
+        select: { category: true, amount: true, gstIncluded: true },
+      },
     },
   });
 
@@ -117,6 +120,10 @@ export default async function EventsCafePage({
         eventName: r.eventName,
         pax: r.mealsServed,
         income: r.income.map((line) => ({
+          ...line,
+          amount: Number(line.amount),
+        })),
+        expenses: r.expenses.map((line) => ({
           ...line,
           amount: Number(line.amount),
         })),
@@ -139,7 +146,7 @@ export default async function EventsCafePage({
   return (
     <AdminPageWrapper
       title="Events & Cafe"
-      description="Fundraiser income and cafe takings, kept separate from koha"
+      description="Fundraiser income and profit, and cafe takings, kept separate from koha"
     >
       <PageContainer testid="events-cafe-page">
         <EventsCafeClient

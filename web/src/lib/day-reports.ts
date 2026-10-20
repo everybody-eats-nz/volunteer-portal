@@ -6,7 +6,8 @@
  *   The only type that counts as koha, so the only one in koha totals,
  *   budget tracking and restaurant analytics.
  * - Event: a fundraiser. Takings are itemised lines, each with a source, a
- *   category and a GST flag, totalled incl. and excl. GST.
+ *   category and a GST flag, totalled incl. and excl. GST. Costs are
+ *   itemised the same way, and income less costs is the event's profit.
  * - Cafe: a cafe day. Opening hours, customers, cash and EFTPOS sales.
  *
  * People served (MealsServed.mealsServed) counts towards impact for every type.
@@ -57,6 +58,7 @@ export const EVENT_INCOME_SOURCE_LABEL: Record<EventIncomeSource, string> = {
 export const EVENT_INCOME_CATEGORIES = [
   "KOHA",
   "SALES",
+  "INVOICE",
   "AUCTION",
   "DONATION",
   "OTHER",
@@ -67,6 +69,7 @@ export const EVENT_INCOME_CATEGORY_LABEL: Record<EventIncomeCategory, string> =
   {
     KOHA: "Koha",
     SALES: "Sales",
+    INVOICE: "Invoice",
     AUCTION: "Auction",
     DONATION: "Donation",
     OTHER: "Other",
@@ -75,8 +78,48 @@ export const EVENT_INCOME_CATEGORY_LABEL: Record<EventIncomeCategory, string> =
 export const EVENT_INCOME_CATEGORY_HINT: Record<EventIncomeCategory, string> = {
   KOHA: "Pay-what-you-can on the night",
   SALES: "Tickets, merch, drinks",
+  INVOICE: "Events hire or catering",
   AUCTION: "Live or silent auction",
   DONATION: "Gifts and sponsorship",
+  OTHER: "Anything else",
+};
+
+// ── Event expenses ──────────────────────────────────────────────────────────
+
+export const EVENT_EXPENSE_CATEGORIES = [
+  "STAFFING",
+  "FOOD",
+  "LICENCES",
+  "EQUIPMENT_HIRE",
+  "DECOR",
+  "DRINKS",
+  "OTHER",
+] as const;
+export type EventExpenseCategory = (typeof EVENT_EXPENSE_CATEGORIES)[number];
+
+export const EVENT_EXPENSE_CATEGORY_LABEL: Record<
+  EventExpenseCategory,
+  string
+> = {
+  STAFFING: "Staffing",
+  FOOD: "Food",
+  LICENCES: "Licences",
+  EQUIPMENT_HIRE: "Equipment hire",
+  DECOR: "Decor",
+  DRINKS: "Drinks",
+  OTHER: "Other",
+};
+
+export const EVENT_EXPENSE_CATEGORY_HINT: Record<
+  EventExpenseCategory,
+  string
+> = {
+  STAFFING: "Wages, contractors, security",
+  FOOD: "Ingredients and supplies",
+  LICENCES: "Liquor, music, permits",
+  EQUIPMENT_HIRE: "AV, furniture, marquees",
+  DECOR: "Flowers, lighting, signage",
+  DRINKS: "Alcohol and soft drinks",
   OTHER: "Anything else",
 };
 
@@ -99,6 +142,30 @@ export interface EventIncomeSummary {
   totalExGst: number;
   byCategory: Record<EventIncomeCategory, number>;
   bySource: Record<EventIncomeSource, number>;
+}
+
+export interface EventExpenseLine {
+  category: EventExpenseCategory;
+  amount: number;
+  gstIncluded: boolean;
+}
+
+export interface EventExpenseSummary {
+  /** Everything spent, as entered (GST-inclusive). */
+  total: number;
+  /** GST contained in the taxable lines (claimable). */
+  gst: number;
+  /** Total less GST. */
+  totalExGst: number;
+  byCategory: Record<EventExpenseCategory, number>;
+}
+
+export interface EventProfit {
+  /** Income less expenses, both as entered (GST-inclusive). */
+  profit: number;
+  /** Income excl. GST less expenses excl. GST: what the event really made
+   * once GST collected is paid over and GST spent is claimed back. */
+  profitExGst: number;
 }
 
 const cents = (n: number) => Math.round(n * 100) / 100;
@@ -131,6 +198,35 @@ export function summariseEventIncome(
   total = cents(total);
   gst = cents(gst);
   return { total, gst, totalExGst: cents(total - gst), byCategory, bySource };
+}
+
+export function summariseEventExpenses(
+  lines: readonly EventExpenseLine[]
+): EventExpenseSummary {
+  const byCategory = zeroed(EVENT_EXPENSE_CATEGORIES);
+  let total = 0;
+  let gst = 0;
+  for (const line of lines) {
+    total += line.amount;
+    if (line.gstIncluded) gst += gstPortion(line.amount);
+    byCategory[line.category] += line.amount;
+  }
+  for (const k of EVENT_EXPENSE_CATEGORIES) {
+    byCategory[k] = cents(byCategory[k]);
+  }
+  total = cents(total);
+  gst = cents(gst);
+  return { total, gst, totalExGst: cents(total - gst), byCategory };
+}
+
+export function eventProfit(
+  income: Pick<EventIncomeSummary, "total" | "totalExGst">,
+  expenses: Pick<EventExpenseSummary, "total" | "totalExGst">
+): EventProfit {
+  return {
+    profit: cents(income.total - expenses.total),
+    profitExGst: cents(income.totalExGst - expenses.totalExGst),
+  };
 }
 
 // ── Cafe opening hours ──────────────────────────────────────────────────────

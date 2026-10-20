@@ -22,6 +22,10 @@ describe("buildEventsReport", () => {
           },
           { source: "CASH", category: "KOHA", amount: 150, gstIncluded: false },
         ],
+        expenses: [
+          { category: "FOOD", amount: 575, gstIncluded: true },
+          { category: "STAFFING", amount: 400, gstIncluded: false },
+        ],
       },
       {
         date: "2026-09-12",
@@ -29,6 +33,7 @@ describe("buildEventsReport", () => {
         eventName: null,
         pax: null,
         income: [],
+        expenses: [],
       },
     ]);
 
@@ -40,15 +45,29 @@ describe("buildEventsReport", () => {
       total: 2450,
       totalExGst: 2150,
       lineCount: 2,
+      expenses: 975,
+      expenseLineCount: 2,
+      profit: 1475, // 2450 - 975
+      profitExGst: 1250, // 2150 - (975 - 75)
     });
-    expect(report.rows[0]).toMatchObject({ total: 0, lineCount: 0 });
+    expect(report.rows[0]).toMatchObject({
+      total: 0,
+      lineCount: 0,
+      expenses: 0,
+      profit: 0,
+    });
     expect(report.totals).toMatchObject({
       events: 2,
       pax: 80,
       total: 2450,
       gst: 300,
       totalExGst: 2150,
+      expenses: 975,
+      expensesExGst: 900,
+      profit: 1475,
+      profitExGst: 1250,
     });
+    expect(report.totals.expensesByCategory.FOOD).toBe(575);
     expect(report.totals.bySource.EFTPOS).toBe(2300);
     expect(report.totals.byCategory.KOHA).toBe(150);
   });

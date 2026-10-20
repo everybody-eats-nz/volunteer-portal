@@ -27,8 +27,8 @@ export default function EventsCafeLoading() {
           <Skeleton className="h-14 w-56" />
           <Skeleton className="h-4 w-80 max-w-full" />
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          {["a", "b", "c"].map((k) => (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">
+          {["a", "b", "c", "d", "e", "f"].map((k) => (
             <div key={k} className="space-y-2 py-2">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-5 w-20" />
@@ -36,6 +36,28 @@ export default function EventsCafeLoading() {
           ))}
         </div>
       </SkeletonCard>
+
+      {/* Breakdowns */}
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {["income", "paid", "expenses"].map((k) => (
+          <SkeletonCard
+            key={k}
+            className={
+              k === "expenses"
+                ? "space-y-4 p-5 md:col-span-2 lg:col-span-1"
+                : "space-y-4 p-5"
+            }
+          >
+            <Skeleton className="h-4 w-32" />
+            {["1", "2", "3"].map((r) => (
+              <div key={r} className="space-y-1.5">
+                <Skeleton className="h-3.5 w-full" />
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </SkeletonCard>
+        ))}
+      </div>
 
       {/* Table */}
       <SkeletonCard className="space-y-3 p-4">

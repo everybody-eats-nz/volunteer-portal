@@ -37,6 +37,7 @@ import {
   Clock,
   Info,
   Plus,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -45,11 +46,14 @@ import type { NightlyTarget } from "@/lib/budget-calculations";
 import { NightlyTargetStrip } from "@/components/nightly-target-strip";
 import {
   DAY_REPORT_TYPE_META,
+  eventProfit,
   formatDuration,
   isDayReportType,
   openMinutes,
+  summariseEventExpenses,
   summariseEventIncome,
   type DayReportType,
+  type EventExpenseCategory,
   type EventIncomeCategory,
   type EventIncomeSource,
 } from "@/lib/day-reports";
@@ -63,11 +67,15 @@ import {
 } from "@/components/day-report/fields";
 import { ReportTypePicker } from "@/components/day-report/report-type-picker";
 import {
+  EventExpenseEditor,
   EventIncomeEditor,
-  isBlankIncomeDraft,
+  EventProfitStatement,
+  isBlankLineDraft,
+  newExpenseDraft,
   newIncomeDraft,
+  type ExpenseDraft,
   type IncomeDraft,
-} from "@/components/day-report/event-income-editor";
+} from "@/components/day-report/event-lines-editor";
 
 interface MealsServedInputProps {
   date: string; // ISO date string (YYYY-MM-DD)
@@ -123,7 +131,7 @@ const EMPTY_FORM: FormState = {
 const ALL_KEYS = Object.keys(EMPTY_FORM) as StatKey[];
 
 // What each report asks for, which drives its "Logged x/y" progress. Event
-// income lines count as one more item (see `filledCount`).
+// income and expense lines count as one more item each (see `filledCount`).
 const REPORT_KEYS: Record<DayReportType, StatKey[]> = {
   SERVICE_NIGHT: [
     "mealsServed",
@@ -177,7 +185,7 @@ const ACCENT: Record<
 // What a save clears when the day changes type.
 const CLEARED_ON_SWITCH: Record<DayReportType, string> = {
   SERVICE_NIGHT: "its koha and service stats",
-  EVENT: "its income lines and event name",
+  EVENT: "its event name, income and expenses",
   CAFE: "its cafe hours and takings",
 };
 
@@ -219,6 +227,18 @@ interface ApiIncomeLine {
   gstIncluded: boolean;
 }
 
+interface ApiExpenseLine {
+  category: EventExpenseCategory;
+  description: string | null;
+  amount: number;
+  gstIncluded: boolean;
+}
+
+// Saved amounts come back as numbers; the form edits them as "12.50".
+const toDraftFields = <T extends { description: string | null; amount: number }>(
+  line: T
+) => ({ ...line, description: line.description ?? "", amount: line.amount.toFixed(2) });
+
 export function MealsServedInput({
   date,
   location,
@@ -229,6 +249,7 @@ export function MealsServedInput({
   // The type as last saved, so switching can warn what a save would clear.
   const [savedType, setSavedType] = useState<DayReportType>("SERVICE_NIGHT");
   const [income, setIncome] = useState<IncomeDraft[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseDraft[]>([]);
   // Each type's own figures, parked while another type is selected, so
   // flicking between types never moves cafe takings into koha (both use the
   // cash and EFTPOS columns) and switching back restores what was typed.
@@ -236,7 +257,11 @@ export function MealsServedInput({
     Partial<
       Record<
         DayReportType,
-        { fields: Partial<FormState>; income: IncomeDraft[] }
+        {
+          fields: Partial<FormState>;
+          income: IncomeDraft[];
+          expenses: ExpenseDraft[];
+        }
       >
     >
   >({});
@@ -318,23 +343,21 @@ export function MealsServedInput({
         const type: DayReportType = isDayReportType(data.reportType)
           ? data.reportType
           : "SERVICE_NIGHT";
-        const lines: ApiIncomeLine[] = Array.isArray(data.income)
+        const incomeLines: ApiIncomeLine[] = Array.isArray(data.income)
           ? data.income
           : [];
+        const expenseLines: ApiExpenseLine[] = Array.isArray(data.expenses)
+          ? data.expenses
+          : [];
         // An event or cafe day is a record even before any figures go in.
-        if (type !== "SERVICE_NIGHT" || lines.length > 0) hasRecord = true;
+        if (type !== "SERVICE_NIGHT") hasRecord = true;
 
         setForm(next);
         setReportType(type);
         setSavedType(type);
-        setIncome(
-          lines.map((line) =>
-            newIncomeDraft({
-              ...line,
-              description: line.description ?? "",
-              amount: line.amount.toFixed(2),
-            })
-          )
+        setIncome(incomeLines.map((l) => newIncomeDraft(toDraftFields(l))));
+        setExpenses(
+          expenseLines.map((l) => newExpenseDraft(toDraftFields(l)))
         );
         setDayTheme(typeof data.dayTheme === "string" ? data.dayTheme : null);
         setHasExistingRecord(hasRecord);
@@ -374,6 +397,7 @@ export function MealsServedInput({
     parked.current[reportType] = {
       fields: Object.fromEntries(own(reportType).map((k) => [k, form[k]])),
       income,
+      expenses,
     };
     const restored = parked.current[type];
     const next: FormState = { ...form };
@@ -384,6 +408,7 @@ export function MealsServedInput({
     }
     setForm(next);
     setIncome(restored?.income ?? []);
+    setExpenses(restored?.expenses ?? []);
     setReportType(type);
     setOpen(true);
     if (type === "SERVICE_NIGHT" && next.weather === "") {
@@ -412,6 +437,16 @@ export function MealsServedInput({
       ),
     [income]
   );
+  const expenseSummary = useMemo(
+    () =>
+      summariseEventExpenses(
+        expenses
+          .filter((line) => num(line.amount) !== null)
+          .map((line) => ({ ...line, amount: num(line.amount) ?? 0 }))
+      ),
+    [expenses]
+  );
+  const profit = eventProfit(incomeSummary, expenseSummary);
   const eftposTotal = num(form.eftpos);
   const customers = num(form.mealsServed);
   const cafeSales =
@@ -423,12 +458,16 @@ export function MealsServedInput({
     form.opensAt !== "" && form.closesAt !== "" && cafeMinutes === null;
 
   const reportKeys = REPORT_KEYS[reportType];
+  const isEvent = reportType === "EVENT";
   const incomeEntered =
-    reportType === "EVENT" && income.some((line) => !isBlankIncomeDraft(line));
+    isEvent && income.some((line) => !isBlankLineDraft(line));
+  const expensesEntered =
+    isEvent && expenses.some((line) => !isBlankLineDraft(line));
   const filledCount =
     reportKeys.filter((k) => form[k].trim() !== "").length +
-    (incomeEntered ? 1 : 0);
-  const totalCount = reportKeys.length + (reportType === "EVENT" ? 1 : 0);
+    (incomeEntered ? 1 : 0) +
+    (expensesEntered ? 1 : 0);
+  const totalCount = reportKeys.length + (isEvent ? 2 : 0);
   const completionPct = Math.round((filledCount / totalCount) * 100);
   // Marking a day as an event or cafe is worth saving on its own.
   const switching = hasExistingRecord && reportType !== savedType;
@@ -500,16 +539,21 @@ export function MealsServedInput({
       toast.error("Enter at least one stat before saving");
       return;
     }
-    const lines = income.filter((line) => !isBlankIncomeDraft(line));
-    if (
-      reportType === "EVENT" &&
-      lines.some((line) => num(line.amount) === null)
-    ) {
-      setOpen(true);
-      toast.error("Enter an amount for every income line", {
-        description: "Or remove the lines you don't need.",
-      });
-      return;
+    const incomeLines = income.filter((line) => !isBlankLineDraft(line));
+    const expenseLines = expenses.filter((line) => !isBlankLineDraft(line));
+    const missingAmount = (lines: { amount: string }[]) =>
+      isEvent && lines.some((line) => num(line.amount) === null);
+    for (const [kind, lines] of [
+      ["income", incomeLines],
+      ["expense", expenseLines],
+    ] as const) {
+      if (missingAmount(lines)) {
+        setOpen(true);
+        toast.error(`Enter an amount for every ${kind} line`, {
+          description: "Or remove the lines you don't need.",
+        });
+        return;
+      }
     }
     if (reportType === "CAFE" && hoursInvalid) {
       setOpen(true);
@@ -529,16 +573,23 @@ export function MealsServedInput({
             ? null
             : form[key].trim();
       });
-      payload.income =
-        reportType === "EVENT"
-          ? lines.map((line) => ({
-              source: line.source,
-              category: line.category,
-              description: line.description.trim() || null,
-              amount: line.amount.trim(),
-              gstIncluded: line.gstIncluded,
-            }))
-          : [];
+      payload.income = isEvent
+        ? incomeLines.map((line) => ({
+            source: line.source,
+            category: line.category,
+            description: line.description.trim() || null,
+            amount: line.amount.trim(),
+            gstIncluded: line.gstIncluded,
+          }))
+        : [];
+      payload.expenses = isEvent
+        ? expenseLines.map((line) => ({
+            category: line.category,
+            description: line.description.trim() || null,
+            amount: line.amount.trim(),
+            gstIncluded: line.gstIncluded,
+          }))
+        : [];
 
       const response = await fetch("/api/admin/meals-served", {
         method: "POST",
@@ -553,8 +604,8 @@ export function MealsServedInput({
         parked.current = {};
         // The server keeps only this report's fields; mirror that so the
         // form never shows figures that weren't saved.
-        if (reportType === "EVENT") setIncome(lines);
-        else setIncome([]);
+        setIncome(isEvent ? incomeLines : []);
+        setExpenses(isEvent ? expenseLines : []);
         toast.success(`${meta.reportTitle} saved`);
       } else {
         const error = await response.json();
@@ -770,21 +821,26 @@ export function MealsServedInput({
                   testId="event-hero-total"
                 />
                 <HeroStat
-                  label="Excl. GST"
-                  value={NZD.format(incomeSummary.totalExGst)}
+                  label="Expenses"
+                  value={NZD.format(expenseSummary.total)}
+                  hint="Incl. GST"
+                  testId="event-hero-expenses"
+                />
+                <HeroStat
+                  label={profit.profit < 0 ? "Loss" : "Profit"}
+                  value={NZD.format(profit.profit)}
+                  hint={`${NZD.format(profit.profitExGst)} excl. GST`}
+                  testId="event-hero-profit"
                 />
                 <HeroStat
                   label="Pax"
                   value={
                     customers === null ? "—" : customers.toLocaleString("en-NZ")
                   }
-                />
-                <HeroStat
-                  label="$ per head"
-                  value={
+                  hint={
                     customers && incomeSummary.total > 0
-                      ? NZD.format(incomeSummary.total / customers)
-                      : "—"
+                      ? `${NZD.format(incomeSummary.total / customers)} per head`
+                      : undefined
                   }
                 />
               </dl>
@@ -914,6 +970,31 @@ export function MealsServedInput({
                     summary={incomeSummary}
                   />
                 </SectionCard>
+
+                <SectionCard
+                  icon={Receipt}
+                  title="Expenses"
+                  tone="violet"
+                  action={
+                    <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-violet-800 dark:bg-violet-950/50 dark:text-violet-300">
+                      {NZD.format(expenseSummary.total)}
+                    </span>
+                  }
+                >
+                  <EventExpenseEditor
+                    lines={expenses}
+                    onChange={setExpenses}
+                    summary={expenseSummary}
+                  />
+                </SectionCard>
+
+                {(income.length > 0 || expenses.length > 0) && (
+                  <EventProfitStatement
+                    income={incomeSummary}
+                    expenses={expenseSummary}
+                    profit={profit}
+                  />
+                )}
               </>
             )}
 
