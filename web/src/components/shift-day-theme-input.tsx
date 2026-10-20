@@ -95,7 +95,8 @@ export function ShiftDayThemeInput({
               : "Day theme removed"
       );
       startTransition(() => router.refresh());
-    } catch {
+    } catch (error) {
+      console.error("Failed to save shift day theme:", error);
       toast.error("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setSaving(null);
