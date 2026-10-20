@@ -1,3 +1,9 @@
+## [0.190.0] - 2026-10-20
+
+### Changes
+- feat: show each day's Chef and FOH Manager on the shift calendar ([#1367](https://github.com/everybody-eats-nz/volunteer-portal/pull/1367)) by @malinmalliyawadu
+
+
 ## [0.189.0] - 2026-10-20
 
 ### Changes
