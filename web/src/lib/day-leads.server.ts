@@ -87,6 +87,8 @@ export async function getDayLeadsEditorState(
       where: { location_date: { location, date: dayKeyToDbDate(dayKey) } },
       select: { chef: true, fohManager: true },
     }),
+    // Recent swaps only, for name suggestions: about a year of busy covers,
+    // so someone who left long ago stops being offered.
     prisma.dayLeadOverride.findMany({
       where: { location },
       select: { chef: true, fohManager: true },
