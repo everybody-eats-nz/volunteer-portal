@@ -35,14 +35,38 @@ function normalizeFriendMap(
   );
 }
 
-/**
- * Admin-set themes for upcoming days ("Christmas Lunch", "Pasta Night"),
- * keyed by location name, then "YYYY-MM-DD" NZ day.
- */
-export type DayThemes = Record<string, Record<string, string>>;
+/** What an admin set for one day: a theme ("Pasta Night"), or a closure. */
+export type DayTheme = {
+  /** The theme, or on a closed day the reason ("Labour Day weekend"). May be empty when closed. */
+  theme: string;
+  closed: boolean;
+};
+
+/** Day themes keyed by location name, then "YYYY-MM-DD" NZ day. */
+export type DayThemes = Record<string, Record<string, DayTheme>>;
 
 /** Stable fallback so memos keyed on dayThemes don't recompute every render. */
 const NO_DAY_THEMES: DayThemes = {};
+
+/**
+ * The response's day themes. Servers from before closed days only send the
+ * plain-string `dayThemes` map, which reads as open themed days.
+ */
+function resolveDayThemes(response: ShiftsResponse | undefined): DayThemes {
+  if (response?.dayThemeDetails) return response.dayThemeDetails;
+  if (!response?.dayThemes) return NO_DAY_THEMES;
+  return Object.fromEntries(
+    Object.entries(response.dayThemes).map(([location, byDay]) => [
+      location,
+      Object.fromEntries(
+        Object.entries(byDay).map(([day, theme]) => [
+          day,
+          { theme, closed: false },
+        ])
+      ),
+    ])
+  );
+}
 
 /** The Chef and FOH Manager running a day, by first name. */
 export type DayLeads = { chef: string | null; fohManager: string | null };
@@ -68,8 +92,10 @@ type ShiftsResponse = {
   locations?: BrowsableLocation[];
   periodFriends: Record<string, FriendPayload[]>;
   shiftFriends?: Record<string, FriendPayload[]>;
-  /** Older API builds omit it. */
-  dayThemes?: DayThemes;
+  /** Day themes as plain strings ("Closed - Labour Day"). Older API builds omit it. */
+  dayThemes?: Record<string, Record<string, string>>;
+  /** Day themes with closures. API builds from before closed days omit it. */
+  dayThemeDetails?: DayThemes;
   /** Older API builds omit it. */
   dayLeads?: DayLeadsMap;
 };
@@ -91,7 +117,7 @@ type UseShiftsReturn = {
   periodFriends: Record<string, PeriodFriend[]>;
   /** Friends keyed by shift ID — friends signed up for that specific role */
   shiftFriends: Record<string, PeriodFriend[]>;
-  /** Themes for upcoming days, by location then "YYYY-MM-DD" */
+  /** Themes and closures for upcoming days, by location then "YYYY-MM-DD" */
   dayThemes: DayThemes;
   /** Chef and FOH Manager for upcoming days, by location then "YYYY-MM-DD" */
   dayLeads: DayLeadsMap;
@@ -192,6 +218,7 @@ export function useShifts(): UseShiftsReturn {
     () => normalizeFriendMap(firstPage?.shiftFriends),
     [firstPage?.shiftFriends]
   );
+  const dayThemes = useMemo(() => resolveDayThemes(firstPage), [firstPage]);
 
   // Reconcile device calendar with fresh shift data on every successful first
   // page (picks up web signups and cancellations). No-op unless the user
@@ -228,7 +255,7 @@ export function useShifts(): UseShiftsReturn {
     browsableLocations: firstPage?.locations ?? [],
     periodFriends,
     shiftFriends,
-    dayThemes: firstPage?.dayThemes ?? NO_DAY_THEMES,
+    dayThemes,
     dayLeads: firstPage?.dayLeads ?? NO_DAY_LEADS,
   };
 }

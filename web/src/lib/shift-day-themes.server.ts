@@ -28,7 +28,7 @@ export async function getShiftDayThemes({
         ? { location: { in: locations } }
         : {}),
     },
-    select: { date: true, location: true, theme: true },
+    select: { date: true, location: true, theme: true, closed: true },
     orderBy: [{ date: "asc" }, { location: "asc" }],
   });
   return toShiftDayThemeMap(rows);

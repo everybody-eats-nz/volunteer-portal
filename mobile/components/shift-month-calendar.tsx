@@ -36,6 +36,8 @@ type ShiftMonthCalendarProps = {
   pastAttendedDates: Set<string>;
   /** Key "YYYY-MM-DD" → true if an admin gave the day a theme ("Pasta Night") */
   themedDates?: Set<string>;
+  /** Key "YYYY-MM-DD" → true if the restaurant is closed that day */
+  closedDates?: Set<string>;
   isDark: boolean;
   /** Force initial visible month (defaults to selectedDate's month) */
   initialMonth?: Date;
@@ -55,6 +57,7 @@ export function ShiftMonthCalendar({
   signedUpDates,
   pastAttendedDates,
   themedDates,
+  closedDates,
   isDark,
   initialMonth,
 }: ShiftMonthCalendarProps) {
@@ -86,14 +89,48 @@ export function ShiftMonthCalendar({
     return rows;
   }, [visibleMonth]);
 
-  // Only explain the special-day mark when this month shows one.
-  const hasThemedDayInView = weeks.some((week) =>
-    week.some(
-      (day) =>
-        isSameMonth(day, visibleMonth) &&
-        (themedDates?.has(formatDateKey(day)) ?? false)
-    )
+  // Only explain the special-day and closed marks when this month shows one.
+  const hasDayInView = (dates: Set<string> | undefined) =>
+    weeks.some((week) =>
+      week.some(
+        (day) =>
+          isSameMonth(day, visibleMonth) &&
+          (dates?.has(formatDateKey(day)) ?? false)
+      )
+    );
+  const hasThemedDayInView = hasDayInView(themedDates);
+  const hasClosedDayInView = hasDayInView(closedDates);
+
+  const dayMarks = (
+    <>
+      {hasThemedDayInView && (
+        <View style={styles.legendItem}>
+          <Ionicons name="sparkles" size={10} color={themeMarkColor(isDark)} />
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+            Special day
+          </Text>
+        </View>
+      )}
+      {hasClosedDayInView && (
+        <View style={styles.legendItem}>
+          <Text
+            style={[
+              styles.legendText,
+              styles.legendClosedMark,
+              { color: colors.textSecondary },
+            ]}
+          >
+            12
+          </Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+            Closed
+          </Text>
+        </View>
+      )}
+    </>
   );
+  // One day mark fits beside the three shift marks; two don't.
+  const dayMarksFitOnFirstRow = !(hasThemedDayInView && hasClosedDayInView);
 
   const goToPrevMonth = () => {
     Haptics.selectionAsync();
@@ -186,11 +223,16 @@ export function ShiftMonthCalendar({
               const inMonth = isSameMonth(day, visibleMonth);
               const isTodayCell = isToday(day);
               const isThemed = themedDates?.has(key) ?? false;
+              const isClosed = closedDates?.has(key) ?? false;
 
-              // A themed day is worth opening even without shifts - the
-              // theme may be the news ("Labour Day - closed").
+              // A themed or closed day is worth opening even without shifts -
+              // the theme or the reason for closing is the news.
               const hasContent =
-                shiftCount > 0 || isSignedUp || isPastAttended || isThemed;
+                shiftCount > 0 ||
+                isSignedUp ||
+                isPastAttended ||
+                isThemed ||
+                isClosed;
 
               return (
                 <DayCell
@@ -204,6 +246,7 @@ export function ShiftMonthCalendar({
                   inMonth={inMonth}
                   isToday={isTodayCell}
                   isThemed={isThemed}
+                  isClosed={isClosed}
                   hasContent={hasContent}
                   isDark={isDark}
                   onPress={() => handleSelectDay(day, hasContent)}
@@ -214,58 +257,56 @@ export function ShiftMonthCalendar({
         ))}
       </View>
 
-      {/* Legend */}
+      {/* Legend: your shifts, then the day marks. When all five show they
+          don't fit on one line, so the day marks get a row of their own
+          rather than one item wrapping onto a line by itself. */}
       <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendSquare,
-              {
-                backgroundColor: isDark
-                  ? "rgba(155, 189, 160, 0.20)"
-                  : Brand.greenLight,
-                borderColor: isDark
-                  ? "rgba(155, 189, 160, 0.45)"
-                  : Palette.forest200,
-              },
-            ]}
-          />
-          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-            {"You're on"}
-          </Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendDot,
-              {
-                backgroundColor: isDark
-                  ? "rgba(155, 189, 160, 0.6)"
-                  : Palette.forest200,
-              },
-            ]}
-          />
-          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-            Past shift
-          </Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Palette.sun300 }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-            Friends going
-          </Text>
-        </View>
-        {hasThemedDayInView && (
+        <View style={styles.legendRow}>
           <View style={styles.legendItem}>
-            <Ionicons
-              name="sparkles"
-              size={10}
-              color={themeMarkColor(isDark)}
+            <View
+              style={[
+                styles.legendSquare,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(155, 189, 160, 0.20)"
+                    : Brand.greenLight,
+                  borderColor: isDark
+                    ? "rgba(155, 189, 160, 0.45)"
+                    : Palette.forest200,
+                },
+              ]}
             />
             <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-              Special day
+              {"You're on"}
             </Text>
           </View>
+          <View style={styles.legendItem}>
+            <View
+              style={[
+                styles.legendDot,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(155, 189, 160, 0.6)"
+                    : Palette.forest200,
+                },
+              ]}
+            />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+              Past shift
+            </Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View
+              style={[styles.legendDot, { backgroundColor: Palette.sun300 }]}
+            />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+              Friends going
+            </Text>
+          </View>
+          {dayMarksFitOnFirstRow && dayMarks}
+        </View>
+        {!dayMarksFitOnFirstRow && (
+          <View style={styles.legendRow}>{dayMarks}</View>
         )}
       </View>
     </View>
@@ -289,6 +330,7 @@ function DayCell({
   inMonth,
   isToday,
   isThemed,
+  isClosed,
   hasContent,
   isDark,
   onPress,
@@ -302,6 +344,7 @@ function DayCell({
   inMonth: boolean;
   isToday: boolean;
   isThemed: boolean;
+  isClosed: boolean;
   hasContent: boolean;
   isDark: boolean;
   onPress: () => void;
@@ -349,7 +392,9 @@ function DayCell({
       ? colors.textSecondary
       : isToday
         ? colors.tint
-        : colors.text;
+        : isClosed
+          ? colors.textSecondary
+          : colors.text;
 
   const numberWeight = isToday || isSelected || isSignedUp
     ? FontFamily.bold
@@ -371,7 +416,7 @@ function DayCell({
         isSignedUp ? ", you're signed up" : ""
       }${isPastAttended ? ", shift attended" : ""}${
         isThemed ? ", special day" : ""
-      }`}
+      }${isClosed ? ", closed" : ""}`}
       accessibilityRole="button"
       accessibilityState={{ selected: isSelected, disabled: !hasContent }}
     >
@@ -393,6 +438,8 @@ function DayCell({
               color: numberColor,
               fontFamily: numberWeight,
             },
+            // A closed day's number is struck through, as on the web calendar
+            isClosed && styles.closedNumber,
           ]}
         >
           {dayNumber}
@@ -519,6 +566,13 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
+  closedNumber: {
+    textDecorationLine: "line-through",
+  },
+  legendClosedMark: {
+    fontFamily: FontFamily.semiBold,
+    textDecorationLine: "line-through",
+  },
   themeMark: {
     position: "absolute",
     top: 2,
@@ -526,13 +580,17 @@ const styles = StyleSheet.create({
   },
   // Legend
   legend: {
+    alignItems: "center",
+    rowGap: 6,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
+  legendRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     columnGap: 16,
     rowGap: 6,
-    paddingTop: 14,
-    paddingBottom: 4,
   },
   legendItem: {
     flexDirection: "row",

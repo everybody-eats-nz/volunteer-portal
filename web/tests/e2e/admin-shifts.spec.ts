@@ -569,11 +569,17 @@ test.describe("Admin Shifts Page", () => {
       await gotoSettled(page, `/admin/shifts?date=${tomorrowStr}&location=Wellington`);
 
       const prefix = `shift-${shiftId}-volunteer-${waitlistSignup.id}`;
-      await page.getByTestId(`${prefix}-remove-waitlist-button`).click();
+      // The button renders before React hydrates it, and a click in that
+      // window is dropped, so retry until the dialog opens.
+      const dialogTitle = page.getByTestId(
+        `${prefix}-remove-waitlist-dialog-title`
+      );
+      await clickUntilVisible(
+        page.getByTestId(`${prefix}-remove-waitlist-button`),
+        dialogTitle
+      );
 
-      await expect(
-        page.getByTestId(`${prefix}-remove-waitlist-dialog-title`)
-      ).toContainText("Remove from Waitlist");
+      await expect(dialogTitle).toContainText("Remove from Waitlist");
       await expect(
         page.getByTestId(`${prefix}-remove-waitlist-dialog-description`)
       ).toContainText("not needed for this shift");

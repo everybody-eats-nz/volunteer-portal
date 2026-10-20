@@ -67,17 +67,57 @@ describe("PUT /api/admin/shift-day-themes", () => {
       date: "2026-12-23",
       location: "Wellington",
       theme: "Christmas Lunch",
+      closed: false,
     });
     expect(mockPrisma.shiftDayTheme.upsert).toHaveBeenCalledWith({
       where: { location_date: { location: "Wellington", date: DAY } },
-      update: { theme: "Christmas Lunch", updatedBy: "admin-1" },
+      update: { theme: "Christmas Lunch", closed: false, updatedBy: "admin-1" },
       create: {
         date: DAY,
         location: "Wellington",
         theme: "Christmas Lunch",
+        closed: false,
         updatedBy: "admin-1",
       },
     });
+  });
+
+  it("marks the day closed with the theme as the reason", async () => {
+    const res = await put({
+      date: "2026-12-23",
+      location: "Wellington",
+      theme: " Labour Day weekend ",
+      closed: true,
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      date: "2026-12-23",
+      location: "Wellington",
+      theme: "Labour Day weekend",
+      closed: true,
+    });
+    expect(mockPrisma.shiftDayTheme.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: {
+          theme: "Labour Day weekend",
+          closed: true,
+          updatedBy: "admin-1",
+        },
+      })
+    );
+  });
+
+  it("keeps a closed day with no reason", async () => {
+    const res = await put({
+      date: "2026-12-23",
+      location: "Wellington",
+      theme: "",
+      closed: true,
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ theme: "", closed: true });
+    expect(mockPrisma.shiftDayTheme.deleteMany).not.toHaveBeenCalled();
+    expect(mockPrisma.shiftDayTheme.upsert).toHaveBeenCalled();
   });
 
   it("clears the day when the theme is empty", async () => {
@@ -87,7 +127,7 @@ describe("PUT /api/admin/shift-day-themes", () => {
       theme: "   ",
     });
     expect(res.status).toBe(200);
-    expect((await res.json()).theme).toBeNull();
+    expect(await res.json()).toMatchObject({ theme: null, closed: false });
     expect(mockPrisma.shiftDayTheme.deleteMany).toHaveBeenCalledWith({
       where: { location: "Wellington", date: DAY },
     });
@@ -120,6 +160,14 @@ describe("PUT /api/admin/shift-day-themes", () => {
     });
     expect(tooLong.status).toBe(400);
     expect((await tooLong.json()).error).toMatch(/80 characters/);
+
+    const badClosed = await put({
+      date: "2026-12-23",
+      location: "Wellington",
+      theme: "",
+      closed: "yes",
+    });
+    expect(badClosed.status).toBe(400);
 
     const malformed = await put("{not json");
     expect(malformed.status).toBe(400);

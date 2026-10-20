@@ -34,24 +34,33 @@ export async function clickUntilVisible(
 }
 
 /**
- * DELETE a test fixture, retrying transport-level failures.
+ * Send an idempotent fixture request, retrying transport-level failures.
  *
- * Cleanup requests run on Playwright's keep-alive connection pool, and the dev
+ * Fixture requests run on Playwright's keep-alive connection pool, and the dev
  * server can close an idle socket just as a request is written to it, which
- * surfaces as "read ECONNRESET" and fails a test that already passed. The
- * deletes are idempotent, so a reset is safe to retry. HTTP error responses
- * are returned as before, never retried.
+ * surfaces as "read ECONNRESET" and fails a test for no reason of its own.
+ * GETs and DELETEs are idempotent, so a reset is safe to retry. HTTP error
+ * responses are returned as before, never retried.
  */
-async function cleanupDelete(page: Page, url: string) {
+async function idempotentRequest(
+  page: Page,
+  method: "get" | "delete",
+  url: string
+) {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await page.request.delete(url);
+      return await page.request[method](url);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const isConnectionReset = /ECONNRESET|socket hang up|EPIPE/.test(message);
       if (!isConnectionReset || attempt >= 3) throw error;
     }
   }
+}
+
+/** DELETE a test fixture, retrying connection resets. */
+function cleanupDelete(page: Page, url: string) {
+  return idempotentRequest(page, "delete", url);
 }
 
 /**
@@ -238,7 +247,9 @@ export async function getUserByEmail(
   page: Page,
   email: string
 ): Promise<{ id: string; email: string } | null> {
-  const response = await page.request.get(
+  const response = await idempotentRequest(
+    page,
+    "get",
     `/api/test/users?email=${encodeURIComponent(email)}`
   );
   if (response.ok()) {
@@ -285,7 +296,9 @@ export async function getShiftTypeByName(
   page: Page,
   name: string
 ): Promise<{ id: string; name: string } | null> {
-  const response = await page.request.get(
+  const response = await idempotentRequest(
+    page,
+    "get",
     `/api/test/shift-types?name=${encodeURIComponent(name)}`
   );
   if (response.ok()) {

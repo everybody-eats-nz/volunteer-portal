@@ -4,8 +4,9 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { dayKeyToDbDate, shiftDayThemeSchema } from "@/lib/shift-day-themes";
 
-// PUT - Set or clear the theme for one day at one location. An empty theme
-// removes it, so the same call backs both "Save" and "Remove".
+// PUT - Set or clear the theme for one day at one location, or mark the day
+// closed (the theme is then the optional reason). An open day with an empty
+// theme is removed, so the same call backs both "Save" and "Remove".
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -28,7 +29,7 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const { date, location, theme } = parsed.data;
+  const { date, location, theme, closed } = parsed.data;
 
   try {
     const locationRow = await prisma.location.findUnique({
@@ -46,23 +47,29 @@ export async function PUT(request: NextRequest) {
       location_date: { location, date: dayKeyToDbDate(date) },
     };
 
-    if (theme === "") {
+    if (theme === "" && !closed) {
       await prisma.shiftDayTheme.deleteMany({ where: where.location_date });
-      return NextResponse.json({ date, location, theme: null });
+      return NextResponse.json({ date, location, theme: null, closed: false });
     }
 
     const saved = await prisma.shiftDayTheme.upsert({
       where,
-      update: { theme, updatedBy: session.user.id },
+      update: { theme, closed, updatedBy: session.user.id },
       create: {
         date: dayKeyToDbDate(date),
         location,
         theme,
+        closed,
         updatedBy: session.user.id,
       },
     });
 
-    return NextResponse.json({ date, location, theme: saved.theme });
+    return NextResponse.json({
+      date,
+      location,
+      theme: saved.theme,
+      closed: saved.closed,
+    });
   } catch (error) {
     console.error("Error saving shift day theme:", error);
     return NextResponse.json(
