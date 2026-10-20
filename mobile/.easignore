@@ -45,7 +45,7 @@ Unlinked Picasso App/
 test-utils/
 **/*.test.ts
 **/*.test.tsx
-vitest.config.ts
+vitest.config.mts
 .vscode/
 .claude/
 

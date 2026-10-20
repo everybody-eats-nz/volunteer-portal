@@ -1,6 +1,17 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
+
+/**
+ * Go to a tab, closing whatever is stacked over the tab bar. `router.push`
+ * from a screen above the tabs (the notification list, a shift detail) pushes
+ * a second copy of the whole tab navigator instead: the copy remounts the tab,
+ * and back then leads to a stale duplicate. From inside the tabs both calls
+ * just switch tab.
+ */
+function goToTab(href: Href) {
+  router.dismissTo(href);
+}
 
 /**
  * Translate a web-app URL (from a notification's actionUrl) to a mobile
@@ -28,7 +39,7 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     if (feedItemId) {
       usePendingFeedItemStore.getState().setPendingId(feedItemId);
     }
-    router.push("/(tabs)");
+    goToTab("/(tabs)");
     return;
   }
 
@@ -72,7 +83,7 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     const params: Record<string, string> = {};
     if (date) params.date = date;
     if (location) params.location = location;
-    router.push(
+    goToTab(
       Object.keys(params).length > 0
         ? { pathname: "/(tabs)/shifts", params }
         : "/(tabs)/shifts"
@@ -105,7 +116,7 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
 
   // Any other /drive* path -> the Drive tab.
   if (pathname === "/drive" || pathname.startsWith("/drive/")) {
-    router.push("/(tabs)/drive");
+    goToTab("/(tabs)/drive");
     return;
   }
 
@@ -128,7 +139,7 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
 
   // Any other /shifts/* path -> shifts tab fallback.
   if (pathname === "/shifts" || pathname.startsWith("/shifts/")) {
-    router.push("/(tabs)/shifts");
+    goToTab("/(tabs)/shifts");
     return;
   }
 
@@ -152,13 +163,13 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
 
   // /friends* fallback -> profile tab (friends live under profile on mobile)
   if (pathname === "/friends" || pathname.startsWith("/friends/")) {
-    router.push("/(tabs)/profile");
+    goToTab("/(tabs)/profile");
     return;
   }
 
   // /achievements* -> profile tab
   if (pathname.startsWith("/achievements")) {
-    router.push("/(tabs)/profile");
+    goToTab("/(tabs)/profile");
     return;
   }
 }

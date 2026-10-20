@@ -15,6 +15,12 @@ type UseFeedReturn = {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /**
+   * Refetch the feed and resolve with the fresh items, for callers that need
+   * to look something up in the result rather than wait for a re-render.
+   * Rejects when the fetch fails, so a miss can't be mistaken for "not there".
+   */
+  refetchItems: () => Promise<FeedItem[]>;
   /** Update a single item's interaction counts in-place (used by useFeedInteractions) */
   updateItem: (
     id: string,
@@ -73,6 +79,12 @@ export function useFeed(): UseFeedReturn {
     [queryClient, queryKey]
   );
 
+  const { refetch } = query;
+  const refetchItems = useCallback(async () => {
+    const result = await refetch({ throwOnError: true });
+    return result.data?.items ?? [];
+  }, [refetch]);
+
   // Ordering: hype-adjusted recency — upcoming events and menus climb the
   // feed as their date approaches. See lib/feed-ranking.ts for the rationale.
   const items = useMemo(
@@ -91,6 +103,7 @@ export function useFeed(): UseFeedReturn {
     refresh: async () => {
       await query.refetch();
     },
+    refetchItems,
     updateItem,
     removeItemsByUser,
   };
