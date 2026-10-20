@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   offerDeadlineLabel,
+  parseWaitlistIfFull,
   WAITLIST_EXPLAINER,
   waitlistChipLabel,
   waitlistCountLabel,
@@ -78,5 +79,23 @@ describe("offerDeadlineLabel", () => {
     // device-local comparison would call this one "tomorrow".
     const expires = new Date("2026-09-23T11:00:00.000Z"); // 11:00PM Wed NZ
     expect(offerDeadlineLabel(expires, wedMidday)).toBe("11:00PM today");
+  });
+});
+
+describe("parseWaitlistIfFull", () => {
+  it("treats a missing answer as yes, for clients that never asked", () => {
+    expect(parseWaitlistIfFull(undefined)).toBe(true);
+    expect(parseWaitlistIfFull(null)).toBe(true);
+  });
+
+  it("reads an explicit no from a form field or JSON body", () => {
+    expect(parseWaitlistIfFull("0")).toBe(false);
+    expect(parseWaitlistIfFull("false")).toBe(false);
+    expect(parseWaitlistIfFull(false)).toBe(false);
+  });
+
+  it("reads an explicit yes", () => {
+    expect(parseWaitlistIfFull("1")).toBe(true);
+    expect(parseWaitlistIfFull(true)).toBe(true);
   });
 });

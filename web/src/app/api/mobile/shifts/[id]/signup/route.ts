@@ -13,6 +13,7 @@ import { validateGuardianRequirement } from "@/lib/guardian-validation";
 import { getMissingProfileFields } from "@/lib/profile-completion";
 import { syncProfileCompletedFlag } from "@/lib/profile-completion.server";
 import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
+import { parseWaitlistIfFull } from "@/lib/waitlist";
 
 /**
  * POST /api/mobile/shifts/[id]/signup
@@ -26,7 +27,12 @@ import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
  * - Capacity check with optional waitlist
  * - Auto-approval processing
  *
- * Body (JSON): { waitlist?: boolean }
+ * Body (JSON): { waitlist?: boolean, waitlistIfFull?: boolean, note?: string,
+ *   backupShiftIds?: string[] }
+ *
+ * `waitlistIfFull` is the volunteer's answer to "if the shift fills before
+ * you're approved, put you on the waitlist?". Builds that predate the question
+ * don't send it, and keep the old behaviour (waitlisted).
  */
 export async function POST(
   request: Request,
@@ -119,11 +125,13 @@ export async function POST(
 
   // Parse optional body
   let waitlistRequested = false;
+  let waitlistIfFull = true;
   let note: string | null = null;
   let backupShiftIds: string[] = [];
   try {
     const body = await request.json();
     waitlistRequested = body.waitlist === true;
+    waitlistIfFull = parseWaitlistIfFull(body.waitlistIfFull);
     if (typeof body.note === "string" && body.note.trim()) {
       note = body.note.trim().slice(0, 500); // Enforce max length
     }
@@ -186,8 +194,16 @@ export async function POST(
   // Capacity check
   if (confirmedCount >= shift.capacity) {
     if (!waitlistRequested) {
+      // Older app builds match on this exact message - keep it.
       return NextResponse.json(
-        { error: "Shift is full", waitlistAvailable: true },
+        {
+          error: "Shift is full",
+          waitlistAvailable: true,
+          confirmedCount,
+          capacity: shift.capacity,
+          waitlistCount: shift.signups.filter((s) => s.status === "WAITLISTED")
+            .length,
+        },
         { status: 400 }
       );
     }
@@ -219,6 +235,7 @@ export async function POST(
         status: "PENDING",
         note,
         backupForShiftIds: backupShiftIds,
+        waitlistIfFull,
       },
     });
 

@@ -351,6 +351,13 @@ model Signup {
   // Volunteer-provided note
   note String? // Optional note from volunteer when signing up
 
+  // Asked at signup: if the shift fills before an admin approves this signup,
+  // should it go on the waitlist? When false, approving into a full shift
+  // releases the signup instead of parking someone who never asked to wait.
+  // Defaults to true for older app builds that don't ask, and for signups the
+  // volunteer didn't make themselves (regular-volunteer auto-signups).
+  waitlistIfFull Boolean @default(true)
+
   // Waitlist offer. When a confirmed place frees up, the next eligible person
   // on the waitlist gets first refusal until `waitlistOfferExpiresAt`. The
   // status deliberately stays WAITLISTED for the life of the offer - they do

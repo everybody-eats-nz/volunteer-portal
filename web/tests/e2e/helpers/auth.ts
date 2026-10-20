@@ -1,19 +1,58 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { gotoSettled } from "./streaming";
+
+/**
+ * Drops whatever session the page's browser context holds, and proves it is
+ * gone before returning.
+ *
+ * The login helpers used to log out through the /logout page and swallow any
+ * failure. That page signs out from a client effect, so a slow hydration (a
+ * first-visit dev compile in CI) ran past its 10s wait, the error was
+ * swallowed, and the old session survived. /login then redirected the still
+ * signed-in admin to /admin and the volunteer login timed out waiting for
+ * /dashboard. Sessions are JWT cookies, so clearing the cookies is the whole
+ * sign-out and needs no hydration.
+ *
+ * The page is parked on about:blank first: a request the previous page still
+ * has in flight (next-auth's session refetch) can answer with a refreshed
+ * session cookie and quietly sign the user back in after the clear.
+ */
+export async function clearSession(page: Page) {
+  // Retried as a whole: the previous page can also have a navigation of its
+  // own in flight (a post-login or post-signout redirect), which interrupts
+  // the about:blank goto, or lands after it and sets its cookies again.
+  await expect(async () => {
+    await page.goto("about:blank");
+    await page.context().clearCookies();
+    await assertSignedOut(page);
+  }).toPass({ timeout: 15_000 });
+}
+
+/**
+ * Throws if the browser context still has a live session.
+ */
+async function assertSignedOut(page: Page) {
+  const response = await page.request.get("/api/auth/session");
+  const session = await response.json().catch(() => null);
+  if (session?.user) {
+    throw new Error(
+      `Expected no session, but still signed in as ${session.user.email}`
+    );
+  }
+}
 
 /**
  * Helper function to login as admin user
  * Uses the quick-login button with test ID for reliability
  */
 export async function loginAsAdmin(page: Page) {
-  try {
-    await logout(page);
-  } catch {
-    console.warn("Couldn't logout - might not be logged in");
-  }
+  await clearSession(page);
 
   try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
+    // Settled, not just loaded: until React clears its hidden streaming
+    // staging container, every login control exists twice and the quick-login
+    // and form locators below hit strict-mode violations.
+    await gotoSettled(page, "/login");
 
     // Use .first(): the subtree briefly exists in React's hidden streaming
     // staging container too. See helpers/streaming.ts for the full explanation.
@@ -45,15 +84,10 @@ export async function loginAsAdmin(page: Page) {
  * If customEmail is provided, uses credentials login instead
  */
 export async function loginAsVolunteer(page: Page, customEmail?: string) {
-  try {
-    await logout(page);
-  } catch {
-    console.warn("Couldn't logout - might not be logged in");
-  }
+  await clearSession(page);
 
   try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/login");
 
     if (customEmail) {
       // Use credentials form for custom email
@@ -67,9 +101,9 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
       await page.getByTestId("login-submit-button").click();
     } else {
       // Use quick login for default volunteer
-      const volunteerLoginButton = page.getByTestId(
-        "quick-login-volunteer-button"
-      );
+      const volunteerLoginButton = page
+        .getByTestId("quick-login-volunteer-button")
+        .first();
       await volunteerLoginButton.waitFor({ state: "visible", timeout: 10000 });
       await volunteerLoginButton.click();
     }
@@ -84,8 +118,8 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
 }
 
 /**
- * Helper function to logout
- * Uses server-side logout page for reliability
+ * Logs out through the real /logout page, for specs that test signing out.
+ * Specs that only need to switch users should use clearSession instead.
  */
 export async function logout(page: Page) {
   try {
@@ -102,6 +136,7 @@ export async function logout(page: Page) {
     // Wait for redirect to login page
     await page.waitForURL("**/login", { timeout: 10000 });
     await page.waitForLoadState("load");
+    await assertSignedOut(page);
   } catch (error) {
     console.log("Error during logout:", error);
     throw error;
