@@ -187,7 +187,7 @@ export default async function AdminShiftsPage({
             date: dayKeyToDbDate(dateString),
           },
         },
-        select: { theme: true },
+        select: { theme: true, closed: true },
       })
     : null;
 
@@ -431,15 +431,21 @@ export default async function AdminShiftsPage({
           hasShifts={shifts.length > 0}
         />
 
-        {/* Day theme - shown to volunteers beside the date. Available on empty
-            days too, so special nights can be announced before shifts exist.
-            Keyed so switching day/location resets the editor's draft. */}
+        {/* Day theme or closure - shown to volunteers beside the date.
+            Available on empty days too, so special nights and closures can be
+            announced before (or without) shifts. Keyed so switching
+            day/location resets the editor's draft. */}
         {isDayKey(dateString) && (
           <ShiftDayThemeInput
             key={`${dateString}|${selectedLocation}`}
             date={dateString}
             location={selectedLocation}
-            initialTheme={dayTheme?.theme ?? null}
+            initial={
+              dayTheme
+                ? { theme: dayTheme.theme, closed: dayTheme.closed }
+                : null
+            }
+            shiftCount={shifts.length}
           />
         )}
 

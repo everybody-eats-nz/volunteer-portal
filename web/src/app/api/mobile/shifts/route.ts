@@ -11,6 +11,7 @@ import {
 } from "@/lib/placeholder-utils";
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
+import { toDayThemeLabelMap } from "@/lib/shift-day-themes";
 
 const DEFAULT_PAGE_SIZE = 15;
 
@@ -30,8 +31,11 @@ const HOME_WINDOW_DAYS = 7;
  * - myShifts: upcoming shifts the user is signed up for (always returns all)
  * - available: upcoming shifts the user is NOT signed up for, within a 3-month window (unpaginated)
  * - past: past shifts the user attended (paginated)
- * - dayThemes: admin-set themes for days in the calendar window ("Christmas
- *   Lunch"), keyed by location then "yyyy-MM-dd" NZ day. Not in scope=home.
+ * - dayThemeDetails: admin-set themes for days in the calendar window
+ *   ("Christmas Lunch") and closed days, keyed by location then "yyyy-MM-dd"
+ *   NZ day, as { theme, closed }. Not in scope=home.
+ * - dayThemes: the same days as one string each ("Closed - Labour Day
+ *   weekend"), for app builds from before closed days. Not in scope=home.
  *
  * Query params:
  * - scope: "home" trims the response to what the home tab actually renders —
@@ -373,6 +377,11 @@ export async function GET(request: Request) {
     userDefaultLocation,
     periodFriends,
     shiftFriends,
-    ...(dayThemes ? { dayThemes } : {}),
+    ...(dayThemes
+      ? {
+          dayThemeDetails: dayThemes,
+          dayThemes: toDayThemeLabelMap(dayThemes),
+        }
+      : {}),
   });
 }

@@ -22,7 +22,11 @@ import {
   MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ShiftDayThemeMap } from "@/lib/shift-day-themes";
+import {
+  dayThemeLabel,
+  type ShiftDayTheme,
+  type ShiftDayThemeMap,
+} from "@/lib/shift-day-themes";
 
 /** Four-point sparkle — the marketing site's signature accent mark. */
 function Sparkle({ className }: { className?: string }) {
@@ -34,9 +38,9 @@ function Sparkle({ className }: { className?: string }) {
 }
 
 /**
- * The month's themed days written out in full, for phones and tablets - where
- * calendar cells only have room to highlight the date. Days with shifts link
- * through to them.
+ * The month's themed and closed days written out in full, for phones and
+ * tablets - where calendar cells only have room to mark the date. Days with
+ * shifts link through to them.
  */
 function ThemedDayList({
   location,
@@ -44,7 +48,7 @@ function ThemedDayList({
   days,
 }: {
   location: string;
-  themes: Record<string, string> | undefined;
+  themes: Record<string, ShiftDayTheme> | undefined;
   days: Array<{ date: Date; shifts: unknown[] }>;
 }) {
   if (!themes || days.length === 0) return null;
@@ -52,22 +56,46 @@ function ThemedDayList({
   return (
     <ul
       className="mt-3 border-t border-forest-500/10 pt-2 sm:mt-5 sm:pt-3 lg:hidden dark:border-cream-50/10"
-      aria-label="Themed days"
+      aria-label="Themed and closed days"
       data-testid="calendar-day-theme-list"
     >
       {days.map((day) => {
         const key = format(day.date, "yyyy-MM-dd");
+        const { theme, closed } = themes[key];
         const row = (
           <>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sun-200 text-sm font-bold tabular-nums text-forest-800 dark:bg-sun-200/20 dark:text-sun-100">
+            <span
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums",
+                closed
+                  ? "closed-hatch border border-forest-500/15 text-forest-700/55 line-through decoration-forest-700/45 dark:border-cream-50/15 dark:text-cream-50/50 dark:decoration-cream-50/40"
+                  : "bg-sun-200 text-forest-800 dark:bg-sun-200/20 dark:text-sun-100"
+              )}
+            >
               {format(day.date, "d")}
             </span>
             <span className="w-8 shrink-0 text-xs font-semibold text-forest-700/60 dark:text-cream-50/55">
               {format(day.date, "EEE")}
             </span>
-            <span className="display min-w-0 flex-1 text-base italic leading-snug text-forest-800 dark:text-cream-50">
-              {themes[key]}
-            </span>
+            {closed ? (
+              <span
+                className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2"
+                data-testid={`calendar-day-closed-${key}`}
+              >
+                <span className="text-sm font-semibold text-forest-800 dark:text-cream-50">
+                  Closed
+                </span>
+                {theme && (
+                  <span className="display min-w-0 text-base italic leading-snug text-forest-700/80 dark:text-cream-50/75">
+                    {theme}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="display min-w-0 flex-1 text-base italic leading-snug text-forest-800 dark:text-cream-50">
+                {theme}
+              </span>
+            )}
           </>
         );
         return (
@@ -125,8 +153,8 @@ interface ShiftSummary {
 interface ShiftsCalendarProps {
   shifts: ShiftSummary[];
   /**
-   * Admin-set themes for upcoming days ("Christmas Lunch", "Pasta Night"),
-   * keyed by location then "yyyy-MM-dd" NZ day.
+   * Admin-set themes ("Christmas Lunch", "Pasta Night") and closures for
+   * upcoming days, keyed by location then "yyyy-MM-dd" NZ day.
    */
   dayThemes?: ShiftDayThemeMap;
   selectedLocation?: string;
@@ -454,10 +482,13 @@ export function ShiftsCalendar({
                     const meta = statusMeta(status, dayShifts.spotsAvailable);
                     const isInteractive =
                       isCurrentMonth && !isPastDate && status !== "none";
-                    const theme =
+                    const dayTheme =
                       isCurrentMonth && !isPastDate
                         ? dayThemes[location]?.[dayKey]
                         : undefined;
+                    const isClosed = dayTheme?.closed === true;
+                    // The theme text, or on a closed day the reason (if any)
+                    const theme = dayTheme?.theme || undefined;
 
                     const dayContent = (
                       <div
@@ -481,19 +512,21 @@ export function ShiftsCalendar({
                             !isToday &&
                             status === "none" &&
                             "border border-forest-500/10 bg-card dark:border-cream-50/10 dark:bg-forest-800/40",
+                          isClosed && "closed-hatch",
                           isInteractive &&
                             !isToday &&
                             "cursor-pointer border border-forest-500/15 bg-card shadow-sm hover:-translate-y-0.5 hover:border-forest-500/50 hover:shadow-lg dark:border-cream-50/10 dark:bg-forest-800/50 dark:hover:border-forest-400/50"
                         )}
                         data-testid={`calendar-day-${dayKey}`}
-                        title={theme}
+                        data-closed={isClosed || undefined}
+                        title={dayTheme ? dayThemeLabel(dayTheme) : undefined}
                       >
                         {/* Date number — centered at the top of the tile, with
                             the day's theme beside it on wide screens */}
                         <div
                           className={cn(
                             "flex shrink-0 items-start",
-                            theme && "lg:w-full lg:gap-1.5"
+                            dayTheme && "lg:w-full lg:gap-1.5"
                           )}
                         >
                         <span
@@ -503,8 +536,13 @@ export function ShiftsCalendar({
                             // so the number itself is highlighted and the
                             // themes are listed in full beneath the grid.
                             theme &&
+                              !isClosed &&
                               !isToday &&
                               "max-lg:bg-sun-200 max-lg:text-forest-800 dark:max-lg:bg-sun-200/20 dark:max-lg:text-sun-100",
+                            // A closed day's number is struck through - the
+                            // one mark that reads at every cell size.
+                            isClosed &&
+                              "line-through decoration-forest-700/45 decoration-[1.5px] dark:decoration-cream-50/45",
                             !isCurrentMonth &&
                               "text-forest-700/35 dark:text-cream-50/30",
                             isCurrentMonth &&
@@ -517,12 +555,29 @@ export function ShiftsCalendar({
                             isCurrentMonth &&
                               !isPastDate &&
                               !isToday &&
-                              "text-forest-700 dark:text-cream-50/85"
+                              (isClosed
+                                ? "text-forest-700/55 dark:text-cream-50/50"
+                                : "text-forest-700 dark:text-cream-50/85")
                           )}
                         >
                           {format(dayShifts.date, "d")}
                         </span>
-                        {theme && (
+                        {isClosed && (
+                          <span
+                            className="hidden min-w-0 pt-[3px] text-left lg:block"
+                            data-testid={`calendar-day-closed-label-${dayKey}`}
+                          >
+                            <span className="block text-[13px] font-semibold leading-[1.2] text-forest-800 dark:text-cream-50">
+                              Closed
+                            </span>
+                            {theme && (
+                              <span className="display mt-0.5 line-clamp-2 text-[13px] italic leading-[1.2] text-forest-700/75 dark:text-cream-50/70">
+                                {theme}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                        {theme && !isClosed && (
                           <span
                             className="hidden min-w-0 pt-[3px] text-left lg:block"
                             data-testid={`calendar-day-theme-${dayKey}`}
@@ -591,7 +646,7 @@ export function ShiftsCalendar({
                             <span className="text-[11px] font-semibold uppercase tracking-wide text-forest-700/70 dark:text-cream-50/60">
                               Today
                             </span>
-                          ) : isCurrentMonth && !isPastDate && !theme ? (
+                          ) : isCurrentMonth && !isPastDate && !dayTheme ? (
                             <span
                               className="h-1 w-1 rounded-full bg-forest-500/25 dark:bg-cream-50/20"
                               aria-hidden

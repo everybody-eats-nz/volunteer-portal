@@ -160,11 +160,12 @@ export default async function ShiftDetailsPage({
         })
       : Promise.resolve<ShiftDayThemeMap>({}),
   ]);
-  // The day's theme per location ("Christmas Lunch"). With no location picked
-  // every restaurant's theme is listed, so each one is labelled with its name.
+  // The day's theme per location ("Christmas Lunch"), or that it's closed.
+  // With no location picked every restaurant's is listed, so each one is
+  // labelled with its name.
   const dayThemes = Object.entries(dayThemeMap).map(([location, byDay]) => ({
     location,
-    theme: byDay[dateParam],
+    ...byDay[dateParam],
   }));
   const selectedLocationAddress = selectedLocation
     ? locationAddresses[selectedLocation]
@@ -254,24 +255,41 @@ export default async function ShiftDetailsPage({
           >
             {formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
           </h1>
-          {dayThemes.map(({ location, theme }) => (
-            <p
-              key={location}
-              className="display rounded-xl bg-sun-200/80 px-3 py-1 text-xl italic leading-snug text-forest-800 sm:text-2xl dark:bg-sun-200/15 dark:text-sun-100"
-              data-testid="shifts-details-day-theme"
-            >
-              {selectedLocation ? (
-                theme
-              ) : (
-                <>
-                  <span className="not-italic text-forest-700/70 dark:text-sun-100/70">
-                    {location}:
-                  </span>{" "}
-                  {theme}
-                </>
-              )}
-            </p>
-          ))}
+          {dayThemes.map(({ location, theme, closed }) =>
+            closed ? (
+              <p
+                key={location}
+                className="closed-hatch flex flex-wrap items-baseline gap-x-2 rounded-xl border border-forest-500/15 px-3 py-1 leading-snug text-forest-800 dark:border-cream-50/15 dark:text-cream-50"
+                data-testid="shifts-details-day-closed"
+              >
+                <span className="text-lg font-semibold sm:text-xl">
+                  {selectedLocation ? "Closed" : `${location} closed`}
+                </span>
+                {theme && (
+                  <span className="display text-xl italic text-forest-700/80 sm:text-2xl dark:text-cream-50/75">
+                    {theme}
+                  </span>
+                )}
+              </p>
+            ) : (
+              <p
+                key={location}
+                className="display rounded-xl bg-sun-200/80 px-3 py-1 text-xl italic leading-snug text-forest-800 sm:text-2xl dark:bg-sun-200/15 dark:text-sun-100"
+                data-testid="shifts-details-day-theme"
+              >
+                {selectedLocation ? (
+                  theme
+                ) : (
+                  <>
+                    <span className="not-italic text-forest-700/70 dark:text-sun-100/70">
+                      {location}:
+                    </span>{" "}
+                    {theme}
+                  </>
+                )}
+              </p>
+            )
+          )}
         </div>
         {selectedLocation && (
           <div className="mt-4">

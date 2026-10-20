@@ -111,11 +111,13 @@ export async function GET(request: NextRequest) {
             where: {
               location_date: { location, date: dayKeyToDbDate(date) },
             },
-            select: { theme: true },
+            select: { theme: true, closed: true },
           })
         : null,
     ]);
-    const dayThemeName = dayTheme?.theme ?? null;
+    // A closed day's text is why it's closed, never an event name.
+    const dayThemeName =
+      dayTheme && !dayTheme.closed && dayTheme.theme ? dayTheme.theme : null;
 
     // Pop-up / special-event venues are koha-manual-only (no Stripe sync).
     const isPopup = locationConfig?.isPopup ?? false;

@@ -8,6 +8,8 @@ import {
   normalizeTheme,
   shiftDayThemeSchema,
   toShiftDayThemeMap,
+  dayThemeLabel,
+  toDayThemeLabelMap,
 } from "./shift-day-themes";
 
 describe("isDayKey", () => {
@@ -54,6 +56,15 @@ describe("shiftDayThemeSchema", () => {
     expect(shiftDayThemeSchema.parse({ ...base, theme: "   " }).theme).toBe("");
   });
 
+  it("defaults closed to false, so older clients keep working", () => {
+    expect(shiftDayThemeSchema.parse({ ...base, theme: "x" }).closed).toBe(
+      false
+    );
+    expect(
+      shiftDayThemeSchema.parse({ ...base, theme: "", closed: true }).closed
+    ).toBe(true);
+  });
+
   it("enforces the length limit after normalizing", () => {
     const atLimit = "a".repeat(SHIFT_DAY_THEME_MAX_LENGTH);
     expect(
@@ -89,24 +100,60 @@ describe("toShiftDayThemeMap", () => {
           date: dayKeyToDbDate("2026-12-23"),
           location: "Wellington",
           theme: "Christmas Lunch",
+          closed: false,
         },
         {
           date: dayKeyToDbDate("2026-12-28"),
           location: "Wellington",
-          theme: "Pasta Night",
+          theme: "Summer break",
+          closed: true,
         },
         {
           date: dayKeyToDbDate("2026-12-23"),
           location: "Glen Innes",
           theme: "Private event",
+          closed: false,
         },
       ])
     ).toEqual({
       Wellington: {
-        "2026-12-23": "Christmas Lunch",
-        "2026-12-28": "Pasta Night",
+        "2026-12-23": { theme: "Christmas Lunch", closed: false },
+        "2026-12-28": { theme: "Summer break", closed: true },
       },
-      "Glen Innes": { "2026-12-23": "Private event" },
+      "Glen Innes": { "2026-12-23": { theme: "Private event", closed: false } },
+    });
+  });
+});
+
+describe("dayThemeLabel", () => {
+  it("is the theme on an open day", () => {
+    expect(dayThemeLabel({ theme: "Pasta Night", closed: false })).toBe(
+      "Pasta Night"
+    );
+  });
+
+  it("leads with Closed on a closed day, with or without a reason", () => {
+    expect(dayThemeLabel({ theme: "Labour Day weekend", closed: true })).toBe(
+      "Closed - Labour Day weekend"
+    );
+    expect(dayThemeLabel({ theme: "", closed: true })).toBe("Closed");
+  });
+});
+
+describe("toDayThemeLabelMap", () => {
+  it("flattens each day to its label", () => {
+    expect(
+      toDayThemeLabelMap({
+        Wellington: {
+          "2026-10-25": { theme: "Labour Day weekend", closed: true },
+          "2026-12-23": { theme: "Christmas Lunch", closed: false },
+        },
+      })
+    ).toEqual({
+      Wellington: {
+        "2026-10-25": "Closed - Labour Day weekend",
+        "2026-12-23": "Christmas Lunch",
+      },
     });
   });
 });

@@ -447,6 +447,23 @@ h6 em,
   opacity: 0.04;
 }
 
+/* Closed day on the shift calendar - fine diagonal hatching, like a shutter
+   pulled down. Quiet enough to sit behind the date number. */
+.closed-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    color-mix(in srgb, var(--color-forest-500) 9%, transparent) 5px 6px
+  );
+}
+.dark .closed-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    color-mix(in srgb, var(--color-cream-50) 8%, transparent) 5px 6px
+  );
+}
+
 /* Hero carousel active-dot progress fill — animates over the slide interval.
    Keyed on the active frame in the component so it restarts each advance. */
 @keyframes dot-progress {

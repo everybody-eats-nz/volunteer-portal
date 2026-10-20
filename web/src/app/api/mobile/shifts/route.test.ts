@@ -260,6 +260,7 @@ describe("GET /api/mobile/shifts", () => {
       expect(json.shiftFriends).toEqual({});
       // Day themes are only rendered on the Shifts tab.
       expect(json.dayThemes).toBeUndefined();
+      expect(json.dayThemeDetails).toBeUndefined();
       expect(mockGetShiftDayThemes).not.toHaveBeenCalled();
       // No signup.findMany call filtered on past shifts.
       expect(
@@ -295,6 +296,7 @@ describe("GET /api/mobile/shifts", () => {
     // Old app builds still get every key they did before.
     expect(Object.keys(json).sort()).toEqual([
       "available",
+      "dayThemeDetails",
       "dayThemes",
       "locations",
       "myShifts",
@@ -306,14 +308,26 @@ describe("GET /api/mobile/shifts", () => {
     ]);
   });
 
-  it("returns the calendar window's day themes", async () => {
+  it("returns the calendar window's day themes and closed days", async () => {
     stubSignupQueries();
-    const themes = { Onehunga: { "2026-07-18": "Pasta Night" } };
+    const themes = {
+      Onehunga: {
+        "2026-07-18": { theme: "Pasta Night", closed: false },
+        "2026-07-19": { theme: "Staff training", closed: true },
+      },
+    };
     mockGetShiftDayThemes.mockResolvedValue(themes);
 
     const json = await (await GET(makeRequest())).json();
 
-    expect(json.dayThemes).toEqual(themes);
+    expect(json.dayThemeDetails).toEqual(themes);
+    // Older builds read plain strings, so a closed day says so in the text.
+    expect(json.dayThemes).toEqual({
+      Onehunga: {
+        "2026-07-18": "Pasta Night",
+        "2026-07-19": "Closed - Staff training",
+      },
+    });
     // NZ days, matching the calendar window: 16 Jul NZT to 16 Oct NZDT.
     expect(mockGetShiftDayThemes).toHaveBeenCalledWith({
       fromDayKey: "2026-07-16",

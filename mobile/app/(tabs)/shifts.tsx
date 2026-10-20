@@ -33,6 +33,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Image } from "expo-image";
 
+import { ClosedDayCard } from "@/components/closed-day-card";
 import { ShiftMonthCalendar } from "@/components/shift-month-calendar";
 import { ThemedText } from "@/components/themed-text";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
@@ -325,8 +326,8 @@ export default function ShiftsScreen() {
 
   const selectedDateKey = formatDateKey(selectedDate);
 
-  /* Day themes ("Christmas Lunch", "Pasta Night") for the restaurant in view,
-     or every restaurant when browsing all of them. */
+  /* Day themes ("Christmas Lunch", "Pasta Night") and closures for the
+     restaurant in view, or every restaurant when browsing all of them. */
   const visibleDayThemes = useMemo(
     () =>
       Object.entries(dayThemes).filter(
@@ -334,19 +335,26 @@ export default function ShiftsScreen() {
       ),
     [dayThemes, locationFilter]
   );
-  const themedDates = useMemo(
-    () =>
-      new Set(visibleDayThemes.flatMap(([, byDay]) => Object.keys(byDay))),
-    [visibleDayThemes]
-  );
+  const { themedDates, closedDates } = useMemo(() => {
+    const themed = new Set<string>();
+    const closed = new Set<string>();
+    for (const [, byDay] of visibleDayThemes) {
+      for (const [day, entry] of Object.entries(byDay)) {
+        (entry.closed ? closed : themed).add(day);
+      }
+    }
+    return { themedDates: themed, closedDates: closed };
+  }, [visibleDayThemes]);
   const selectedDayThemes = useMemo(
     () =>
       visibleDayThemes.flatMap(([location, byDay]) =>
-        byDay[selectedDateKey]
-          ? [{ location, theme: byDay[selectedDateKey] }]
-          : []
+        byDay[selectedDateKey] ? [{ location, ...byDay[selectedDateKey] }] : []
       ),
     [visibleDayThemes, selectedDateKey]
+  );
+  const selectedDayClosures = useMemo(
+    () => selectedDayThemes.filter((t) => t.closed),
+    [selectedDayThemes]
   );
 
   /* Calendar signals — merge available + signups (past + upcoming) for density dots */
@@ -418,6 +426,27 @@ export default function ShiftsScreen() {
     0
   );
 
+  /* A closed day with nothing on offers a jump to the next day that has
+     shifts (skipping other closed days), instead of a dead end. */
+  const nextShiftDateAfterSelected = useMemo(() => {
+    if (selectedDayClosures.length === 0 || totalDayShifts > 0) return null;
+    let next: Date | null = null;
+    for (const shift of [...filteredAvailable, ...filteredMyShifts]) {
+      const start = new Date(shift.start);
+      const key = formatDateKey(start);
+      if (key <= selectedDateKey || closedDates.has(key)) continue;
+      if (!next || start < next) next = start;
+    }
+    return next;
+  }, [
+    selectedDayClosures,
+    totalDayShifts,
+    filteredAvailable,
+    filteredMyShifts,
+    selectedDateKey,
+    closedDates,
+  ]);
+
   /* Earliest upcoming signup — surfaces as a jump-to pill */
   const nextShift = useMemo(() => {
     if (myShifts.length === 0) return null;
@@ -465,6 +494,11 @@ export default function ShiftsScreen() {
         contentContainerStyle={[
           styles.content,
           Platform.OS === "android" && { paddingTop: insets.top },
+          // The iOS tab bar floats over the content and the automatic inset
+          // doesn't clear it, so the end of the day's shifts would sit under it
+          Platform.OS === "ios" && {
+            paddingBottom: insets.bottom + IOS_FLOATING_TAB_BAR_CLEARANCE,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -579,6 +613,7 @@ export default function ShiftsScreen() {
                 signedUpDates={signedUpDates}
                 pastAttendedDates={pastAttendedDates}
                 themedDates={themedDates}
+                closedDates={closedDates}
                 isDark={isDark}
               />
             </View>
@@ -587,13 +622,25 @@ export default function ShiftsScreen() {
             <DateNavHeader
               selectedDate={selectedDate}
               onNudge={nudgeDay}
-              themes={selectedDayThemes}
+              // A closed day with no shifts says so in the card below
+              themes={
+                totalDayShifts === 0
+                  ? selectedDayThemes.filter((t) => !t.closed)
+                  : selectedDayThemes
+              }
               showThemeLocation={!locationFilter}
               isDark={isDark}
             />
 
             {/* Day shifts */}
-            {totalDayShifts === 0 ? (
+            {totalDayShifts === 0 && selectedDayClosures.length > 0 ? (
+              <ClosedDayCard
+                closures={selectedDayClosures}
+                nextShiftDate={nextShiftDateAfterSelected}
+                onSelectNext={selectDate}
+                isDark={isDark}
+              />
+            ) : totalDayShifts === 0 ? (
               <View style={styles.dayEmpty}>
                 <View
                   style={[
@@ -1016,8 +1063,8 @@ function DateNavHeader({
 }: {
   selectedDate: Date;
   onNudge: (delta: number) => void;
-  /** The day's admin-set themes, one per restaurant that has one */
-  themes: { location: string; theme: string }[];
+  /** The day's admin-set themes and closures, one per restaurant that has one */
+  themes: { location: string; theme: string; closed: boolean }[];
   /** Name the restaurant on each theme (when browsing all locations) */
   showThemeLocation: boolean;
   isDark: boolean;
@@ -1081,7 +1128,45 @@ function DateNavHeader({
               {relative}
             </Text>
           </View>
-          {themes.map(({ location, theme }) => (
+          {themes.map(({ location, theme, closed }) =>
+            closed ? (
+              <View
+                key={location}
+                style={[
+                  styles.dateNavThemePill,
+                  styles.dateNavClosedPill,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(253, 248, 239, 0.08)"
+                      : "rgba(29, 83, 55, 0.07)",
+                    borderColor: isDark
+                      ? "rgba(253, 248, 239, 0.18)"
+                      : "rgba(29, 83, 55, 0.18)",
+                  },
+                ]}
+                accessibilityLabel={`${
+                  showThemeLocation ? `${location}: ` : ""
+                }Closed${theme ? `, ${theme}` : ""}`}
+                testID="shifts-day-closed"
+              >
+                <Text
+                  style={[styles.dateNavThemeText, { color: colors.text }]}
+                >
+                  {showThemeLocation && (
+                    <Text style={styles.dateNavThemeLocation}>
+                      {location}:{" "}
+                    </Text>
+                  )}
+                  <Text style={styles.dateNavClosedLabel}>Closed</Text>
+                  {theme ? (
+                    <Text style={{ color: colors.textSecondary }}>
+                      {"  "}
+                      {theme}
+                    </Text>
+                  ) : null}
+                </Text>
+              </View>
+            ) : (
             <View
               key={location}
               style={[
@@ -1111,7 +1196,8 @@ function DateNavHeader({
                 {theme}
               </Text>
             </View>
-          ))}
+            )
+          )}
         </View>
       </View>
 
@@ -1708,6 +1794,9 @@ function ConflictBadge({ isDark }: { isDark: boolean }) {
 
 /* ── Styles ── */
 
+/** Height of the floating iOS tab bar above the home indicator, plus breathing room. */
+const IOS_FLOATING_TAB_BAR_CLEARANCE = 72;
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingBottom: 24 },
@@ -1937,6 +2026,13 @@ const styles = StyleSheet.create({
   dateNavThemeLocation: {
     fontFamily: FontFamily.semiBold,
     fontSize: 12,
+  },
+  dateNavClosedPill: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  dateNavClosedLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
   },
 
   // Empty states
