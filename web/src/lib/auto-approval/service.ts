@@ -328,7 +328,7 @@ async function applyApprovalSideEffects(userId: string, shiftId: string) {
       select: { email: true, name: true, firstName: true, lastName: true },
     });
 
-    const shiftDate = formatInNZT(shift.start, "EEEE, MMMM d, yyyy");
+    const shiftDate = formatInNZT(shift.start, "EEEE d MMMM yyyy");
 
     // Fire-and-forget: a hung SSE writer must not block the signup response.
     createShiftConfirmedNotification(

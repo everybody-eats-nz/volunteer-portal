@@ -449,7 +449,7 @@ export function ShiftSignupDialog({
         data-testid="shift-signup-dialog"
       >
         <ResponsiveDialogHeader data-testid="shift-signup-dialog-header">
-          <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+          <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
             {isWaitlist
               ? "Shift is full"
               : autoApproved
@@ -467,7 +467,7 @@ export function ShiftSignupDialog({
               : "Confirm Signup"}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription
-            className="text-forest-700/65 dark:text-cream-50/60"
+            className="text-forest-700/70 dark:text-cream-50/60"
             data-testid="shift-signup-dialog-description"
           >
             {isWaitlist
@@ -555,7 +555,7 @@ export function ShiftSignupDialog({
 
             {getShiftDescription(shift.notes, shift.shiftType.description) && (
               <p
-                className="mt-1 text-sm whitespace-pre-line text-forest-700/65 dark:text-cream-50/60"
+                className="mt-1 text-sm whitespace-pre-line text-forest-700/70 dark:text-cream-50/60"
                 data-testid="shift-details-description"
               >
                 {getShiftDescription(shift.notes, shift.shiftType.description)}
@@ -646,7 +646,7 @@ export function ShiftSignupDialog({
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
-                className="resize-none rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
+                className="resize-none"
                 data-testid="shift-signup-note"
               />
             </div>
@@ -661,7 +661,7 @@ export function ShiftSignupDialog({
               >
                 Guardian Name
                 <span className="text-red-500">*</span>
-                <span className="text-xs font-normal text-forest-700/55 dark:text-cream-50/55">
+                <span className="text-xs font-normal text-forest-700/70 dark:text-cream-50/55">
                   (required for volunteers 14 and under)
                 </span>
               </Label>
@@ -671,7 +671,6 @@ export function ShiftSignupDialog({
                 value={guardianName}
                 onChange={(e) => setGuardianName(e.target.value)}
                 required
-                className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
                 data-testid="shift-signup-guardian"
               />
             </div>
@@ -684,7 +683,7 @@ export function ShiftSignupDialog({
                 <Label className="text-sm font-medium text-forest-700 dark:text-cream-50">
                   Flexible with shift changes? (optional)
                 </Label>
-                <p className="mt-1 text-sm text-forest-700/65 dark:text-cream-50/60">
+                <p className="mt-1 text-sm text-forest-700/70 dark:text-cream-50/60">
                   If we need to move you, which other shifts at the same time
                   would you be OK with?
                 </p>
@@ -716,7 +715,7 @@ export function ShiftSignupDialog({
                         {concurrentShift.shiftTypeName}
                       </span>
                       {concurrentShift.shiftTypeDescription && (
-                        <p className="text-xs text-forest-700/60 dark:text-cream-50/55">
+                        <p className="text-xs text-forest-700/70 dark:text-cream-50/55">
                           {concurrentShift.shiftTypeDescription}
                         </p>
                       )}
@@ -849,7 +848,7 @@ export function ShiftSignupDialog({
                 </span>
                 <p
                   id="waitlist-if-full-hint"
-                  className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60"
+                  className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60"
                 >
                   {WAITLIST_IF_FULL_HINT}
                 </p>

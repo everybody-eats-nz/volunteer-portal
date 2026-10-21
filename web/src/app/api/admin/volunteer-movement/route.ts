@@ -216,7 +216,7 @@ export async function POST(request: Request) {
         );
 
         const volunteerName = `${result.user.firstName} ${result.user.lastName}`;
-        const shiftDate = formatInNZT(targetShift.start, "EEEE, MMMM d, yyyy");
+        const shiftDate = formatInNZT(targetShift.start, "EEEE d MMMM yyyy");
         const shiftTime = `${formatInNZT(targetShift.start, "h:mm a")} - ${formatInNZT(targetShift.end, "h:mm a")}`;
 
         const emailService = getEmailService();

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem, slideUpVariants } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -13,11 +14,12 @@ interface MotionFriendsProps {
  * Motion wrapper for friends list container
  */
 export function MotionFriendsList({ children, className }: MotionFriendsProps) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn("space-y-4", className)}
       variants={staggerContainer}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
     >
       {children}
@@ -46,11 +48,12 @@ export function MotionFriendRequest({
   className,
   isNew = false,
 }: MotionFriendsProps & { isNew?: boolean }) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn("rounded-3xl", className)}
       variants={slideUpVariants}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
       whileHover={{
         x: 4,
@@ -78,10 +81,11 @@ export function MotionFriendStats({
   className,
   delay = 0,
 }: MotionFriendsProps & { delay?: number }) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn(className)}
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={entrance({ opacity: 0, scale: 0.95 })}
       animate={{ opacity: 1, scale: 1 }}
       transition={{
         duration: 0.3,

@@ -23,7 +23,7 @@ import {
 import type { ShiftSignup } from "./my-shifts-content";
 
 const detailLabel =
-  "text-[0.65rem] font-medium uppercase tracking-[0.18em] text-forest-500/70 dark:text-cream-50/55";
+  "text-[0.65rem] font-medium uppercase tracking-[0.18em] text-forest-500/85 dark:text-cream-50/55";
 
 function DetailRow({
   label,
@@ -109,8 +109,8 @@ export async function ShiftDetailsDialog({
               <span className="display display-medium block truncate text-xl tracking-tight text-forest-700 dark:text-cream-50">
                 {shift.shift.shiftType.name}
               </span>
-              <span className="block text-sm font-normal text-forest-700/65 dark:text-cream-50/65">
-                {formatInNZT(shift.shift.start, "EEEE, MMMM d, yyyy")}
+              <span className="block text-sm font-normal text-forest-700/70 dark:text-cream-50/65">
+                {formatInNZT(shift.shift.start, "EEEE d MMMM yyyy")}
               </span>
             </span>
           </ResponsiveDialogTitle>
@@ -128,7 +128,7 @@ export async function ShiftDetailsDialog({
                 {formatInNZT(shift.shift.start, "h:mm a")} –{" "}
                 {formatInNZT(shift.shift.end, "h:mm a")}
               </div>
-              <div className="text-xs text-forest-700/60 dark:text-cream-50/55">
+              <div className="text-xs text-forest-700/70 dark:text-cream-50/55">
                 {totalShiftHours([shift.shift]).toLocaleString("en-NZ", {
                   maximumFractionDigits: 1,
                 })}{" "}
@@ -171,7 +171,7 @@ export async function ShiftDetailsDialog({
                 </span>{" "}
                 people fed that day
                 {isEstimated && (
-                  <span className="text-forest-700/60 dark:text-cream-50/55">
+                  <span className="text-forest-700/70 dark:text-cream-50/55">
                     {" "}
                     (estimated)
                   </span>

@@ -4,9 +4,12 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import { EyeOff, Eye } from "lucide-react";
 import { displayHours } from "@/lib/volunteer-hours";
+import { Sparkle } from "@/components/sparkle";
+import { formatInNZT } from "@/lib/timezone";
 
 interface Achievement {
   id: string;
@@ -63,15 +66,6 @@ interface AchievementProgress {
   target: number;
   percentage: number;
   label: string;
-}
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
 }
 
 /* Category chips — brand-cohesive (forest + sun family) so the gallery reads
@@ -165,6 +159,7 @@ export function AchievementsListClient({
   progress,
   shiftTypes,
 }: AchievementsListClientProps) {
+  const entrance = useEntrance();
   const [activeFilter, setActiveFilter] = useState("all");
   const [hideCompleted, setHideCompleted] = useState(false);
 
@@ -241,7 +236,7 @@ export function AchievementsListClient({
         // Each tile owns its entrance: variant propagation from an
         // already-"visible" parent never fires for tiles mounted after a
         // filter change, leaving them stuck at opacity 0.
-        initial={{ opacity: 0, y: 16 }}
+        initial={entrance({ opacity: 0, y: 16 })}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: 0.3,
@@ -281,11 +276,11 @@ export function AchievementsListClient({
             className={`whitespace-nowrap text-sm font-semibold ${
               achievement.unlocked
                 ? "text-forest-700 dark:text-sun-200"
-                : "text-forest-700/55 dark:text-cream-50/50"
+                : "text-forest-700/70 dark:text-cream-50/50"
             }`}
           >
             {achievement.unlocked && "+"}
-            {achievement.points} pts
+            {achievement.points.toLocaleString("en-NZ")} pts
           </span>
         </div>
 
@@ -325,21 +320,21 @@ export function AchievementsListClient({
           </p>
         )}
 
-        <p className="mt-4 text-xs leading-relaxed text-forest-700/60 dark:text-cream-50/55">
+        <p className="mt-4 text-xs leading-relaxed text-forest-700/70 dark:text-cream-50/55">
           <span className="font-medium">Criteria:</span>{" "}
           {formatCriteria(achievement.criteria)}
         </p>
 
         {achievement.unlocked && achievement.unlockedAt && (
-          <p className="mt-auto pt-4 text-xs text-forest-700/55 dark:text-cream-50/50">
-            Unlocked on {new Date(achievement.unlockedAt).toLocaleDateString()}
+          <p className="mt-auto pt-4 text-xs text-forest-700/70 dark:text-cream-50/50">
+            Unlocked on {formatInNZT(achievement.unlockedAt, "d MMMM yyyy")}
           </p>
         )}
 
         {achievementProgress && !achievement.unlocked && (
           <div className="mt-auto space-y-2 pt-5">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-forest-700/65 dark:text-cream-50/60">
+              <span className="text-forest-700/70 dark:text-cream-50/60">
                 {achievementProgress.label}
               </span>
               <span className="font-semibold text-forest-700 dark:text-cream-50/85">

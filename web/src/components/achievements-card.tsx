@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { slideUpVariants, staggerContainer, staggerItem } from "@/lib/motion";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import Link from "next/link";
@@ -173,6 +174,7 @@ interface AchievementsCardProps {
 }
 
 export default function AchievementsCard({ initialData }: AchievementsCardProps = {}) {
+  const entrance = useEntrance();
   // The dashboard server-renders this data; the fetch is only a fallback. It
   // also runs the unlock check, so it isn't repeated on focus or reconnect.
   const { data, isLoading: loading } = useSWR<AchievementsData>(
@@ -187,7 +189,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
 
   if (loading) {
     return (
-      <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
+      <motion.div variants={slideUpVariants} initial={entrance("hidden")} animate="visible">
         <Card className="grain relative overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300" />
           <CardHeader>
@@ -242,7 +244,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
   const nextAchievements = sortedAvailableAchievements.slice(0, 3);
 
   return (
-    <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
+    <motion.div variants={slideUpVariants} initial={entrance("hidden")} animate="visible">
       <Card className="grain relative overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300" />
         <CardHeader>
@@ -260,7 +262,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                 variant="secondary"
                 className="whitespace-nowrap border border-forest-500/15 bg-forest-500/8 text-xs text-forest-700 sm:text-sm dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50/85"
               >
-                {totalPoints} points
+                {totalPoints.toLocaleString("en-NZ")} points
               </Badge>
               <Badge
                 variant="outline"
@@ -282,7 +284,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                 <motion.div
                   className="grid gap-3"
                   variants={staggerContainer}
-                  initial="hidden"
+                  initial={entrance("hidden")}
                   animate="visible"
                 >
                   {recentAchievements.map((userAchievement) => (
@@ -290,7 +292,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                       <TooltipTrigger asChild>
                         <motion.div
                           variants={staggerItem}
-                          className="grain flex cursor-pointer items-center gap-3 rounded-2xl border border-forest-500/15 bg-gradient-to-r from-sun-200/40 to-sun-100/30 p-3 transition-all hover:scale-[1.01] hover:border-forest-500/25 hover:shadow-md dark:border-cream-50/15 dark:from-sun-200/10 dark:to-sun-200/5 dark:hover:border-cream-50/25"
+                          className="grain flex cursor-pointer items-center gap-3 rounded-2xl border border-forest-500/15 bg-gradient-to-r from-sun-200/40 to-sun-100/30 p-3 transition-all motion-safe:hover:scale-[1.01] hover:border-forest-500/25 hover:shadow-md dark:border-cream-50/15 dark:from-sun-200/10 dark:to-sun-200/5 dark:hover:border-cream-50/25"
                         >
                           <div className="text-2xl flex-shrink-0">
                             {userAchievement.achievement.icon}
@@ -312,12 +314,12 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                                 {userAchievement.achievement.category}
                               </Badge>
                             </div>
-                            <p className="text-xs text-forest-700/65 dark:text-cream-50/60 mt-1">
+                            <p className="text-xs text-forest-700/70 dark:text-cream-50/60 mt-1">
                               {userAchievement.achievement.description}
                             </p>
                           </div>
                           <div className="text-xs font-semibold text-forest-700 dark:text-cream-50/85 whitespace-nowrap">
-                            +{userAchievement.achievement.points}
+                            +{userAchievement.achievement.points.toLocaleString("en-NZ")}
                           </div>
                         </motion.div>
                       </TooltipTrigger>
@@ -344,7 +346,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
               <motion.div
                 className="grid gap-3"
                 variants={staggerContainer}
-                initial="hidden"
+                initial={entrance("hidden")}
                 animate="visible"
               >
                 {nextAchievements.map((achievement) => {
@@ -382,7 +384,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                               </div>
                             </div>
                             <div className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                              {achievement.points} pts
+                              {achievement.points.toLocaleString("en-NZ")} pts
                             </div>
                           </div>
 
@@ -429,7 +431,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
               >
                 <span className="hidden sm:inline">View All Achievements</span>
                 <span className="sm:hidden">View All</span>
-                <span className="text-forest-700/60 dark:text-cream-50/55">
+                <span className="text-forest-700/70 dark:text-cream-50/55">
                   ({userAchievements.length + availableAchievements.length})
                 </span>
                 <ArrowRight className="h-4 w-4 flex-shrink-0" />

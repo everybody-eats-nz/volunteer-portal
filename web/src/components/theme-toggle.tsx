@@ -76,7 +76,7 @@ export function ThemeToggle() {
           <span
             className={`text-sm font-medium ${
               theme === "light"
-                ? "text-primary dark:text-emerald-300"
+                ? "text-primary-text dark:text-emerald-300"
                 : "dark:text-gray-100"
             }`}
           >
@@ -109,7 +109,7 @@ export function ThemeToggle() {
           <span
             className={`text-sm font-medium ${
               theme === "dark"
-                ? "text-primary dark:text-emerald-300"
+                ? "text-primary-text dark:text-emerald-300"
                 : "dark:text-gray-100"
             }`}
           >
@@ -142,7 +142,7 @@ export function ThemeToggle() {
           <span
             className={`text-sm font-medium ${
               theme === "system"
-                ? "text-primary dark:text-emerald-300"
+                ? "text-primary-text dark:text-emerald-300"
                 : "dark:text-gray-100"
             }`}
           >

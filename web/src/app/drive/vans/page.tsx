@@ -89,7 +89,7 @@ export default async function VansPage() {
         )}
       </div>
 
-      <p className="mt-8 flex items-start gap-2.5 rounded-xl bg-primary/8 px-4 py-3.5 text-sm leading-snug text-primary dark:bg-forest-500/15 dark:text-forest-100">
+      <p className="mt-8 flex items-start gap-2.5 rounded-xl bg-primary/8 px-4 py-3.5 text-sm leading-snug text-primary-text dark:bg-forest-500/15 dark:text-forest-100">
         <QrCode className="mt-0.5 size-4 shrink-0" aria-hidden />
         <span>
           Every van has a sticker on the dash. Scanning it opens this app with

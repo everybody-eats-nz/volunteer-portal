@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { Suspense } from "react";
@@ -7,7 +7,7 @@ import { SiteHeaderClientWrapper } from "@/components/site-header-client-wrapper
 import { SiteFooterWrapper } from "@/components/site-footer-wrapper";
 import { Providers } from "@/components/providers";
 import { MainContentWrapper } from "@/components/main-content-wrapper";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/themed-toaster";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { EmailVerificationBanner } from "@/components/email-verification-banner";
 import { getBaseUrl } from "@/lib/utils";
@@ -108,6 +108,15 @@ export const metadata: Metadata = {
   },
 };
 
+// The browser chrome (Safari's tab bar, Android's status bar) takes the page
+// background in each scheme.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fdf8ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1114" },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -115,9 +124,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <meta name="theme-color" content="#fdf8ef" />
-      </head>
       {/*
         suppressHydrationWarning: the e2e test harness adds an `e2e-testing`
         class to <body> before React hydrates (to disable animations), and
@@ -129,6 +135,12 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${jakarta.variable} ${fraunces.variable} antialiased`}
       >
+        <a
+          href="#main-content"
+          className="sr-only rounded-full bg-forest-500 px-5 py-3 text-sm font-medium text-cream-50 shadow-lg focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200] focus:outline-2 focus:outline-offset-2 focus:outline-forest-500"
+        >
+          Skip to main content
+        </a>
         <Providers>
           <ImpersonationBanner />
           <Suspense>
@@ -139,7 +151,7 @@ export default function RootLayout({
           <Suspense>
             <EmailVerificationBanner />
           </Suspense>
-          <main className="min-h-screen">
+          <main id="main-content" tabIndex={-1} className="min-h-screen focus:outline-none">
             <Suspense>
               <MainContentWrapper>{children}</MainContentWrapper>
             </Suspense>
@@ -147,7 +159,7 @@ export default function RootLayout({
           <Suspense>
             <SiteFooterWrapper />
           </Suspense>
-          <Toaster position="top-right" closeButton />
+          <ThemedToaster />
         </Providers>
       </body>
     </html>

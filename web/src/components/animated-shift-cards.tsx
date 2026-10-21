@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence, Variants } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { useEffect, useRef, useState, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -373,7 +374,7 @@ function VolunteerStatusGroups({
                       data-testid={`volunteer-avatar-link-${signup.id}`}
                     >
                       <Avatar
-                        className="h-12 w-12 border-2 border-card shadow-md hover:scale-105 transition-transform ring-2 ring-border"
+                        className="h-12 w-12 border-2 border-card shadow-md motion-safe:hover:scale-105 transition-transform ring-2 ring-border"
                         data-testid={`volunteer-avatar-${signup.id}`}
                       >
                         <AvatarImage
@@ -639,6 +640,7 @@ function getColumnCount() {
 }
 
 export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftCardsProps) {
+  const entrance = useEntrance();
   // Only feeds the masonry effect (never the markup), so reading the window
   // during the first client render is hydration-safe and avoids a 1-column
   // layout pass before the real one.
@@ -665,7 +667,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
         // effect then absolutely positions them (gap-6 = its 24px gap).
         className="relative grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3"
         style={{ minHeight: "200px" }}
-        initial="hidden"
+        initial={entrance("hidden")}
         animate="visible"
         exit="exit"
         variants={enhancedStaggerContainer}
@@ -688,7 +690,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
               <motion.div
                 key={shift.id}
                 layout
-                initial="hidden"
+                initial={entrance("hidden")}
                 animate="visible"
                 exit="exit"
                 variants={createStaggerItemVariants()}
@@ -857,7 +859,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                               shiftName={shift.shiftType.name}
                               shiftDate={formatInNZT(
                                 shift.start,
-                                "EEEE, MMMM d, yyyy"
+                                "EEEE d MMMM yyyy"
                               )}
                               hasSignups={shift.signups.length > 0}
                               signupCount={

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,19 @@ export function SurveyQuestionRenderer({
   error,
 }: SurveyQuestionRendererProps) {
   const value = answer?.value;
+  const baseId = useId();
+  const inputId = `${baseId}-input`;
+  const labelId = `${baseId}-label`;
+  const errorId = `${baseId}-error`;
+  // Choice questions are a group of controls, so they're a fieldset named by
+  // a legend; text questions are one control named by a <label>.
+  const isGroup =
+    question.type !== "text_short" && question.type !== "text_long";
+  const fieldProps = {
+    "aria-required": question.required || undefined,
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": error ? errorId : undefined,
+  } as const;
 
   const handleChange = (newValue: string | string[] | number | boolean) => {
     onChange({ questionId: question.id, value: newValue });
@@ -33,6 +47,8 @@ export function SurveyQuestionRenderer({
       case "text_short":
         return (
           <Input
+            id={inputId}
+            {...fieldProps}
             type="text"
             placeholder={question.placeholder || "Type your answer here..."}
             value={typeof value === "string" ? value : ""}
@@ -40,7 +56,7 @@ export function SurveyQuestionRenderer({
             maxLength={question.maxLength}
             className={cn(
               "h-12 text-base",
-              error && "border-red-500 focus-visible:ring-red-500"
+              error && "border-destructive focus-visible:ring-destructive/25"
             )}
           />
         );
@@ -48,6 +64,8 @@ export function SurveyQuestionRenderer({
       case "text_long":
         return (
           <Textarea
+            id={inputId}
+            {...fieldProps}
             placeholder={question.placeholder || "Share your thoughts..."}
             value={typeof value === "string" ? value : ""}
             onChange={(e) => handleChange(e.target.value)}
@@ -55,7 +73,7 @@ export function SurveyQuestionRenderer({
             rows={4}
             className={cn(
               "text-base resize-none",
-              error && "border-red-500 focus-visible:ring-red-500"
+              error && "border-destructive focus-visible:ring-destructive/25"
             )}
           />
         );
@@ -66,13 +84,15 @@ export function SurveyQuestionRenderer({
             value={typeof value === "string" ? value : undefined}
             onValueChange={handleChange}
             className="grid gap-2.5"
+            aria-labelledby={labelId}
+            {...fieldProps}
           >
             {question.options?.map((option, idx) => {
               const isSelected = value === option;
               return (
                 <Label
                   key={idx}
-                  htmlFor={`${question.id}-${idx}`}
+                  htmlFor={`${baseId}-${idx}`}
                   className={cn(
                     "flex items-center gap-3 rounded-lg p-2 -ml-2 cursor-pointer transition-colors",
                     "hover:bg-muted/50",
@@ -81,10 +101,10 @@ export function SurveyQuestionRenderer({
                 >
                   <RadioGroupItem
                     value={option}
-                    id={`${question.id}-${idx}`}
+                    id={`${baseId}-${idx}`}
                     className={cn(
                       "h-5 w-5",
-                      error && "border-red-500"
+                      error && "border-destructive"
                     )}
                   />
                   <span className="text-sm">{option}</span>
@@ -97,13 +117,18 @@ export function SurveyQuestionRenderer({
       case "multiple_choice_multi":
         const selectedValues = Array.isArray(value) ? value : [];
         return (
-          <div className="grid gap-2.5">
+          <div
+            className="grid gap-2.5"
+            role="group"
+            aria-labelledby={labelId}
+            aria-describedby={fieldProps["aria-describedby"]}
+          >
             {question.options?.map((option, idx) => {
               const isSelected = selectedValues.includes(option);
               return (
                 <Label
                   key={idx}
-                  htmlFor={`${question.id}-${idx}`}
+                  htmlFor={`${baseId}-${idx}`}
                   className={cn(
                     "flex items-center gap-3 rounded-lg p-2 -ml-2 cursor-pointer transition-colors",
                     "hover:bg-muted/50",
@@ -111,7 +136,7 @@ export function SurveyQuestionRenderer({
                   )}
                 >
                   <Checkbox
-                    id={`${question.id}-${idx}`}
+                    id={`${baseId}-${idx}`}
                     checked={isSelected}
                     onCheckedChange={(checked) => {
                       if (checked) {
@@ -122,7 +147,7 @@ export function SurveyQuestionRenderer({
                     }}
                     className={cn(
                       "h-5 w-5",
-                      error && "border-red-500"
+                      error && "border-destructive"
                     )}
                   />
                   <span className="text-sm">{option}</span>
@@ -151,6 +176,8 @@ export function SurveyQuestionRenderer({
               value={currentRating?.toString()}
               onValueChange={(val) => handleChange(parseInt(val))}
               className="flex flex-wrap justify-center gap-1.5 sm:gap-2"
+              aria-labelledby={labelId}
+              {...fieldProps}
             >
               {ratings.map((rating) => {
                 const isSelected = currentRating === rating;
@@ -165,12 +192,12 @@ export function SurveyQuestionRenderer({
                 return (
                   <Label
                     key={rating}
-                    htmlFor={`${question.id}-${rating}`}
+                    htmlFor={`${baseId}-${rating}`}
                     className="cursor-pointer"
                   >
                     <RadioGroupItem
                       value={rating.toString()}
-                      id={`${question.id}-${rating}`}
+                      id={`${baseId}-${rating}`}
                       className="sr-only"
                     />
                     <div
@@ -184,7 +211,7 @@ export function SurveyQuestionRenderer({
                           ? cn(getNPSColor(), "text-white shadow-md scale-110")
                           : cn(
                               getNPSColor(),
-                              "hover:scale-105",
+                              "motion-safe:hover:scale-105",
                               isNPS
                                 ? rating <= 6
                                   ? "text-red-700 dark:text-red-300"
@@ -193,7 +220,7 @@ export function SurveyQuestionRenderer({
                                     : "text-green-700 dark:text-green-300"
                                 : "text-muted-foreground hover:bg-muted-foreground/20"
                             ),
-                        error && "ring-2 ring-red-500/50"
+                        error && "ring-2 ring-destructive/50"
                       )}
                     >
                       {rating}
@@ -220,20 +247,22 @@ export function SurveyQuestionRenderer({
             value={yesSelected ? "yes" : noSelected ? "no" : undefined}
             onValueChange={(val) => handleChange(val === "yes")}
             className="grid grid-cols-2 gap-3"
+            aria-labelledby={labelId}
+            {...fieldProps}
           >
             <Label
-              htmlFor={`${question.id}-yes`}
+              htmlFor={`${baseId}-yes`}
               className={cn(
                 "flex flex-col items-center justify-center gap-2 rounded-xl border-2 p-5 cursor-pointer transition-all",
                 yesSelected
                   ? "border-green-500 bg-green-50 dark:bg-green-950/30"
                   : "border-muted hover:border-green-300 hover:bg-green-50/50 dark:hover:bg-green-950/20",
-                error && !yesSelected && "border-red-200"
+                error && !yesSelected && "border-destructive/40"
               )}
             >
               <RadioGroupItem
                 value="yes"
-                id={`${question.id}-yes`}
+                id={`${baseId}-yes`}
                 className="sr-only"
               />
               <div
@@ -256,18 +285,18 @@ export function SurveyQuestionRenderer({
               </span>
             </Label>
             <Label
-              htmlFor={`${question.id}-no`}
+              htmlFor={`${baseId}-no`}
               className={cn(
                 "flex flex-col items-center justify-center gap-2 rounded-xl border-2 p-5 cursor-pointer transition-all",
                 noSelected
                   ? "border-red-500 bg-red-50 dark:bg-red-950/30"
                   : "border-muted hover:border-red-300 hover:bg-red-50/50 dark:hover:bg-red-950/20",
-                error && !noSelected && "border-red-200"
+                error && !noSelected && "border-destructive/40"
               )}
             >
               <RadioGroupItem
                 value="no"
-                id={`${question.id}-no`}
+                id={`${baseId}-no`}
                 className="sr-only"
               />
               <div
@@ -297,25 +326,53 @@ export function SurveyQuestionRenderer({
     }
   };
 
+  const questionText = (
+    <>
+      {question.text}
+      {question.required && (
+        <span className="ml-1 text-destructive" aria-hidden>
+          *
+        </span>
+      )}
+    </>
+  );
+
+  const errorMessage = error && (
+    <p
+      id={errorId}
+      className="flex items-center gap-1.5 text-sm text-destructive"
+    >
+      <span className="inline-block h-1 w-1 rounded-full bg-destructive" aria-hidden />
+      {error}
+    </p>
+  );
+
+  if (isGroup) {
+    return (
+      <fieldset className="min-w-0 space-y-4">
+        <legend
+          id={labelId}
+          className="mb-4 text-base font-medium leading-relaxed"
+        >
+          {questionText}
+        </legend>
+        {renderQuestionInput()}
+        {errorMessage}
+      </fieldset>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <div>
-        <Label className="text-base font-medium leading-relaxed">
-          {question.text}
-          {question.required && (
-            <span className="text-red-500 ml-1" aria-label="required">
-              *
-            </span>
-          )}
-        </Label>
-      </div>
+      <Label
+        htmlFor={inputId}
+        id={labelId}
+        className="block text-base font-medium leading-relaxed"
+      >
+        {questionText}
+      </Label>
       {renderQuestionInput()}
-      {error && (
-        <p className="text-sm text-red-500 flex items-center gap-1.5">
-          <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
-          {error}
-        </p>
-      )}
+      {errorMessage}
     </div>
   );
 }

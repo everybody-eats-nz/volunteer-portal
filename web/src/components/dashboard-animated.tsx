@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { useEffect, useRef, useState, Children } from "react";
 
@@ -10,11 +11,12 @@ interface DashboardAnimatedProps {
 
 // Animated wrapper for the stats grid
 export function StatsGrid({ children }: DashboardAnimatedProps) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
       variants={staggerContainer}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
     >
       {children}
@@ -119,6 +121,7 @@ function useMasonry(itemCount: number, columnCount: number) {
 
 // Animated wrapper for the main content grid with masonry layout
 export function ContentGrid({ children }: DashboardAnimatedProps) {
+  const entrance = useEntrance();
   const [columnCount, setColumnCount] = useState(1);
   const childArray = Children.toArray(children);
   const containerRef = useMasonry(childArray.length, columnCount);
@@ -140,7 +143,7 @@ export function ContentGrid({ children }: DashboardAnimatedProps) {
       className="relative mt-6"
       style={{ minHeight: "200px" }}
       variants={staggerContainer}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
     >
       {Children.map(children, (child) => (
@@ -154,6 +157,7 @@ export function ContentGrid({ children }: DashboardAnimatedProps) {
 
 // Animated wrapper for the bottom grid with masonry layout
 export function BottomGrid({ children }: DashboardAnimatedProps) {
+  const entrance = useEntrance();
   const [columnCount, setColumnCount] = useState(1);
   const childArray = Children.toArray(children);
   const containerRef = useMasonry(childArray.length, columnCount);
@@ -175,7 +179,7 @@ export function BottomGrid({ children }: DashboardAnimatedProps) {
       className="relative"
       style={{ minHeight: "200px" }}
       variants={staggerContainer}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
     >
       {Children.map(children, (child) => (

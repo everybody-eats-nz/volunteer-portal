@@ -25,28 +25,20 @@ import {
   ListOrdered,
   MapPin,
 } from "lucide-react";
+import { Sparkle } from "@/components/sparkle";
 
 // Export the shift signup type for use by ShiftDetailsDialog
 export type ShiftSignup = Awaited<ReturnType<typeof fetchMonthShifts>>[number];
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
 
 /* Pill links — shared brand system with the marketing site
    (marketing-cms STYLEGUIDE.md: btn-primary / btn-ghost). */
 const pill =
   "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium transition-all duration-200";
-const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0`;
+const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 motion-safe:hover:-translate-y-0.5 hover:shadow-lg motion-safe:active:translate-y-0`;
 const pillGhost = `${pill} border border-forest-500/30 text-forest-700 hover:bg-forest-700 hover:text-cream-50 hover:border-forest-700 dark:border-cream-50/30 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700`;
 
 const eyebrowLight =
-  "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
+  "eyebrow flex items-center gap-3 text-forest-500/85 dark:text-cream-50/60";
 
 async function fetchMonthShifts(
   userId: string,
@@ -459,7 +451,7 @@ export async function MyShiftsContent({
                 <p className={eyebrowLight}>
                   Coming up
                   {upcoming.length > 0 && (
-                    <span className="text-forest-500/60 dark:text-cream-50/45">
+                    <span className="text-forest-500/85 dark:text-cream-50/55">
                       · {upcoming.length}
                     </span>
                   )}
@@ -496,7 +488,7 @@ export async function MyShiftsContent({
               <div className="space-y-3" data-testid="past-section">
                 <p className={eyebrowLight}>
                   {isPastMonth ? "Completed shifts" : "Earlier this month"}
-                  <span className="text-forest-500/60 dark:text-cream-50/45">
+                  <span className="text-forest-500/85 dark:text-cream-50/55">
                     · {past.length}
                   </span>
                 </p>
@@ -535,7 +527,7 @@ export async function MyShiftsContent({
                   key={day.dateKey}
                   href={day.href}
                   data-testid="open-day-chip"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-forest-500/15 bg-background px-3.5 py-1.5 text-xs font-medium text-forest-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500/40 hover:shadow-md dark:border-cream-50/15 dark:text-cream-50"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-forest-500/15 bg-background px-3.5 py-1.5 text-xs font-medium text-forest-700 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-forest-500/40 hover:shadow-md dark:border-cream-50/15 dark:text-cream-50"
                 >
                   <CalendarPlus className="h-3 w-3" />
                   {formatInNZT(day.date, "EEE d")} · {day.count} available
@@ -575,7 +567,7 @@ function ShiftRow({
         className={`group block w-full rounded-2xl border p-4 text-left transition-all duration-200 sm:p-5 ${
           isPast
             ? "border-forest-500/10 bg-cream-100/60 opacity-75 hover:opacity-100 dark:border-cream-50/10 dark:bg-forest-800/40"
-            : "border-forest-500/10 bg-background shadow-sm hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/10"
+            : "border-forest-500/10 bg-background shadow-sm motion-safe:hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/10"
         }`}
       >
         <div className="flex items-center gap-3 sm:gap-5">
@@ -584,7 +576,7 @@ function ShiftRow({
             className="w-11 shrink-0 text-center sm:w-12"
             data-testid="shift-row-date"
           >
-            <div className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+            <div className="eyebrow text-forest-500/85 dark:text-cream-50/55">
               {formatInNZT(shift.shift.start, "EEE")}
             </div>
             <div className="display mt-0.5 text-2xl leading-none text-forest-700 tabular-nums sm:text-3xl dark:text-cream-50">
@@ -664,7 +656,7 @@ function ShiftRow({
               <StatusBadge status={shift.status} isPast={isPast} />
             </span>
             <ChevronRight
-              className="h-4 w-4 text-forest-500/40 transition-transform group-hover:translate-x-0.5 dark:text-cream-50/40"
+              className="h-4 w-4 text-forest-500/85 transition-transform motion-safe:group-hover:translate-x-0.5 dark:text-cream-50/55"
               aria-hidden
             />
           </div>

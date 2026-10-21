@@ -48,9 +48,9 @@ export async function generateMetadata({
 
 const pill =
   "inline-flex items-center justify-center rounded-full px-7 py-3.5 text-sm font-medium transition-all duration-200";
-const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0`;
+const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 motion-safe:hover:-translate-y-0.5 hover:shadow-lg motion-safe:active:translate-y-0`;
 const pillGhost = `${pill} border border-forest-500/30 text-forest-700 hover:bg-forest-700 hover:text-cream-50 hover:border-forest-700 dark:border-cream-50/30 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700`;
-const eyebrowLight = "eyebrow text-forest-500/80 dark:text-cream-50/60";
+const eyebrowLight = "eyebrow text-forest-500/85 dark:text-cream-50/60";
 
 function Highlight({ children }: { children: React.ReactNode }) {
   return (
@@ -96,7 +96,7 @@ function ShiftCard({
         data-testid="volunteer-shift-card"
       >
         <div className="flex items-center justify-between gap-3">
-          <p className="font-mono text-xs tracking-[0.2em] text-forest-500/70 dark:text-cream-50/50">
+          <p className="font-mono text-xs tracking-[0.2em] text-forest-500/85 dark:text-cream-50/50">
             {shift.dateLabel}
           </p>
           <span
@@ -345,7 +345,7 @@ export default async function VolunteerLocationPage({
                   delay={0.1 + i * 0.08}
                   className="grain rounded-[2rem] border border-forest-500/10 bg-cream-100 p-8 dark:border-cream-50/10 dark:bg-forest-800/60"
                 >
-                  <p className="font-mono text-xs tracking-[0.2em] text-forest-500/70 dark:text-cream-50/50">
+                  <p className="font-mono text-xs tracking-[0.2em] text-forest-500/85 dark:text-cream-50/50">
                     0{i + 1}
                   </p>
                   <h3 className="display display-medium mt-5 text-2xl tracking-tight text-forest-700 dark:text-cream-50">

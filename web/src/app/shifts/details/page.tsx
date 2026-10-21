@@ -232,12 +232,12 @@ export default async function ShiftDetailsPage({
           <Button variant="outline" size="sm" asChild data-testid="prev-day-button">
             <Link href={buildNavUrl(previousDateParam)}>
               <ChevronLeft className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">{formatInNZT(previousDate, "EEE, MMM d")}</span>
+              <span className="hidden sm:inline">{formatInNZT(previousDate, "EEE d MMM")}</span>
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild data-testid="next-day-button">
             <Link href={buildNavUrl(nextDateParam)}>
-              <span className="hidden sm:inline">{formatInNZT(nextDate, "EEE, MMM d")}</span>
+              <span className="hidden sm:inline">{formatInNZT(nextDate, "EEE d MMM")}</span>
               <ChevronRight className="h-4 w-4 sm:ml-1" />
             </Link>
           </Button>
@@ -245,7 +245,7 @@ export default async function ShiftDetailsPage({
       </div>
 
       <div className="mb-8">
-        <p className="eyebrow mb-4 text-forest-500/80 dark:text-cream-50/60">
+        <p className="eyebrow mb-4 text-forest-500/85 dark:text-cream-50/60">
           Pick a shift · join the mahi
         </p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
@@ -253,7 +253,7 @@ export default async function ShiftDetailsPage({
             className="display text-3xl leading-[1.05] tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50"
             data-testid="shifts-details-page-header"
           >
-            {formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
+            {formatInNZT(selectedDate, "EEEE d MMMM yyyy")}
           </h1>
           {dayThemes.map(({ location, theme, closed }) =>
             closed ? (
@@ -303,7 +303,7 @@ export default async function ShiftDetailsPage({
               </span>
             </div>
             {selectedLocationAddress && (
-              <div className="flex items-start gap-2 text-sm text-forest-700/65 pl-6 dark:text-cream-50/60">
+              <div className="flex items-start gap-2 text-sm text-forest-700/70 pl-6 dark:text-cream-50/60">
                 <a
                   href={selectedLocationMapsUrl}
                   target="_blank"

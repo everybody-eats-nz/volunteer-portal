@@ -23,7 +23,7 @@ const GradientButton = React.forwardRef<HTMLButtonElement, GradientButtonProps>(
         className={cn(
           gradientVariants[gradient],
           "text-white hover:text-white dark:text-white dark:hover:text-white",
-          "shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02]",
+          "shadow-md hover:shadow-lg transition-all duration-200 transform motion-safe:hover:scale-[1.02]",
           className
         )}
         ref={ref}

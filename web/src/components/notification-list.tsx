@@ -8,6 +8,7 @@ import { NotificationItem } from "@/components/notification-item";
 import { Loader2, CheckCheck, Bell } from "lucide-react";
 import { Notification } from "@/generated/client";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 
 interface NotificationListProps {
@@ -19,6 +20,7 @@ export function NotificationList({
   onNotificationsRead,
   onClose,
 }: NotificationListProps) {
+  const entrance = useEntrance();
   const [markingAllRead, setMarkingAllRead] = useState(false);
 
   const { data, isLoading: loading, mutate } = useSWR<{
@@ -159,7 +161,7 @@ export function NotificationList({
             className="divide-y"
             data-testid="notification-list"
             variants={staggerContainer}
-            initial="hidden"
+            initial={entrance("hidden")}
             animate="visible"
           >
             {notifications.map((notification) => (

@@ -1,6 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { SITE_CONTAINER } from "@/lib/site-container";
 
 interface MainContentWrapperProps {
   children: React.ReactNode;
@@ -28,10 +30,6 @@ export function MainContentWrapper({ children }: MainContentWrapperProps) {
     return <>{children}</>;
   }
 
-  // Regular pages use the centered container
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      {children}
-    </div>
-  );
+  // Regular pages share the header and footer's container
+  return <div className={cn(SITE_CONTAINER, "py-6")}>{children}</div>;
 }

@@ -95,15 +95,15 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
                   <p className="truncate text-sm font-medium text-forest-700 dark:text-cream-50">
                     {signup.shift.shiftType.name}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-forest-700/60 dark:text-cream-50/55">
+                  <div className="flex items-center gap-2 text-xs text-forest-700/70 dark:text-cream-50/55">
                     <span>
-                      {formatInNZT(signup.shift.start, "MMM d")} •{" "}
+                      {formatInNZT(signup.shift.start, "d MMM")} •{" "}
                       {signup.shift.location}
                     </span>
                     {(signup.mealsServed || signup.defaultMealsServed) && (
                       <>
                         <span>•</span>
-                        <span className={`flex items-center gap-1 font-medium ${signup.mealsServed ? "text-forest-600 dark:text-cream-50/80" : "text-forest-700/55 dark:text-cream-50/50"}`}>
+                        <span className={`flex items-center gap-1 font-medium ${signup.mealsServed ? "text-forest-600 dark:text-cream-50/80" : "text-forest-700/70 dark:text-cream-50/50"}`}>
                           <Utensils className="h-3 w-3" />
                           {signup.mealsServed ? "" : "~"}{signup.mealsServed?.mealsServed || signup.defaultMealsServed}
                         </span>

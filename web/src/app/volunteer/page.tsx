@@ -18,7 +18,7 @@ export const metadata: Metadata = buildPageMetadata({
 
 const pill =
   "inline-flex items-center justify-center rounded-full px-7 py-3.5 text-sm font-medium transition-all duration-200";
-const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0`;
+const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 motion-safe:hover:-translate-y-0.5 hover:shadow-lg motion-safe:active:translate-y-0`;
 
 function Arrow({ className }: { className?: string }) {
   return (
@@ -57,17 +57,17 @@ export default function VolunteerIndexPage() {
               className="grain group relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-cream-100 dark:border-cream-50/10 dark:bg-forest-800/60"
             >
               <Link href={`/volunteer/${loc.slug}`} className="block p-8 sm:p-10" data-testid={`volunteer-city-${loc.slug}`}>
-                <p className="font-mono text-xs tracking-[0.2em] text-forest-500/70 dark:text-cream-50/50">
+                <p className="font-mono text-xs tracking-[0.2em] text-forest-500/85 dark:text-cream-50/50">
                   {loc.reoName}
                 </p>
                 <h2 className="display mt-5 flex items-center gap-3 text-3xl tracking-tight text-forest-700 sm:text-4xl dark:text-cream-50">
                   {loc.city}
-                  <Arrow className="h-6 w-6 transition-transform group-hover:translate-x-1" />
+                  <Arrow className="h-6 w-6 transition-transform motion-safe:group-hover:translate-x-1" />
                 </h2>
                 <p className="mt-4 leading-relaxed text-forest-700/80 dark:text-cream-50/75">
                   {loc.intro}
                 </p>
-                <p className="mt-5 text-sm uppercase tracking-[0.15em] text-forest-500/70 dark:text-cream-50/55">
+                <p className="mt-5 text-sm uppercase tracking-[0.15em] text-forest-500/85 dark:text-cream-50/55">
                   {loc.venues.map((v) => v.name).join(" · ")}
                 </p>
               </Link>

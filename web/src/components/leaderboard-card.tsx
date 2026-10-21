@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Trophy, ChevronDown } from "lucide-react";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 
 interface LeaderboardUser {
@@ -39,6 +40,7 @@ interface LeaderboardData {
 }
 
 export function LeaderboardCard() {
+  const entrance = useEntrance();
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [isOpen, setIsOpen] = useState(false);
   // Changing location goes back to the nearby view.
@@ -76,7 +78,7 @@ export function LeaderboardCard() {
                 <span className="display block text-2xl tracking-tight text-forest-700 dark:text-cream-50">
                   Leaderboard
                 </span>
-                <span className="mt-0.5 block text-sm text-forest-700/65 dark:text-cream-50/60">
+                <span className="mt-0.5 block text-sm text-forest-700/70 dark:text-cream-50/60">
                   See how your mahi stacks up across the whānau
                 </span>
               </span>
@@ -95,10 +97,10 @@ export function LeaderboardCard() {
               onValueChange={setSelectedLocation}
             >
               <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="All Locations" />
+                <SelectValue placeholder="All locations" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="all">All locations</SelectItem>
                 {data?.locations.map((location) => (
                   <SelectItem key={location} value={location}>
                     {location}
@@ -148,7 +150,7 @@ export function LeaderboardCard() {
                   <motion.div
                     className="space-y-3"
                     variants={staggerContainer}
-                    initial="hidden"
+                    initial={entrance("hidden")}
                     animate="visible"
                   >
                     {data.nearbyUsers.map((user) => (
@@ -187,16 +189,16 @@ export function LeaderboardCard() {
                               </Badge>
                             )}
                           </div>
-                          <div className="text-xs text-forest-700/60 dark:text-cream-50/55">
+                          <div className="text-xs text-forest-700/70 dark:text-cream-50/55">
                             {user.achievementCount} achievements
                           </div>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className="font-accent text-lg font-bold tabular-nums text-forest-700 dark:text-cream-50">
-                          {user.points}
+                          {user.points.toLocaleString("en-NZ")}
                         </div>
-                        <div className="text-xs text-forest-700/55 dark:text-cream-50/50">
+                        <div className="text-xs text-forest-700/70 dark:text-cream-50/50">
                           points
                         </div>
                       </div>

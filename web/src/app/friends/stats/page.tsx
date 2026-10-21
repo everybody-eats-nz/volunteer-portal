@@ -7,6 +7,7 @@ import { PageContainer } from "@/components/page-container";
 import { ArrowLeft } from "lucide-react";
 import { FriendsStatsContent } from "./friends-stats-content";
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = {
   title: "Friendship Statistics",
@@ -15,15 +16,6 @@ export const metadata: Metadata = {
     follow: false,
   },
 };
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
 
 /** Loading skeleton mirroring the redesigned layout: stat band, two panels,
     activity panel. */
@@ -87,26 +79,22 @@ export default async function FriendsStatsPage() {
 
   return (
     <PageContainer testid="friends-stats-page">
-      {/* Branded header — Fraunces display treatment, matching the
-          friends page (new.everybodyeats.nz). */}
-      <header className="pb-8">
-        <Link
-          href="/friends"
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-forest-500/20 px-4 py-2 text-xs font-medium text-forest-700/80 transition-all duration-200 hover:border-forest-500/50 hover:text-forest-700 dark:border-cream-50/20 dark:text-cream-50/75 dark:hover:border-cream-50/50 dark:hover:text-cream-50"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-          Back to Friends
-        </Link>
-        <h1 className="display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50">
-          <span>
-            Friendship <em>Statistics</em>
-          </span>
-          <Sparkle className="h-6 w-6 shrink-0 self-center text-sun-300 sm:h-7 sm:w-7" />
-        </h1>
-        <p className="mt-4 max-w-xl text-lg leading-relaxed text-forest-700/75 dark:text-cream-50/75">
-          Your volunteer community connections and friendship insights.
-        </p>
-      </header>
+      <Link
+        href="/friends"
+        className="mb-6 inline-flex items-center gap-2 rounded-full border border-forest-500/20 px-4 py-2 text-xs font-medium text-forest-700/80 transition-all duration-200 hover:border-forest-500/50 hover:text-forest-700 dark:border-cream-50/20 dark:text-cream-50/75 dark:hover:border-cream-50/50 dark:hover:text-cream-50"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+        Back to Friends
+      </Link>
+      <PageHeader
+        title={
+          <>
+            Friendship <em>statistics</em>
+          </>
+        }
+        description="Your volunteer community connections and friendship insights."
+        className="pb-8"
+      />
 
       {/* Stats content streams in */}
       <Suspense fallback={<FriendsStatsContentSkeleton />}>

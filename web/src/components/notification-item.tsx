@@ -125,101 +125,99 @@ export function NotificationItem({
     }
   };
 
-  const content = (
-    <div
-      className={cn(
-        "p-4 hover:bg-muted/50 transition-colors relative group",
-        !notification.isRead && "bg-blue-50 dark:bg-blue-950/30"
-      )}
-      data-testid={`notification-item-${notification.id}`}
-    >
-      <div className="flex items-start gap-3">
-        {/* Icon */}
-        <div className="text-lg" data-testid="notification-icon">
-          {getNotificationIcon(notification.type)}
-        </div>
+  const body = (
+    <div className="flex items-start gap-3">
+      {/* Icon */}
+      <div className="text-lg" data-testid="notification-icon" aria-hidden>
+        {getNotificationIcon(notification.type)}
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <h4
-                className="font-medium text-sm text-foreground"
-                data-testid="notification-title"
-              >
-                {notification.title}
-              </h4>
-              <p
-                className="text-sm text-muted-foreground mt-1"
-                data-testid="notification-message"
-              >
-                {notification.message}
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <span
-                  className="text-xs text-muted-foreground"
-                  data-testid="notification-time"
-                >
-                  {formatDate(notification.createdAt)}
-                </span>
-                {!notification.isRead && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs"
-                    data-testid="unread-badge"
-                  >
-                    New
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {!notification.isRead && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMarkRead}
-                  disabled={marking}
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                  data-testid="mark-read-button"
-                >
-                  <Check className="h-3 w-3" />
-                  <span className="sr-only">Mark as read</span>
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                data-testid="delete-notification-button"
-              >
-                <X className="h-3 w-3" />
-                <span className="sr-only">Delete notification</span>
-              </Button>
-            </div>
-          </div>
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <h4
+          className="font-medium text-sm text-foreground"
+          data-testid="notification-title"
+        >
+          {notification.title}
+        </h4>
+        <p
+          className="text-sm text-muted-foreground mt-1"
+          data-testid="notification-message"
+        >
+          {notification.message}
+        </p>
+        <div className="flex items-center gap-2 mt-2">
+          <span
+            className="text-xs text-muted-foreground"
+            data-testid="notification-time"
+          >
+            {formatDate(notification.createdAt)}
+          </span>
+          {!notification.isRead && (
+            <Badge
+              variant="secondary"
+              className="text-xs"
+              data-testid="unread-badge"
+            >
+              New
+            </Badge>
+          )}
         </div>
       </div>
     </div>
   );
 
-  // If there's an action URL, wrap in a Link
-  if (notification.actionUrl) {
-    return (
-      <Link
-        href={notification.actionUrl}
-        className="block hover:no-underline"
-        onClick={handleLinkClick}
-        data-testid="notification-link"
-      >
-        {content}
-      </Link>
-    );
-  }
+  return (
+    <div
+      className={cn(
+        "relative flex items-start gap-1 transition-colors group hover:bg-muted/50",
+        !notification.isRead && "bg-blue-50 dark:bg-blue-950/30"
+      )}
+      data-testid={`notification-item-${notification.id}`}
+    >
+      {/* The link and the actions are siblings: a button inside a link is
+          invalid HTML, and its clicks would also follow the link. */}
+      {notification.actionUrl ? (
+        <Link
+          href={notification.actionUrl}
+          className="block min-w-0 flex-1 p-4 pr-1 hover:no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          onClick={handleLinkClick}
+          data-testid="notification-link"
+        >
+          {body}
+        </Link>
+      ) : (
+        <div className="min-w-0 flex-1 p-4 pr-1">{body}</div>
+      )}
 
-  return content;
+      {/* Actions - always shown on touch screens, revealed on hover or
+          keyboard focus where there's a pointer to hover with. */}
+      <div className="flex shrink-0 items-center pt-2 pr-2 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100">
+        {!notification.isRead && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleMarkRead}
+            disabled={marking}
+            className="size-10 text-muted-foreground hover:text-foreground"
+            data-testid="mark-read-button"
+          >
+            <Check className="h-4 w-4" aria-hidden />
+            <span className="sr-only">Mark as read</span>
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="size-10 text-muted-foreground hover:text-destructive"
+          data-testid="delete-notification-button"
+        >
+          <X className="h-4 w-4" aria-hidden />
+          <span className="sr-only">Delete notification</span>
+        </Button>
+      </div>
+    </div>
+  );
 }

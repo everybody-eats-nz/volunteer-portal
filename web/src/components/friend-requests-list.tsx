@@ -5,17 +5,10 @@ import { AcceptFriendRequestButton } from "./accept-friend-request-button";
 import { DeclineFriendRequestButton } from "./decline-friend-request-button";
 import { differenceInDays, format } from "date-fns";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer } from "@/lib/motion";
 import { MotionFriendRequest } from "./motion-friends";
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
+import { Sparkle } from "@/components/sparkle";
 
 interface FriendRequestsListProps {
   pendingRequests: FriendRequest[];
@@ -24,10 +17,11 @@ interface FriendRequestsListProps {
 export function FriendRequestsList({
   pendingRequests,
 }: FriendRequestsListProps) {
+  const entrance = useEntrance();
   if (pendingRequests.length === 0) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={entrance({ opacity: 0, y: 20 })}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
@@ -54,9 +48,9 @@ export function FriendRequestsList({
 
   return (
     <div className="space-y-4">
-      <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+      <p className="eyebrow flex items-center gap-3 text-forest-500/85 dark:text-cream-50/60">
         Waiting on you
-        <span className="text-forest-500/60 dark:text-cream-50/45">
+        <span className="text-forest-500/85 dark:text-cream-50/55">
           · {pendingRequests.length}
         </span>
       </p>
@@ -64,7 +58,7 @@ export function FriendRequestsList({
       <motion.div
         className="space-y-4"
         variants={staggerContainer}
-        initial="hidden"
+        initial={entrance("hidden")}
         animate="visible"
       >
         {pendingRequests.map((request) => {
@@ -104,7 +98,7 @@ export function FriendRequestsList({
                         <motion.div
                           aria-hidden
                           className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-2 border-card bg-sun-200"
-                          initial={{ scale: 0 }}
+                          initial={entrance({ scale: 0 })}
                           animate={{ scale: 1 }}
                           transition={{ type: "spring", delay: 0.2 }}
                         />
@@ -124,7 +118,7 @@ export function FriendRequestsList({
                           )}
                         </div>
 
-                        <p className="flex items-center gap-1.5 text-sm text-forest-700/65 dark:text-cream-50/60">
+                        <p className="flex items-center gap-1.5 text-sm text-forest-700/70 dark:text-cream-50/60">
                           <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           {daysAgo === 0
                             ? "Sent today"
@@ -134,7 +128,7 @@ export function FriendRequestsList({
                             ? `Sent ${daysAgo} days ago`
                             : `Sent ${format(
                                 new Date(request.createdAt),
-                                "MMM d, yyyy"
+                                "d MMM yyyy"
                               )}`}
                         </p>
                       </div>

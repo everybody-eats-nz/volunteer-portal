@@ -30,15 +30,7 @@ import {
   type ShiftDayThemeMap,
 } from "@/lib/shift-day-themes";
 import type { DayLeads, DayLeadsMap } from "@/lib/day-leads";
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
+import { Sparkle } from "@/components/sparkle";
 
 /**
  * The month's themed and closed days written out in full, for phones and
@@ -71,13 +63,13 @@ function ThemedDayList({
               className={cn(
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums",
                 closed
-                  ? "closed-hatch border border-forest-500/15 text-forest-700/55 line-through decoration-forest-700/45 dark:border-cream-50/15 dark:text-cream-50/50 dark:decoration-cream-50/40"
+                  ? "closed-hatch border border-forest-500/15 text-forest-700/70 line-through decoration-forest-700/45 dark:border-cream-50/15 dark:text-cream-50/50 dark:decoration-cream-50/40"
                   : "bg-sun-200 text-forest-800 dark:bg-sun-200/20 dark:text-sun-100"
               )}
             >
               {format(day.date, "d")}
             </span>
-            <span className="w-8 shrink-0 text-xs font-semibold text-forest-700/60 dark:text-cream-50/55">
+            <span className="w-8 shrink-0 text-xs font-semibold text-forest-700/70 dark:text-cream-50/55">
               {format(day.date, "EEE")}
             </span>
             {closed ? (
@@ -112,7 +104,7 @@ function ThemedDayList({
               >
                 {row}
                 <ChevronRight
-                  className="h-4 w-4 shrink-0 text-forest-500/50 dark:text-cream-50/40"
+                  className="h-4 w-4 shrink-0 text-forest-500/85 dark:text-cream-50/55"
                   aria-hidden
                 />
               </Link>
@@ -151,7 +143,7 @@ function DayLeadsLine({ dayKey, leads }: { dayKey: string; leads: DayLeads }) {
           title={`${label}: ${name}`}
         >
           <Icon
-            className="h-3 w-3 shrink-0 text-forest-500/70 dark:text-cream-50/50"
+            className="h-3 w-3 shrink-0 text-forest-500/85 dark:text-cream-50/50"
             aria-hidden
           />
           <span className="sr-only">{label}:</span>
@@ -374,23 +366,26 @@ export function ShiftsCalendar({
       case "available":
         return {
           label: `${spots} open`,
+          spoken: `${spots} ${spots === 1 ? "spot" : "spots"} open`,
           dot: "bg-forest-500",
           chip: "bg-forest-500/10 text-forest-700 dark:bg-forest-400/20 dark:text-cream-50",
         };
       case "limited":
         return {
           label: `${spots} left`,
+          spoken: `only ${spots} ${spots === 1 ? "spot" : "spots"} left`,
           dot: "bg-sun-300",
           chip: "bg-sun-200/70 text-forest-800 dark:bg-sun-300/15 dark:text-sun-100",
         };
       case "full":
         return {
           label: "Waitlist",
+          spoken: "full, join the waitlist",
           dot: "ring-1 ring-inset ring-forest-500/50 dark:ring-cream-50/40",
-          chip: "bg-forest-500/[0.06] text-forest-700/65 dark:bg-cream-50/10 dark:text-cream-50/65",
+          chip: "bg-forest-500/[0.06] text-forest-700/70 dark:bg-cream-50/10 dark:text-cream-50/65",
         };
       default:
-        return { label: "", dot: "", chip: "" };
+        return { label: "", spoken: "", dot: "", chip: "" };
     }
   };
 
@@ -429,7 +424,7 @@ export function ShiftsCalendar({
             <h2 className="display text-xl sm:text-3xl tracking-tight text-forest-700 dark:text-cream-50">
               {format(currentMonth, "MMMM yyyy")}
             </h2>
-            <p className="text-sm text-forest-700/60 dark:text-cream-50/55 hidden sm:block">
+            <p className="text-sm text-forest-700/70 dark:text-cream-50/55 hidden sm:block">
               Click any date to view and sign up for shifts
             </p>
           </div>
@@ -499,7 +494,7 @@ export function ShiftsCalendar({
                     (day, i) => (
                       <div
                         key={day}
-                        className="text-center text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-forest-700/50 dark:text-cream-50/45 py-1 sm:py-2"
+                        className="text-center text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-forest-700/70 dark:text-cream-50/55 py-1 sm:py-2"
                       >
                         <span className="sm:hidden">{["S", "M", "T", "W", "T", "F", "S"][i]}</span>
                         <span className="hidden sm:inline">{day}</span>
@@ -552,7 +547,7 @@ export function ShiftsCalendar({
                             !isPastDate &&
                             isToday &&
                             isInteractive &&
-                            "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg",
+                            "cursor-pointer hover:shadow-lg motion-safe:hover:-translate-y-0.5",
                           isCurrentMonth &&
                             !isPastDate &&
                             !isToday &&
@@ -561,7 +556,7 @@ export function ShiftsCalendar({
                           isClosed && "closed-hatch",
                           isInteractive &&
                             !isToday &&
-                            "cursor-pointer border border-forest-500/15 bg-card shadow-sm hover:-translate-y-0.5 hover:border-forest-500/50 hover:shadow-lg dark:border-cream-50/10 dark:bg-forest-800/50 dark:hover:border-forest-400/50"
+                            "cursor-pointer border border-forest-500/15 bg-card shadow-sm motion-safe:hover:-translate-y-0.5 hover:border-forest-500/50 hover:shadow-lg dark:border-cream-50/10 dark:bg-forest-800/50 dark:hover:border-forest-400/50"
                         )}
                         data-testid={`calendar-day-${dayKey}`}
                         data-closed={isClosed || undefined}
@@ -602,7 +597,7 @@ export function ShiftsCalendar({
                               !isPastDate &&
                               !isToday &&
                               (isClosed
-                                ? "text-forest-700/55 dark:text-cream-50/50"
+                                ? "text-forest-700/70 dark:text-cream-50/50"
                                 : "text-forest-700 dark:text-cream-50/85")
                           )}
                         >
@@ -714,7 +709,15 @@ export function ShiftsCalendar({
                             href={`/shifts/details?date=${dayKey}&location=${encodeURIComponent(
                               location
                             )}`}
-                            className="block"
+                            className="block rounded-2xl"
+                            aria-label={[
+                              format(dayShifts.date, "EEEE d MMMM"),
+                              isToday ? "today" : null,
+                              meta.spoken || null,
+                              theme ?? null,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
                           >
                             {dayContent}
                           </Link>
@@ -731,7 +734,7 @@ export function ShiftsCalendar({
                   key.startsWith(format(currentMonth, "yyyy-MM"))
                 ) && (
                   <p
-                    className="mt-4 hidden items-center justify-end gap-4 text-xs text-forest-700/60 lg:flex dark:text-cream-50/55"
+                    className="mt-4 hidden items-center justify-end gap-4 text-xs text-forest-700/70 lg:flex dark:text-cream-50/55"
                     data-testid="calendar-day-leads-key"
                   >
                     <span className="flex items-center gap-1.5">
@@ -794,7 +797,7 @@ export function ShiftsCalendar({
                     "MMMM yyyy"
                   )}.`}
             </p>
-            <p className="text-sm text-forest-700/55 dark:text-cream-50/55">
+            <p className="text-sm text-forest-700/70 dark:text-cream-50/55">
               {format(currentMonth, "yyyy-MM") > thisMonthKey
                 ? "Shifts are usually published closer to the date."
                 : format(currentMonth, "yyyy-MM") < thisMonthKey

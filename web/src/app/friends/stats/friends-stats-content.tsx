@@ -8,15 +8,7 @@ import { formatInNZT } from "@/lib/timezone";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { StatBand } from "@/components/ui/stat-band";
 import { Calendar, Users } from "lucide-react";
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
+import { Sparkle } from "@/components/sparkle";
 
 
 /* Pill links — shared brand system with the marketing site. */
@@ -243,7 +235,7 @@ export async function FriendsStatsContent() {
                           <p className="display display-medium truncate leading-tight tracking-tight text-forest-700 dark:text-cream-50">
                             {displayName}
                           </p>
-                          <p className="text-xs text-forest-700/65 dark:text-cream-50/60">
+                          <p className="text-xs text-forest-700/70 dark:text-cream-50/60">
                             Friends for {friend.daysSinceFriendship} days
                           </p>
                         </div>
@@ -409,7 +401,7 @@ export async function FriendsStatsContent() {
                   <Link
                     key={friend.id}
                     href={`/friends/${friend.id}`}
-                    className="group flex items-start gap-3 rounded-2xl border border-forest-500/10 bg-background p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/10"
+                    className="group flex items-start gap-3 rounded-2xl border border-forest-500/10 bg-background p-4 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/10"
                   >
                     <Avatar className="h-10 w-10 shrink-0 ring-2 ring-forest-500/15 dark:ring-cream-50/15">
                       <AvatarImage
@@ -428,7 +420,7 @@ export async function FriendsStatsContent() {
                         {shifts.slice(0, 2).map((signup, index) => (
                           <p
                             key={index}
-                            className="flex items-center gap-1.5 text-xs text-forest-700/65 dark:text-cream-50/60"
+                            className="flex items-center gap-1.5 text-xs text-forest-700/70 dark:text-cream-50/60"
                           >
                             <Calendar className="h-3 w-3 shrink-0" aria-hidden />
                             <span className="truncate">
@@ -438,7 +430,7 @@ export async function FriendsStatsContent() {
                           </p>
                         ))}
                         {shifts.length > 2 && (
-                          <p className="text-xs text-forest-700/55 dark:text-cream-50/50">
+                          <p className="text-xs text-forest-700/70 dark:text-cream-50/50">
                             +{shifts.length - 2} more shifts
                           </p>
                         )}

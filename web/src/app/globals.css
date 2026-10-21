@@ -8,28 +8,7 @@
   display: none;
 }
 
-/* Custom label color safelist for dynamic generation */
 @layer utilities {
-  /* Ensure all possible custom label dark mode colors are included */
-  .custom-label-colors {
-    /* Purple variants */
-    @apply dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-800 dark:hover:bg-purple-950/30;
-    /* Blue variants */
-    @apply dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950/30;
-    /* Emerald variants */
-    @apply dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/30;
-    /* Amber variants */
-    @apply dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950/30;
-    /* Rose variants */
-    @apply dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30;
-    /* Indigo variants */
-    @apply dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-950/30;
-    /* Teal variants */
-    @apply dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-800 dark:hover:bg-teal-950/30;
-    /* Orange variants */
-    @apply dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-950/30;
-  }
-
   /* Hide scrollbar while keeping scroll functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */
@@ -49,13 +28,8 @@
   --ee-primary-700: #163f2a; /* forest-600 — darker hover */
   --ee-primary-text: #1d5337; /* forest-500 — text/icons; brightens in dark mode */
   --ee-primary-light: #eef4ef; /* forest-50 tint */
-  --ee-accent: #f8fb69; /* sun-200 brand accent */
-  --ee-accent-subtle: #fbfcb8; /* sun-100 */
-  --ee-muted: #fef3c7; /* light yellow for better readability and brand consistency */
   --ee-border: rgb(29 83 55 / 0.15); /* forest hairline */
   --ee-card-bg: #ffffff; /* pure white for cards */
-  --ee-gradient-start: #1d5337;
-  --ee-gradient-end: #2e6438;
   --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.147 0.004 49.25);
@@ -63,31 +37,36 @@
   --card-foreground: oklch(0.147 0.004 49.25);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.147 0.004 49.25);
-  --primary: oklch(0.216 0.006 56.043);
   --primary-foreground: oklch(0.985 0.001 106.423);
   --secondary: oklch(0.97 0.001 106.424);
   --secondary-foreground: oklch(0.216 0.006 56.043);
-  --muted: oklch(0.97 0.001 106.424);
-  --muted-foreground: oklch(0.553 0.013 58.071);
-  --accent: oklch(0.97 0.001 106.424);
-  --accent-foreground: oklch(0.216 0.006 56.043);
+  /* Quiet surfaces and hover/selected states are forest tints, so a hovered
+     menu item or ghost button reads as part of the brand (not sun yellow). */
+  --muted: #eef4ef; /* forest-50 */
+  --muted-foreground: #5b6a61; /* 5:1 on cream, card and muted */
+  --accent: #e3ede4; /* forest tint, a step deeper than muted */
+  --accent-foreground: #0e2a1c; /* forest-700 */
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.923 0.003 48.717);
   --input: oklch(0.923 0.003 48.717);
-  --ring: oklch(0.709 0.01 56.259);
+  /* Forest-500. Focus rings draw it at 70% or more, which keeps the ring
+     above 3:1 against cream and white (WCAG 2.4.11). */
+  --ring: #1d5337;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.001 106.423);
-  --sidebar-foreground: oklch(0.147 0.004 49.25);
-  --sidebar-primary: oklch(0.216 0.006 56.043);
-  --sidebar-primary-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-accent: oklch(0.97 0.001 106.424);
-  --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
-  --sidebar-border: oklch(0.923 0.003 48.717);
-  --sidebar-ring: oklch(0.709 0.01 56.259);
+  /* Admin sidebar — cream paper with forest text; the active item is a
+     filled forest pill (sidebar-primary), hover is a forest tint. */
+  --sidebar: #faf2e4; /* cream-100 */
+  --sidebar-foreground: #0e2a1c; /* forest-700 */
+  --sidebar-primary: #1d5337; /* forest-500 */
+  --sidebar-primary-foreground: #fdf8ef; /* cream-50 */
+  --sidebar-accent: #e8e5d6; /* forest-500 at 8% over cream-100 */
+  --sidebar-accent-foreground: #0e2a1c;
+  --sidebar-border: rgb(29 83 55 / 0.12);
+  --sidebar-ring: #1d5337;
 }
 
 .dark {
@@ -98,9 +77,6 @@
   --ee-primary-700: #2e6438; /* forest-400 hover on dark */
   --ee-primary-text: #86d99b; /* lighter green so accents stay readable on dark bg */
   --ee-primary-light: #1a2f1a;
-  --ee-accent: #3a3b2a; /* Much darker olive for dark mode */
-  --ee-accent-subtle: #2a2b20; /* Very subtle for dark mode backgrounds */
-  --ee-muted: #1a1d23; /* Slightly lighter for better layering */
   --ee-border: rgb(253 248 239 / 0.14); /* cream hairline */
   --ee-card-bg: #16181d; /* Slightly adjusted for better contrast */
 
@@ -111,31 +87,30 @@
   --card-foreground: oklch(0.985 0.001 106.423);
   --popover: oklch(0.15 0.002 240);
   --popover-foreground: oklch(0.985 0.001 106.423);
-  --primary: oklch(0.248 0.067 157.1);
   --primary-foreground: oklch(0.985 0.001 106.423);
   --secondary: oklch(0.268 0.007 34.298);
   --secondary-foreground: oklch(0.985 0.001 106.423);
-  --muted: oklch(0.18 0.005 240); /* Darker muted background */
-  --muted-foreground: oklch(0.65 0.005 240); /* Dimmer text for better contrast */
-  --accent: oklch(0.268 0.007 34.298);
-  --accent-foreground: oklch(0.985 0.001 106.423);
+  --muted: #1a201c; /* forest-tinted charcoal */
+  --muted-foreground: oklch(0.7 0.005 240);
+  --accent: #223128; /* forest tint on dark */
+  --accent-foreground: #fdf8ef;
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.553 0.013 58.071);
+  --ring: #86d99b; /* matches --ee-primary-text */
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.216 0.006 56.043);
-  --sidebar-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-accent: oklch(0.268 0.007 34.298);
-  --sidebar-accent-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.553 0.013 58.071);
+  --sidebar: #12161a;
+  --sidebar-foreground: #e5f0e8;
+  --sidebar-primary: #2e6438; /* forest-400: cream text at 6.6:1 */
+  --sidebar-primary-foreground: #fdf8ef;
+  --sidebar-accent: rgb(253 248 239 / 0.07);
+  --sidebar-accent-foreground: #fdf8ef;
+  --sidebar-border: rgb(253 248 239 / 0.1);
+  --sidebar-ring: #86d99b;
 }
 
 @theme inline {
@@ -144,10 +119,11 @@
   --color-primary: var(--ee-primary);
   --color-primary-700: var(--ee-primary-700);
   --color-primary-light: var(--ee-primary-light);
+  /* Brand green for text and icons. Use text-primary-text, not text-primary:
+     the fill colour stays forest-500 in dark mode, where it is unreadable. */
   --color-primary-text: var(--ee-primary-text);
-  --color-accent: var(--ee-accent);
-  --color-accent-subtle: var(--ee-accent-subtle);
-  --color-muted: var(--ee-muted);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
   --color-border: var(--ee-border);
   --color-card-bg: var(--ee-card-bg);
   --font-sans: var(--font-jakarta);
@@ -203,58 +179,53 @@
   --color-sun-300: #edf03f;
 }
 
-html {
-  background-color: #fdf8ef;
-}
-html.dark {
-  background-color: #0f1114;
-}
+@layer base {
+  * {
+    @apply border-border outline-ring/70;
+  }
+  html {
+    background-color: #fdf8ef;
+  }
+  html.dark {
+    background-color: #0f1114;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Plus Jakarta Sans body — matches the marketing site. Set explicitly:
+       the `--font-sans` mapping in `@theme inline` doesn't reach preflight. */
+    font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 
-body {
-  background: var(--ee-bg);
-  color: var(--ee-fg);
-  /* Plus Jakarta Sans body — matches the marketing site. Set explicitly:
-     the `--font-sans` mapping in `@theme inline` doesn't reach preflight. */
-  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: "rlig" 1, "calt" 1;
-}
+  /* Headings default to Fraunces. In the base layer, so Tailwind classes on
+     a heading (font-bold, leading-*, tracking-*) still win. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-fraunces);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
 
-/* Enhanced typography */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-fraunces);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-/* Font family utilities */
-.font-accent {
-  font-family: var(--font-fraunces);
-}
-
-/* Editorial italic accent — wrap a word in <em> inside a heading or
-   .font-accent to render it in the light Fraunces italic. Matches the
-   marketing site (font-weight: 230, defaults on every variation axis). */
-h1 em,
-h2 em,
-h3 em,
-h4 em,
-h5 em,
-h6 em,
-.font-accent em {
-  font-family: var(--font-fraunces);
-  font-style: italic;
-  font-weight: 230;
-  font-feature-settings: normal;
-}
-
-.font-sans {
-  font-family: var(--font-jakarta);
+  /* Editorial italic accent — wrap a word in <em> inside a heading or
+     .font-accent to render it in the light Fraunces italic. Matches the
+     marketing site (font-weight: 230, defaults on every variation axis). */
+  h1 em,
+  h2 em,
+  h3 em,
+  h4 em,
+  h5 em,
+  h6 em,
+  .font-accent em {
+    font-family: var(--font-fraunces);
+    font-style: italic;
+    font-weight: 230;
+    font-feature-settings: normal;
+  }
 }
 
 /* Branded buttons — pill-shaped with a subtle hover lift, matching the
@@ -262,15 +233,16 @@ h6 em,
 .btn {
   @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium transition-all duration-200;
 }
+@media (prefers-reduced-motion: no-preference) {
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  .btn:active {
+    transform: translateY(0);
+  }
+}
 .btn:hover {
-  transform: translateY(-2px);
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
-.btn:active {
-  transform: translateY(0);
-}
-.btn-sm {
-  @apply px-4 py-2 text-sm;
 }
 .btn-primary {
   background: var(--ee-primary);
@@ -289,116 +261,9 @@ h6 em,
   background: var(--ee-primary-light);
   border-color: var(--ee-primary);
 }
-.btn-outline {
-  @apply border;
-  border-color: rgb(29 83 55 / 0.3);
-  color: var(--ee-primary-text);
-  background: transparent;
-}
-.btn-outline:hover {
-  background: var(--ee-primary);
-  color: #fdf8ef;
-  border-color: var(--ee-primary);
-}
-
-/* Dark mode specific styling for better contrast */
-.dark .btn-primary {
-  color: #fdf8ef;
-}
-.dark .btn-outline {
-  border-color: rgb(253 248 239 / 0.3);
-  color: #e5f0e8;
-}
-.dark .btn-outline:hover {
-  background: #fdf8ef;
-  color: #0e2a1c;
-  border-color: #fdf8ef;
-}
-
-.header-link {
-  color: white;
-  transition: all 0.2s ease;
-}
-.header-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 2px;
-}
-
-/* Enhanced cards */
-.card {
-  @apply border rounded-xl;
-  border-color: var(--ee-border);
-  background: var(--ee-card-bg);
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  transition: all 0.2s ease;
-}
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
-
-/* Enhanced badges */
-.badge {
-  @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
-  transition: all 0.2s ease;
-}
-.badge-muted {
-  background: #f3f4f6;
-  color: #374151;
-}
-.badge-accent {
-  background: linear-gradient(
-    135deg,
-    var(--ee-accent),
-    var(--ee-accent-subtle)
-  );
-  color: #92400e;
-}
-.badge-primary {
-  background: linear-gradient(135deg, var(--ee-primary), var(--ee-primary-700));
-  color: white;
-}
-.badge-outline {
-  @apply border-2;
-  border-color: var(--ee-border);
-  color: var(--ee-fg);
-  background: transparent;
-}
-.dark .badge-muted {
-  background: #374151;
-  color: #d1d5db;
-}
-.dark .badge-accent {
-  color: #fcd34d;
-}
-
-.muted-text {
-  color: var(--ee-muted);
-}
-
-/* Page sections */
-.section-content {
-  background: var(--ee-bg);
-}
-
-/* Progress bars */
-.progress-bar {
-  @apply w-full bg-gray-200 rounded-full h-2;
-  overflow: hidden;
-}
-.progress-fill {
-  @apply h-full rounded-full transition-all duration-500;
-  background: linear-gradient(90deg, var(--ee-primary), var(--ee-primary-700));
-}
 
 /* Animation utilities - Now handled by motion.dev */
 /* See /src/lib/motion.ts for animation variants */
-
-/* Focus states */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
-}
 
 /* ============================================
    Marketing-site landing utilities
@@ -415,8 +280,8 @@ h6 em,
 }
 
 /* Display heading — Fraunces at the marketing site's light weight.
-   Plain (un-layered) CSS so it outranks the global `h1–h6 { 600 }` rule,
-   which Tailwind's layered font-weight utilities cannot override. */
+   Plain (un-layered) CSS so the light weight holds on headings that also
+   carry a font-weight utility; use .display-medium for the heavier cut. */
 .display {
   font-family: var(--font-fraunces);
   letter-spacing: -0.025em;
@@ -498,16 +363,6 @@ h6 em,
   .marquee-track { animation: none; }
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    background: var(--ee-bg);
-    color: var(--ee-fg);
-  }
-}
-
 /* Disable animations during e2e tests */
 .e2e-testing,
 .e2e-testing * {
@@ -515,15 +370,6 @@ h6 em,
   animation-delay: 0s !important;
   transition-duration: 0s !important;
   transition-delay: 0s !important;
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
 }
 
 /* ── Admin announcements: compact markdown inside the phone-feed preview ── */

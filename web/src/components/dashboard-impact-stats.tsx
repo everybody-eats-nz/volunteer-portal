@@ -172,7 +172,7 @@ export async function DashboardImpactStats({
               <p className="mt-2 text-sm font-medium text-forest-700/75 dark:text-cream-50/75">
                 {hasAnyData ? "People served" : "Estimated people served"}
               </p>
-              <p className="mt-1 text-xs text-forest-700/55 dark:text-cream-50/50">
+              <p className="mt-1 text-xs text-forest-700/70 dark:text-cream-50/50">
                 {hasActualData && daysWithEstimatedData > 0
                   ? `${daysWithActualData} shift${daysWithActualData !== 1 ? "s" : ""} with actual data, ${daysWithEstimatedData} estimated`
                   : hasActualData
@@ -191,7 +191,7 @@ export async function DashboardImpactStats({
                 Active volunteers in our community
               </p>
               {favoriteShiftType && (
-                <p className="mt-1 text-xs text-forest-700/55 dark:text-cream-50/50">
+                <p className="mt-1 text-xs text-forest-700/70 dark:text-cream-50/50">
                   Your specialty: {favoriteShiftType}
                 </p>
               )}

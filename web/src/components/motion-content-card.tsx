@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +21,10 @@ export function MotionContentCard({
   delay = 0,
   ...props
 }: MotionContentCardProps) {
+  const entrance = useEntrance();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={entrance({ opacity: 0, y: 20 })}
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: 0.3,

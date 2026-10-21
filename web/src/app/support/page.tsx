@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { buildPageMetadata } from "@/lib/seo";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Support",
@@ -22,46 +23,43 @@ export const metadata: Metadata = buildPageMetadata({
 
 export default function SupportPage() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <Link
-            href="/"
-            className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1"
-          >
-            ← Back to portal
-          </Link>
-          <h1 className="text-3xl font-bold mt-2">
-            Support & Help
-          </h1>
-          <p className="text-muted-foreground mt-2 text-lg">
-            We&apos;re here to help. Find answers below or reach out to our team.
-          </p>
-        </div>
-      </div>
+    <div>
+      <Link
+        href="/"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Back to portal
+      </Link>
+      <PageHeader
+        title={
+          <>
+            Support &amp; <em>help</em>
+          </>
+        }
+        description="We're here to help. Find answers below or reach out to our team."
+      />
 
-      <div className="max-w-4xl mx-auto px-6 py-12 space-y-12">
+      <div className="max-w-4xl space-y-12 py-6">
         {/* Contact */}
         <section>
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <Mail className="h-5 w-5 text-primary" />
-            Contact Us
+            <Mail className="h-5 w-5 text-primary-text" />
+            Contact us
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border bg-card p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-primary" />
+                  <Mail className="h-4 w-4 text-primary-text" />
                 </div>
-                <h3 className="font-medium">Email Support</h3>
+                <h3 className="font-medium">Email support</h3>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
                 For account help, shift questions, and general enquiries.
               </p>
               <a
                 href="mailto:hello@everybodyeats.nz"
-                className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
+                className="text-sm font-medium text-primary-text hover:underline inline-flex items-center gap-1"
               >
                 hello@everybodyeats.nz
                 <ExternalLink className="h-3 w-3" />
@@ -71,9 +69,9 @@ export default function SupportPage() {
             <div className="rounded-lg border bg-card p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-primary" />
+                  <Clock className="h-4 w-4 text-primary-text" />
                 </div>
-                <h3 className="font-medium">Response Times</h3>
+                <h3 className="font-medium">Response times</h3>
               </div>
               <p className="text-sm text-muted-foreground">
                 We aim to respond to all support enquiries within 24 hours
@@ -87,7 +85,7 @@ export default function SupportPage() {
         <section>
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
             <Shield className="h-5 w-5 text-red-500" />
-            Reporting & Safety
+            Reporting &amp; safety
           </h2>
           <div className="rounded-lg border bg-card p-6 space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -99,7 +97,7 @@ export default function SupportPage() {
               <div className="rounded-md bg-muted/50 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Flag className="h-4 w-4 text-orange-500" />
-                  <h3 className="text-sm font-medium">Report in the App</h3>
+                  <h3 className="text-sm font-medium">Report in the app</h3>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Use the &ldquo;⋯&rdquo; menu on any post or comment, or the Report button
@@ -111,13 +109,13 @@ export default function SupportPage() {
               <div className="rounded-md bg-muted/50 p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Mail className="h-4 w-4 text-orange-500" />
-                  <h3 className="text-sm font-medium">Report by Email</h3>
+                  <h3 className="text-sm font-medium">Report by email</h3>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   If you can&apos;t report through the app, email us at{" "}
                   <a
                     href="mailto:hello@everybodyeats.nz"
-                    className="text-primary hover:underline"
+                    className="text-primary-text hover:underline"
                   >
                     hello@everybodyeats.nz
                   </a>{" "}
@@ -140,8 +138,8 @@ export default function SupportPage() {
         {/* FAQ */}
         <section>
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-primary" />
-            Common Questions
+            <HelpCircle className="h-5 w-5 text-primary-text" />
+            Common questions
           </h2>
           <div className="space-y-4">
             {[
@@ -190,17 +188,17 @@ export default function SupportPage() {
         <section className="rounded-lg border bg-card p-6">
           <div className="flex items-start gap-4">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <MessageCircle className="h-5 w-5 text-primary" />
+              <MessageCircle className="h-5 w-5 text-primary-text" />
             </div>
             <div>
-              <h2 className="font-semibold mb-1">Give Us Feedback</h2>
+              <h2 className="font-semibold mb-1">Give us feedback</h2>
               <p className="text-sm text-muted-foreground mb-3">
                 Have a suggestion or noticed a bug? We&apos;d love to hear from you.
                 Your feedback helps us improve the portal for all volunteers.
               </p>
               <a
                 href="mailto:hello@everybodyeats.nz?subject=Volunteer Portal Feedback"
-                className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
+                className="text-sm font-medium text-primary-text hover:underline inline-flex items-center gap-1"
               >
                 Send feedback
                 <ExternalLink className="h-3 w-3" />

@@ -1,118 +1,81 @@
-"use client";
-
-import { ReactNode } from "react";
-import { motion, Variants } from "motion/react";
+import type { ReactNode } from "react";
+import { Sparkle } from "@/components/sparkle";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
+  /** The page's h1. Wrap one word in <em> for the light Fraunces italic. */
   title: ReactNode;
-  description?: string | ReactNode;
-  children?: ReactNode;
-  /** Actions that appear inline with the title on larger screens */
+  description?: ReactNode;
+  /** Beside the heading from lg up, below it on smaller screens. */
   actions?: ReactNode;
+  /** The sun sparkle after the title. */
+  sparkle?: boolean;
+  align?: "start" | "center";
   className?: string;
   "data-testid"?: string;
+  /** Defaults to the heading's test id with "-heading" swapped for "-description". */
+  descriptionTestId?: string;
 }
 
-const headerVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: -20,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
-  },
-};
-
-const descriptionVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: -10,
-  },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      delay: 0.15,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
-  },
-};
-
-const actionsVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    x: 20,
-  },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.5,
-      delay: 0.2,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
-  },
-};
-
+/**
+ * The volunteer pages' header: a Fraunces display h1 (matching the marketing
+ * site, new.everybodyeats.nz), an optional sentence under it and optional
+ * actions. A server component with no entrance animation, so it is part of
+ * the first paint.
+ */
 export function PageHeader({
   title,
   description,
-  children,
   actions,
-  className = "",
+  sparkle = true,
+  align = "start",
+  className,
   "data-testid": dataTestId,
+  descriptionTestId,
 }: PageHeaderProps) {
+  const centered = align === "center";
+
   return (
-    <motion.div
-      className={cn("mb-4", className)}
-      initial={"hidden"}
-      animate={"visible"}
+    <header
+      className={cn(
+        "flex flex-col gap-6 pb-6",
+        centered
+          ? "items-center text-center"
+          : "lg:flex-row lg:items-end lg:justify-between",
+        className
+      )}
     >
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <motion.h1
-            className="text-3xl sm:text-5xl font-bold text-foreground tracking-tight"
-            data-testid={dataTestId}
-            variants={headerVariants}
-          >
-            {title}
-          </motion.h1>
-          {description && (
-            <motion.div
-              className="text-base sm:text-lg text-muted-foreground mt-2 max-w-2xl leading-relaxed font-sans"
-              data-testid={
-                dataTestId
-                  ? `${dataTestId.replace("-heading", "")}-description`
-                  : undefined
-              }
-              variants={descriptionVariants}
-            >
-              {description}
-            </motion.div>
+      <div className="min-w-0">
+        <h1
+          className={cn(
+            "display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.05] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50",
+            centered && "justify-center"
           )}
-        </div>
-        {actions && (
-          <motion.div className="flex-shrink-0" variants={actionsVariants}>
-            {actions}
-          </motion.div>
+          data-testid={dataTestId}
+        >
+          <span>{title}</span>
+          {sparkle && (
+            <Sparkle className="h-6 w-6 shrink-0 self-center text-sun-300 sm:h-7 sm:w-7" />
+          )}
+        </h1>
+        {description && (
+          <p
+            className={cn(
+              "mt-4 max-w-xl text-lg leading-relaxed text-forest-700/75 dark:text-cream-50/75",
+              centered && "mx-auto"
+            )}
+            data-testid={
+              descriptionTestId ??
+              (dataTestId
+                ? `${dataTestId.replace("-heading", "")}-description`
+                : undefined)
+            }
+          >
+            {description}
+          </p>
         )}
       </div>
-      {children && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          {children}
-        </motion.div>
-      )}
-    </motion.div>
+      {actions && <div className="shrink-0">{actions}</div>}
+    </header>
   );
 }

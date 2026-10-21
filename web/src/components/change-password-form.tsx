@@ -15,8 +15,6 @@ import {
 } from "@/lib/actions/change-password";
 import { cn } from "@/lib/utils";
 
-const inputStyles =
-  "h-11 rounded-xl border-forest-500/20 pr-11 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15";
 const labelStyles =
   "text-sm font-medium text-forest-700/80 dark:text-cream-50/80";
 
@@ -65,7 +63,7 @@ function PasswordField({
           required
           aria-invalid={invalid || undefined}
           className={cn(
-            inputStyles,
+            "pr-11",
             invalid &&
               "border-red-400 focus-visible:border-red-500 focus-visible:ring-red-500/20"
           )}
@@ -76,7 +74,7 @@ function PasswordField({
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
           aria-pressed={visible}
-          className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-xl text-forest-700/50 transition-colors hover:text-forest-700 dark:text-cream-50/50 dark:hover:text-cream-50"
+          className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-xl text-forest-700/70 transition-colors hover:text-forest-700 dark:text-cream-50/50 dark:hover:text-cream-50"
           data-testid={`${testId}-toggle`}
         >
           {visible ? (

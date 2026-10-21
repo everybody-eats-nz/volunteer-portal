@@ -16,6 +16,7 @@ import { Loader2, CheckCircle, AlertCircle, ArrowRight, Send } from "lucide-reac
 import Link from "next/link";
 import type { SurveyQuestion, SurveyAnswer } from "@/types/survey";
 import { motion, AnimatePresence } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 
 interface SurveyFormProps {
   token: string;
@@ -36,6 +37,7 @@ export function SurveyForm({
   userName,
   onSuccess,
 }: SurveyFormProps) {
+  const entrance = useEntrance();
   const [answers, setAnswers] = useState<Map<string, SurveyAnswer>>(new Map());
   const [errors, setErrors] = useState<Map<string, string>>(new Map());
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
@@ -130,7 +132,7 @@ export function SurveyForm({
   if (submitStatus === "success") {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={entrance({ opacity: 0, scale: 0.95 })}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="max-w-2xl mx-auto"
@@ -139,7 +141,7 @@ export function SurveyForm({
           <CardContent className="py-8">
             <div className="text-center">
               <motion.div
-                initial={{ scale: 0 }}
+                initial={entrance({ scale: 0 })}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
               >
@@ -148,7 +150,7 @@ export function SurveyForm({
                 </div>
               </motion.div>
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={entrance({ opacity: 0, y: 10 })}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
@@ -174,7 +176,7 @@ export function SurveyForm({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={entrance({ opacity: 0, y: 20 })}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       className="max-w-2xl mx-auto"
@@ -184,7 +186,7 @@ export function SurveyForm({
         <div className="h-1.5 bg-muted">
           <motion.div
             className="h-full bg-linear-to-r from-primary to-primary/80"
-            initial={{ width: 0 }}
+            initial={entrance({ width: 0 })}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -206,7 +208,7 @@ export function SurveyForm({
             </CardDescription>
           )}
           {userName && (
-            <p className="text-sm text-primary/80 mt-3 font-medium">
+            <p className="text-sm text-primary-text/80 mt-3 font-medium">
               Hi {userName}, we&apos;d love to hear your thoughts!
             </p>
           )}
@@ -219,7 +221,7 @@ export function SurveyForm({
                 <motion.div
                   key={question.id}
                   id={`question-${question.id}`}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={entrance({ opacity: 0, y: 10 })}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className="rounded-xl border bg-card p-3 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
@@ -237,7 +239,7 @@ export function SurveyForm({
 
           {submitStatus === "error" && submitError && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={entrance({ opacity: 0, y: -10 })}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-3 p-4 mt-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300"
             >

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +15,12 @@ interface MotionAdminProps {
  * Provides staggered animation for rows
  */
 export function MotionAdminList({ children, className }: MotionAdminProps) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn(className)}
       variants={staggerContainer}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
     >
       {children}
@@ -48,10 +50,11 @@ export function MotionAdminRow({ children, className }: MotionAdminProps) {
  * Motion wrapper for admin cards
  */
 export function MotionAdminCard({ children, className }: MotionAdminProps) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn(className)}
-      initial={{ opacity: 0, y: 20 }}
+      initial={entrance({ opacity: 0, y: 20 })}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       whileHover={{ 
@@ -73,10 +76,11 @@ export function MotionAdminSection({
   className,
   delay = 0 
 }: MotionAdminProps & { delay?: number }) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn(className)}
-      initial={{ opacity: 0, y: 20 }}
+      initial={entrance({ opacity: 0, y: 20 })}
       animate={{ opacity: 1, y: 0 }}
       transition={{ 
         duration: 0.4, 

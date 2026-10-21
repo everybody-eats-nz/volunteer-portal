@@ -122,7 +122,7 @@ export function SiteSettingsForm({ settings: initialSettings }: SiteSettingsForm
         <Card key={category}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="h-5 w-5 text-primary" />
+              <SettingsIcon className="h-5 w-5 text-primary-text" />
               {getCategoryTitle(category)}
             </CardTitle>
             <CardDescription>{getCategoryDescription(category)}</CardDescription>

@@ -176,7 +176,7 @@ export async function POST(
       const isFirstShift = await isFirstConfirmedShift(volunteer.id, shift.id);
 
       const emailService = getEmailService();
-      const shiftDate = formatInNZT(shift.start, "EEEE, MMMM d, yyyy");
+      const shiftDate = formatInNZT(shift.start, "EEEE d MMMM yyyy");
       const shiftTime = `${formatInNZT(shift.start, "h:mm a")} - ${formatInNZT(
         shift.end,
         "h:mm a"

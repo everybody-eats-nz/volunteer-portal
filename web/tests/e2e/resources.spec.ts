@@ -433,8 +433,8 @@ test.describe("Public Resource Hub", () => {
         page.getByText("Training Guide For Volunteers").first()
       ).toBeVisible();
 
-      // Cards should have link/button elements for action
-      const cards = page.locator('div[class*="grid"] > div');
+      // Each card is a link to the resource
+      const cards = page.getByTestId("resource-card");
       const cardCount = await cards.count();
       expect(cardCount).toBeGreaterThan(0);
     });

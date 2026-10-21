@@ -63,7 +63,7 @@ test.describe("Login Page", () => {
       // Check submit button
       const submitButton = page.getByTestId("login-submit-button");
       await expect(submitButton).toBeVisible();
-      await expect(submitButton).toContainText("Sign in with Email");
+      await expect(submitButton).toContainText("Sign in with email");
     });
 
     test("should display footer elements", async ({ page }) => {
@@ -74,7 +74,7 @@ test.describe("Login Page", () => {
       // Check register link
       const registerLink = page.getByTestId("register-link");
       await expect(registerLink).toBeVisible();
-      await expect(registerLink).toContainText("Create Volunteer Account");
+      await expect(registerLink).toContainText("Create volunteer account");
 
       // Check demo credentials section
       const demoCredentials = page.getByTestId("demo-credentials");

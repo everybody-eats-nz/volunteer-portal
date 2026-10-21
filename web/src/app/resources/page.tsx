@@ -6,6 +6,7 @@ import { ResourcesSearchServer } from "@/components/resources-search-server";
 import { ResourcesContent } from "./resources-content";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import { Sparkle } from "@/components/sparkle";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Resource Hub - Everybody Eats Volunteer Portal",
@@ -13,15 +14,6 @@ export const metadata: Metadata = buildPageMetadata({
     "Access training materials, policies, forms, guides, and helpful resources for Everybody Eats volunteers. Find everything you need to make the most of your volunteer experience.",
   path: "/resources",
 });
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
 
 /** Mirrors the search panel layout while tags stream in from the server. */
 function SearchPanelSkeleton() {

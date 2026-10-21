@@ -5,20 +5,20 @@
 
 // Date formats
 export const DATE_FORMATS = {
-  /** Full date with day name: "Monday, January 15, 2024" */
-  FULL_DATE_WITH_DAY: "EEEE, MMMM d, yyyy",
+  /** Full date with day name: "Monday 15 January 2024" */
+  FULL_DATE_WITH_DAY: "EEEE d MMMM yyyy",
 
   /** Short date with day: "Mon, 15 Jan 2024" */
   SHORT_DATE_WITH_DAY: "EEE, dd MMM yyyy",
 
-  /** Short date: "Jan 15, 2024" */
-  SHORT_DATE: "MMM d, yyyy",
+  /** Short date: "15 Jan 2024" */
+  SHORT_DATE: "d MMM yyyy",
 
-  /** Date with day: "EEE, MMM d, yyyy" (e.g., "Mon, Jan 15, 2024") */
-  DATE_WITH_DAY: "EEE, MMM d, yyyy",
+  /** Date with day: "Mon 15 Jan 2024" */
+  DATE_WITH_DAY: "EEE d MMM yyyy",
 
-  /** Month and day only: "Jan 15" */
-  MONTH_DAY: "MMM d",
+  /** Day and month only: "15 Jan" */
+  MONTH_DAY: "d MMM",
 
   /** Full month year: "January 2024" */
   MONTH_YEAR: "MMMM yyyy",
@@ -56,14 +56,14 @@ export const DATETIME_FORMATS = {
   /** Full datetime: "Monday, January 15, 2024 at 5:30 PM" */
   FULL_DATETIME: "PPp",
 
-  /** Short datetime: "Jan 15, 2024, 5:30 PM" */
-  SHORT_DATETIME: "MMM d, yyyy, h:mm a",
+  /** Short datetime: "15 Jan 2024, 5:30 PM" */
+  SHORT_DATETIME: "d MMM yyyy, h:mm a",
 
-  /** Date and time: "Jan 15, 5:30 PM" */
-  DATE_TIME: "MMM d, h:mm a",
+  /** Date and time: "15 Jan, 5:30 PM" */
+  DATE_TIME: "d MMM, h:mm a",
 
-  /** Short date with time: "Mon, Jan 15, 2024, 5:30 PM" */
-  SHORT_DATE_TIME: "EEE, MMM d, yyyy, h:mm a",
+  /** Short date with time: "Mon 15 Jan 2024, 5:30 PM" */
+  SHORT_DATE_TIME: "EEE d MMM yyyy, h:mm a",
 } as const;
 
 // Calendar formats (for iCal, Google Calendar, etc.)

@@ -28,7 +28,7 @@ export function MotionSpinner({
   };
 
   const colorClasses = {
-    primary: "text-primary",
+    primary: "text-primary-text",
     white: "text-white",
     muted: "text-muted-foreground"
   };

@@ -591,12 +591,12 @@ export default function ProfileEditClient({
                       }`}
                     >
                       <div
-                        className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 cursor-pointer hover:scale-105 ${
+                        className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 cursor-pointer motion-safe:hover:scale-105 ${
                           index === currentSection
                             ? "bg-forest-500 text-cream-50 shadow-lg"
                             : index < currentSection
                             ? "bg-sun-200 text-forest-700 hover:bg-sun-300"
-                            : "bg-forest-500/10 text-forest-500/60 hover:bg-forest-500/20 dark:bg-cream-50/10 dark:text-cream-50/50 dark:hover:bg-cream-50/20"
+                            : "bg-forest-500/10 text-forest-500/85 hover:bg-forest-500/20 dark:bg-cream-50/10 dark:text-cream-50/50 dark:hover:bg-cream-50/20"
                         }`}
                         onClick={() => setCurrentSection(index)}
                         title={`Go to ${section.title}`}
@@ -620,7 +620,7 @@ export default function ProfileEditClient({
                 <h3 className="font-accent text-lg font-medium text-forest-700 dark:text-cream-50">
                   {sections[currentSection].title}
                 </h3>
-                <p className="mt-0.5 text-sm text-forest-700/60 dark:text-cream-50/60">
+                <p className="mt-0.5 text-sm text-forest-700/70 dark:text-cream-50/60">
                   {sections[currentSection].description}
                 </p>
               </div>

@@ -15,10 +15,6 @@ import { RefreshCw } from "lucide-react";
 import { sendFriendRequest } from "@/lib/friends-actions";
 import { MotionSpinner } from "@/components/motion-spinner";
 
-/* Form inputs — soft-rounded with forest focus ring, matching the login page. */
-const inputStyles =
-  "rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15";
-
 interface SendFriendRequestFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -111,10 +107,9 @@ export function SendFriendRequestForm({
               placeholder="friend@example.com"
               defaultValue={prefillEmail}
               required
-              className={`h-11 ${inputStyles}`}
               data-testid="friend-request-email-input"
             />
-            <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+            <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
               Enter the email address of the person you&apos;d like to add as a
               friend.
             </p>
@@ -133,10 +128,9 @@ export function SendFriendRequestForm({
               placeholder="Kia ora! Would love to volunteer together sometime. Let's be friends on the portal!"
               rows={3}
               maxLength={500}
-              className={inputStyles}
               data-testid="friend-request-message-input"
             />
-            <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+            <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
               Add a personal message to your friend request (max 500
               characters).
             </p>

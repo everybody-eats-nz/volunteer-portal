@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserPlus, Sparkles, Calendar, ArrowRight, Check, X } from "lucide-react";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatInNZT } from "@/lib/timezone";
 import { sendFriendRequestByUserId, acceptFriendRequest, declineFriendRequest } from "@/lib/friends-actions";
@@ -27,6 +28,7 @@ interface DashboardSuggestedFriendsListProps {
 export function DashboardSuggestedFriendsList({
   friends,
 }: DashboardSuggestedFriendsListProps) {
+  const entrance = useEntrance();
   const router = useRouter();
   const [sendingRequest, setSendingRequest] = useState<Set<string>>(new Set());
   const [acceptingRequest, setAcceptingRequest] = useState<Set<string>>(new Set());
@@ -150,7 +152,7 @@ export function DashboardSuggestedFriendsList({
             </Link>
           </Button>
         </div>
-        <p className="text-sm text-forest-700/65 dark:text-cream-50/60">
+        <p className="text-sm text-forest-700/70 dark:text-cream-50/60">
           Volunteers you&apos;ve recently worked with
         </p>
       </CardHeader>
@@ -170,7 +172,7 @@ export function DashboardSuggestedFriendsList({
           <motion.div
             className="space-y-3"
             variants={staggerContainer}
-            initial="hidden"
+            initial={entrance("hidden")}
             animate="visible"
           >
             {displayFriends.map((friend) => {
@@ -212,12 +214,12 @@ export function DashboardSuggestedFriendsList({
                             </Badge>
                           )}
                           {!friend.isPendingRequest && friend.recentSharedShifts[0] && (
-                            <span className="flex items-center gap-1 text-xs text-forest-700/60 dark:text-cream-50/55">
+                            <span className="flex items-center gap-1 text-xs text-forest-700/70 dark:text-cream-50/55">
                               <Calendar className="h-3 w-3" />
                               {friend.recentSharedShifts[0].shiftTypeName} &bull;{" "}
                               {formatInNZT(
                                 new Date(friend.recentSharedShifts[0].start),
-                                "MMM d"
+                                "d MMM"
                               )}
                             </span>
                           )}

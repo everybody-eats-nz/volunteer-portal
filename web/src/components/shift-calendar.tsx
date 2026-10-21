@@ -113,7 +113,7 @@ export function ShiftCalendar({
             <div className="flex items-center gap-2 flex-1">
               <div>
                 <div className="text-sm font-semibold text-foreground">
-                  {formatInNZT(selectedDate, "MMM d, yyyy")}
+                  {formatInNZT(selectedDate, "d MMM yyyy")}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {formatInNZT(selectedDate, "EEEE")}

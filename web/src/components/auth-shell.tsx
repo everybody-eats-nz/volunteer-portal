@@ -3,16 +3,9 @@
 import { ReactNode } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { MotionPageContainer } from "@/components/motion-page-container";
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
+import { Sparkle } from "@/components/sparkle";
 
 export interface AuthShellProps {
   /** data-testid for the outer page container */
@@ -52,6 +45,7 @@ export function AuthShell({
   description,
   children,
 }: AuthShellProps) {
+  const entrance = useEntrance();
   return (
     <MotionPageContainer
       className="flex items-center justify-center py-6 sm:py-10"
@@ -62,7 +56,7 @@ export function AuthShell({
           {/* ============ Brand panel (desktop) ============ */}
           <motion.aside
             className="grain relative hidden overflow-hidden bg-forest-700 p-10 text-cream-50 lg:flex lg:flex-col lg:justify-between xl:p-14"
-            initial={{ opacity: 0 }}
+            initial={entrance({ opacity: 0 })}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, ease: EASE }}
           >

@@ -168,7 +168,7 @@ export async function offerWaitlistPlaces(
     const snapshotByUser = new Map(snapshots.map((s) => [s.userId, s]));
     const shiftContext = buildShiftContext(shift);
 
-    const shiftDate = formatInNZT(shift.start, "EEEE, MMMM d");
+    const shiftDate = formatInNZT(shift.start, "EEEE d MMMM");
 
     for (const candidate of candidates) {
       if (result.offered >= placesToOffer) break;

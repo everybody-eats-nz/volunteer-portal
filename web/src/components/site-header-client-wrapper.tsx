@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
 import { showEnvironmentLabel, getEnvironmentLabel } from "@/lib/environment";
+import { SITE_CONTAINER } from "@/lib/site-container";
 
 export function SiteHeaderClientWrapper() {
   const pathname = usePathname();
@@ -87,18 +88,19 @@ function HeaderSkeleton({ pathname }: { pathname: string }) {
       <div className="relative bg-cream-50/85 text-forest-700 dark:bg-[#0f1114]/85 dark:text-cream-50">
         <nav
           aria-label="Main"
-          className="relative max-w-[88rem] mx-auto px-5 sm:px-8 lg:px-12 py-3 flex items-center gap-4"
+          className={cn(SITE_CONTAINER, "relative flex items-center gap-4 py-3")}
         >
           {/* Mobile hamburger */}
           <div className="flex lg:hidden">
             <Button
               variant="ghost"
-              size="sm"
-              className="text-forest-700 hover:bg-forest-700/5 dark:text-cream-50 dark:hover:bg-cream-50/5 p-2 rounded-full"
-              aria-label="Toggle mobile menu"
+              size="icon"
+              className="size-11 rounded-full text-forest-700 hover:bg-forest-700/5 dark:text-cream-50 dark:hover:bg-cream-50/5"
+              aria-label="Menu"
+              aria-expanded={false}
               disabled
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5" aria-hidden />
             </Button>
           </div>
 
@@ -122,7 +124,7 @@ function HeaderSkeleton({ pathname }: { pathname: string }) {
                 </div>
               )}
             </div>
-            <span className="sr-only">Everybody Eats logo</span>
+            <span className="sr-only">Home</span>
           </Link>
 
           {/* Desktop nav — only show always-visible links */}
