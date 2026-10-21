@@ -13,6 +13,7 @@ import {
   formatAchievementCriteria,
   parseAchievementCriteria,
 } from "@/lib/achievement-utils";
+import { displayHours, totalShiftHours } from "@/lib/volunteer-hours";
 import { checkAndAssignSurveys } from "@/lib/survey-triggers";
 import { isProfileComplete } from "@/lib/profile-completion";
 import { isUserUnder16, autoLabelUnder16User } from "@/lib/auto-label-utils";
@@ -117,10 +118,7 @@ export async function GET(request: Request) {
       calculateUserProgress(userId),
     ]);
 
-    const hoursContributed = shiftHours.reduce((sum, s) => {
-      const ms = s.shift.end.getTime() - s.shift.start.getTime();
-      return sum + ms / (1000 * 60 * 60);
-    }, 0);
+    const hoursContributed = totalShiftHours(shiftHours.map((s) => s.shift));
 
     const peopleServed = completedSignups * 15;
     const streak = progress.consecutive_months ?? 0;
@@ -344,7 +342,7 @@ export async function GET(request: Request) {
       availableLocations,
       stats: {
         shiftsCompleted: completedSignups,
-        hoursContributed: Math.round(hoursContributed),
+        hoursContributed: displayHours(hoursContributed),
         peopleServed,
         currentStreak: streak,
       },

@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { differenceInDays, differenceInHours, subMonths } from "date-fns";
+import { differenceInDays, subMonths } from "date-fns";
+import { displayHours, totalShiftHours } from "@/lib/volunteer-hours";
 import { formatInNZT } from "@/lib/timezone";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
 import { isDayShift, getShiftDate, getShiftPeriodLabel } from "@/lib/concurrent-shifts";
@@ -272,9 +273,9 @@ export async function FriendProfileContent({
   // Fixed 6-month window — matches the admin milestone analytics monthly rate
   const avgPerMonth = Math.round(friendLast6MonthsShifts / 6);
 
-  const friendTotalHours = friendCompletedShifts.reduce((total, signup) => {
-    return total + differenceInHours(signup.shift.end, signup.shift.start);
-  }, 0);
+  const friendTotalHours = displayHours(
+    totalShiftHours(friendCompletedShifts.map((signup) => signup.shift))
+  );
 
   const sharedShiftsCount = sharedShifts.length;
 

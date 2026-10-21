@@ -43,6 +43,7 @@ function toAchievementItem(ua: {
 }): AchievementItem {
   return { ...ua.achievement, unlockedAt: ua.unlockedAt.toISOString() };
 }
+import { displayHours } from "@/lib/volunteer-hours";
 
 type FriendshipStatus =
   | "SELF"
@@ -198,7 +199,7 @@ export async function GET(
       },
     }),
     prisma.$queryRaw<[{ hours: number }]>`
-      SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start)) / 3600), 0)::float as hours
+      SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start))) / 3600, 0)::float as hours
       FROM "Signup" s
       JOIN "Shift" sh ON s."shiftId" = sh.id
       WHERE s."userId" = ${targetId}
@@ -520,7 +521,7 @@ export async function GET(
       profilePhotoUrl: target.profilePhotoUrl ?? undefined,
       grade,
       totalShifts,
-      hoursVolunteered: Math.round(hoursResult[0].hours),
+      hoursVolunteered: displayHours(hoursResult[0].hours),
       friendshipStatus,
       friendRequestId: incomingRequestId,
       allowFriendRequests: target.allowFriendRequests,

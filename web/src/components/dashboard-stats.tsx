@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInHours } from "date-fns";
+import { displayHours, totalShiftHours } from "@/lib/volunteer-hours";
 import { StatBand } from "@/components/ui/stat-band";
 
 interface DashboardStatsProps {
@@ -62,10 +62,9 @@ export async function DashboardStats({ userId }: DashboardStatsProps) {
     ]);
 
   // Calculate total hours volunteered
-  const totalHours = completedShifts.reduce((total, signup) => {
-    const hours = differenceInHours(signup.shift.end, signup.shift.start);
-    return total + hours;
-  }, 0);
+  const totalHours = displayHours(
+    totalShiftHours(completedShifts.map((signup) => signup.shift))
+  );
 
   const shiftAdjustment = user?.completedShiftAdjustment || 0;
   const adjustedCompletedShifts = completedShifts.length + shiftAdjustment;

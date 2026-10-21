@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import { EyeOff, Eye } from "lucide-react";
+import { displayHours } from "@/lib/volunteer-hours";
 
 interface Achievement {
   id: string;
@@ -114,7 +115,7 @@ function calculateAchievementProgress(
         break;
       case "hours_volunteered":
         current = progress.hours_volunteered;
-        label = `${current} / ${criteria.value} hours`;
+        label = `${displayHours(current)} / ${criteria.value} hours`;
         break;
       case "consecutive_months":
         current = progress.consecutive_months;

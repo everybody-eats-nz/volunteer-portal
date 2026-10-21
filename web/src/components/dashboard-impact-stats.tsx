@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInHours } from "date-fns";
+import { totalShiftHours } from "@/lib/volunteer-hours";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MotionContentCard } from "@/components/motion-content-card";
 import { Heart } from "lucide-react";
@@ -34,10 +34,9 @@ export async function DashboardImpactStats({
   ]);
 
   // Calculate total hours volunteered
-  const totalHours = completedShifts.reduce((total, signup) => {
-    const hours = differenceInHours(signup.shift.end, signup.shift.start);
-    return total + hours;
-  }, 0);
+  const totalHours = totalShiftHours(
+    completedShifts.map((signup) => signup.shift)
+  );
 
   // Get user's favorite shift type
   const shiftTypeCounts = completedShifts.reduce((acc, signup) => {
@@ -143,7 +142,7 @@ export async function DashboardImpactStats({
   const hasActualData = daysWithActualData > 0;
 
   // Fall back to old estimation only if no location data exists
-  const estimatedMeals = totalHours * 15;
+  const estimatedMeals = Math.floor(totalHours * 15);
   const mealsToDisplay = hasAnyData ? totalMealsServed : estimatedMeals;
 
   return (

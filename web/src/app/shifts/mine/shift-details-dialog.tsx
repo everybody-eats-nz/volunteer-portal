@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
-import { differenceInHours } from "date-fns";
+import { totalShiftHours } from "@/lib/volunteer-hours";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { getLocationAddresses } from "@/lib/locations";
 import { Button } from "@/components/ui/button";
@@ -129,7 +129,10 @@ export async function ShiftDetailsDialog({
                 {formatInNZT(shift.shift.end, "h:mm a")}
               </div>
               <div className="text-xs text-forest-700/60 dark:text-cream-50/55">
-                {differenceInHours(shift.shift.end, shift.shift.start)} hours
+                {totalShiftHours([shift.shift]).toLocaleString("en-NZ", {
+                  maximumFractionDigits: 1,
+                })}{" "}
+                hours
               </div>
             </DetailRow>
 

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
+import { displayHours, totalShiftHours } from "@/lib/volunteer-hours";
 
 export async function GET(
   req: Request,
@@ -169,11 +170,9 @@ export async function GET(
       },
     });
 
-    const totalHours = completedShifts.reduce((total, signup) => {
-      const duration = new Date(signup.shift.end).getTime() - new Date(signup.shift.start).getTime();
-      const hours = duration / (1000 * 60 * 60);
-      return total + hours;
-    }, 0);
+    const totalHours = totalShiftHours(
+      completedShifts.map((signup) => signup.shift)
+    );
 
     // Format the response
     const formattedShifts = upcomingShifts.map((signup) => ({
@@ -190,7 +189,7 @@ export async function GET(
       shifts: formattedShifts,
       achievements,
       totalShifts,
-      totalHours: Math.round(totalHours),
+      totalHours: displayHours(totalHours),
     });
   } catch (error) {
     console.error("Error fetching friend profile:", error);
