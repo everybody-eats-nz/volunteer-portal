@@ -6,15 +6,16 @@
  * before calling the API.
  */
 
-/** Hosts serving the public website (www redirects to the bare domain). */
-const SCRAPE_HOSTS = ["everybodyeats.nz", "www.everybodyeats.nz"] as const;
-
 /**
  * Returns the https URL to fetch for `url`, or `null` if it isn't allowed.
+ * Allowed hosts are the ones serving the public website (www redirects to
+ * the bare domain).
  *
- * The result is rebuilt from the matching constant in `SCRAPE_HOSTS` rather
- * than from the input, so only the path and query come from the caller and
- * the request can't be pointed at another host.
+ * The result starts with a literal origin per host rather than anything
+ * taken from the input, so only the path and query come from the caller and
+ * the request can't be pointed at another host. Keep each origin and its
+ * trailing slash in one literal - that's what lets CodeQL's request-forgery
+ * check see the host is fixed.
  */
 export function toScrapeUrl(url: string | URL): string | null {
   let parsed: URL;
@@ -28,10 +29,15 @@ export function toScrapeUrl(url: string | URL): string | null {
   // An explicit port could reach a non-web service on an allowed host
   if (parsed.port !== "") return null;
 
-  const host = SCRAPE_HOSTS.find((h) => h === parsed.hostname.toLowerCase());
-  if (!host) return null;
-
-  return `https://${host}/${parsed.pathname.slice(1)}${parsed.search}`;
+  const pathAndQuery = `${parsed.pathname.slice(1)}${parsed.search}`;
+  switch (parsed.hostname.toLowerCase()) {
+    case "everybodyeats.nz":
+      return `https://everybodyeats.nz/${pathAndQuery}`;
+    case "www.everybodyeats.nz":
+      return `https://www.everybodyeats.nz/${pathAndQuery}`;
+    default:
+      return null;
+  }
 }
 
 export function isAllowedScrapeUrl(url: string | URL): boolean {
