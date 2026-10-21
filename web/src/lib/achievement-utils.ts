@@ -3,6 +3,10 @@
  * This file contains helper functions that can be used in both client and server components
  */
 
+// Type-only, so it is erased at build time and keeps Prisma out of client
+// bundles.
+import type { UserProgress } from "@/lib/achievements";
+
 export interface AchievementCriteria {
   type:
     | "shifts_completed"
@@ -83,5 +87,73 @@ export function formatAchievementCriteria(
     }
   } catch {
     return "Invalid criteria";
+  }
+}
+
+/** The fields of an achievement's criteria JSON, or null if it can't be read. */
+export function parseAchievementCriteria(
+  criteria: string
+): { type: string; value: number; shiftType?: string } | null {
+  try {
+    const parsed = JSON.parse(criteria);
+    if (typeof parsed.type === "string" && typeof parsed.value === "number") {
+      return {
+        type: parsed.type,
+        value: parsed.value,
+        shiftType:
+          typeof parsed.shiftType === "string" ? parsed.shiftType : undefined,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * How far a volunteer is towards an achievement's goal, in the goal's own
+ * units, or undefined for a criteria type that has no progress value.
+ */
+export function achievementCurrentValue(
+  parsed: { type: string; value: number; shiftType?: string },
+  progress: UserProgress
+): number | undefined {
+  if (parsed.type === "specific_shift_type") {
+    return parsed.shiftType
+      ? progress.shift_type_counts[parsed.shiftType] ?? 0
+      : undefined;
+  }
+  if (!(parsed.type in progress)) return undefined;
+  const current = progress[parsed.type as keyof UserProgress];
+  return typeof current === "number" ? current : undefined;
+}
+
+/** The goal in plain units, e.g. "10 shifts" or "3 Kitchen shifts". */
+export function achievementTargetLabel(
+  parsed: { type: string; value: number; shiftType?: string } | null,
+  shiftTypeName: string | undefined
+): string | undefined {
+  if (!parsed) return undefined;
+  switch (parsed.type) {
+    case "shifts_completed":
+      return `${parsed.value} shift${parsed.value !== 1 ? "s" : ""}`;
+    case "hours_volunteered":
+      return `${parsed.value} hour${parsed.value !== 1 ? "s" : ""}`;
+    case "consecutive_months":
+      return `${parsed.value} month${parsed.value !== 1 ? "s" : ""}`;
+    case "years_volunteering":
+      return `${parsed.value} year${parsed.value !== 1 ? "s" : ""}`;
+    case "community_impact":
+      return `${parsed.value} meal${parsed.value !== 1 ? "s" : ""}`;
+    case "friends_count":
+      return `${parsed.value} friend${parsed.value !== 1 ? "s" : ""}`;
+    case "passkeys_added":
+      return `${parsed.value} passkey${parsed.value !== 1 ? "s" : ""}`;
+    case "specific_shift_type":
+      return shiftTypeName
+        ? `${parsed.value} ${shiftTypeName} shift${parsed.value !== 1 ? "s" : ""}`
+        : `${parsed.value} shift${parsed.value !== 1 ? "s" : ""}`;
+    default:
+      return undefined;
   }
 }
