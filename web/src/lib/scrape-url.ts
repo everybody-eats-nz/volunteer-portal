@@ -1,5 +1,7 @@
 import { parseHTML } from "linkedom";
 
+import { toScrapeUrl } from "./scrape-allowlist";
+
 /** Tags whose entire subtree should be removed before extraction. */
 const REMOVE_TAGS = new Set([
   "script", "style", "noscript", "iframe", "svg", "canvas",
@@ -165,19 +167,54 @@ export function extractStructuredText(root: Element): string {
     .trim();
 }
 
+/** Redirect hops followed before giving up. */
+const MAX_REDIRECTS = 5;
+
 /**
- * Fetch a URL and extract its readable text content.
- * Returns `{ text, title }` on success, or `null` on failure.
+ * Fetch a URL, following redirects by hand so every hop is checked against
+ * the scrape allowlist (fetch's built-in redirect handling would happily
+ * follow an allowed page to an internal address).
+ * Returns the final response and its URL, or `null` if any hop is disallowed.
  */
-export async function scrapeUrl(url: string): Promise<{ text: string; title: string } | null> {
-  try {
-    const response = await fetch(url, {
+async function fetchAllowed(url: string): Promise<{ response: Response; url: URL } | null> {
+  const signal = AbortSignal.timeout(15000);
+  let current: string | URL = url;
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const target = toScrapeUrl(current);
+    if (!target) return null;
+
+    const response = await fetch(target, {
       headers: {
         "User-Agent": "EverybodyEats-ChatBot/1.0 (content extraction for AI context)",
         Accept: "text/html,application/xhtml+xml",
       },
-      signal: AbortSignal.timeout(15000),
+      redirect: "manual",
+      signal,
     });
+
+    const location = response.headers.get("location");
+    if (response.status < 300 || response.status >= 400 || !location) {
+      return { response, url: new URL(target) };
+    }
+
+    await response.body?.cancel();
+    current = new URL(location, target);
+  }
+
+  return null;
+}
+
+/**
+ * Fetch an everybodyeats.nz page and extract its readable text content.
+ * Returns `{ text, title }` on success, or `null` on failure - including
+ * when the URL, or any redirect it leads to, is outside the allowlist.
+ */
+export async function scrapeUrl(url: string): Promise<{ text: string; title: string } | null> {
+  try {
+    const fetched = await fetchAllowed(url);
+    if (!fetched) return null;
+    const { response } = fetched;
 
     if (!response.ok) return null;
 
@@ -192,9 +229,8 @@ export async function scrapeUrl(url: string): Promise<{ text: string; title: str
     const text = extractStructuredText(main);
     if (!text) return null;
 
-    const parsedUrl = new URL(url);
     const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute("content");
-    const title = ogTitle || document.title || parsedUrl.hostname;
+    const title = ogTitle || document.title || fetched.url.hostname;
 
     return { text: text.slice(0, 50000), title };
   } catch {
