@@ -1,3 +1,9 @@
+## [0.193.2] - 2026-10-21
+
+### Changes
+- fix(deps): clear critical and high Dependabot alerts in web and mobile ([#1370](https://github.com/everybody-eats-nz/volunteer-portal/pull/1370)) by @malinmalliyawadu
+
+
 ## [0.193.1] - 2026-10-21
 
 ### Changes
