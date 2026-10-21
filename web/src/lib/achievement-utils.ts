@@ -3,6 +3,10 @@
  * This file contains helper functions that can be used in both client and server components
  */
 
+// Type-only, so it is erased at build time and keeps Prisma out of client
+// bundles.
+import type { UserProgress } from "@/lib/achievements";
+
 export interface AchievementCriteria {
   type:
     | "shifts_completed"
@@ -108,19 +112,19 @@ export function parseAchievementCriteria(
 
 /**
  * How far a volunteer is towards an achievement's goal, in the goal's own
- * units. `progress` takes the shape of `UserProgress` from `@/lib/achievements`
- * (not imported here, which would pull Prisma into client bundles).
+ * units, or undefined for a criteria type that has no progress value.
  */
 export function achievementCurrentValue(
   parsed: { type: string; value: number; shiftType?: string },
-  progress: { shift_type_counts: Record<string, number> }
+  progress: UserProgress
 ): number | undefined {
   if (parsed.type === "specific_shift_type") {
     return parsed.shiftType
       ? progress.shift_type_counts[parsed.shiftType] ?? 0
       : undefined;
   }
-  const current = (progress as Record<string, unknown>)[parsed.type];
+  if (!(parsed.type in progress)) return undefined;
+  const current = progress[parsed.type as keyof UserProgress];
   return typeof current === "number" ? current : undefined;
 }
 

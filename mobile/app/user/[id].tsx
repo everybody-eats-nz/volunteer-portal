@@ -584,6 +584,7 @@ function Avatar({ profile }: { profile: UserProfile }) {
         style={s.avatar}
         contentFit="cover"
         accessibilityIgnoresInvertColors
+        accessibilityLabel={`Photo of ${profile.name}`}
       />
     );
   }
