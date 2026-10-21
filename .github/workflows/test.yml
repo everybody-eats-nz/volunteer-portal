@@ -30,8 +30,21 @@ env:
   SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-ci-build
 
 jobs:
+  # Dependabot PRs pause here until a reviewer approves the run in the
+  # dependabot-approval environment. Skipped (and so a no-op) for everyone else.
+  approve:
+    name: Approve Dependabot run
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    environment: dependabot-approval
+    steps:
+      - run: echo "Approved"
+
   test:
     name: Playwright Tests
+    needs: approve
+    # Run when the approval gate passed or was skipped, not when it was rejected.
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -94,7 +107,7 @@ jobs:
       - name: Get Playwright version
         run: |
           cd web
-          echo "PLAYWRIGHT_VERSION=$(npx playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)" >> $GITHUB_ENV
+          echo "PLAYWRIGHT_VERSION=$(npx playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)" >> "$GITHUB_ENV"
 
       - name: Cache Playwright browsers
         uses: actions/cache@v6
@@ -134,7 +147,8 @@ jobs:
           retention-days: 1
 
   merge-reports:
-    if: always()
+    # Nothing to merge when the approval gate stopped the tests from running.
+    if: ${{ always() && needs.test.result != 'skipped' }}
     needs: [test]
     runs-on: ubuntu-latest
     steps:
@@ -200,8 +214,8 @@ jobs:
           # Deploy + capture final URL
           DEPLOY_URL=$(vercel deploy $TARGET_FLAG --yes --token=${{ secrets.VERCEL_TOKEN }} | tail -n 1)
 
-          echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
-          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "DEPLOY_URL=$DEPLOY_URL" >> "$GITHUB_ENV"
+          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
 
       - name: Add/Update Playwright Report Comment on PR
         # Only comment when the deploy produced a real URL (a Vercel block leaves
@@ -226,7 +240,10 @@ jobs:
     steps:
       - name: Check all jobs
         run: |
-          if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.merge-reports.result }}" == "failure" ]]; then
+          if [[ "${{ needs.test.result }}" == "skipped" ]]; then
+            echo "❌ Tests did not run (Dependabot approval rejected)"
+            exit 1
+          elif [[ "${{ needs.test.result }}" == "failure" || "${{ needs.merge-reports.result }}" == "failure" ]]; then
             echo "❌ Tests failed"
             exit 1
           elif [[ "${{ needs.test.result }}" == "cancelled" || "${{ needs.merge-reports.result }}" == "cancelled" ]]; then
