@@ -33,6 +33,12 @@ type ShiftDetailResponse = {
   /** Server-formatted NZ deadline, e.g. "3:34PM today". */
   waitlistOfferExpiresLabel?: string | null;
   notes: string | null;
+  /**
+   * Every active signup, for counting. Volunteers the viewer may not see are
+   * anonymous: `id` is then the signup's id (not a user id), `name` is
+   * "Volunteer" and there is no photo. Never link to a profile from this list;
+   * named, linkable people come from the concurrent endpoint.
+   */
   signups: {
     id: string;
     name: string;

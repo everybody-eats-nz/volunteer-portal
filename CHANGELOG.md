@@ -1,3 +1,27 @@
+## [0.193.2] - 2026-10-21
+
+### Changes
+- fix(deps): clear critical and high Dependabot alerts in web and mobile ([#1370](https://github.com/everybody-eats-nz/volunteer-portal/pull/1370)) by @malinmalliyawadu
+
+
+## [0.193.1] - 2026-10-21
+
+### Changes
+- fix: don't fail the deploy when the PostHog source map upload fails ([#1373](https://github.com/everybody-eats-nz/volunteer-portal/pull/1373)) by @malinmalliyawadu
+
+
+## [0.193.0] - 2026-10-21
+
+### Changes
+- feat: redesign the mobile volunteer profile screen ([#1369](https://github.com/everybody-eats-nz/volunteer-portal/pull/1369)) by @malinmalliyawadu
+
+
+## [0.192.0] - 2026-10-21
+
+### Changes
+- feat: redesign the mobile shift details screen ([#1368](https://github.com/everybody-eats-nz/volunteer-portal/pull/1368)) by @malinmalliyawadu
+
+
 ## [0.191.0] - 2026-10-20
 
 ### Changes

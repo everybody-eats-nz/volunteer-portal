@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { getConcurrentShifts, getShiftDate, isDayShift } from "@/lib/concurrent-shifts";
+import { visibleSignupsWhere } from "@/lib/signup-visibility";
 
 /**
  * GET /api/mobile/shifts/[id]/concurrent
  *
  * Returns:
  * - concurrentShifts: other shifts at same location/date/period (for backup selection)
- * - friends: friends signed up for ANY shift at that location/date/period,
- *   including the current shift (regardless of shift type / role), each with
- *   the status of that signup (CONFIRMED or PENDING)
+ * - friends: friends and public profiles signed up for ANY shift at that
+ *   location/date/period, including the current shift (regardless of shift
+ *   type / role), each with the status of that signup (CONFIRMED or PENDING).
+ *   Pending signups are only included for PUBLIC profiles.
  */
 export async function GET(
   request: Request,
@@ -72,27 +74,14 @@ export async function GET(
       friendIds.add(f.userId === userId ? f.friendId : f.userId);
     }
 
-    // Find signups visible to this user on any of these period shifts.
-    // Visibility rules (matching the web shifts page): include actual friends
-    // (FRIENDS_ONLY visibility) OR anyone whose profile is PUBLIC.
+    // Find signups visible to this user on any of these period shifts (see
+    // signup-visibility.ts: requests awaiting approval are only named for
+    // PUBLIC profiles).
     const visibleSignups = await prisma.signup.findMany({
       where: {
         shiftId: { in: periodShiftIds.map((s) => s.id) },
-        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
         userId: { not: userId },
-        user: {
-          OR: [
-            { friendVisibility: "PUBLIC" },
-            ...(friendIds.size > 0
-              ? [
-                  {
-                    friendVisibility: "FRIENDS_ONLY" as const,
-                    id: { in: Array.from(friendIds) },
-                  },
-                ]
-              : []),
-          ],
-        },
+        ...visibleSignupsWhere(friendIds),
       },
       select: {
         shiftId: true,

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { differenceInDays, subMonths } from "date-fns";
 import { displayHours, totalShiftHours } from "@/lib/volunteer-hours";
 import { formatInNZT } from "@/lib/timezone";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 import { isDayShift, getShiftDate, getShiftPeriodLabel } from "@/lib/concurrent-shifts";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,10 @@ export async function FriendProfileContent({
   }
 
   const now = new Date();
+
+  // Achievements are only evaluated when a volunteer loads their own
+  // dashboard, so bring the friend's up to date before reading them.
+  await checkAndUnlockAchievements(friendId);
 
   const [
     userShifts,

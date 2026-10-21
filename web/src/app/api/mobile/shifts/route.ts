@@ -10,6 +10,7 @@ import {
   SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 import { formatInNZT } from "@/lib/timezone";
+import { visibleSignupsWhere } from "@/lib/signup-visibility";
 import { getShiftDayThemes } from "@/lib/shift-day-themes.server";
 import { toDayThemeLabelMap } from "@/lib/shift-day-themes";
 import { getDayLeadsForShifts } from "@/lib/day-leads.server";
@@ -245,30 +246,17 @@ export async function GET(request: Request) {
   // without a round trip per shift. Past shifts are left out — the number only
   // informs a live decision.
   //
-  // visibleSignups includes signups by either actual friends (any non-PRIVATE
-  // visibility) or users who set their profile to PUBLIC visibility. This
-  // matches the web shifts page logic.
+  // visibleSignups follows signup-visibility.ts: confirmed signups by friends
+  // (FRIENDS_ONLY) or PUBLIC profiles, and requests awaiting approval only
+  // from PUBLIC profiles.
   const [waitlistCounts, visibleSignups, dayLeads] = await Promise.all([
     getWaitlistCounts(allUpcomingShiftIds),
     allUpcomingShiftIds.length > 0
       ? prisma.signup.findMany({
           where: {
             shiftId: { in: allUpcomingShiftIds },
-            status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
             userId: { not: userId },
-            user: {
-              OR: [
-                { friendVisibility: "PUBLIC" },
-                ...(friendIds.size > 0
-                  ? [
-                      {
-                        friendVisibility: "FRIENDS_ONLY" as const,
-                        id: { in: Array.from(friendIds) },
-                      },
-                    ]
-                  : []),
-              ],
-            },
+            ...visibleSignupsWhere(friendIds),
           },
           select: {
             shiftId: true,

@@ -88,6 +88,11 @@
     "typescript": "~5.9.2",
     "vitest": "^4.1.11"
   },
+  "overrides": {
+    "react-native-markdown-display": {
+      "markdown-it": "^14.3.1"
+    }
+  },
   "expo": {
     "install": {
       "exclude": [

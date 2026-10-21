@@ -1,5 +1,7 @@
 import { withPostHogConfig } from "@posthog/nextjs-config";
 import type { NextConfig } from "next";
+import { readdir, rm } from "node:fs/promises";
+import path from "node:path";
 
 // Only emit the standalone bundle for the self-hosted Docker/Coolify image.
 // On Vercel this MUST stay off — Vercel manages its own build output and the
@@ -105,16 +107,66 @@ const nextConfig: NextConfig = {
 const posthogEnabled =
   !!process.env.POSTHOG_PERSONAL_API_KEY && !!process.env.POSTHOG_PROJECT_ID;
 
+type NextConfigFn = (
+  phase: string,
+  ctx: { defaultConfig: NextConfig }
+) => Promise<NextConfig>;
+
+// The PostHog source map upload runs inside next build, so a transient PostHog
+// or S3 outage would otherwise fail the build and block the deploy. Treat the
+// upload as best effort: warn, then delete the .map files ourselves (a failed
+// upload skips deleteAfterUpload, and .next/static is served publicly).
+function withBestEffortSourcemapUpload(config: NextConfig): NextConfigFn {
+  // withPostHogConfig is typed as returning NextConfig but returns an async
+  // config function
+  const resolveConfig = config as unknown as NextConfigFn;
+
+  return async (phase, ctx) => {
+    const resolved = await resolveConfig(phase, ctx);
+    const upload = resolved.compiler?.runAfterProductionCompile;
+    if (!upload) return resolved;
+
+    return {
+      ...resolved,
+      compiler: {
+        ...resolved.compiler,
+        runAfterProductionCompile: async (metadata) => {
+          try {
+            await upload(metadata);
+          } catch (error) {
+            const message = `PostHog source map upload failed, deploying without source maps for this release: ${error instanceof Error ? error.message : String(error)}`;
+            console.warn(
+              process.env.GITHUB_ACTIONS ? `::warning::${message}` : message
+            );
+            await removeSourceMaps(metadata.distDir);
+          }
+        },
+      },
+    };
+  };
+}
+
+async function removeSourceMaps(distDir: string) {
+  const files = await readdir(distDir, { recursive: true });
+  await Promise.all(
+    files
+      .filter((file) => file.endsWith(".map"))
+      .map((file) => rm(path.join(distDir, file), { force: true }))
+  );
+}
+
 const finalConfig = posthogEnabled
-  ? withPostHogConfig(nextConfig, {
+  ? withBestEffortSourcemapUpload(
+      withPostHogConfig(nextConfig, {
       personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY!,
       projectId: process.env.POSTHOG_PROJECT_ID!,
       host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-      sourcemaps: {
-        enabled: true,
-        deleteAfterUpload: true,
-      },
-    })
+        sourcemaps: {
+          enabled: true,
+          deleteAfterUpload: true,
+        },
+      })
+    )
   : nextConfig;
 
 export default finalConfig;
