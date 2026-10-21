@@ -294,7 +294,9 @@ export function VolunteersNeededCard({
       {/* Header: eyebrow + emoji */}
       <View style={needStyles.headerRow}>
         <Eyebrow color={palette.eyebrow}>Help needed soon</Eyebrow>
-        <Text style={needStyles.handsEmoji}>🙌</Text>
+        <Text style={needStyles.handsEmoji} maxFontSizeMultiplier={MaxFontScale.compact}>
+          🙌
+        </Text>
       </View>
 
       {/* Display number — unit nested inside the number's Text so RN lays
@@ -601,6 +603,7 @@ const needStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 12,
     paddingHorizontal: 22,
   },
   handsEmoji: {

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextStyle } from 'react-native';
 
-import { FontFamily } from '@/constants/theme';
+import { FontFamily, MaxFontScale } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 type EyebrowProps = {
@@ -12,7 +12,8 @@ type EyebrowProps = {
 
 /**
  * Small uppercase kicker - the marketing site's section/screen eyebrow.
- * ~11px, wide tracking. Pair above a display heading.
+ * ~11px, wide tracking. Pair above a display heading. It grows with Dynamic
+ * Type only up to the compact cap, and wraps rather than truncates.
  */
 export function Eyebrow({ children, color, style }: EyebrowProps) {
   const tint = useThemeColor({}, 'tint');
@@ -21,7 +22,7 @@ export function Eyebrow({ children, color, style }: EyebrowProps) {
     <Text
       accessibilityRole="header"
       style={[styles.text, { color: color ?? tint }, style]}
-      numberOfLines={1}
+      maxFontSizeMultiplier={MaxFontScale.compact}
     >
       {children.toUpperCase()}
     </Text>
@@ -33,5 +34,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontSize: 11,
     letterSpacing: 2, // ~0.18em at 11px
+    flexShrink: 1,
   },
 });
