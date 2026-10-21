@@ -1,3 +1,9 @@
+## [0.195.0] - 2026-10-21
+
+### Changes
+- feat(admin): brand, status and accessibility pass across the admin web ([#1380](https://github.com/everybody-eats-nz/volunteer-portal/pull/1380)) by @malinmalliyawadu
+
+
 ## [0.194.0] - 2026-10-21
 
 ### Changes
