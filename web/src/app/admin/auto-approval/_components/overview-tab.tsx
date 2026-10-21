@@ -21,7 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { StatsCard } from "@/components/ui/stats-card";
+import { KpiTile } from "@/components/admin/kpi-tile";
 import { cn } from "@/lib/utils";
 import { formatInNZT } from "@/lib/timezone";
 import {
@@ -210,41 +210,45 @@ export function OverviewTab({ onJumpToDecisions }: { onJumpToDecisions: () => vo
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard
-          title="Approved automatically"
+        <KpiTile
+          data-testid="stat-approved"
+          valueTestId="stat-approved-count"
+          tone="forest"
+          icon={<CheckCircle2 />}
+          label="Approved automatically"
           value={totals.approved}
-          subtitle={
+          hint={
             hasActivity
               ? `${Math.round(data.autoApprovalRate)}% of all signups`
               : "No signups yet in this window"
           }
-          icon={CheckCircle2}
-          variant="green"
-          testId="stat-approved"
         />
-        <StatsCard
-          title="Held for a person"
+        <KpiTile
+          data-testid="stat-held"
+          valueTestId="stat-held-count"
+          tone="sun"
+          icon={<Clock />}
+          label="Held for a person"
           value={totals.held}
-          subtitle="Waiting on manual approval"
-          icon={Clock}
-          variant="amber"
-          testId="stat-held"
+          hint="Waiting on manual approval"
         />
-        <StatsCard
-          title="Blocked"
+        <KpiTile
+          data-testid="stat-blocked"
+          valueTestId="stat-blocked-count"
+          tone="danger"
+          icon={<CircleSlash />}
+          label="Blocked"
           value={totals.blocked}
-          subtitle={`${ruleHealth.blocking} block rule${ruleHealth.blocking === 1 ? "" : "s"} active`}
-          icon={CircleSlash}
-          variant="red"
-          testId="stat-blocked"
+          hint={`${ruleHealth.blocking} block rule${ruleHealth.blocking === 1 ? "" : "s"} active`}
         />
-        <StatsCard
-          title="Overridden later"
+        <KpiTile
+          data-testid="stat-overrides"
+          valueTestId="stat-overrides-count"
+          tone="neutral"
+          icon={<RotateCcw />}
+          label="Overridden later"
           value={data.overrides}
-          subtitle="Auto-approvals an admin reversed"
-          icon={RotateCcw}
-          variant="purple"
-          testId="stat-overrides"
+          hint="Auto-approvals an admin reversed"
         />
       </div>
 
@@ -380,7 +384,7 @@ export function OverviewTab({ onJumpToDecisions }: { onJumpToDecisions: () => vo
           <button
             type="button"
             onClick={onJumpToDecisions}
-            className="shrink-0 text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            className="shrink-0 text-sm font-medium text-primary-text hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             See all
           </button>

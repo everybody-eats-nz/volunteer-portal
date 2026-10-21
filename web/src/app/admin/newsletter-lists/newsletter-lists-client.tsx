@@ -3,10 +3,10 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, Mail } from "lucide-react";
 import NewsletterListDialog from "./newsletter-list-dialog";
 import { NewsletterListsSkeleton } from "./newsletter-lists-skeleton";
 import {
@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { EmptyState } from "@/components/admin/empty-state";
 
 interface NewsletterList {
   id: string;
@@ -145,13 +146,17 @@ export default function NewsletterListsClient() {
 
         {lists.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center h-64">
-              <p className="text-muted-foreground mb-4">No newsletter lists yet</p>
-              <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create First List
-              </Button>
-            </CardContent>
+            <EmptyState
+              icon={Mail}
+              title="No newsletter lists yet"
+              description="Add a Campaign Monitor list so volunteers can subscribe to it from their profile."
+              action={
+                <Button onClick={handleCreate}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create first list
+                </Button>
+              }
+            />
           </Card>
         ) : (
           <div className="space-y-4">
@@ -233,7 +238,7 @@ export default function NewsletterListsClient() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

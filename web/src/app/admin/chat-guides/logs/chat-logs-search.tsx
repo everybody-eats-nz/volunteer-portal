@@ -31,21 +31,26 @@ export function ChatLogsSearch({ initialQuery }: ChatLogsSearchProps) {
 
   return (
     <div className="relative max-w-md">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Search
+        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Search by volunteer name or email..."
+        aria-label="Search chat logs by volunteer name or email"
         className="pl-9 pr-9"
       />
       {value && (
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+          className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2"
           onClick={() => setValue("")}
+          aria-label="Clear search"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
       )}
     </div>

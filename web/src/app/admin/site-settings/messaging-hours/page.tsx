@@ -10,7 +10,7 @@ import { MessagingHoursEditor } from "@/components/admin/messages/messaging-hour
 import { getAllLocationHours } from "@/lib/services/messaging-hours";
 
 export const metadata: Metadata = {
-  title: "Messaging Hours | Admin",
+  title: "Messaging Hours",
   description: "Set per-day messaging hours per location",
 };
 
@@ -26,6 +26,7 @@ export default async function MessagingHoursPage() {
   return (
     <AdminPageWrapper
       title="Messaging Hours"
+      breadcrumbs={[{ label: "Site Settings", href: "/admin/site-settings" }]}
       description="Configure when the team typically replies to volunteer messages — shown in the mobile app as a soft expectation-setter"
     >
       <PageContainer>

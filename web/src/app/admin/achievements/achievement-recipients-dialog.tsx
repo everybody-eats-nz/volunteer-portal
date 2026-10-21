@@ -10,6 +10,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 interface Recipient {
   userId: string;
@@ -114,7 +115,7 @@ export function AchievementRecipientsDialog({
               {recipients.map((recipient) => (
                 <Link
                   key={recipient.userId}
-                  href={`/admin/volunteers/${recipient.userId}`}
+                  href={volunteerProfileHref(recipient.userId, "/admin/achievements")}
                   className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
                 >
                   <Avatar className="h-8 w-8">

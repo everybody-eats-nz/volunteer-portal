@@ -95,7 +95,7 @@ function ColumnHeading({
   return (
     <p
       className={cn(
-        "flex items-center gap-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+        "flex items-center gap-1.5 px-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground",
         className
       )}
     >
@@ -172,7 +172,7 @@ export function CategoryBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium [&_svg]:h-3 [&_svg]:w-3",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium [&_svg]:h-3 [&_svg]:w-3",
         CATEGORY_BADGE_TONES[category],
         className
       )}

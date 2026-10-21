@@ -591,11 +591,17 @@ test.describe("Admin Shift Edit and Delete", () => {
       ).toBeVisible();
     });
 
-    test("should show back to shifts button on edit page", async ({ page }) => {
+    test("should show a breadcrumb back to shifts on edit page", async ({
+      page,
+    }) => {
       await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
-      // Check back button (scope to the visible copy — see note above)
-      const backButton = page.getByRole("link", { name: "Back to shifts" }).locator("visible=true");
+      // The header breadcrumb links back to Manage Shifts (scope to the
+      // visible copy, see note above)
+      const backButton = page
+        .getByRole("navigation", { name: "Breadcrumb" })
+        .getByRole("link", { name: "Manage Shifts" })
+        .locator("visible=true");
       await expect(backButton).toBeVisible();
 
       // Should navigate back to the shift's own day and restaurant

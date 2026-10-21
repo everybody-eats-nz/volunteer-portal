@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { MenusContent } from "./menus-content";
+
+export const metadata: Metadata = {
+  title: "Daily Menus",
+};
 
 export default async function MenusPage() {
   const session = await getServerSession(authOptions);

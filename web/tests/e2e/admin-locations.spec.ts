@@ -1,6 +1,7 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 import {
   createTestUser,
   deleteTestUsers,
@@ -106,8 +107,7 @@ test.describe("Admin Location Disable/Enable", () => {
     testLocationIds.push(location.id);
 
     // Navigate to locations page
-    await page.goto("/admin/locations");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/locations");
 
     // Check active locations section is visible. The testid is unique in
     // source, but a hidden duplicate of the server-rendered tree can linger
@@ -140,8 +140,7 @@ test.describe("Admin Location Disable/Enable", () => {
     testLocationIds.push(location.id);
 
     // Navigate to locations page
-    await page.goto("/admin/locations");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/locations");
 
     // Disable lives in the row's actions menu
     await page.getByTestId(`location-actions-${location.id}`).click();
@@ -188,8 +187,7 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.request.delete(`/api/admin/locations/${location.id}`);
 
     // Navigate to locations page
-    await page.goto("/admin/locations");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/locations");
 
     // Expand disabled locations section
     const inactiveSection = page.getByTestId("inactive-locations-section");
@@ -244,8 +242,7 @@ test.describe("Admin Location Disable/Enable", () => {
     testShiftIds.push(shift.id);
 
     // Navigate to locations page
-    await page.goto("/admin/locations");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/locations");
 
     // Disable lives in the row's actions menu
     await page.getByTestId(`location-actions-${location.id}`).click();
@@ -357,8 +354,7 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.request.delete(`/api/admin/locations/${disabledLocation.id}`);
 
     // Navigate to locations page
-    await page.goto("/admin/locations");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/locations");
 
     // Active section should be visible with the venue row
     const activeSection = page
@@ -409,8 +405,7 @@ test.describe("Admin Location Disable/Enable", () => {
     testLocationIds.push(location2.id);
 
     // Navigate to locations page
-    await page.goto("/admin/locations");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/locations");
 
     // Active section should show count of 2 (plus existing locations)
     const activeSection = page

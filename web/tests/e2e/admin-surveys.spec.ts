@@ -144,7 +144,7 @@ test.describe("Admin Surveys Management", () => {
       await page.getByPlaceholder("Enter your question").first().fill("How would you rate your experience?");
 
       // Change question type to rating_scale
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /rating scale/i }).click();
 
@@ -172,7 +172,7 @@ test.describe("Admin Surveys Management", () => {
       await page.getByPlaceholder("Enter your question").first().fill("Which role do you prefer?");
 
       // Change question type to multiple_choice_single
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /single choice/i }).click();
 
@@ -223,7 +223,7 @@ test.describe("Admin Surveys Management", () => {
       await page.getByPlaceholder("Enter your question").first().fill("Pick one");
 
       // Change to multiple choice
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /single choice/i }).click();
 
@@ -988,7 +988,7 @@ test.describe("Admin Surveys Management", () => {
       await expect(dialog).toBeVisible();
 
       // Default question type should be text_short or we can select it
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /short text/i }).click();
 
@@ -1003,7 +1003,7 @@ test.describe("Admin Surveys Management", () => {
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
 
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /long text/i }).click();
 
@@ -1017,13 +1017,13 @@ test.describe("Admin Surveys Management", () => {
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
 
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /rating scale/i }).click();
 
       // Should see min/max value fields
-      await expect(dialog.getByText('Min Value')).toBeVisible();
-      await expect(dialog.getByText('Max Value')).toBeVisible();
+      await expect(dialog.getByText('Min value')).toBeVisible();
+      await expect(dialog.getByText('Max value')).toBeVisible();
     });
 
     test("should allow creating multiple_choice_single question", async ({
@@ -1035,7 +1035,7 @@ test.describe("Admin Surveys Management", () => {
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
 
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /single choice/i }).click();
 
@@ -1053,7 +1053,7 @@ test.describe("Admin Surveys Management", () => {
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
 
-      const typeSelect = dialog.getByText('Question Type').first().locator('..').getByRole('combobox');
+      const typeSelect = dialog.getByText('Question type').first().locator('..').getByRole('combobox');
       await typeSelect.click();
       await page.getByRole("option", { name: /multiple choice/i }).click();
 

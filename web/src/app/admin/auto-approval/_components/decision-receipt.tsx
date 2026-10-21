@@ -70,14 +70,14 @@ function RuleRow({ rule }: { rule: RuleTrace }) {
         <span className="text-sm font-medium">{rule.ruleName}</span>
 
         {rule.kind === "BLOCK" && (
-          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+          <Badge variant="outline" className="text-xs uppercase tracking-wide">
             Block
           </Badge>
         )}
         {rule.decisive && (
           <Badge
             variant="secondary"
-            className="text-[10px] uppercase tracking-wide"
+            className="text-xs uppercase tracking-wide"
           >
             Decided it
           </Badge>

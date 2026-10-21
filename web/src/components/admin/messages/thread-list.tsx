@@ -1,6 +1,10 @@
 "use client";
 
+import { MessagesSquare } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/admin/empty-state";
+import { StatusBadge } from "@/components/admin/status-badge";
 import { cn } from "@/lib/utils";
 import type { SerializedThread } from "./types";
 
@@ -13,14 +17,12 @@ interface ThreadListProps {
 export function ThreadList({ threads, selectedId, onSelect }: ThreadListProps) {
   if (threads.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center px-6 py-16 text-center">
-        <div>
-          <p className="text-sm font-medium mb-1">No conversations</p>
-          <p className="text-xs text-muted-foreground">
-            Volunteer messages will appear here.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={MessagesSquare}
+        title="No conversations"
+        description="Volunteer messages will appear here."
+        className="flex-1 px-6 py-16"
+      />
     );
   }
 
@@ -53,7 +55,7 @@ export function ThreadList({ threads, selectedId, onSelect }: ThreadListProps) {
                 >
                   {t.volunteer.name}
                 </span>
-                <span className="text-[11px] text-muted-foreground shrink-0">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {formatRelative(t.lastMessageAt)}
                 </span>
               </div>
@@ -69,17 +71,17 @@ export function ThreadList({ threads, selectedId, onSelect }: ThreadListProps) {
               </p>
               <div className="flex items-center gap-2 mt-1.5">
                 {t.volunteer.defaultLocation && (
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">
                     {t.volunteer.defaultLocation}
                   </span>
                 )}
                 {t.status === "RESOLVED" && (
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground bg-muted-foreground/10 rounded px-1.5 py-0.5">
-                    Resolved
-                  </span>
+                  <StatusBadge tone="confirmed">Resolved</StatusBadge>
                 )}
                 {t.unreadForTeam && (
-                  <span className="ml-auto inline-block size-2 rounded-full bg-emerald-600" />
+                  <span className="ml-auto inline-block size-2 rounded-full bg-emerald-600">
+                    <span className="sr-only">Unread</span>
+                  </span>
                 )}
               </div>
             </div>

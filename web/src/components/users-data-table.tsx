@@ -57,6 +57,7 @@ import { MergeUserDialog } from "@/components/merge-user-dialog";
 import { ArchiveUserDialog } from "@/components/archive-user-dialog";
 import { ReactivateUserDialog } from "@/components/reactivate-user-dialog";
 import { TableSkeleton } from "@/components/loading-skeleton";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 export interface User {
   id: string;
@@ -141,7 +142,7 @@ export const columns: ColumnDef<User>[] = [
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 shadow-sm">
             <AvatarImage src={user.profilePhotoUrl || ""} alt={displayName} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white font-semibold shadow-inner text-xs">
+            <AvatarFallback className="bg-primary-light text-primary-text font-semibold text-xs">
               {getUserInitials(user)}
             </AvatarFallback>
           </Avatar>
@@ -338,7 +339,7 @@ export const columns: ColumnDef<User>[] = [
             <DropdownMenuContent align="end" className="w-48" sideOffset={4}>
               <DropdownMenuItem asChild>
                 <Link
-                  href={`/admin/volunteers/${user.id}`}
+                  href={volunteerProfileHref(user.id, "/admin/users")}
                   className="flex items-center gap-2"
                   data-testid={`view-user-${user.id}`}
                 >
@@ -510,7 +511,7 @@ export function UsersDataTable({
                     className="cursor-pointer hover:bg-muted/50"
                     data-testid={`user-row-${row.original.id}`}
                     onClick={() =>
-                      router.push(`/admin/volunteers/${row.original.id}`)
+                      router.push(volunteerProfileHref(row.original.id, "/admin/users"))
                     }
                   >
                     {row.getVisibleCells().map((cell) => (

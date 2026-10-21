@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { StatsCard } from "@/components/ui/stats-card";
+import { KpiTile } from "@/components/admin/kpi-tile";
 import {
   Select,
   SelectContent,
@@ -62,6 +62,7 @@ import {
 import { type Achievement } from "@/generated/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/admin/empty-state";
 
 type AchievementWithCount = Achievement & {
   _count: {
@@ -446,37 +447,41 @@ export function AchievementsContent({
     <div className="space-y-6">
       {/* Stats strip */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total achievements"
+        <KpiTile
+          data-testid="stat-total-achievements"
+          valueTestId="stat-total-achievements-count"
+          tone="forest"
+          icon={<Award />}
+          label="Total achievements"
           value={stats.total}
-          subtitle={`${stats.active} active · ${stats.inactive} inactive`}
-          icon={Award}
-          variant="primary"
-          testId="stat-total-achievements"
+          hint={`${stats.active} active · ${stats.inactive} inactive`}
         />
-        <StatsCard
-          title="Active"
+        <KpiTile
+          data-testid="stat-active-achievements"
+          valueTestId="stat-active-achievements-count"
+          tone="forest"
+          icon={<CheckCircle2 />}
+          label="Active"
           value={stats.active}
-          subtitle="Currently unlockable"
-          icon={CheckCircle2}
-          variant="green"
-          testId="stat-active-achievements"
+          hint="Currently unlockable"
         />
-        <StatsCard
-          title="Total unlocks"
+        <KpiTile
+          data-testid="stat-total-unlocks"
+          valueTestId="stat-total-unlocks-count"
+          tone="neutral"
+          icon={<Sparkles />}
+          label="Total unlocks"
           value={stats.unlocks.toLocaleString()}
-          subtitle="Across all volunteers"
-          icon={Sparkles}
-          variant="purple"
-          testId="stat-total-unlocks"
+          hint="Across all volunteers"
         />
-        <StatsCard
-          title="Avg per achievement"
+        <KpiTile
+          data-testid="stat-avg-unlocks"
+          valueTestId="stat-avg-unlocks-count"
+          tone="sun"
+          icon={<TrendingUp />}
+          label="Avg per achievement"
           value={stats.avg.toLocaleString()}
-          subtitle="Unlocks per badge"
-          icon={TrendingUp}
-          variant="amber"
-          testId="stat-avg-unlocks"
+          hint="Unlocks per badge"
         />
       </div>
 
@@ -609,19 +614,18 @@ export function AchievementsContent({
 
       {/* Table */}
       {achievements.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Award className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="mb-2 text-lg font-semibold">No achievements yet</h3>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Create your first achievement to motivate volunteers.
-          </p>
-          <Button onClick={openCreateDialog}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create first achievement
-          </Button>
-        </div>
+        <EmptyState
+          className="rounded-lg border border-dashed"
+          icon={Award}
+          title="No achievements yet"
+          description="Create your first achievement to motivate volunteers."
+          action={
+            <Button onClick={openCreateDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create first achievement
+            </Button>
+          }
+        />
       ) : sorted.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <p className="mb-4 text-sm text-muted-foreground">
@@ -883,7 +887,7 @@ export function AchievementsContent({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteAchievement}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {achievementToDelete && achievementToDelete._count.users > 0
@@ -920,7 +924,7 @@ export function AchievementsContent({
               disabled={bulkPending}
               className={
                 bulkDialog === "delete"
-                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  ? "bg-destructive text-white hover:bg-destructive/90"
                   : undefined
               }
             >

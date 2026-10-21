@@ -1,15 +1,14 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
-import { PlusIcon, CalendarDaysIcon, LayersIcon, ChevronLeft } from "lucide-react";
+import { PlusIcon, CalendarDaysIcon, LayersIcon } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { RedirectFeedback } from "@/components/shift-creation/redirect-feedback";
 import { ShiftTypeManager } from "@/components/shift-creation/shift-type-manager";
@@ -31,6 +30,10 @@ import {
   countUpcomingShiftsByTemplate,
 } from "@/lib/services/shift-template-service";
 import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
+
+export const metadata: Metadata = {
+  title: "Create shifts",
+};
 
 // Templates are stored in the database and fetched dynamically
 
@@ -700,14 +703,7 @@ export default async function NewShiftPage({
     <AdminPageWrapper
       title="Create shifts"
       description="Plan whole weeks from templates, or add a one-off shift."
-      actions={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/admin/shifts">
-            <ChevronLeft className="h-4 w-4" />
-            Back to shifts
-          </Link>
-        </Button>
-      }
+      breadcrumbs={[{ label: "Manage Shifts", href: "/admin/shifts" }]}
     >
       <PageContainer testid="create-shift-page">
         <Suspense fallback={null}>

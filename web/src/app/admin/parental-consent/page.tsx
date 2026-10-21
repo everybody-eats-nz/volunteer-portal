@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { FileText, Users, Clock, CheckCircle } from "lucide-react";
@@ -5,9 +6,14 @@ import { FileText, Users, Clock, CheckCircle } from "lucide-react";
 import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
+import { KpiTile } from "@/components/admin/kpi-tile";
 import { ParentalConsentTable } from "./parental-consent-table";
 import { prisma } from "@/lib/prisma";
 import { getUsersRequiringParentalConsent } from "@/lib/parental-consent";
+
+export const metadata: Metadata = {
+  title: "Parental Consent",
+};
 
 /**
  * Admin page for managing parental consent approvals
@@ -64,44 +70,40 @@ export default async function AdminParentalConsentPage() {
       >
         <div className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
-              <div className="flex items-center justify-between space-y-0 pb-2">
-                <h3 className="tracking-tight text-sm font-medium">
-                  Pending Approval
-                </h3>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {pendingApproval}
-              </div>
-            </div>
-
-            <div className="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
-              <div className="flex items-center justify-between space-y-0 pb-2">
-                <h3 className="tracking-tight text-sm font-medium">Approved</h3>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {approved}
-              </div>
-            </div>
-
-            <div className="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
-              <div className="flex items-center justify-between space-y-0 pb-2">
-                <h3 className="tracking-tight text-sm font-medium">
-                  Total Under 16
-                </h3>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl font-bold">{totalUnder16}</div>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <KpiTile
+              icon={<Clock />}
+              label="Pending approval"
+              value={pendingApproval}
+              tone={pendingApproval > 0 ? "pending" : "neutral"}
+              data-testid="consent-pending-card"
+              valueTestId="consent-pending-count"
+            />
+            <KpiTile
+              icon={<CheckCircle />}
+              label="Approved"
+              value={approved}
+              tone="sun"
+              data-testid="consent-approved-card"
+              valueTestId="consent-approved-count"
+            />
+            <KpiTile
+              icon={<Users />}
+              label="Total under 16"
+              value={totalUnder16}
+              tone="forest"
+              data-testid="consent-total-card"
+              valueTestId="consent-total-count"
+            />
           </div>
 
           {/* Instructions */}
           <div className="rounded-lg border bg-primary-light p-4">
             <div className="flex items-start gap-3">
-              <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary-text" />
+              <FileText
+                className="mt-0.5 h-5 w-5 shrink-0 text-primary-text"
+                aria-hidden="true"
+              />
               <div>
                 <h4 className="text-sm font-semibold text-primary-text">
                   How Parental Consent Works

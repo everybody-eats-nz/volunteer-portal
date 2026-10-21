@@ -42,7 +42,6 @@ import { BulkAssignSurveyDialog } from "./bulk-assign-survey-dialog";
 import {
   CompletionRing,
   CountChip,
-  StatTile,
   StatusBar,
   TRIGGER_META,
 } from "./_components/survey-ui";
@@ -51,6 +50,8 @@ import { useAdminPageTitle } from "@/hooks/use-admin-page-title";
 import { cn } from "@/lib/utils";
 import type { Survey, SurveyTriggerType } from "@/generated/client";
 import Link from "next/link";
+import { EmptyState } from "@/components/admin/empty-state";
+import { KpiTile } from "@/components/admin/kpi-tile";
 
 type SurveyWithStats = Survey & {
   creator: {
@@ -331,39 +332,37 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
       {/* Overview KPIs */}
       {surveys.length > 0 && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile
-            icon={ClipboardList}
+          <KpiTile
+            tone="forest"
+            icon={<ClipboardList />}
             label="Surveys"
             value={overview.total}
             hint={`${overview.active} active`}
-            iconWrap="bg-[var(--ee-primary-light)] text-[var(--ee-primary-text)]"
           />
-          <StatTile
-            icon={Power}
+          <KpiTile
+            tone="forest"
+            icon={<Power />}
             label="Active"
             value={overview.active}
             hint={
               overview.total - overview.active > 0
                 ? `${overview.total - overview.active} paused`
-                : "all live"
+                : "All live"
             }
-            accent="text-emerald-600 dark:text-emerald-400"
-            iconWrap="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           />
-          <StatTile
-            icon={Inbox}
+          <KpiTile
+            tone="sun"
+            icon={<Inbox />}
             label="Responses"
-            value={overview.responses.toLocaleString()}
-            hint="completed to date"
-            iconWrap="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+            value={overview.responses}
+            hint="Completed to date"
           />
-          <StatTile
-            icon={BarChart3}
+          <KpiTile
+            tone="neutral"
+            icon={<BarChart3 />}
             label="Avg completion"
             value={`${overview.avgCompletion}%`}
-            hint="across all assignments"
-            accent="text-[var(--ee-primary-text)]"
-            iconWrap="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+            hint="Across all assignments"
           />
         </div>
       )}
@@ -429,7 +428,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
 
       {/* Empty / list */}
       {surveys.length === 0 ? (
-        <EmptyState onCreate={openCreateDialog} />
+        <SurveysEmptyState onCreate={openCreateDialog} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -512,7 +511,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteSurvey}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {surveyToDelete?.stats.totalAssignments &&
@@ -606,12 +605,12 @@ function SurveyCard({
                 {survey.title}
               </h3>
               {survey.isActive ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Active
                 </span>
               ) : (
-                <Badge variant="secondary" className="text-[11px]">
+                <Badge variant="secondary" className="text-xs">
                   Inactive
                 </Badge>
               )}
@@ -622,7 +621,7 @@ function SurveyCard({
                 {trigger.label}
               </span>
               {triggerRange && (
-                <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] tabular-nums">
+                <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs tabular-nums">
                   {triggerRange}
                 </span>
               )}
@@ -763,23 +762,19 @@ function SurveyCard({
 /*  Empty state                                                                 */
 /* -------------------------------------------------------------------------- */
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function SurveysEmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-card/50 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ee-primary-light)]">
-        <ClipboardList className="h-7 w-7 text-[var(--ee-primary-text)]" />
-      </div>
-      <div className="space-y-1">
-        <h3 className="text-lg font-semibold">No surveys yet</h3>
-        <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-          Create your first survey to start gathering feedback from your
-          volunteer whānau.
-        </p>
-      </div>
-      <Button onClick={onCreate}>
-        <Plus className="mr-2 h-4 w-4" />
-        Create first survey
-      </Button>
-    </div>
+    <EmptyState
+      className="rounded-xl border border-dashed bg-card/50 py-16"
+      icon={ClipboardList}
+      title="No surveys yet"
+      description="Create your first survey to start gathering feedback from your volunteer whānau."
+      action={
+        <Button onClick={onCreate}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create first survey
+        </Button>
+      }
+    />
   );
 }

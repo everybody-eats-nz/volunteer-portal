@@ -1,8 +1,6 @@
-import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AdminPageSkeleton } from "@/components/admin/admin-skeletons";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -38,12 +36,7 @@ export default function CreateShiftsLoading() {
       title="Create shifts"
       description="Plan whole weeks from templates, or add a one-off shift."
       className="space-y-2"
-      actions={
-        <Button variant="outline" size="sm" disabled>
-          <ChevronLeft className="h-4 w-4" />
-          Back to shifts
-        </Button>
-      }
+      breadcrumbs={[{ label: "Manage Shifts", href: "/admin/shifts" }]}
     >
       <div className="flex flex-col gap-6">
         {/* Pill tab strip: Weekly Schedule / Single Shift / Templates & Roles */}

@@ -1,4 +1,7 @@
-import { AdminPageSkeleton } from "@/components/admin/admin-skeletons";
+import {
+  AdminPageSkeleton,
+  KpiTileSkeleton,
+} from "@/components/admin/admin-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -6,10 +9,13 @@ import { cn } from "@/lib/utils";
 function ConsentTableSkeleton({
   rows,
   columns,
+  hide = [],
   action = false,
 }: {
   rows: number;
   columns: string[];
+  /** Per-column visibility classes, matching the table's hidden columns. */
+  hide?: (string | undefined)[];
   action?: boolean;
 }) {
   return (
@@ -21,7 +27,10 @@ function ConsentTableSkeleton({
       <div className="bg-card overflow-hidden rounded-xl border shadow-sm">
         <div className="bg-muted/50 flex gap-6 px-4 py-3">
           {columns.map((_, i) => (
-            <div key={i} className={cn("flex-1", i > 1 && "hidden md:block")}>
+            <div
+              key={i}
+              className={cn("flex-1", hide[i])}
+            >
               <Skeleton className="h-4 w-16" />
             </div>
           ))}
@@ -36,10 +45,10 @@ function ConsentTableSkeleton({
             {columns.map((width, c) => (
               <div
                 key={c}
-                className={cn("flex-1 space-y-1.5", c > 1 && "hidden md:block")}
+                className={cn("flex-1 space-y-1.5", hide[c])}
               >
                 <Skeleton className={cn("h-4", width)} />
-                {(c === 0 || (action && (c === 2 || c === 3))) && (
+                {(c === 0 || (action && c === 2)) && (
                   <Skeleton className="h-3 w-24" />
                 )}
               </div>
@@ -59,15 +68,9 @@ export default function ParentalConsentLoading() {
       description="Manage parental consent approvals for volunteers under 16"
     >
       {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-3" aria-hidden="true">
+      <div className="grid gap-4 sm:grid-cols-3" aria-hidden="true">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border p-6 shadow-sm">
-            <div className="flex items-center justify-between pb-2">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="size-4 rounded" />
-            </div>
-            <Skeleton className="mt-1 h-7 w-10" />
-          </div>
+          <KpiTileSkeleton key={i} />
         ))}
       </div>
 
@@ -89,10 +92,20 @@ export default function ParentalConsentLoading() {
       <div className="space-y-6" aria-hidden="true">
         <ConsentTableSkeleton
           rows={3}
-          columns={["w-32", "w-12", "w-40", "w-28", "w-20"]}
+          columns={["w-40", "w-28", "w-28", "w-20"]}
+          hide={[
+            undefined,
+            "hidden md:block",
+            "hidden lg:block",
+            "hidden md:block",
+          ]}
           action
         />
-        <ConsentTableSkeleton rows={4} columns={["w-32", "w-12", "w-24"]} />
+        <ConsentTableSkeleton
+          rows={4}
+          columns={["w-32", "w-12", "w-24"]}
+          hide={[undefined, undefined, "hidden md:block"]}
+        />
       </div>
     </AdminPageSkeleton>
   );

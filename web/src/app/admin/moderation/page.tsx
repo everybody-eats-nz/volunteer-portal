@@ -7,10 +7,13 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { prisma } from "@/lib/prisma";
+import { KpiTile } from "@/components/admin/kpi-tile";
+import { STATUS_ICON, STATUS_TINTED } from "@/lib/status-styles";
+import { cn } from "@/lib/utils";
 import { ModerationContent } from "./moderation-content";
 
 export const metadata: Metadata = {
-  title: "Moderation | Admin",
+  title: "Content Moderation",
   robots: { index: false, follow: false },
 };
 
@@ -32,60 +35,49 @@ export default async function ModerationPage() {
         description="Review flagged content and user blocks — Apple Guideline 1.2 compliance"
       >
         <div className="space-y-6">
-          {/* Stats */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="flex items-center justify-between pb-2">
-                <h3 className="text-sm font-medium tracking-tight">
-                  Pending Reports
-                </h3>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl font-bold text-orange-600">
-                {pendingReports}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Requires review within 24 hours
-              </p>
-            </div>
-
-            <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="flex items-center justify-between pb-2">
-                <h3 className="text-sm font-medium tracking-tight">
-                  Resolved Reports
-                </h3>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl font-bold text-green-600">
-                {resolvedReports}
-              </div>
-            </div>
-
-            <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="flex items-center justify-between pb-2">
-                <h3 className="text-sm font-medium tracking-tight">
-                  Active Blocks
-                </h3>
-                <Ban className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-2xl font-bold">{activeBlocks}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Users blocked by other users
-              </p>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <KpiTile
+              tone={pendingReports > 0 ? "pending" : "neutral"}
+              icon={<Clock />}
+              label="Pending reports"
+              value={pendingReports}
+              hint="Review within 24 hours"
+            />
+            <KpiTile
+              tone="forest"
+              icon={<CheckCircle />}
+              label="Resolved reports"
+              value={resolvedReports}
+            />
+            <KpiTile
+              tone="neutral"
+              icon={<Ban />}
+              label="Active blocks"
+              value={activeBlocks}
+              hint="Volunteers blocked by other volunteers"
+            />
           </div>
 
           {/* 24-hour reminder */}
           {pendingReports > 0 && (
-            <div className="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800 p-4">
-              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 shrink-0" />
+            <div
+              role="status"
+              className={cn(
+                "flex items-start gap-3 rounded-lg border p-4",
+                STATUS_TINTED.pending
+              )}
+            >
+              <AlertTriangle
+                className={cn("h-5 w-5 mt-0.5 shrink-0", STATUS_ICON.pending)}
+                aria-hidden="true"
+              />
               <div>
-                <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                <p className="text-sm font-semibold">
                   {pendingReports} pending{" "}
-                  {pendingReports === 1 ? "report requires" : "reports require"}{" "}
+                  {pendingReports === 1 ? "report needs" : "reports need"}{" "}
                   attention
                 </p>
-                <p className="text-sm text-orange-700 dark:text-orange-300 mt-0.5">
+                <p className="text-sm mt-0.5">
                   Apple App Store Guideline 1.2 requires content reports to be
                   reviewed and acted on within 24 hours.
                 </p>

@@ -43,6 +43,8 @@ import { CustomLabelDialog } from "./custom-label-dialog";
 import { LabelMembersDialog } from "./label-members-dialog";
 import { getLabelTheme } from "./label-colors";
 import { KpiTile } from "@/components/admin/kpi-tile";
+import { SectionHeading } from "@/components/admin/section-heading";
+import { EmptyState } from "@/components/admin/empty-state";
 
 export interface PreviewUser {
   id: string;
@@ -262,9 +264,9 @@ export function CustomLabelsContent({
         />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-xl">
-            <h2 className="font-accent text-xl font-semibold leading-tight sm:text-2xl">
+            <SectionHeading className="sm:text-2xl">
               Group your whānau with custom labels
-            </h2>
+            </SectionHeading>
             <p className="mt-2 text-sm text-white/80 sm:text-base">
               Tag volunteers to segment announcements, spotlight specialists,
               and keep your community organised at a glance.
@@ -294,19 +296,19 @@ export function CustomLabelsContent({
           icon={<Users className="h-4 w-4" />}
           label="Volunteers tagged"
           value={taggedVolunteers}
-          tone="blue"
+          tone="sun"
         />
         <KpiTile
           icon={<Sparkles className="h-4 w-4" />}
           label="Total assignments"
           value={totalAssignments}
-          tone="violet"
+          tone="neutral"
         />
         <KpiTile
           icon={<Tags className="h-4 w-4" />}
           label="Unused"
           value={unusedCount}
-          tone={unusedCount > 0 ? "amber" : "neutral"}
+          tone={unusedCount > 0 ? "pending" : "neutral"}
         />
       </div>
 
@@ -314,22 +316,30 @@ export function CustomLabelsContent({
       {labels.length > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search labels…"
+              aria-label="Search labels"
               className="pl-9"
               data-testid="label-search-input"
             />
           </div>
           <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1">
-            <ArrowUpDown className="ml-2 h-3.5 w-3.5 text-muted-foreground" />
+            <ArrowUpDown
+              className="ml-2 h-3.5 w-3.5 text-muted-foreground"
+              aria-hidden="true"
+            />
             {SORTS.map((s) => (
               <button
                 key={s.key}
                 type="button"
                 onClick={() => setSort(s.key)}
+                aria-pressed={sort === s.key}
                 className={cn(
                   "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                   sort === s.key
@@ -347,17 +357,18 @@ export function CustomLabelsContent({
 
       {/* ===== Gallery ===== */}
       {labels.length === 0 ? (
-        <EmptyState onCreate={openCreateDialog} />
+        <NoLabelsYet onCreate={openCreateDialog} />
       ) : visibleLabels.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-card/50 py-16 text-center">
-          <p className="font-medium">No labels match “{query}”.</p>
-          <Button
-            variant="link"
-            onClick={() => setQuery("")}
-            className="mt-1"
-          >
-            Clear search
-          </Button>
+        <div className="rounded-xl border border-dashed bg-card/50">
+          <EmptyState
+            icon={Search}
+            title={`No labels match “${query}”`}
+            action={
+              <Button variant="link" onClick={() => setQuery("")}>
+                Clear search
+              </Button>
+            }
+          />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -407,7 +418,7 @@ export function CustomLabelsContent({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
+              <Trash2 className="h-5 w-5" aria-hidden="true" />
               Delete custom label
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -420,9 +431,9 @@ export function CustomLabelsContent({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteLabel}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
               Delete label
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -509,7 +520,7 @@ function LabelCard({
                         aria-label={`Announce to ${label.name} volunteers`}
                         data-testid={`announce-label-${label.id}`}
                       >
-                        <Megaphone className="h-4 w-4" />
+                        <Megaphone className="h-4 w-4" aria-hidden="true" />
                       </Link>
                     </Button>
                   </TooltipTrigger>
@@ -523,9 +534,10 @@ function LabelCard({
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     onClick={onEdit}
+                    aria-label={`Edit ${label.name}`}
                     data-testid={`edit-label-${label.id}`}
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Edit label</TooltipContent>
@@ -539,9 +551,14 @@ function LabelCard({
                       className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
                       onClick={onDelete}
                       disabled={hasMembers}
+                      aria-label={
+                        hasMembers
+                          ? `Delete ${label.name} (remove all volunteers first)`
+                          : `Delete ${label.name}`
+                      }
                       data-testid={`delete-label-${label.id}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </span>
                 </TooltipTrigger>
@@ -598,11 +615,14 @@ function LabelCard({
                   View members
                 </span>
               </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight
+                className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
             </button>
           ) : (
             <div className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-background/30 px-3 py-2.5 text-sm text-muted-foreground">
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4" aria-hidden="true" />
               No volunteers yet
             </div>
           )}
@@ -616,32 +636,25 @@ function LabelCard({
 /*  Empty state                                                               */
 /* -------------------------------------------------------------------------- */
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function NoLabelsYet({ onCreate }: { onCreate: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-xl border border-dashed bg-card/50 px-6 py-16 text-center"
+      className="rounded-xl border border-dashed bg-card/50"
     >
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-light text-primary-text">
-        <Tags className="h-7 w-7" />
-      </div>
-      <h3 className="mt-4 font-accent text-xl font-semibold">
-        No labels yet
-      </h3>
-      <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-        Create your first custom label to group volunteers — handy for targeted
-        announcements and spotting specialists.
-      </p>
-      <Button
-        onClick={onCreate}
-        className="mt-6"
-        data-testid="create-first-label-button"
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        Create first label
-      </Button>
+      <EmptyState
+        icon={Tags}
+        title="No labels yet"
+        description="Create your first custom label to group volunteers. Handy for targeted announcements and spotting specialists."
+        action={
+          <Button onClick={onCreate} data-testid="create-first-label-button">
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Create first label
+          </Button>
+        }
+      />
     </motion.div>
   );
 }

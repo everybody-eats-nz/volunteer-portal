@@ -14,9 +14,10 @@ const DISTRIBUTIONS = [
 
 export default function SurveyResponsesLoading() {
   return (
-    <AdminPageSkeleton title="Survey Responses">
-      <Skeleton className="-ml-2 h-8 w-40" />
-
+    <AdminPageSkeleton
+      title="Survey Responses"
+      breadcrumbs={[{ label: "Surveys", href: "/admin/surveys" }]}
+    >
       <SkeletonCard className="overflow-hidden">
         <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-5">

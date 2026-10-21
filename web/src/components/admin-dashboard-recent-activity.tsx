@@ -1,9 +1,11 @@
 "use client";
 
-import { motion } from "motion/react";
-import { slideUpVariants } from "@/lib/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/admin/status-badge";
+import {
+  formatStatusLabel,
+  signupStatusTone,
+} from "@/lib/status-styles";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -15,6 +17,7 @@ import {
   Users,
   Trophy,
 } from "lucide-react";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 // Unified activity item — discriminated union on `type`
 interface SignupActivity {
@@ -93,17 +96,6 @@ interface AdminDashboardRecentActivityProps {
   items: ActivityItem[];
 }
 
-const statusVariant: Record<
-  string,
-  "default" | "outline" | "secondary" | "destructive"
-> = {
-  CONFIRMED: "default",
-  PENDING: "outline",
-  WAITLISTED: "secondary",
-  CANCELED: "destructive",
-  NO_SHOW: "destructive",
-};
-
 function ActivityRow({ item }: { item: ActivityItem }) {
   const displayName = item.userName ?? item.userEmail;
 
@@ -136,27 +128,27 @@ function ActivityRow({ item }: { item: ActivityItem }) {
 
         <div className="flex items-center gap-3 shrink-0 pt-0.5">
           {item.type === "signup" && (
-            <Badge variant={statusVariant[item.status] || "outline"}>
-              {item.status.toLowerCase()}
-            </Badge>
+            <StatusBadge tone={signupStatusTone(item.status)}>
+              {formatStatusLabel(item.status)}
+            </StatusBadge>
           )}
           {item.type === "survey" && (
-            <Badge variant="secondary">
-              <ClipboardCheck className="h-3 w-3 mr-1" />
-              survey
-            </Badge>
+            <StatusBadge tone="neutral">
+              <ClipboardCheck aria-hidden="true" />
+              Survey
+            </StatusBadge>
           )}
           {item.type === "friendship" && (
-            <Badge variant="secondary">
-              <Users className="h-3 w-3 mr-1" />
-              friends
-            </Badge>
+            <StatusBadge tone="neutral">
+              <Users aria-hidden="true" />
+              Friends
+            </StatusBadge>
           )}
           {item.type === "achievement" && (
-            <Badge variant="success">
-              <Trophy className="h-3 w-3 mr-1" />
-              unlocked
-            </Badge>
+            <StatusBadge tone="confirmed">
+              <Trophy aria-hidden="true" />
+              Unlocked
+            </StatusBadge>
           )}
           {/*
             suppressHydrationWarning: relative time is computed from the
@@ -190,20 +182,17 @@ function SignupContent({
       <div className="flex items-center gap-2">
         <span className="font-medium text-sm truncate">
           <Link
-            href={`/admin/volunteers/${item.userId}`}
+            href={volunteerProfileHref(item.userId, "/admin")}
             className="hover:underline"
           >
             {displayName}
           </Link>
         </span>
         {item.isFirstSignup && (
-          <Badge
-            variant="success"
-            className="text-[10px] px-1.5 py-0 gap-0.5"
-          >
-            <Sparkles className="h-2.5 w-2.5" />
-            new
-          </Badge>
+          <StatusBadge tone="confirmed" className="px-1.5 py-0">
+            <Sparkles aria-hidden="true" />
+            New
+          </StatusBadge>
         )}
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-1">
@@ -239,7 +228,7 @@ function SurveyContent({
     <>
       <div className="font-medium text-sm truncate">
         <Link
-          href={`/admin/volunteers/${item.userId}`}
+          href={volunteerProfileHref(item.userId, "/admin")}
           className="hover:underline"
         >
           {displayName}
@@ -269,7 +258,7 @@ function FriendshipContent({
     <>
       <div className="font-medium text-sm truncate">
         <Link
-          href={`/admin/volunteers/${item.userId}`}
+          href={volunteerProfileHref(item.userId, "/admin")}
           className="hover:underline"
         >
           {displayName}
@@ -278,7 +267,7 @@ function FriendshipContent({
       <div className="text-xs text-muted-foreground mt-1">
         Became friends with{" "}
         <Link
-          href={`/admin/volunteers/${item.friendId}`}
+          href={volunteerProfileHref(item.friendId, "/admin")}
           className="font-medium text-foreground/70 hover:underline"
         >
           {item.friendName ?? "someone"}
@@ -299,7 +288,7 @@ function AchievementContent({
     <>
       <div className="font-medium text-sm truncate">
         <Link
-          href={`/admin/volunteers/${item.userId}`}
+          href={volunteerProfileHref(item.userId, "/admin")}
           className="hover:underline"
         >
           {displayName}
@@ -319,11 +308,11 @@ export function AdminDashboardRecentActivity({
   items,
 }: AdminDashboardRecentActivityProps) {
   return (
-    <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
+    <div>
       <Card>
         <CardHeader>
           <CardTitle data-testid="recent-signups-heading">
-            Recent Activity
+            Recent activity
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -343,6 +332,6 @@ export function AdminDashboardRecentActivity({
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }

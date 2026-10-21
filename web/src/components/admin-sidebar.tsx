@@ -22,7 +22,13 @@ import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { AdminMessagesBell } from "@/components/admin-messages-bell";
-import { adminNavCategories, publicNavItems } from "@/lib/admin-navigation";
+import {
+  adminNavCategories,
+  findActiveNavItem,
+  publicNavItems,
+} from "@/lib/admin-navigation";
+import { STATUS_SOLID } from "@/lib/status-styles";
+import { cn } from "@/lib/utils";
 import { Session } from "next-auth";
 import { showEnvironmentLabel, getEnvironmentLabel } from "@/lib/environment";
 
@@ -42,6 +48,21 @@ interface AdminSidebarProps {
   hiddenNavItems?: string[];
 }
 
+const DETAIL_ROUTE_PARENTS: [prefix: string, parent: string][] = [
+  ["/admin/volunteers/", "/admin/users"],
+  ["/admin/auto-accept-rules", "/admin/auto-approval"],
+];
+
+/** Brand active state: forest tint, bold label and a left rule. */
+// The tint is a step deeper than the sidebar's hover tint so the current page
+// still out-ranks whatever row the pointer is on.
+const ACTIVE_ITEM_CLASSES =
+  "relative data-[active=true]:bg-forest-100 data-[active=true]:font-semibold data-[active=true]:text-forest-600 data-[active=true]:hover:bg-forest-100 data-[active=true]:hover:text-forest-600 dark:data-[active=true]:bg-forest-500/60 dark:data-[active=true]:text-primary-text dark:data-[active=true]:hover:bg-forest-500/60 dark:data-[active=true]:hover:text-primary-text data-[active=true]:before:absolute data-[active=true]:before:inset-y-1.5 data-[active=true]:before:left-0 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-full data-[active=true]:before:bg-forest-500 dark:data-[active=true]:before:bg-primary-text";
+
+/** Count badges keep white text even when their row is hovered or active. */
+const COUNT_BADGE_CLASSES =
+  "peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white";
+
 export function AdminSidebar({
   session,
   userProfile,
@@ -56,12 +77,11 @@ export function AdminSidebar({
   const showDemoIndicator = showEnvironmentLabel();
   const demoLabel = getEnvironmentLabel();
 
-  const isActive = (href: string, exact = false) => {
-    if (exact) {
-      return pathname === href;
-    }
-    return pathname.startsWith(href);
-  };
+  // Detail routes with no nav item of their own light up the list they belong to.
+  const activeHref = findActiveNavItem(
+    pathname,
+    DETAIL_ROUTE_PARENTS.find(([prefix]) => pathname.startsWith(prefix))?.[1]
+  )?.href;
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -74,21 +94,19 @@ export function AdminSidebar({
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center justify-between gap-3 px-2">
           <Link href="/admin" className="flex items-center gap-2 group">
-            <div className="relative">
-              <Image
-                src="/logo.svg"
-                alt="Everybody Eats"
-                width={120}
-                height={44}
-                priority
-                className="h-8 w-auto transition-all duration-300 group-hover:scale-105 filter invert dark:invert-0"
-              />
-              {showDemoIndicator && (
-                <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
-                  {demoLabel}
-                </div>
-              )}
-            </div>
+            <Image
+              src="/logo.svg"
+              alt="Everybody Eats"
+              width={120}
+              height={44}
+              priority
+              className="h-8 w-auto transition-all duration-300 group-hover:scale-105 filter invert dark:invert-0"
+            />
+            {showDemoIndicator && (
+              <span className="rounded-full bg-amber-700 px-1.5 py-0.5 text-xs font-bold leading-none text-white">
+                {demoLabel}
+              </span>
+            )}
           </Link>
 
           <div className="flex items-center gap-0.5">
@@ -136,10 +154,17 @@ export function AdminSidebar({
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         asChild
-                        isActive={isActive(item.href, true)}
+                        isActive={item.href === activeHref}
+                        className={ACTIVE_ITEM_CLASSES}
                         data-testid={testId}
                       >
-                        <Link href={item.href} onClick={handleLinkClick}>
+                        <Link
+                          href={item.href}
+                          onClick={handleLinkClick}
+                          aria-current={
+                            item.href === activeHref ? "page" : undefined
+                          }
+                        >
                           <item.icon className="w-4 h-4" />
                           <span>{item.title}</span>
                         </Link>
@@ -147,7 +172,7 @@ export function AdminSidebar({
                       {item.href === "/admin/parental-consent" &&
                         pendingParentalConsentCount > 0 && (
                           <SidebarMenuBadge
-                            className="bg-orange-500 text-white"
+                            className={cn(STATUS_SOLID.pending, COUNT_BADGE_CLASSES)}
                             data-testid="parental-consent-badge"
                           >
                             {pendingParentalConsentCount}
@@ -156,7 +181,7 @@ export function AdminSidebar({
                       {item.href === "/admin/moderation" &&
                         pendingReportCount > 0 && (
                           <SidebarMenuBadge
-                            className="bg-red-500 text-white"
+                            className={cn(STATUS_SOLID.danger, COUNT_BADGE_CLASSES)}
                             data-testid="moderation-badge"
                           >
                             {pendingReportCount}
@@ -165,7 +190,7 @@ export function AdminSidebar({
                       {item.href === "/admin/messages" &&
                         unreadMessagesCount > 0 && (
                           <SidebarMenuBadge
-                            className="bg-emerald-700 text-white"
+                            className={cn(STATUS_SOLID.confirmed, COUNT_BADGE_CLASSES)}
                             data-testid="messages-badge"
                           >
                             {unreadMessagesCount}

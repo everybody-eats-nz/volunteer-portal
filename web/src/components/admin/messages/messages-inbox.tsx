@@ -8,11 +8,19 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, BellOff, MessageSquarePlus, Search } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  MessageSquarePlus,
+  MessagesSquare,
+  Search,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import { useNotificationStream } from "@/hooks/use-notification-stream";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/admin/empty-state";
 import {
   Select,
   SelectContent,
@@ -251,11 +259,13 @@ export function MessagesInbox({
       return;
     }
     if (typeof Notification === "undefined") {
-      alert("This browser doesn't support notifications.");
+      toast.error("This browser doesn't support notifications.");
       return;
     }
     if (Notification.permission === "denied") {
-      alert("Notifications are blocked. Enable them in your browser settings.");
+      toast.error(
+        "Notifications are blocked. Enable them in your browser settings."
+      );
       return;
     }
     const result =
@@ -270,11 +280,15 @@ export function MessagesInbox({
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or email…"
+            aria-label="Search conversations by name or email"
             className="pl-9"
           />
         </div>
@@ -282,7 +296,11 @@ export function MessagesInbox({
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
         >
-          <SelectTrigger size="md" className="w-[140px]">
+          <SelectTrigger
+            size="md"
+            className="w-[140px]"
+            aria-label="Filter by status"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -295,7 +313,11 @@ export function MessagesInbox({
           value={locationFilter || "ALL"}
           onValueChange={(v) => setLocationFilter(v === "ALL" ? "" : v)}
         >
-          <SelectTrigger size="md" className="w-[170px]">
+          <SelectTrigger
+            size="md"
+            className="w-[170px]"
+            aria-label="Filter by location"
+          >
             <SelectValue placeholder="All locations" />
           </SelectTrigger>
           <SelectContent>
@@ -310,6 +332,7 @@ export function MessagesInbox({
         <Button
           variant={unreadOnly ? "default" : "outline"}
           onClick={() => setUnreadOnly((v) => !v)}
+          aria-pressed={unreadOnly}
         >
           Unread
         </Button>
@@ -324,18 +347,19 @@ export function MessagesInbox({
                 ? "Notifications on"
                 : "Get desktop notifications"
             }
+            aria-pressed={browserNotificationsOn}
           >
             {browserNotificationsOn ? (
-              <Bell className="w-4 h-4" />
+              <Bell className="w-4 h-4" aria-hidden="true" />
             ) : (
-              <BellOff className="w-4 h-4" />
+              <BellOff className="w-4 h-4" aria-hidden="true" />
             )}
-            <span className="ml-1.5 hidden sm:inline">
+            <span className="ml-1.5 sr-only sm:not-sr-only">
               {browserNotificationsOn ? "Notifications on" : "Notify me"}
             </span>
           </Button>
           <ComposeButton onCreated={handleNewThread}>
-            <MessageSquarePlus className="w-4 h-4 mr-1.5" />
+            <MessageSquarePlus className="w-4 h-4 mr-1.5" aria-hidden="true" />
             New message
           </ComposeButton>
         </div>
@@ -369,15 +393,17 @@ export function MessagesInbox({
 
 function EmptyPane() {
   return (
-    <div className="flex-1 flex items-center justify-center text-center px-6 py-16">
-      <div>
-        <p className="text-lg font-medium mb-1">No conversation selected</p>
-        <p className="text-sm text-muted-foreground max-w-sm">
+    <EmptyState
+      icon={MessagesSquare}
+      title="No conversation selected"
+      description={
+        <>
           Pick a conversation on the left, or start a new one with the
           <span className="font-medium"> New message</span> button.
-        </p>
-      </div>
-    </div>
+        </>
+      }
+      className="flex-1 px-6 py-16"
+    />
   );
 }
 

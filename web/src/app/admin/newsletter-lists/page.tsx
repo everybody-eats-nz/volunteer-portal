@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import NewsletterListsClient from "./newsletter-lists-client";
+
+export const metadata: Metadata = {
+  title: "Newsletter Lists",
+};
 
 export default async function NewsletterListsPage() {
   const session = await getServerSession(authOptions);

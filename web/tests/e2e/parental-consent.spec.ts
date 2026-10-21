@@ -345,10 +345,12 @@ test.describe("Parental Consent System", () => {
       await expect(page.getByText("Parental Consent Management")).toBeVisible();
       await expect(page.getByText("volunteer@everybodyeats.nz")).toBeVisible();
 
-      // Should show list of users requiring consent (use exact text match to avoid ambiguity)
-      await expect(
-        page.getByRole("heading", { name: "Pending Approval", exact: true })
-      ).toBeVisible();
+      // Should show the pending approval count, which renders even when
+      // nobody is waiting
+      await expect(page.getByTestId("consent-pending-card")).toBeVisible();
+      await expect(page.getByTestId("consent-pending-count")).toHaveText(
+        /^\d+$/
+      );
     });
 
     test("should show underage users in parental consent table", async ({

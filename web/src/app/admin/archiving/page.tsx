@@ -7,7 +7,7 @@ import { getArchiveStats } from "@/lib/archive-service";
 import { ArchivingTabs } from "./archiving-tabs";
 
 export const metadata: Metadata = {
-  title: "Volunteer Archiving | Admin Dashboard",
+  title: "Archiving",
   description:
     "Monitor inactivity rules and manually trigger archive passes or per-user actions.",
 };

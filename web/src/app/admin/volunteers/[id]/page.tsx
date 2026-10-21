@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { calculateAge } from "@/lib/utils";
@@ -19,7 +20,6 @@ import {
   User,
   Heart,
   Shield,
-  ChevronLeft,
   Star,
   PauseCircle,
   CheckCircle,
@@ -31,7 +31,10 @@ import {
   MailWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { STATUS_ICON, STATUS_TINTED } from "@/lib/status-styles";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { resolveAdminBackLink } from "@/lib/admin-navigation";
 import { PageContainer } from "@/components/page-container";
 import {
   safeParseAvailability,
@@ -58,6 +61,10 @@ import { VolunteerSurveyHistory } from "@/components/volunteer-survey-history";
 import { ArchiveUserDialog } from "@/components/archive-user-dialog";
 import { ReactivateUserDialog } from "@/components/reactivate-user-dialog";
 import { EmailVerificationActions } from "@/components/email-verification-actions";
+
+export const metadata: Metadata = {
+  title: "Volunteer profile",
+};
 
 const ARCHIVE_REASON_LABELS: Record<string, string> = {
   INACTIVE_12_MONTHS: "Inactive for 12+ months",
@@ -87,6 +94,11 @@ export default async function AdminVolunteerPage({
 
   const { id } = await params;
   const searchParamsResolved = await searchParams;
+  // Opened from many lists; `?from=` says which one to go back to.
+  const backLink = resolveAdminBackLink(searchParamsResolved.from, {
+    label: "All Users",
+    href: "/admin/users",
+  });
 
   const LOCATIONS = await getActiveLocationNames();
 
@@ -255,6 +267,9 @@ export default async function AdminVolunteerPage({
 
   const now = new Date();
   const totalShifts = allSignups.length;
+  const activeRegularCount = volunteer.regularVolunteers.filter(
+    (r) => r.isActive && !r.isPausedByUser
+  ).length;
   const upcomingShifts = allSignups.filter(
     (signup: (typeof allSignups)[0]) =>
       signup.shift.start >= now && signup.status === "CONFIRMED"
@@ -293,8 +308,9 @@ export default async function AdminVolunteerPage({
 
   return (
     <AdminPageWrapper
-      title="Volunteer Profile"
+      title="Volunteer profile"
       description="Comprehensive view of volunteer information and activity"
+      breadcrumbs={[backLink]}
       actions={
         <div className="flex flex-wrap gap-2">
           <Button
@@ -307,18 +323,6 @@ export default async function AdminVolunteerPage({
             <Link href={`/admin/announcements?userIds=${volunteer.id}`}>
               <Megaphone className="h-4 w-4" />
               Announce
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            data-testid="back-to-shifts-button"
-          >
-            <Link href="/admin/shifts">
-              <ChevronLeft className="h-4 w-4" />
-              Back to shifts
             </Link>
           </Button>
         </div>
@@ -362,7 +366,7 @@ export default async function AdminVolunteerPage({
               >
                 <Button
                   size="sm"
-                  className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 sm:flex-shrink-0"
+                  className="gap-2 sm:flex-shrink-0"
                   data-testid="volunteer-reactivate-button"
                 >
                   <ArchiveRestore className="h-4 w-4" />
@@ -457,71 +461,61 @@ export default async function AdminVolunteerPage({
                 {/* Status Badges */}
                 <div className="flex flex-wrap gap-2 justify-center mb-6">
                   {volunteer.regularVolunteers.length > 0 && (
-                    <Badge
-                      variant="outline"
-                      className={
-                        volunteer.regularVolunteers.some(
-                          (r) => r.isActive && !r.isPausedByUser
-                        )
-                          ? "border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
-                          : "border-gray-500/20 text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/20"
+                    <StatusBadge
+                      tone={
+                        activeRegularCount > 0
+                          ? "confirmed"
+                          : volunteer.regularVolunteers.some(
+                                (r) => r.isPausedByUser
+                              )
+                            ? "pending"
+                            : "neutral"
                       }
                     >
-                      <Star className="h-3 w-3 mr-1" />
-                      {volunteer.regularVolunteers.some(
-                        (r) => r.isActive && !r.isPausedByUser
-                      )
-                        ? `${volunteer.regularVolunteers.filter((r) => r.isActive && !r.isPausedByUser).length} Active Regular${volunteer.regularVolunteers.filter((r) => r.isActive && !r.isPausedByUser).length > 1 ? "s" : ""}`
+                      <Star aria-hidden="true" />
+                      {activeRegularCount > 0
+                        ? `${activeRegularCount} active regular${activeRegularCount > 1 ? "s" : ""}`
                         : volunteer.regularVolunteers.some((r) => r.isPausedByUser)
-                        ? "Regular (Paused)"
-                        : "Regular (Inactive)"}
-                    </Badge>
+                          ? "Regular (paused)"
+                          : "Regular (inactive)"}
+                    </StatusBadge>
                   )}
                   {volunteer.archivedAt ? (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-500/20 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20"
+                    <StatusBadge
+                      tone="pending"
                       data-testid="archived-member-badge"
                     >
-                      <Archive className="h-3 w-3 mr-1" />
+                      <Archive aria-hidden="true" />
                       Archived
-                    </Badge>
+                    </StatusBadge>
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="border-green-500/20 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20"
-                    >
-                      <Heart className="h-3 w-3 mr-1" />
-                      Active Member
-                    </Badge>
+                    <StatusBadge tone="confirmed">
+                      <Heart aria-hidden="true" />
+                      Active member
+                    </StatusBadge>
                   )}
                   {volunteer.emailVerified ? (
-                    <Badge
-                      variant="outline"
-                      className="border-emerald-500/20 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20"
+                    <StatusBadge
+                      tone="confirmed"
                       data-testid="email-verified-badge"
                     >
-                      <MailCheck className="h-3 w-3 mr-1" />
-                      Email Verified
-                    </Badge>
+                      <MailCheck aria-hidden="true" />
+                      Email verified
+                    </StatusBadge>
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20"
+                    <StatusBadge
+                      tone="pending"
                       data-testid="email-unverified-badge"
                     >
-                      <MailWarning className="h-3 w-3 mr-1" />
-                      Email Not Verified
-                    </Badge>
+                      <MailWarning aria-hidden="true" />
+                      Email not verified
+                    </StatusBadge>
                   )}
                   {volunteer.volunteerAgreementAccepted && (
-                    <Badge
-                      variant="outline"
-                      className="border-emerald-500/20 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20"
-                    >
-                      <Shield className="h-3 w-3 mr-1" />
-                      Agreement Signed
-                    </Badge>
+                    <StatusBadge tone="confirmed">
+                      <Shield aria-hidden="true" />
+                      Agreement signed
+                    </StatusBadge>
                   )}
                 </div>
 
@@ -537,26 +531,26 @@ export default async function AdminVolunteerPage({
                     <div className="text-2xl font-bold">{totalShifts}</div>
                     <div className="text-xs text-muted-foreground">Total</div>
                   </div>
-                  <div className="p-3 rounded-lg bg-primary/5 dark:bg-primary/10">
+                  <div className="p-3 rounded-lg bg-primary-light">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <Clock className="h-4 w-4 text-primary" />
+                      <Clock className="h-4 w-4 text-primary-text" />
                     </div>
-                    <div className="text-2xl font-bold text-primary">
+                    <div className="text-2xl font-bold text-primary-text">
                       {upcomingShifts}
                     </div>
                     <div className="text-xs text-muted-foreground">Upcoming</div>
                   </div>
-                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
+                  <div className="p-3 rounded-lg bg-primary-light">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <CheckCircle className="h-4 w-4 text-primary-text" />
                     </div>
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    <div className="text-2xl font-bold text-primary-text">
                       {completedShifts}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Done
                       {volunteer.completedShiftAdjustment !== 0 && (
-                        <span className="text-blue-600 dark:text-blue-400 ml-1">
+                        <span className="ml-1 font-medium text-foreground">
                           ({volunteer.completedShiftAdjustment > 0 ? "+" : ""}
                           {volunteer.completedShiftAdjustment})
                         </span>
@@ -569,8 +563,8 @@ export default async function AdminVolunteerPage({
                 {(confirmedCancellations > 0 || noShows > 0) && (
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     {confirmedCancellations > 0 && (
-                      <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30">
-                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                      <div className={cn("p-3 rounded-lg border", STATUS_TINTED.pending)}>
+                        <div className="text-xl font-bold">
                           {confirmedCancellations}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -579,8 +573,8 @@ export default async function AdminVolunteerPage({
                       </div>
                     )}
                     {noShows > 0 && (
-                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
-                        <div className="text-xl font-bold text-red-600 dark:text-red-400">
+                      <div className={cn("p-3 rounded-lg border", STATUS_TINTED.danger)}>
+                        <div className="text-xl font-bold">
                           {noShows}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -603,7 +597,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="admin-actions-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <Shield className="h-5 w-5 text-primary-text" aria-hidden="true" />
                   Admin Actions
                 </CardTitle>
               </CardHeader>
@@ -669,8 +663,8 @@ export default async function AdminVolunteerPage({
                       variant="outline"
                       className={
                         volunteer.role === "ADMIN"
-                          ? "bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 font-medium shadow-sm"
-                          : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-medium shadow-sm"
+                          ? "border-forest-300/50 bg-forest-500 text-white font-medium dark:bg-forest-400"
+                          : "border-forest-200 bg-primary-light text-primary-text font-medium dark:border-forest-300/40"
                       }
                     >
                       {volunteer.role === "ADMIN" ? (
@@ -788,7 +782,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="admin-notes-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                  <FileText className="h-5 w-5 text-primary-text" aria-hidden="true" />
                   Admin Notes
                 </CardTitle>
               </CardHeader>
@@ -809,7 +803,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="emergency-contact-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-red-500 dark:text-red-400" />
+                  <Heart className="h-5 w-5 text-primary-text" aria-hidden="true" />
                   Emergency Contact
                 </CardTitle>
               </CardHeader>
@@ -852,7 +846,7 @@ export default async function AdminVolunteerPage({
               <Card data-testid="regular-volunteer-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                    <Star className="h-5 w-5 text-primary-text" aria-hidden="true" />
                     Regular Volunteer Configuration
                     {volunteer.regularVolunteers.length > 1 && (
                       <Badge variant="outline" className="ml-2 text-xs">
@@ -874,7 +868,7 @@ export default async function AdminVolunteerPage({
                         <div className="flex items-center gap-2 mb-2">
                           <Badge
                             variant="outline"
-                            className="border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
+                            className={STATUS_TINTED.confirmed}
                           >
                             {regularVolunteer.shiftType.name}
                           </Badge>
@@ -911,8 +905,8 @@ export default async function AdminVolunteerPage({
                             {regularVolunteer.isActive ? (
                               regularVolunteer.isPausedByUser ? (
                                 <>
-                                  <PauseCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                                  <span className="text-sm text-yellow-600 dark:text-yellow-400">
+                                  <PauseCircle className={cn("h-4 w-4", STATUS_ICON.pending)} aria-hidden="true" />
+                                  <span className={cn("text-sm", STATUS_ICON.pending)}>
                                     Paused
                                   </span>
                                   {regularVolunteer.pausedUntil && (
@@ -927,8 +921,8 @@ export default async function AdminVolunteerPage({
                                 </>
                               ) : (
                                 <>
-                                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                  <span className="text-sm text-green-600 dark:text-green-400">
+                                  <CheckCircle className={cn("h-4 w-4", STATUS_ICON.confirmed)} aria-hidden="true" />
+                                  <span className={cn("text-sm", STATUS_ICON.confirmed)}>
                                     Active
                                   </span>
                                 </>
@@ -1000,7 +994,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="availability-preferences-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <MapPin className="h-5 w-5 text-primary-text" aria-hidden="true" />
                   Availability & Preferences
                 </CardTitle>
               </CardHeader>
@@ -1034,19 +1028,19 @@ export default async function AdminVolunteerPage({
                             className={cn(
                               "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm font-medium",
                               isDefault
-                                ? "border-green-600/30 bg-green-600/10 text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300"
+                                ? "border-forest-200 bg-primary-light text-primary-text dark:border-forest-300/40"
                                 : "border-border bg-muted/40 text-foreground"
                             )}
                           >
                             <MapPin
                               className={cn(
                                 "h-3.5 w-3.5",
-                                "text-green-600 dark:text-green-400"
+                                "text-primary-text"
                               )}
                             />
                             {locationLabels[location] || location}
                             {isDefault && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-green-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:bg-green-400/15 dark:text-green-300">
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-forest-500 px-1.5 py-0.5 text-xs font-semibold text-white dark:bg-forest-400">
                                 <Star className="h-2.5 w-2.5 fill-current" />
                                 Default
                               </span>
@@ -1068,11 +1062,11 @@ export default async function AdminVolunteerPage({
                         Default Location
                       </label>
                       <div>
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-600/30 bg-green-600/10 px-2.5 py-1.5 text-sm font-medium text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300">
-                          <MapPin className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-forest-200 bg-primary-light px-2.5 py-1.5 text-sm font-medium text-primary-text dark:border-forest-300/40">
+                          <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
                           {locationLabels[volunteer.defaultLocation] ||
                             volunteer.defaultLocation}
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-green-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:bg-green-400/15 dark:text-green-300">
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-forest-500 px-1.5 py-0.5 text-xs font-semibold text-white dark:bg-forest-400">
                             <Star className="h-2.5 w-2.5 fill-current" />
                             Default
                           </span>
@@ -1103,7 +1097,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="additional-information-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <Shield className="h-5 w-5 text-primary-text" aria-hidden="true" />
                   Additional Information
                 </CardTitle>
               </CardHeader>
@@ -1157,7 +1151,7 @@ export default async function AdminVolunteerPage({
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <Clock className="h-5 w-5 text-primary-text" aria-hidden="true" />
                     <CardTitle>Shift History</CardTitle>
                   </div>
                   <LocationFilterTabs

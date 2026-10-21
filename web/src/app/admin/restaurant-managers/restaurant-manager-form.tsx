@@ -78,7 +78,7 @@ export default function RestaurantManagerForm({
             {adminUsers.map((user) => (
               <SelectItem key={user.id} value={user.id}>
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-light text-[11px] font-semibold text-primary-text">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-light text-xs font-semibold text-primary-text">
                     {getInitials(user)}
                   </span>
                   <span className="flex flex-col text-left">

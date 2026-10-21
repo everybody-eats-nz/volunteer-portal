@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -11,6 +12,10 @@ import { formatDate } from "@/lib/van/format";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { VanDriversContent, type AdminDriver } from "./drivers-content";
+
+export const metadata: Metadata = {
+  title: "Van Drivers",
+};
 
 function displayName(user: {
   name: string | null;

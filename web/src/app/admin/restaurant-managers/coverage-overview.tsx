@@ -126,13 +126,13 @@ export function CoverageOverview({
           icon={<BellOff className="h-4 w-4" />}
           label="Muted"
           value={muted}
-          tone={muted > 0 ? "amber" : "neutral"}
+          tone={muted > 0 ? "pending" : "neutral"}
         />
         <KpiTile
           icon={<AlertTriangle className="h-4 w-4" />}
           label="Coverage gaps"
           value={gaps}
-          tone={gaps > 0 ? "rose" : "neutral"}
+          tone={gaps > 0 ? "danger" : "neutral"}
         />
         <KpiTile
           icon={<Users className="h-4 w-4" />}

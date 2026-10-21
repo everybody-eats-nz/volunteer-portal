@@ -52,7 +52,7 @@ export function FeedPreview({
         {/* Screen */}
         <div className="overflow-hidden rounded-[1.85rem] bg-cream-50 dark:bg-[#0f1114]">
           {/* Status bar */}
-          <div className="flex items-center justify-between px-6 pt-2.5 pb-1 text-[10px] font-semibold text-[#14181c] dark:text-cream-50">
+          <div className="flex items-center justify-between px-6 pt-2.5 pb-1 text-xs font-semibold text-[#14181c] dark:text-cream-50">
             <span>9:41</span>
             <span className="h-[18px] w-[72px] rounded-full bg-[#101410] dark:bg-black" />
             <span className="flex items-center gap-1">
@@ -75,7 +75,7 @@ export function FeedPreview({
             <p className="font-accent text-[15px] font-semibold leading-tight text-forest-500 dark:text-[#86d99b]">
               Kia ora 👋
             </p>
-            <p className="text-[10px] text-[#14181c]/50 dark:text-cream-50/50">
+            <p className="text-xs text-[#14181c]/50 dark:text-cream-50/50">
               What&apos;s happening at Everybody Eats
             </p>
           </div>
@@ -140,7 +140,7 @@ export function FeedPreview({
                   </>
                 )}
                 <div className="mt-2 flex items-center justify-between">
-                  <p className="min-w-0 truncate text-[10px] text-[#14181c]/45 dark:text-cream-50/45">
+                  <p className="min-w-0 truncate text-xs text-[#14181c]/45 dark:text-cream-50/45">
                     {authorName} · just now
                   </p>
                 </div>

@@ -91,6 +91,7 @@ import { AssignVolunteerDialog } from "@/components/assign-volunteer-dialog";
 import { UnregisteredVolunteerDialog } from "@/components/unregistered-volunteer-dialog";
 import { DeleteUnregisteredVolunteerButton } from "@/components/delete-unregistered-volunteer-button";
 import { getEffectiveConfirmedCount } from "@/lib/placeholder-utils";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 
 // Layout update context for triggering masonry recalculation
@@ -155,6 +156,15 @@ interface Shift {
       }>;
     };
   }>;
+}
+
+/** The Manage Shifts view this shift sits in, for a profile's back link. */
+function shiftListHref(shift: Shift): string {
+  const params = new URLSearchParams({
+    date: formatInNZT(shift.start, "yyyy-MM-dd"),
+  });
+  if (shift.location) params.set("location", shift.location);
+  return `/admin/shifts?${params.toString()}`;
 }
 
 interface AnimatedShiftCardsProps {
@@ -369,7 +379,7 @@ function VolunteerStatusGroups({
                     className="flex min-w-0 items-start gap-3 rounded-lg border bg-card p-3 transition-colors duration-200 hover:bg-muted/40"
                   >
                     <Link
-                      href={`/admin/volunteers/${signup.user.id}`}
+                      href={volunteerProfileHref(signup.user.id, shiftListHref(shift))}
                       className="flex-shrink-0"
                       data-testid={`volunteer-avatar-link-${signup.id}`}
                     >
@@ -407,7 +417,7 @@ function VolunteerStatusGroups({
                           who it is. */}
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <Link
-                          href={`/admin/volunteers/${signup.user.id}`}
+                          href={volunteerProfileHref(signup.user.id, shiftListHref(shift))}
                           className="text-sm font-semibold text-foreground truncate flex-1 min-w-24 hover:text-primary-text transition-colors"
                           data-testid={`volunteer-name-link-${signup.id}`}
                         >

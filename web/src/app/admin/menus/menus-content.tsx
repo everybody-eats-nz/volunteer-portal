@@ -120,12 +120,14 @@ function CourseEditor({ label, icon, items, onChange, optional, placeholder }: C
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">{icon}</span>
+          <span className="text-muted-foreground" aria-hidden="true">
+            {icon}
+          </span>
           <h4 className="text-sm font-semibold">{label}</h4>
           {optional && <Badge variant="secondary" className="text-xs">optional</Badge>}
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={addItem} className="h-7 text-xs gap-1">
-          <Plus className="w-3 h-3" />
+          <Plus className="w-3 h-3" aria-hidden="true" />
           Add item
         </Button>
       </div>
@@ -143,14 +145,15 @@ function CourseEditor({ label, icon, items, onChange, optional, placeholder }: C
                 value={item}
                 onChange={(e) => updateItem(i, e.target.value)}
                 className="h-8 text-sm"
+                aria-label={`${label} item ${i + 1}`}
               />
               <Button
                 type="button" variant="ghost" size="icon"
                 onClick={() => removeItem(i)}
                 className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                aria-label="Remove item"
+                aria-label={`Remove ${label.toLowerCase()} item ${i + 1}`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
               </Button>
             </div>
           ))}
@@ -396,17 +399,18 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-1.5">
-              <Label>Date</Label>
+              <Label htmlFor="menu-date">Date</Label>
               <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    id="menu-date"
                     variant="outline"
                     className={cn(
                       "w-full h-11 justify-start text-left font-normal",
                       !selectedDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <CalendarIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                     {selectedDate
                       ? format(parseISO(selectedDate), "d MMMM yyyy")
                       : "Pick a date"}
@@ -660,7 +664,7 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               Delete menu
             </AlertDialogAction>

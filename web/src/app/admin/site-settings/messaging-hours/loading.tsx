@@ -10,6 +10,7 @@ export default function MessagingHoursLoading() {
   return (
     <AdminPageSkeleton
       title="Messaging Hours"
+      breadcrumbs={[{ label: "Site Settings", href: "/admin/site-settings" }]}
       description={
         "Configure when the team typically replies to volunteer messages \u2014 shown in the mobile app as a soft expectation-setter"
       }

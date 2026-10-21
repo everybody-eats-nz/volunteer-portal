@@ -7,7 +7,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { AutoApprovalClient } from "./auto-approval-client";
 
 export const metadata: Metadata = {
-  title: "Auto-Approval | Admin Dashboard",
+  title: "Auto-Approval",
   description:
     "See who gets approved automatically, why, and who would be next.",
 };

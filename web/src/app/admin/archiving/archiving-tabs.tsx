@@ -129,7 +129,7 @@ export function ArchivingTabs({ initialStats }: { initialStats: ArchiveStats }) 
             className="flex items-center gap-2"
             data-testid={`tab-${value}`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4" aria-hidden="true" />
             {label}
           </TabsTrigger>
         ))}

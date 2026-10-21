@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -8,6 +9,10 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { SiteSettingsForm } from "@/components/site-settings-form";
 import { Card, CardContent } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "Site Settings",
+};
 
 export default async function SiteSettingsPage() {
   const session = await getServerSession(authOptions);

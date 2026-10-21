@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import { PageContainer } from "@/components/page-container";
 import { SurveysContent } from "./surveys-content";
+
+export const metadata: Metadata = {
+  title: "Surveys",
+};
 
 export default async function SurveysPage() {
   const session = await getServerSession(authOptions);

@@ -18,6 +18,7 @@ import {
   type ManagerUser,
   type RestaurantManager,
 } from "./types";
+import { SectionHeading } from "@/components/admin/section-heading";
 
 interface RestaurantManagersContentProps {
   adminUsers: ManagerUser[];
@@ -252,9 +253,9 @@ export function RestaurantManagersContent({
       <section ref={coverageRef} className="scroll-mt-6 space-y-3">
         <div className="flex items-center gap-2">
           <MapPinned className="h-5 w-5 text-primary-text" />
-          <h2 className="font-accent text-xl font-semibold">
+          <SectionHeading>
             Coverage by location
-          </h2>
+          </SectionHeading>
         </div>
         <p className="text-sm text-muted-foreground">
           Who gets alerted at each venue. Riskiest locations appear first.
@@ -268,9 +269,9 @@ export function RestaurantManagersContent({
       {/* 3 — Recipients list + assign/edit panel */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <section className="space-y-3">
-          <h2 className="font-accent text-xl font-semibold">
-            Current Assignments
-          </h2>
+          <SectionHeading>
+            Current assignments
+          </SectionHeading>
           <p className="text-sm text-muted-foreground">
             Every admin receiving venue alerts and the locations they cover.
           </p>
@@ -292,10 +293,10 @@ export function RestaurantManagersContent({
           className="scroll-mt-6 space-y-3 lg:sticky lg:top-6 lg:self-start"
         >
           <div className="flex items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 font-accent text-xl font-semibold">
+            <SectionHeading className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-primary-text" />
               {existingForUser ? "Edit assignment" : "Assign recipient"}
-            </h2>
+            </SectionHeading>
             <EmailPreviewDialog
               emailType="cancellation"
               triggerLabel="Preview cancellation email"

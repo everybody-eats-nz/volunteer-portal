@@ -16,7 +16,7 @@ import { monthLabel, shiftMonth, type Period } from "@/lib/van/period";
  */
 
 const FIELD =
-  "h-9 rounded-lg border border-input bg-background px-2.5 text-[13px] outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "h-9 rounded-lg border border-input bg-background px-2.5 text-[13px] outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/70";
 
 export function PeriodBar({
   period,
@@ -56,7 +56,7 @@ export function PeriodBar({
                 value={period.month}
                 onChange={(e) => onChange({ mode: "month", month: e.target.value })}
                 data-testid="van-trips-month"
-                className="font-accent w-[13rem] appearance-none rounded-lg bg-transparent py-1 pl-2 pr-7 text-xl font-semibold outline-none transition-colors hover:bg-primary/5 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                className="font-accent w-[13rem] appearance-none rounded-lg bg-transparent py-1 pl-2 pr-7 text-xl font-semibold outline-none transition-colors hover:bg-primary/5 focus-visible:ring-[3px] focus-visible:ring-ring/70"
               >
                 {months.map((month) => (
                   <option key={month} value={month}>

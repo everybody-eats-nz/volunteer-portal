@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay } from "date-fns";
 import {
@@ -30,6 +31,10 @@ import { dayKeyToDbDate, isDayKey } from "@/lib/shift-day-themes";
 import { DayLeadsInput } from "@/components/day-leads-input";
 import { getDayLeadsEditorState } from "@/lib/day-leads.server";
 import { dayOfWeekForDayKey } from "@/lib/day-leads";
+
+export const metadata: Metadata = {
+  title: "Manage Shifts",
+};
 
 interface AdminShiftsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

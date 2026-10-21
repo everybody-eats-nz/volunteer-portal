@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,18 @@ export function SurveyQuestionEditor({
   onMove,
   error,
 }: SurveyQuestionEditorProps) {
+  const fieldId = useId();
+  const textId = `${fieldId}-text`;
+  const typeId = `${fieldId}-type`;
+  const requiredId = `${fieldId}-required`;
+  const minValueId = `${fieldId}-min-value`;
+  const minLabelId = `${fieldId}-min-label`;
+  const maxValueId = `${fieldId}-max-value`;
+  const maxLabelId = `${fieldId}-max-label`;
+  const placeholderId = `${fieldId}-placeholder`;
+  const maxLengthId = `${fieldId}-max-length`;
+  const questionNumber = index + 1;
+
   const handleChange = (field: keyof SurveyQuestion, value: unknown) => {
     onChange({ ...question, [field]: value });
   };
@@ -96,26 +109,31 @@ export function SurveyQuestionEditor({
         <div className="flex items-start gap-2">
           {/* Drag handle and move buttons */}
           <div className="flex flex-col items-center gap-1 pt-1">
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <GripVertical
+              className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className="size-8"
               onClick={() => onMove("up")}
               disabled={index === 0}
+              aria-label={`Move question ${questionNumber} up`}
             >
-              <ChevronUp className="h-4 w-4" />
+              <ChevronUp className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className="size-8"
               onClick={() => onMove("down")}
               disabled={index === totalQuestions - 1}
+              aria-label={`Move question ${questionNumber} down`}
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
 
@@ -124,24 +142,26 @@ export function SurveyQuestionEditor({
             {/* Header */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">
-                Question {index + 1}
+                Question {questionNumber}
               </span>
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={onRemove}
                 disabled={totalQuestions <= 1}
-                className="text-muted-foreground hover:text-destructive"
+                className="size-8 text-muted-foreground hover:text-destructive"
+                aria-label={`Remove question ${questionNumber}`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
 
             {/* Question text */}
             <div className="space-y-2">
-              <Label>Question Text</Label>
+              <Label htmlFor={textId}>Question text</Label>
               <Input
+                id={textId}
                 value={question.text}
                 onChange={(e) => handleChange("text", e.target.value)}
                 placeholder="Enter your question"
@@ -152,12 +172,12 @@ export function SurveyQuestionEditor({
             {/* Type and Required */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Question Type</Label>
+                <Label htmlFor={typeId}>Question type</Label>
                 <Select
                   value={question.type}
                   onValueChange={(v) => handleTypeChange(v as SurveyQuestionType)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={typeId}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -177,19 +197,23 @@ export function SurveyQuestionEditor({
 
               <div className="flex items-center space-x-2 pt-8">
                 <Switch
-                  id={`required-${question.id}`}
+                  id={requiredId}
                   checked={question.required}
                   onCheckedChange={(checked) => handleChange("required", checked)}
                 />
-                <Label htmlFor={`required-${question.id}`}>Required</Label>
+                <Label htmlFor={requiredId}>Required</Label>
               </div>
             </div>
 
             {/* Options for multiple choice */}
             {needsOptions && (
               <div className="space-y-2">
-                <Label>Options</Label>
-                <div className="space-y-2">
+                <Label id={`${fieldId}-options`}>Options</Label>
+                <div
+                  className="space-y-2"
+                  role="group"
+                  aria-labelledby={`${fieldId}-options`}
+                >
                   {(question.options || []).map((option, optIndex) => (
                     <div key={optIndex} className="flex items-center gap-2">
                       <Input
@@ -198,6 +222,7 @@ export function SurveyQuestionEditor({
                           handleOptionChange(optIndex, e.target.value)
                         }
                         placeholder={`Option ${optIndex + 1}`}
+                        aria-label={`Option ${optIndex + 1}`}
                       />
                       <Button
                         type="button"
@@ -205,8 +230,9 @@ export function SurveyQuestionEditor({
                         size="icon"
                         onClick={() => handleRemoveOption(optIndex)}
                         disabled={(question.options?.length || 0) <= 2}
+                        aria-label={`Remove option ${optIndex + 1}`}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                   ))}
@@ -216,8 +242,8 @@ export function SurveyQuestionEditor({
                     size="sm"
                     onClick={handleAddOption}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Option
+                    <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
+                    Add option
                   </Button>
                 </div>
               </div>
@@ -227,8 +253,9 @@ export function SurveyQuestionEditor({
             {needsRatingConfig && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Min Value</Label>
+                  <Label htmlFor={minValueId}>Min value</Label>
                   <Input
+                    id={minValueId}
                     type="number"
                     value={question.minValue ?? 1}
                     onChange={(e) =>
@@ -236,15 +263,20 @@ export function SurveyQuestionEditor({
                     }
                     min={0}
                   />
+                  <Label htmlFor={minLabelId} className="sr-only">
+                    Min label
+                  </Label>
                   <Input
+                    id={minLabelId}
                     value={question.minLabel ?? ""}
                     onChange={(e) => handleChange("minLabel", e.target.value)}
                     placeholder="Min label (e.g., Not at all)"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Max Value</Label>
+                  <Label htmlFor={maxValueId}>Max value</Label>
                   <Input
+                    id={maxValueId}
                     type="number"
                     value={question.maxValue ?? 5}
                     onChange={(e) =>
@@ -252,7 +284,11 @@ export function SurveyQuestionEditor({
                     }
                     min={1}
                   />
+                  <Label htmlFor={maxLabelId} className="sr-only">
+                    Max label
+                  </Label>
                   <Input
+                    id={maxLabelId}
                     value={question.maxLabel ?? ""}
                     onChange={(e) => handleChange("maxLabel", e.target.value)}
                     placeholder="Max label (e.g., Extremely likely)"
@@ -266,16 +302,18 @@ export function SurveyQuestionEditor({
               question.type === "text_long") && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Placeholder</Label>
+                  <Label htmlFor={placeholderId}>Placeholder</Label>
                   <Input
+                    id={placeholderId}
                     value={question.placeholder ?? ""}
                     onChange={(e) => handleChange("placeholder", e.target.value)}
                     placeholder="Enter placeholder text"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Max Length</Label>
+                  <Label htmlFor={maxLengthId}>Max length</Label>
                   <Input
+                    id={maxLengthId}
                     type="number"
                     value={question.maxLength ?? ""}
                     onChange={(e) =>

@@ -68,6 +68,8 @@ import {
   type TargetingDraft,
   type UserOption,
 } from "./types";
+import { SectionHeading } from "@/components/admin/section-heading";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 /** Seed values arriving via the query string ("Announce" links elsewhere). */
 export interface ComposerPrefill {
@@ -609,7 +611,7 @@ export function Composer({
                   {conditions.map((c, i) => (
                     <li key={c} className="text-sm leading-snug">
                       {i > 0 && (
-                        <span className="mr-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="mr-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           and
                         </span>
                       )}
@@ -712,9 +714,9 @@ function Section({
   return (
     <section className="rounded-xl border bg-card p-5 shadow-sm">
       <header className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <h2 className="font-accent text-lg font-semibold leading-none">
+        <SectionHeading>
           {eyebrow}
-        </h2>
+        </SectionHeading>
         <p className="text-xs text-muted-foreground">{hint}</p>
       </header>
       {children}
@@ -724,7 +726,7 @@ function Section({
 
 function RailEyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-text/70">
+    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary-text/70">
       {children}
     </p>
   );
@@ -770,7 +772,7 @@ function ChannelCard({
           {icon}
         </span>
         {locked ? (
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary-text/70">
+          <span className="text-xs font-semibold uppercase tracking-wide text-primary-text/70">
             Always on
           </span>
         ) : (
@@ -1037,7 +1039,7 @@ function RecipientListToggle({
               {result.recipients.map((r) => (
                 <li key={r.id}>
                   <a
-                    href={`/admin/volunteers/${r.id}`}
+                    href={volunteerProfileHref(r.id, "/admin/announcements")}
                     target="_blank"
                     rel="noreferrer"
                     className="block px-3 py-1.5 transition-colors hover:bg-cream-50/70 dark:hover:bg-white/[0.03]"
@@ -1045,7 +1047,7 @@ function RecipientListToggle({
                     <span className="block truncate text-xs font-medium">
                       {r.displayName}
                     </span>
-                    <span className="block truncate text-[11px] text-muted-foreground">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {r.email}
                     </span>
                   </a>
@@ -1054,7 +1056,7 @@ function RecipientListToggle({
             </ul>
           )}
           {!loading && capped && (
-            <p className="border-t border-border/70 px-3 py-1.5 text-[11px] text-muted-foreground">
+            <p className="border-t border-border/70 px-3 py-1.5 text-xs text-muted-foreground">
               Showing the first {result.recipients.length} of {result.total}.
             </p>
           )}

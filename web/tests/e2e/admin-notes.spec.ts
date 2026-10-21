@@ -5,6 +5,7 @@ import {
   createTestUser,
   deleteTestUsers,
   getUserByEmail,
+  clickUntilVisible,
 } from "./helpers/test-helpers";
 
 // Helper function to wait for page to load completely
@@ -314,12 +315,9 @@ test.describe("Admin Notes on Shifts Page", () => {
     if (await firstButton.isVisible()) {
       await expect(firstButton).toBeVisible();
 
-      // Click to open the dialog
-      await firstButton.click();
-
-      // Check that the admin notes dialog opens
+      // Click to open the dialog (retrying a click dropped before hydration)
       const dialog = page.getByTestId(/admin-notes-dialog-/);
-      await expect(dialog).toBeVisible();
+      await clickUntilVisible(firstButton, dialog);
 
       // Check that notes are loaded
       const notesList = page.getByTestId("notes-list");
@@ -341,11 +339,9 @@ test.describe("Admin Notes on Shifts Page", () => {
     const firstButton = adminNotesButtons.first();
 
     if (await firstButton.isVisible()) {
-      await firstButton.click();
-
       // Check for loading state (may be brief)
       const dialog = page.getByTestId(/admin-notes-dialog-/);
-      await expect(dialog).toBeVisible();
+      await clickUntilVisible(firstButton, dialog);
 
       // Loading should disappear and content should appear
       const notesList = page.getByTestId("notes-list");

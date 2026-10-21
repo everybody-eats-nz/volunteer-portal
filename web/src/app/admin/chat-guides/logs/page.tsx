@@ -1,19 +1,26 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { subDays } from "date-fns";
-import { ArrowLeft, Bot, MessageSquare, User as UserIcon } from "lucide-react";
+import { Bot, MessageSquare, User as UserIcon } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { formatInNZT } from "@/lib/timezone";
 
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { KpiTile } from "@/components/admin/kpi-tile";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChatLogsSearch } from "./chat-logs-search";
 import { VolunteerLink } from "./volunteer-link";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
+
+export const metadata: Metadata = {
+  title: "Chat Logs",
+};
 
 const PAGE_SIZE = 50;
 
@@ -90,48 +97,33 @@ export default async function ChatLogsPage({ searchParams }: ChatLogsPageProps) 
   return (
     <AdminPageWrapper
       title="Chat Logs"
+      breadcrumbs={[{ label: "Chat Guides", href: "/admin/chat-guides" }]}
       description="Conversations volunteers have had with the AI assistant. Logs are kept for 30 days."
     >
       <div className="space-y-6">
-        {/* Back link */}
-        <div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/admin/chat-guides">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Chat Guides
-            </Link>
-          </Button>
-        </div>
-
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Last 7 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{last7Count.toLocaleString()}</div>
-              <p className="mt-1 text-xs text-muted-foreground">conversation turns</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Last 30 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{last30Count.toLocaleString()}</div>
-              <p className="mt-1 text-xs text-muted-foreground">conversation turns</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Unique users (30d)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{uniqueUsers30.length.toLocaleString()}</div>
-              <p className="mt-1 text-xs text-muted-foreground">volunteers chatted with the assistant</p>
-            </CardContent>
-          </Card>
+          <KpiTile
+            tone="forest"
+            icon={<MessageSquare />}
+            label="Last 7 days"
+            value={last7Count}
+            hint="Conversation turns"
+          />
+          <KpiTile
+            tone="neutral"
+            icon={<MessageSquare />}
+            label="Last 30 days"
+            value={last30Count}
+            hint="Conversation turns"
+          />
+          <KpiTile
+            tone="sun"
+            icon={<UserIcon />}
+            label="Unique users (30 days)"
+            value={uniqueUsers30.length}
+            hint="Volunteers who chatted with the assistant"
+          />
         </div>
 
         {/* Filter */}
@@ -184,11 +176,11 @@ export default async function ChatLogsPage({ searchParams }: ChatLogsPageProps) 
                 >
                   <summary className="flex cursor-pointer list-none items-start gap-3 p-4">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <UserIcon className="h-4 w-4 text-primary" />
+                      <UserIcon className="h-4 w-4 text-primary-text" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <VolunteerLink href={`/admin/volunteers/${log.user.id}`}>
+                        <VolunteerLink href={volunteerProfileHref(log.user.id, "/admin/chat-guides/logs")}>
                           {displayName}
                         </VolunteerLink>
                         <span className="text-xs text-muted-foreground">{log.user.email}</span>
@@ -200,7 +192,7 @@ export default async function ChatLogsPage({ searchParams }: ChatLogsPageProps) 
                         {log.userMessage || <span className="italic text-muted-foreground">(empty message)</span>}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Click to view assistant reply · model: <code className="text-[10px]">{log.model}</code>
+                        Click to view assistant reply · model: <code className="text-xs">{log.model}</code>
                       </p>
                     </div>
                   </summary>

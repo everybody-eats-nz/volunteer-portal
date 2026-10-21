@@ -56,6 +56,7 @@ import {
 } from "./coverage-tab";
 import { RuleEditor } from "./rule-editor";
 import { EmptyState, ScopeBadges, TableSkeleton, type AdminOptions } from "./shared";
+import { SectionHeading } from "@/components/admin/section-heading";
 
 export interface SerializedRuleClient {
   id: string;
@@ -453,7 +454,7 @@ function RuleGroup({
       <div className="flex items-start gap-2">
         <Icon className="mt-0.5 h-5 w-5 text-muted-foreground" aria-hidden />
         <div>
-          <h2 className="font-semibold">{title}</h2>
+          <SectionHeading>{title}</SectionHeading>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
       </div>

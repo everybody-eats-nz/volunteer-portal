@@ -23,6 +23,8 @@ import {
   type SearchableUser,
 } from "@/components/admin/user-search-select";
 import { StatusPill } from "@/components/van/van-chrome";
+import { SectionHeading } from "@/components/admin/section-heading";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 export interface AdminOrganisation {
   id: string;
@@ -487,7 +489,7 @@ function AddDriverDialog({
               value={organisationId}
               onChange={(e) => setOrganisationId(e.target.value)}
               disabled={busy}
-              className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/70"
               data-testid="van-driver-add-org"
             >
               {organisations.map((org) => (
@@ -580,8 +582,8 @@ function Section({
   return (
     <section data-testid={testid}>
       <div className="flex items-baseline gap-2.5 pb-2">
-        <h2 className="text-[15px] font-semibold">{title}</h2>
-        <span className="text-[13px] tabular-nums text-muted-foreground">
+        <SectionHeading>{title}</SectionHeading>
+        <span className="text-sm tabular-nums text-muted-foreground">
           {count}
         </span>
       </div>
@@ -614,7 +616,7 @@ function DriverCard({
           <div className="min-w-0 flex-1 basis-64">
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href={`/admin/volunteers/${driver.userId}`}
+                href={volunteerProfileHref(driver.userId, "/admin/van/drivers")}
                 className="text-[15px] font-semibold hover:underline"
               >
                 {driver.name}

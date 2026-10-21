@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import type { AdminBreadcrumb } from "@/lib/admin-navigation";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ interface AdminPageSkeletonProps {
   description?: string;
   /** Disabled copies of the real page's header actions. */
   actions?: ReactNode;
+  breadcrumbs?: AdminBreadcrumb[];
   className?: string;
   children: ReactNode;
 }
@@ -28,11 +30,17 @@ export function AdminPageSkeleton({
   title,
   description,
   actions,
+  breadcrumbs,
   className,
   children,
 }: AdminPageSkeletonProps) {
   return (
-    <AdminPageWrapper title={title} description={description} actions={actions}>
+    <AdminPageWrapper
+      title={title}
+      description={description}
+      actions={actions}
+      breadcrumbs={breadcrumbs}
+    >
       <div
         data-testid="admin-page-skeleton"
         aria-busy="true"
@@ -359,6 +367,20 @@ export function ListCardSkeleton({
           </div>
         ))}
       </div>
+    </SkeletonCard>
+  );
+}
+
+/** Placeholder for `KpiTile` (components/admin/kpi-tile.tsx). */
+export function KpiTileSkeleton({ hint = false }: { hint?: boolean }) {
+  return (
+    <SkeletonCard className="p-4">
+      <div className="flex items-start justify-between gap-2">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="size-8 rounded-lg" />
+      </div>
+      <Skeleton className="mt-2 h-[30px] w-14" />
+      {hint && <Skeleton className="mt-2 h-3 w-36" />}
     </SkeletonCard>
   );
 }

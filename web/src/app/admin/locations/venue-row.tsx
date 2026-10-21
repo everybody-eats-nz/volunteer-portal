@@ -99,7 +99,7 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
           </p>
 
           <div className="mt-2.5 flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Alerts
             </span>
             {venue.managers.length > 0 ? (
@@ -109,7 +109,7 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
                     <TooltipTrigger asChild>
                       <span
                         className={cn(
-                          "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold ring-2 ring-card",
+                          "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ring-2 ring-card",
                           manager.muted
                             ? "bg-muted text-muted-foreground"
                             : "bg-primary-light text-primary-text"
@@ -129,7 +129,7 @@ export function VenueRow({ venue, index, onEdit, onDisable }: VenueRowProps) {
                   </Tooltip>
                 ))}
                 {venue.managers.length > MAX_MANAGER_AVATARS && (
-                  <span className="flex h-6 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground ring-2 ring-card">
+                  <span className="flex h-6 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-semibold text-muted-foreground ring-2 ring-card">
                     +{venue.managers.length - MAX_MANAGER_AVATARS}
                   </span>
                 )}
@@ -252,7 +252,7 @@ function Figure({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
       <dd className="mt-1">
@@ -295,7 +295,7 @@ export function DisabledVenueRow({
             {venue.name}
           </span>
           {venue.isPopup && (
-            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+            <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
               Pop-up
             </span>
           )}

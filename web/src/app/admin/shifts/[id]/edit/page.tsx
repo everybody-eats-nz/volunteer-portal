@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 import { format } from "date-fns";
@@ -23,13 +24,16 @@ import {
   EditIcon,
   AlertTriangleIcon,
   Trash2Icon,
-  ChevronLeft,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { PageContainer } from "@/components/page-container";
 import { createNZDate, formatInNZT } from "@/lib/timezone";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
+
+export const metadata: Metadata = {
+  title: "Edit shift",
+};
 
 type ShiftType = {
   id: string;
@@ -286,12 +290,6 @@ export default async function EditShiftPage({
           Delete Shift
         </Button>
       </DeleteShiftDialog>
-      <Button asChild variant="outline" size="sm">
-        <Link href={backToShiftsHref}>
-          <ChevronLeft className="h-4 w-4" />
-          Back to shifts
-        </Link>
-      </Button>
     </>
   );
 
@@ -300,6 +298,7 @@ export default async function EditShiftPage({
       title="Edit shift"
       description={description}
       actions={headerActions}
+      breadcrumbs={[{ label: "Manage Shifts", href: backToShiftsHref }]}
     >
       <PageContainer testid="edit-shift-page">
         {errorMessage && (

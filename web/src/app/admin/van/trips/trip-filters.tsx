@@ -37,7 +37,7 @@ export const EMPTY_FILTERS: TripFilters = {
 };
 
 const FIELD =
-  "h-9 rounded-lg border border-input bg-background px-2.5 text-[13px] outline-none transition-colors hover:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "h-9 rounded-lg border border-input bg-background px-2.5 text-[13px] outline-none transition-colors hover:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring/70";
 
 export function TripFilterBar({
   filters,
@@ -146,7 +146,7 @@ export function TripFilterBar({
               key={chip.key}
               type="button"
               onClick={chip.clear}
-              className="group inline-flex max-w-[14rem] items-center gap-1 rounded-full bg-primary/10 py-1 pl-2.5 pr-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-primary/20 dark:text-forest-100"
+              className="group inline-flex max-w-[14rem] items-center gap-1 rounded-full bg-primary/10 py-1 pl-2.5 pr-1.5 text-[13px] font-medium text-primary-text transition-colors hover:bg-primary/20 dark:text-forest-100"
             >
               <span className="truncate">{chip.label}</span>
               <X className="size-3.5 shrink-0 opacity-60 group-hover:opacity-100" aria-hidden />

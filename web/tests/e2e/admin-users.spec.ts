@@ -137,10 +137,10 @@ test.describe("Admin Users Management", () => {
       const adminsText = await adminsCount.textContent();
       const newUsersText = await newUsersCount.textContent();
 
-      expect(totalText).toMatch(/^\d+$/);
-      expect(volunteersText).toMatch(/^\d+$/);
-      expect(adminsText).toMatch(/^\d+$/);
-      expect(newUsersText).toMatch(/^\d+$/);
+      expect(totalText).toMatch(/^[\d,]+$/);
+      expect(volunteersText).toMatch(/^[\d,]+$/);
+      expect(adminsText).toMatch(/^[\d,]+$/);
+      expect(newUsersText).toMatch(/^[\d,]+$/);
     });
 
     test("should display users table with proper structure", async ({
@@ -230,7 +230,7 @@ test.describe("Admin Users Management", () => {
       await expect(noUsersMessage).toBeVisible();
       await expect(noUsersMessage).toContainText("No users found");
       await expect(noUsersMessage).toContainText(
-        "Try adjusting your search or filter criteria"
+        "Try a different search or clear a filter"
       );
 
       // Invite first user button should not be visible when searching
@@ -405,7 +405,7 @@ test.describe("Admin Users Management", () => {
             await userNameCell.click();
 
             // Should navigate to user details page
-            await page.waitForURL(`**/admin/volunteers/${userId}`, {
+            await page.waitForURL(new RegExp(`/admin/volunteers/${userId}\\?from=`), {
               timeout: 10000,
             });
 

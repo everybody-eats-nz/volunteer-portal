@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
-import { slideUpVariants } from "@/lib/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -69,15 +67,11 @@ const actions = [
 
 export function AdminDashboardQuickActions() {
   return (
-    <motion.div
-      variants={slideUpVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <div>
       <Card>
         <CardHeader>
           <CardTitle data-testid="quick-actions-heading">
-            Quick Actions
+            Quick actions
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -108,6 +102,6 @@ export function AdminDashboardQuickActions() {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }

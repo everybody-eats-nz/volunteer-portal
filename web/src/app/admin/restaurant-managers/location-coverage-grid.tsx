@@ -151,7 +151,7 @@ function RecipientRow({
     <li className="flex items-center gap-2.5">
       <span
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
           active
             ? "bg-primary-light text-primary-text"
             : "bg-muted text-muted-foreground"
@@ -165,7 +165,7 @@ function RecipientRow({
       {active ? (
         <Bell className="h-3.5 w-3.5 shrink-0 text-primary-text" />
       ) : (
-        <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
           <BellOff className="h-3.5 w-3.5" />
           muted
         </span>

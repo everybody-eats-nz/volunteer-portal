@@ -1,14 +1,20 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { Prisma } from "@/generated/client";
-import { Upload } from "lucide-react";
+import { Eye, FilePen, Library, Upload } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { AdminResourcesTable } from "@/components/admin-resources-table";
+import { KpiTile } from "@/components/admin/kpi-tile";
 import { CreateResourceDialog } from "@/components/create-resource-dialog";
+
+export const metadata: Metadata = {
+  title: "Resource Hub",
+};
 
 interface AdminResourcesPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -94,40 +100,45 @@ export default async function AdminResourcesPage({
       description="Upload and manage resources for volunteers including training materials, policies, forms, and guides."
       actions={
         <CreateResourceDialog>
-          <Upload className="mr-2 h-4 w-4" />
+          <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
           Upload Resource
         </CreateResourceDialog>
       }
     >
       <div className="space-y-6">
         {/* Stats Overview */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground">
-              Total Resources
-            </div>
-            <div className="mt-2 text-3xl font-bold">{stats.total}</div>
-          </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground">
-              Published
-            </div>
-            <div className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
-              {stats.published}
-            </div>
-          </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground">
-              Drafts
-            </div>
-            <div className="mt-2 text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-              {stats.draft}
-            </div>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <KpiTile
+            icon={<Library />}
+            label="Total resources"
+            value={stats.total}
+            tone="forest"
+            data-testid="resources-total-card"
+            valueTestId="resources-total-count"
+          />
+          <KpiTile
+            icon={<Eye />}
+            label="Published"
+            value={stats.published}
+            tone="sun"
+            data-testid="resources-published-card"
+            valueTestId="resources-published-count"
+          />
+          <KpiTile
+            icon={<FilePen />}
+            label="Drafts"
+            value={stats.draft}
+            tone="neutral"
+            data-testid="resources-drafts-card"
+            valueTestId="resources-drafts-count"
+          />
         </div>
 
         {/* Resources Table */}
-        <AdminResourcesTable resources={resources} />
+        <AdminResourcesTable
+          resources={resources}
+          isFiltered={Boolean(categoryFilter || typeFilter || publishedFilter)}
+        />
       </div>
     </AdminPageWrapper>
   );

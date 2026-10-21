@@ -2,6 +2,7 @@ import { UserPlus } from "lucide-react";
 
 import {
   AdminPageSkeleton,
+  KpiTileSkeleton,
   TableSkeleton,
 } from "@/components/admin/admin-skeletons";
 import { Button } from "@/components/ui/button";
@@ -22,15 +23,7 @@ export default function AdminUsersLoading() {
       {/* Quick stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-hidden="true">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border p-3 shadow-sm">
-            <div className="flex items-center gap-2">
-              <Skeleton className="size-5 rounded" />
-              <div className="space-y-1.5 py-0.5">
-                <Skeleton className="h-6 w-10" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-            </div>
-          </div>
+          <KpiTileSkeleton key={i} />
         ))}
       </div>
 

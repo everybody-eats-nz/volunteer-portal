@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
@@ -19,6 +20,11 @@ import { PageContainer } from "@/components/page-container";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusPill } from "@/components/van/van-chrome";
 import { cn } from "@/lib/utils";
+import { SectionHeading } from "@/components/admin/section-heading";
+
+export const metadata: Metadata = {
+  title: "Van Exceptions",
+};
 
 /**
  * The exceptions view.
@@ -72,7 +78,7 @@ export default async function VanExceptionsPage() {
         {exceptions.length === 0 ? (
           <Card className="py-14">
             <CardContent className="flex flex-col items-center gap-3 text-center">
-              <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary dark:text-forest-200">
+              <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary-text">
                 <Check className="size-6" aria-hidden />
               </span>
               <p className="text-lg font-semibold">Everything reconciles</p>
@@ -97,10 +103,10 @@ export default async function VanExceptionsPage() {
               {groups.map((group) => (
                 <section key={group.kind} data-testid={`van-exception-group-${group.kind}`}>
                   <div className="flex items-baseline gap-2.5">
-                    <h2 className="text-[15px] font-semibold">
+                    <SectionHeading>
                       {EXCEPTION_LABELS[group.kind]}
-                    </h2>
-                    <span className="text-[13px] tabular-nums text-muted-foreground">
+                    </SectionHeading>
+                    <span className="text-sm tabular-nums text-muted-foreground">
                       {group.items.length}
                     </span>
                   </div>
@@ -154,7 +160,7 @@ export default async function VanExceptionsPage() {
                               </div>
                               <Link
                                 href={`/drive/trip/${item.tripId}`}
-                                className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-primary hover:bg-primary/10 dark:text-forest-200"
+                                className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-primary-text hover:bg-primary/10 dark:text-forest-200"
                               >
                                 Trip
                                 <ChevronRight className="size-3.5" aria-hidden />

@@ -28,7 +28,7 @@ export function AdminContactInfoSection({
     <Card data-testid="contact-information-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Phone className="h-5 w-5 text-primary dark:text-primary" />
+          <Phone className="h-5 w-5 text-primary-text" />
           Contact Information
         </CardTitle>
       </CardHeader>

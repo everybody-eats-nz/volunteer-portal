@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -6,6 +7,10 @@ import { prisma } from "@/lib/prisma";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { VanPurposesContent } from "./purposes-content";
+
+export const metadata: Metadata = {
+  title: "Trip Purposes",
+};
 
 /**
  * Purposes are data, not a list hardcoded in a component. Adding one here

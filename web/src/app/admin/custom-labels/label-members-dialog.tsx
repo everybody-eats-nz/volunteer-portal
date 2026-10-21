@@ -35,9 +35,11 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/admin/empty-state";
 import { useToast } from "@/hooks/use-toast";
 import { getLabelTheme } from "./label-colors";
 import type { LabelWithMeta } from "./custom-labels-content";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 export interface LabelMember {
   id: string;
@@ -191,9 +193,9 @@ function LabelMembersPanel({
           type="button"
           onClick={onClose}
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-          aria-label="Close"
+          aria-label={`Close ${label.name} members`}
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden="true" />
         </button>
         <DialogHeader className="space-y-2 text-left">
           <DialogTitle className="flex items-center gap-2 font-accent text-lg">
@@ -202,7 +204,7 @@ function LabelMembersPanel({
           <DialogDescription asChild>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-                <Users className="h-3.5 w-3.5" />
+                <Users className="h-3.5 w-3.5" aria-hidden="true" />
                 {members.length}{" "}
                 {members.length === 1 ? "volunteer" : "volunteers"}
               </span>
@@ -223,7 +225,7 @@ function LabelMembersPanel({
               href={`/admin/announcements?labels=${label.id}`}
               data-testid="members-announce-button"
             >
-              <Megaphone className="mr-2 h-4 w-4" />
+              <Megaphone className="mr-2 h-4 w-4" aria-hidden="true" />
               Announce to this group
             </Link>
           </Button>
@@ -234,11 +236,15 @@ function LabelMembersPanel({
       {status === "ready" && members.length > 0 && (
         <div className="border-b border-border/60 px-6 py-3">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name or email…"
+              aria-label="Search members by name or email"
               className="pl-9"
               data-testid="members-search-input"
             />
@@ -252,7 +258,7 @@ function LabelMembersPanel({
 
         {status === "error" && (
           <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-            <AlertCircle className="h-8 w-8 text-destructive" />
+            <AlertCircle className="h-8 w-8 text-destructive" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">
               We couldn&apos;t load this group right now.
             </p>
@@ -263,22 +269,15 @@ function LabelMembersPanel({
         )}
 
         {status === "ready" && members.length === 0 && (
-          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Users className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <p className="font-medium">No volunteers yet</p>
-            <p className="max-w-xs text-sm text-muted-foreground">
-              Assign this label from a volunteer&apos;s profile to start
-              building the group.
-            </p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No volunteers yet"
+            description="Assign this label from a volunteer's profile to start building the group."
+          />
         )}
 
         {status === "ready" && members.length > 0 && filtered.length === 0 && (
-          <div className="px-6 py-10 text-center text-sm text-muted-foreground">
-            No volunteers match “{query}”.
-          </div>
+          <EmptyState icon={Search} title={`No volunteers match “${query}”`} />
         )}
 
         <AnimatePresence initial={false}>
@@ -299,7 +298,7 @@ function LabelMembersPanel({
                     src={member.profilePhotoUrl || undefined}
                     alt={displayName(member)}
                   />
-                  <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
+                  <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary-text">
                     {initials(member)}
                   </AvatarFallback>
                 </Avatar>
@@ -307,14 +306,14 @@ function LabelMembersPanel({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/admin/volunteers/${member.id}`}
+                      href={volunteerProfileHref(member.id, "/admin/custom-labels")}
                       className="truncate font-medium hover:underline"
                     >
                       {displayName(member)}
                     </Link>
                     <span
                       className={cn(
-                        "hidden shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 sm:inline-block",
+                        "hidden shrink-0 rounded-full px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ring-1 sm:inline-block",
                         GRADE_STYLES[member.volunteerGrade]
                       )}
                     >
@@ -334,10 +333,10 @@ function LabelMembersPanel({
                     className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
                   >
                     <Link
-                      href={`/admin/volunteers/${member.id}`}
+                      href={volunteerProfileHref(member.id, "/admin/custom-labels")}
                       aria-label={`Open ${displayName(member)}'s profile`}
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   </Button>
                   <Button
@@ -349,7 +348,7 @@ function LabelMembersPanel({
                     aria-label={`Remove label from ${displayName(member)}`}
                     data-testid={`remove-member-${member.id}`}
                   >
-                    <UserMinus className="h-4 w-4" />
+                    <UserMinus className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               </motion.div>
@@ -374,9 +373,9 @@ function LabelMembersPanel({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmRemove && handleRemove(confirmRemove)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
-              <UserMinus className="mr-2 h-4 w-4" />
+              <UserMinus className="mr-2 h-4 w-4" aria-hidden="true" />
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>

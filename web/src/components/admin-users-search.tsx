@@ -258,7 +258,7 @@ export function AdminUsersSearch({
             Archived
             {archivedCount > 0 && (
               <span
-                className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                className={`ml-1 rounded-full px-1.5 py-0.5 text-xs font-semibold ${
                   archivedFilter === "archived"
                     ? "bg-white/20 text-white"
                     : "bg-muted text-muted-foreground"

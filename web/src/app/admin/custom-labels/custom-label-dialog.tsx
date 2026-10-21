@@ -126,8 +126,12 @@ function CustomLabelForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Colour</Label>
-          <div className="grid grid-cols-4 gap-2">
+          <Label id="label-colour-heading">Colour</Label>
+          <div
+            className="grid grid-cols-4 gap-2"
+            role="group"
+            aria-labelledby="label-colour-heading"
+          >
             {COLOR_OPTIONS.map((option) => {
               const theme = FAMILY_THEME[option.family];
               const selected = color === option.value;
@@ -151,9 +155,9 @@ function CustomLabelForm({
                       theme.dot
                     )}
                   >
-                    {selected && <Check className="h-4 w-4" />}
+                    {selected && <Check className="h-4 w-4" aria-hidden="true" />}
                   </span>
-                  <span className="text-[11px] font-medium text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {option.name}
                   </span>
                 </button>
@@ -163,12 +167,17 @@ function CustomLabelForm({
         </div>
 
         <div className="space-y-2">
-          <Label>Icon</Label>
-          <div className="flex flex-wrap gap-1.5">
+          <Label id="label-icon-heading">Icon</Label>
+          <div
+            className="flex flex-wrap gap-1.5"
+            role="group"
+            aria-labelledby="label-icon-heading"
+          >
             <button
               type="button"
               onClick={() => setIcon("")}
               aria-label="No icon"
+              aria-pressed={icon === ""}
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg border text-muted-foreground transition-colors",
                 icon === ""
@@ -177,13 +186,15 @@ function CustomLabelForm({
               )}
               data-testid="icon-option-none"
             >
-              <Ban className="h-4 w-4" />
+              <Ban className="h-4 w-4" aria-hidden="true" />
             </button>
             {ICON_OPTIONS.map((emoji) => (
               <button
                 key={emoji}
                 type="button"
                 onClick={() => setIcon(emoji)}
+                aria-label={`Use ${emoji} as the icon`}
+                aria-pressed={icon === emoji}
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-all",
                   icon === emoji
@@ -200,6 +211,7 @@ function CustomLabelForm({
             value={icon}
             onChange={(e) => setIcon(firstGrapheme(e.target.value))}
             placeholder="…or paste your own emoji"
+            aria-label="Custom icon emoji"
             className="mt-1"
             data-testid="label-icon-input"
           />

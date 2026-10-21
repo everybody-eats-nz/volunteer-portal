@@ -320,7 +320,7 @@ function Thumb({
     return (
       <span
         className={cn(
-          "grid h-8 w-11 place-items-center rounded text-[10px] font-semibold",
+          "grid h-8 w-11 place-items-center rounded text-xs font-semibold",
           open
             ? "bg-muted text-muted-foreground"
             : "bg-red-100 text-red-700 dark:bg-red-400/15 dark:text-red-300"

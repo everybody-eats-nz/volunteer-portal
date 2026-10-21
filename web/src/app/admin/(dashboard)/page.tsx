@@ -10,7 +10,7 @@ import { AdminDashboardContentSkeleton } from "./loading";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard",
+  title: "Dashboard",
   robots: {
     index: false,
     follow: false,

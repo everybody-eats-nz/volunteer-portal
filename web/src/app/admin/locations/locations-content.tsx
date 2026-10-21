@@ -21,6 +21,7 @@ import { VenueRow, DisabledVenueRow } from "./venue-row";
 import { VenueFormDialog, type VenueFormValues } from "./venue-form-dialog";
 import { DisableVenueDialog } from "./disable-venue-dialog";
 import { mergeApiLocation, type Venue } from "./types";
+import { SectionHeading } from "@/components/admin/section-heading";
 
 interface LocationsContentProps {
   initialVenues: Venue[];
@@ -194,9 +195,9 @@ export function LocationsContent({ initialVenues }: LocationsContentProps) {
         <section className="space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
             <div data-testid="active-locations-section">
-              <h2 className="font-accent text-lg font-semibold">
+              <SectionHeading>
                 Active locations ({activeVenues.length})
-              </h2>
+              </SectionHeading>
               <p className="text-sm text-muted-foreground">
                 Offered when scheduling shifts. Volunteers see a venue once it
                 has upcoming shifts.

@@ -200,12 +200,19 @@ export function RegularVolunteerForm({
                   shifts
                 </CardDescription>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={isOpen ? "Hide the add regular volunteer form" : undefined}
+              >
                 {isOpen ? (
-                  <ChevronDownIcon className="h-5 w-5 rotate-180 transition-transform" />
+                  <ChevronDownIcon
+                    className="h-5 w-5 rotate-180 transition-transform"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <>
-                    <PlusIcon className="h-5 w-5 mr-2" />
+                    <PlusIcon className="h-5 w-5 mr-2" aria-hidden="true" />
                     Add Regular
                   </>
                 )}
