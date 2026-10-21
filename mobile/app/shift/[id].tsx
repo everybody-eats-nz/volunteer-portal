@@ -9,10 +9,13 @@ import {
   View,
   Text,
   ActivityIndicator,
-  ActivityIndicator as RNActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import {
   useLocalSearchParams,
@@ -40,7 +43,7 @@ import {
 } from "@/lib/signup-status";
 import { openExternalLink } from "@/lib/external-links";
 import {
-  waitlistChipLabel,
+  waitlistCountLabel,
   yourWaitlistStandingSentence,
 } from "@/lib/waitlist";
 import { useHomeShifts } from "@/hooks/use-shifts";
@@ -58,11 +61,19 @@ import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
 import { DayLeadsRow } from "@/components/day-leads-row";
 import { WaitlistOfferCard } from "@/components/waitlist-offer-card";
 import { GlassButton } from "@/components/glass-button";
-import { Eyebrow } from "@/components/ui/eyebrow";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
 import { getShiftDescription } from "@/lib/shift-description";
 import { posthog } from "@/lib/posthog";
 import { goBackOrHome } from "@/lib/navigation";
+
+type ThemeColors = (typeof Colors)["light"];
+
+/** Height of the cover photo. The content sheet overlaps its bottom edge. */
+const COVER_HEIGHT = 300;
+const SHEET_OVERLAP = 28;
+/** Above this many spots one segment per spot gets too thin to read. */
+const MAX_SEAT_SEGMENTS = 24;
 
 /* ── Duration Helper ── */
 
@@ -73,16 +84,26 @@ function getDuration(start: string, end: string): string {
   return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
 }
 
+/** "5:30–8:30pm", or "11:30am–2pm" when the range crosses midday. */
+function formatTimeRange(start: Date, end: Date): string {
+  const time = (d: Date) =>
+    formatNZT(d, formatNZT(d, "mm") === "00" ? "h" : "h:mm");
+  const startPeriod = formatNZT(start, "a").toLowerCase();
+  const endPeriod = formatNZT(end, "a").toLowerCase();
+  return `${time(start)}${
+    startPeriod === endPeriod ? "" : startPeriod
+  }–${time(end)}${endPeriod}`;
+}
+
 /* ── Your signup status ──
-   One place for how each signup state reads and looks, so the hero, the status
-   strip and the cancel action never disagree about what the volunteer's spot
+   One place for how each signup state reads and looks, so the status panel
+   and the cancel action never disagree about what the volunteer's spot
    actually is. Tones match the shift list and home hero (forest = confirmed,
    amber = awaiting an admin, slate = waitlist). */
 
 const MY_STATUS: Record<
   SignupStatus,
   {
-    eyebrow: string;
     title: string;
     /** What happens next, in the volunteer's terms. */
     meta: string | null;
@@ -97,35 +118,32 @@ const MY_STATUS: Record<
   }
 > = {
   CONFIRMED: {
-    eyebrow: "You're in the whānau",
-    title: "You're signed up",
+    title: "You're going",
     meta: null,
     icon: "checkmark",
     badgeBg: Brand.accent,
     badgeBgDark: Brand.accent,
     iconColor: Brand.green,
     iconColorDark: Brand.green,
-    cancelLabel: "Cancel this signup",
+    cancelLabel: "Cancel my signup",
     cancelPrompt: "Cancel signup?",
     cancelBody: "Are you sure you want to cancel your signup for this shift?",
   },
   PENDING: {
-    eyebrow: "Request sent",
     title: "Waiting on approval",
-    meta: "We'll let you know as soon as your spot is confirmed.",
+    meta: "We'll let you know once it's confirmed.",
     icon: "time",
     badgeBg: "#fef3c7",
     badgeBgDark: "rgba(245, 158, 11, 0.18)",
     iconColor: "#92400e",
     iconColorDark: "#fbbf24",
-    cancelLabel: "Withdraw this request",
+    cancelLabel: "Withdraw my request",
     cancelPrompt: "Withdraw request?",
     cancelBody: "Are you sure you want to withdraw your request for this shift?",
   },
   WAITLISTED: {
-    eyebrow: "You're on the waitlist",
-    title: "Waitlisted for this shift",
-    meta: "We'll be in touch if a spot opens up.",
+    title: "You're on the waitlist",
+    meta: null,
     icon: "list",
     badgeBg: "#f1f5f9",
     badgeBgDark: "rgba(100, 116, 139, 0.25)",
@@ -179,6 +197,17 @@ export default function ShiftDetailScreen() {
   const [signupSheetVisible, setSignupSheetVisible] = useState(false);
   const [signupSheetWaitlist, setSignupSheetWaitlist] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  // Once the cover photo has scrolled away the header controls sit on paper,
+  // so they (and the status bar) switch from light-on-photo to page colours.
+  const [pastCover, setPastCover] = useState(false);
+  const coverScrollThreshold = COVER_HEIGHT - SHEET_OVERLAP - insets.top - 44;
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const next = e.nativeEvent.contentOffset.y > coverScrollThreshold;
+      setPastCover((prev) => (prev === next ? prev : next));
+    },
+    [coverScrollThreshold]
+  );
 
   useEffect(() => {
     if (!shift || isLoading) return;
@@ -369,12 +398,7 @@ export default function ShiftDetailScreen() {
         <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <View
-            style={[
-              s.notFoundIcon,
-              {
-                backgroundColor: isDark ? "rgba(255,255,255,0.05)" : colors.surfaceSoft,
-              },
-            ]}
+            style={[s.notFoundIcon, { backgroundColor: colors.surfaceSoft }]}
           >
             <Ionicons
               name="search-outline"
@@ -389,7 +413,7 @@ export default function ShiftDetailScreen() {
             type="caption"
             style={{ color: colors.textSecondary, marginTop: 4 }}
           >
-            This shift may have been removed
+            It may have been removed.
           </ThemedText>
           <Pressable
             onPress={() => goBackOrHome()}
@@ -408,12 +432,30 @@ export default function ShiftDetailScreen() {
   const date = new Date(shift.start);
   const endDate = new Date(shift.end);
   const spotsLeft = shift.capacity - shift.signedUp;
-  const isFull = spotsLeft <= 0;
-  const isUrgent = !isFull && spotsLeft <= 2;
   const theme = getShiftThemeByName(shift.shiftType.name);
   const duration = getDuration(shift.start, shift.end);
   const isPast = endDate.getTime() < Date.now();
   const isCompleted = isMyShift && shift.status === "CONFIRMED" && isPast;
+  const description = getShiftDescription(
+    shift.notes,
+    shift.shiftType.description
+  );
+  const hasOffer = Boolean(waitlistOfferExpiresAt) && !isPast;
+  const hasTeam =
+    Boolean(dayLeads && (dayLeads.chef || dayLeads.fohManager)) ||
+    visibleOnYourShift.length > 0 ||
+    friendsInSession.length > 0 ||
+    otherVolunteersCount > 0 ||
+    otherPendingCount > 0;
+  // A past shift you weren't on has nothing left to decide, so it gets no
+  // status panel; the bottom pill already says it has passed.
+  const showStatus = !hasOffer && (isMyShift || !isPast);
+
+  // On iOS 26 the header controls sit in liquid glass, which keeps the
+  // system's own label colour over any photo; elsewhere they need light
+  // glyphs until the photo has scrolled away.
+  const headerTint =
+    pastCover || isLiquidGlassAvailable() ? colors.text : Palette.cream50;
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -426,9 +468,9 @@ export default function ShiftDetailScreen() {
       await Share.share({
         message: `🍽️ Volunteer with Everybody Eats!\n\n${
           shift.shiftType.name
-        } — ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${
+        } - ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${
           spotsLeft > 0
-            ? `${spotsLeft} spots left — sign up and join the whānau!`
+            ? `${spotsLeft} spots left - sign up and join the whānau!`
             : "This shift is full, but check back for cancellations."
         }\n\nhttps://volunteers.everybodyeats.nz/shifts/${shift.id}`,
       });
@@ -446,385 +488,204 @@ export default function ShiftDetailScreen() {
   const floatingCtaReserve = 96 + Math.max(insets.bottom, 12);
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: isDark ? colors.background : Brand.warmWhite,
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen
         options={{
           title: "",
           headerShown: true,
           headerTransparent: true,
-          headerTintColor: Palette.cream50,
+          headerTintColor: headerTint,
           headerRight: () => (
-            <Ionicons
-              name="share-outline"
-              size={22}
-              color={Palette.cream50}
+            <Pressable
               onPress={handleShare}
-            />
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Share this shift"
+            >
+              <Ionicons name="share-outline" size={22} color={headerTint} />
+            </Pressable>
           ),
         }}
       />
+      <StatusBar style={pastCover ? "auto" : "light"} />
       <ScrollView
-        style={[
-          s.container,
-          { backgroundColor: isDark ? colors.background : Brand.warmWhite },
-        ]}
+        style={s.container}
         contentContainerStyle={[
           s.content,
           showFloatingCta && { paddingBottom: floatingCtaReserve + 16 },
         ]}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {/* ═══ HERO ═══ */}
-        <View style={s.hero}>
-          {theme.heroImage && (
-            <Image
-              source={
-                typeof theme.heroImage === "string"
-                  ? { uri: theme.heroImage }
-                  : theme.heroImage
-              }
-              style={s.heroImage}
-              contentFit="cover"
-            />
-          )}
-
-          {/* Layered gradient — faint top, atmospheric middle, solid-green pour at base */}
-          <LinearGradient
-            colors={[
-              "rgba(14,42,28,0.25)",
-              "rgba(14,42,28,0.55)",
-              "rgba(14,42,28,0.9)",
-              Palette.forest700,
-            ]}
-            locations={[0, 0.45, 0.82, 1]}
-            style={s.heroGradient}
+        {/* ═══ Cover ═══ */}
+        <View style={s.cover}>
+          <Image
+            source={
+              typeof theme.heroImage === "string"
+                ? { uri: theme.heroImage }
+                : theme.heroImage
+            }
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            accessibilityIgnoresInvertColors
           />
+          {/* Keeps the status bar and header controls legible on bright photos */}
+          <LinearGradient
+            colors={["rgba(14,42,28,0.55)", "rgba(14,42,28,0)"]}
+            style={s.coverScrim}
+          />
+        </View>
 
-          {/* Warm sun glow on the dark forest hero */}
-          <View pointerEvents="none" style={s.heroGlow} />
-
-          <View style={s.heroBody}>
-            {/* Eyebrow kicker */}
-            <Eyebrow color={Palette.sun200}>
-              {isCompleted
-                ? "Completed · Ngā mihi"
-                : statusUi
-                ? statusUi.eyebrow
-                : "Ngā mahi · A shift"}
-            </Eyebrow>
-
-            {/* Display title — light editorial Fraunces */}
+        <View style={[s.sheet, { backgroundColor: colors.background }]}>
+          {/* ═══ What and when ═══ */}
+          <View style={s.intro}>
             <Text
-              style={s.heroTitle}
-              numberOfLines={3}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
+              style={[s.title, { color: colors.text }]}
+              accessibilityRole="header"
             >
               {shift.shiftType.name}
             </Text>
-
-            {/* Description pulled tight under title */}
-            {getShiftDescription(shift.notes, shift.shiftType.description) ? (
-              <Text style={s.heroDescription} numberOfLines={2}>
-                {getShiftDescription(shift.notes, shift.shiftType.description)}
-              </Text>
-            ) : null}
-
-            {/* Editorial 3-column meta row */}
-            <View style={s.heroMetaRow}>
-              <View style={s.heroMetaCol}>
-                <Text style={s.heroMetaLabel}>
-                  {formatNZT(date, "EEEE").toUpperCase()}
+            <View style={s.facts}>
+              <FactRow icon="calendar-clear-outline" colors={colors}>
+                <Text style={[s.factText, { color: colors.text }]}>
+                  {formatNZT(date, "EEEE d MMMM")}
                 </Text>
-                <Text style={s.heroMetaValue}>{formatNZT(date, "d MMM")}</Text>
-              </View>
-              <View style={s.heroMetaRule} />
-              <View style={s.heroMetaCol}>
-                <Text style={s.heroMetaLabel}>KICK-OFF</Text>
-                <Text style={s.heroMetaValue}>
-                  {formatNZT(date, "h:mm").toLowerCase()}
-                  <Text style={s.heroMetaValueSmall}>
-                    {formatNZT(date, "a").toLowerCase()}
+              </FactRow>
+              <FactRow icon="time-outline" colors={colors}>
+                <Text style={[s.factText, { color: colors.text }]}>
+                  {formatTimeRange(date, endDate)}
+                  <Text style={{ color: colors.textSecondary }}>
+                    {"  "}
+                    {duration}
                   </Text>
                 </Text>
-              </View>
-              <View style={s.heroMetaRule} />
+              </FactRow>
               <Pressable
                 onPress={() =>
                   Linking.openURL(getLocationMapsUrl(shift.location))
                 }
-                hitSlop={6}
-                style={({ pressed }) => [
-                  s.heroMetaCol,
-                  { opacity: pressed ? 0.6 : 1 },
-                ]}
-                accessibilityLabel={`Open ${shift.location} in Maps`}
+                hitSlop={{ top: 10, bottom: 10 }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
                 accessibilityRole="link"
+                accessibilityLabel={`${shift.location}, open in Maps`}
               >
-                <Text style={s.heroMetaLabel}>WHERE</Text>
-                <Text
-                  style={[s.heroMetaValue, s.heroMetaLink]}
-                  numberOfLines={1}
-                >
-                  {shift.location}
-                </Text>
+                <FactRow icon="location-outline" colors={colors}>
+                  <Text
+                    style={[s.factText, s.factLink, { color: colors.tint }]}
+                    numberOfLines={1}
+                  >
+                    {shift.location}
+                  </Text>
+                  <Ionicons
+                    name="open-outline"
+                    size={14}
+                    color={colors.tint}
+                  />
+                </FactRow>
               </Pressable>
             </View>
           </View>
-        </View>
 
-        {/* ═══ Status strip — hanging card bridging hero & content ═══ */}
-        <View style={s.statusStripWrap}>
-          <View
-            style={[
-              s.statusStrip,
-              { backgroundColor: colors.card },
-            ]}
-          >
-            {isCompleted ? (
-              <View style={s.statusConfirmed}>
-                <View
-                  style={[
-                    s.statusConfirmedBadge,
-                    { backgroundColor: Brand.green },
-                  ]}
-                >
-                  <Ionicons
-                    name="checkmark-done"
-                    size={14}
-                    color={Brand.accent}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[s.statusConfirmedTitle, { color: colors.text }]}
-                  >
-                    Shift completed
-                  </Text>
-                  <Text
-                    style={[
-                      s.statusConfirmedMeta,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {formatNZT(date, "EEE d MMM")} · {duration} contributed
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    s.statusPastChip,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(248,251,105,0.12)"
-                        : Palette.cream200,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      s.statusPastChipText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    PAST
-                  </Text>
-                </View>
-              </View>
-            ) : statusUi ? (
-              <View style={s.statusConfirmed}>
-                <View
-                  style={[
-                    s.statusConfirmedBadge,
-                    {
-                      backgroundColor: isDark
-                        ? statusUi.badgeBgDark
-                        : statusUi.badgeBg,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={statusUi.icon}
-                    size={14}
-                    color={isDark ? statusUi.iconColorDark : statusUi.iconColor}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={[s.statusConfirmedTitle, { color: colors.text }]}
-                  >
-                    {statusUi.title}
-                  </Text>
-                  <Text
-                    style={[
-                      s.statusConfirmedMeta,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {isPast
-                      ? "This shift has already passed."
-                      : myStatus === "WAITLISTED"
-                      ? `${yourWaitlistStandingSentence(
-                          waitlistCount
-                        )} If a place opens up we'll send it straight to you.`
-                      : statusUi.meta ??
-                        `${formatNZT(date, "EEE h:mma")} — ${formatNZT(
-                          endDate,
-                          "h:mma"
-                        ).toLowerCase()} · ${duration}`}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={s.statusBrowsing}>
-                <View style={s.statusBrowsingLeft}>
-                  <Text
-                    style={[s.statusCapacityNumber, { color: colors.text }]}
-                  >
-                    {shift.signedUp}
-                    <Text
-                      style={[
-                        s.statusCapacitySlash,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      /{shift.capacity}
-                    </Text>
-                  </Text>
-                  <Text
-                    style={[
-                      s.statusCapacityLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Volunteers
-                  </Text>
-                </View>
-                <View style={s.statusDivider} />
-                <View style={s.statusBrowsingMid}>
-                  <Text
-                    style={[
-                      s.statusSpotsNumber,
-                      {
-                        color: isFull
-                          ? colors.destructive
-                          : isUrgent
-                          ? "#c2410c"
-                          : colors.text,
-                      },
-                    ]}
-                  >
-                    {isFull ? "Full" : spotsLeft}
-                  </Text>
-                  <Text
-                    style={[
-                      s.statusCapacityLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {isFull
-                      ? waitlistCount > 0
-                        ? waitlistChipLabel(waitlistCount)
-                        : "Join waitlist"
-                      : isUrgent
-                      ? "Spots left"
-                      : "Open spots"}
-                  </Text>
-                </View>
-                <View style={s.statusDivider} />
-                <View style={s.statusBrowsingMid}>
-                  <Text style={[s.statusSpotsNumber, { color: colors.text }]}>
-                    {duration}
-                  </Text>
-                  <Text
-                    style={[
-                      s.statusCapacityLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Duration
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* ═══ Waitlist offer - first thing under the status strip, because
-            it is the only thing here with a deadline on it ═══ */}
-        {waitlistOfferExpiresAt && !isPast && (
-          <View style={s.offerWrap}>
+          {/* ═══ Can I go / where I stand ═══
+              A waitlist offer replaces the panel: it is the volunteer's status,
+              and the only thing on this screen with a deadline. */}
+          {hasOffer && (
             <WaitlistOfferCard
               shiftId={shift.id}
               deadlineLabel={waitlistOfferExpiresLabel}
               onAnswered={refresh}
             />
-          </View>
-        )}
+          )}
+          {showStatus && (
+            <View style={[s.panel, { backgroundColor: colors.card }]}>
+              {isCompleted ? (
+                <MyStatusRow
+                  icon="checkmark-done"
+                  badgeBg={Brand.green}
+                  iconColor={Brand.accent}
+                  title="Ngā mihi!"
+                  meta={`You gave ${duration} to this shift.`}
+                  colors={colors}
+                />
+              ) : statusUi ? (
+                <MyStatusRow
+                  icon={statusUi.icon}
+                  badgeBg={isDark ? statusUi.badgeBgDark : statusUi.badgeBg}
+                  iconColor={isDark ? statusUi.iconColorDark : statusUi.iconColor}
+                  title={statusUi.title}
+                  meta={
+                    isPast
+                      ? "This shift has passed."
+                      : myStatus === "WAITLISTED"
+                      ? yourWaitlistStandingSentence(waitlistCount)
+                      : statusUi.meta
+                  }
+                  colors={colors}
+                />
+              ) : (
+                <SpotsMeter
+                  capacity={shift.capacity}
+                  signedUp={shift.signedUp}
+                  waitlistCount={waitlistCount}
+                  colors={colors}
+                  isDark={isDark}
+                />
+              )}
+            </View>
+          )}
 
-        {/* ═══ Who's running the day ═══ */}
-        {dayLeads && (dayLeads.chef || dayLeads.fohManager) && (
-          <View style={s.section}>
-            <SectionHeader
-              label="Running the day"
-              title="Your team leads"
+          {/* ═══ What it involves ═══ */}
+          {description ? (
+            <Text style={[s.description, { color: colors.text }]}>
+              {description}
+            </Text>
+          ) : null}
+
+          {/* ═══ Who's on ═══ */}
+          {hasTeam && (
+            <TeamSection
+              dayLeads={dayLeads}
+              onYourShift={onShiftConfirmed}
+              pendingOnYourShift={onShiftPending}
+              sameSession={friendsInSession}
+              otherCount={otherVolunteersCount}
+              otherPendingCount={otherPendingCount}
               colors={colors}
-            />
-            <DayLeadsRow
-              leads={dayLeads}
-              variant="card"
               isDark={isDark}
-              testID="shift-day-leads"
             />
-          </View>
-        )}
+          )}
 
-        {/* ═══ Marketing event at this restaurant on the shift's day ═══ */}
-        {events.length > 0 && (
-          <EventsSection events={events} colors={colors} isDark={isDark} />
-        )}
+          {/* ═══ Marketing events at this restaurant on the shift's day ═══ */}
+          {events.length > 0 && (
+            <EventsSection events={events} colors={colors} />
+          )}
 
-        {/* ═══ Volunteers on this shift ═══ */}
-        {(visibleOnYourShift.length > 0 ||
-          friendsInSession.length > 0 ||
-          otherVolunteersCount > 0 ||
-          otherPendingCount > 0) && (
-          <VolunteersSection
-            onYourShift={onShiftConfirmed}
-            pendingOnYourShift={onShiftPending}
-            sameSession={friendsInSession}
-            otherCount={otherVolunteersCount}
-            otherPendingCount={otherPendingCount}
-            colors={colors}
-            isDark={isDark}
-          />
-        )}
-
-        {/* ═══ Cancel signup ═══ */}
-        {isMyShift && !isCompleted && (
-          <Pressable
-            onPress={handleCancel}
-            disabled={cancelLoading}
-            style={({ pressed }) => [
-              s.cancelButton,
-              { opacity: pressed ? 0.6 : 1 },
-            ]}
-            accessibilityLabel={statusUi?.cancelLabel ?? "Cancel this signup"}
-          >
-            {cancelLoading ? (
-              <RNActivityIndicator size="small" color={colors.destructive} />
-            ) : (
-              <Text style={[s.cancelText, { color: colors.destructive }]}>
-                {statusUi?.cancelLabel ?? "Cancel this signup"}
-              </Text>
-            )}
-          </Pressable>
-        )}
+          {/* ═══ Cancel signup ═══ */}
+          {isMyShift && !isCompleted && !isPast && (
+            <Pressable
+              onPress={handleCancel}
+              disabled={cancelLoading}
+              style={({ pressed }) => [
+                s.cancelButton,
+                { opacity: pressed ? 0.6 : 1 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={statusUi?.cancelLabel ?? "Cancel my signup"}
+            >
+              {cancelLoading ? (
+                <ActivityIndicator size="small" color={colors.destructive} />
+              ) : (
+                <Text style={[s.cancelText, { color: colors.destructive }]}>
+                  {statusUi?.cancelLabel ?? "Cancel my signup"}
+                </Text>
+              )}
+            </Pressable>
+          )}
+        </View>
       </ScrollView>
+
+      {pastCover && <StatusBarScrim />}
 
       {/* ═══ Floating CTA — liquid glass action pinned to bottom ═══ */}
       {showFloatingCta && (
@@ -843,7 +704,7 @@ export default function ShiftDetailScreen() {
           {isPast ? (
             <BlockedPill
               icon="time-outline"
-              label="This shift was in the past"
+              label="This shift has passed"
               tone="neutral"
               colors={colors}
               isDark={isDark}
@@ -920,10 +781,148 @@ export default function ShiftDetailScreen() {
 }
 
 /* ═════════════════════════════════════════════════════════
-   VOLUNTEERS SECTION — who's joining this shift
+   FACT ROW — one line of the what/when block, led by an icon
    ═════════════════════════════════════════════════════════ */
 
-function VolunteersSection({
+function FactRow({
+  icon,
+  colors,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  colors: ThemeColors;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={s.factRow}>
+      <Ionicons name={icon} size={18} color={colors.icon} />
+      {children}
+    </View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   SPOTS METER — one segment per spot, with the open spots lit up. The
+   restaurant needs volunteers most when a shift is empty, so the meter is
+   loudest then and quietens as it fills; a nearly full shift is never shown
+   as urgent.
+   ═════════════════════════════════════════════════════════ */
+
+function SpotsMeter({
+  capacity,
+  signedUp,
+  waitlistCount,
+  colors,
+  isDark,
+}: {
+  capacity: number;
+  signedUp: number;
+  waitlistCount: number;
+  colors: ThemeColors;
+  isDark: boolean;
+}) {
+  const open = Math.max(capacity - signedUp, 0);
+  const isFull = open === 0;
+  const filled = Math.min(signedUp, capacity);
+  const takenColor = isDark
+    ? "rgba(253,248,239,0.12)"
+    : "rgba(29,83,55,0.12)";
+
+  const headline = isFull
+    ? "Full"
+    : `${open} ${open === 1 ? "spot" : "spots"} open`;
+  const detail = isFull
+    ? waitlistCount > 0
+      ? waitlistCountLabel(waitlistCount)
+      : "Waitlist open"
+    : `${filled} of ${capacity} filled`;
+
+  return (
+    <View
+      style={s.meter}
+      accessible
+      accessibilityLabel={`${headline}, ${detail}`}
+    >
+      <View style={s.meterHead}>
+        <Text
+          style={[
+            s.meterHeadline,
+            { color: isFull ? colors.text : colors.tint },
+          ]}
+        >
+          {headline}
+        </Text>
+        <Text style={[s.meterDetail, { color: colors.textSecondary }]}>
+          {detail}
+        </Text>
+      </View>
+      {capacity > 0 && capacity <= MAX_SEAT_SEGMENTS ? (
+        <View style={s.seats}>
+          {Array.from({ length: capacity }, (_, i) => (
+            <View
+              key={i}
+              style={[
+                s.seat,
+                { backgroundColor: i < open ? colors.tint : takenColor },
+              ]}
+            />
+          ))}
+        </View>
+      ) : capacity > 0 ? (
+        <View style={[s.bar, { backgroundColor: takenColor }]}>
+          <View
+            style={[
+              s.barFill,
+              {
+                backgroundColor: colors.tint,
+                width: `${(open / capacity) * 100}%`,
+              },
+            ]}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function MyStatusRow({
+  icon,
+  badgeBg,
+  iconColor,
+  title,
+  meta,
+  colors,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  badgeBg: string;
+  iconColor: string;
+  title: string;
+  meta: string | null;
+  colors: ThemeColors;
+}) {
+  return (
+    <View style={s.myStatus}>
+      <View style={[s.myStatusBadge, { backgroundColor: badgeBg }]}>
+        <Ionicons name={icon} size={18} color={iconColor} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[s.myStatusTitle, { color: colors.text }]}>{title}</Text>
+        {meta ? (
+          <Text style={[s.myStatusMeta, { color: colors.textSecondary }]}>
+            {meta}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   TEAM — who's running the day and who's on this shift
+   ═════════════════════════════════════════════════════════ */
+
+function TeamSection({
+  dayLeads,
   onYourShift,
   pendingOnYourShift,
   sameSession,
@@ -932,6 +931,7 @@ function VolunteersSection({
   colors,
   isDark,
 }: {
+  dayLeads: React.ComponentProps<typeof DayLeadsRow>["leads"];
   /** Confirmed volunteers on this shift, visible to the current user. */
   onYourShift: PeriodFriend[];
   /** Visible volunteers on this shift still waiting on an admin. */
@@ -939,370 +939,273 @@ function VolunteersSection({
   sameSession: PeriodFriend[];
   otherCount: number;
   otherPendingCount: number;
-  colors: (typeof Colors)["light"];
+  colors: ThemeColors;
   isDark: boolean;
 }) {
-  const totalOnShift = onYourShift.length + otherCount;
+  const totalGoing = onYourShift.length + otherCount;
   const totalPending = pendingOnYourShift.length + otherPendingCount;
-  const title =
-    totalOnShift > 0
-      ? `${totalOnShift} ${totalOnShift === 1 ? "volunteer" : "volunteers"} going`
-      : "Volunteers";
 
   return (
     <View style={s.section}>
-      <SectionHeader label="" title={title} caption="" colors={colors} />
-
-      {onYourShift.length > 0 && (
-        <View style={s.friendsList}>
-          {onYourShift.map((f) => (
-            <FriendRow
-              key={f.id}
-              friend={f}
-              isDark={isDark}
-              colors={colors}
-              showFriendBadge={f.isFriend}
-              hideRole
-            />
-          ))}
-        </View>
-      )}
-
-      {otherCount > 0 && (
-        <View
-          style={[
-            s.otherVolunteersRow,
-            {
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.04)"
-                : "rgba(29,83,55,0.05)",
-            },
-          ]}
+      <View style={s.sectionHead}>
+        <Text
+          style={[s.sectionTitle, { color: colors.text }]}
+          accessibilityRole="header"
         >
-          <View
-            style={[
-              s.otherVolunteersBadge,
-              {
-                backgroundColor: isDark
-                  ? "rgba(248,251,105,0.12)"
-                  : "rgba(29,83,55,0.09)",
-              },
-            ]}
-          >
-            <Ionicons
-              name="people-outline"
-              size={18}
-              color={isDark ? Brand.accent : Brand.green}
-            />
-          </View>
-          <Text
-            style={[s.otherVolunteersText, { color: colors.textSecondary }]}
-          >
-            {onYourShift.length > 0 ? "and " : ""}
-            {otherCount} other {otherCount === 1 ? "volunteer" : "volunteers"}
+          Who&apos;s on
+        </Text>
+        {totalGoing > 0 && (
+          <Text style={[s.sectionMeta, { color: colors.textSecondary }]}>
+            {totalGoing} going
           </Text>
-        </View>
+        )}
+      </View>
+
+      <DayLeadsRow
+        leads={dayLeads}
+        variant="card"
+        isDark={isDark}
+        testID="shift-day-leads"
+      />
+
+      {totalGoing > 0 && (
+        <PeopleGroup
+          people={onYourShift}
+          othersCount={otherCount}
+          colors={colors}
+          isDark={isDark}
+        />
       )}
 
-      {/* Requests an admin hasn't approved yet - held apart from the count
-          above so nobody reads a pending signup as a confirmed spot. */}
+      {/* Requests an admin hasn't approved yet - held apart from the people
+          going so nobody reads a pending signup as a confirmed spot. */}
       {totalPending > 0 && (
-        <View style={s.friendsGroup}>
-          <View style={s.friendsGroupHead}>
-            <Text
-              style={[s.friendsGroupLabel, { color: colors.textSecondary }]}
-            >
-              AWAITING APPROVAL
-            </Text>
-            <Text
-              style={[s.friendsGroupCount, { color: colors.textSecondary }]}
-            >
-              {String(totalPending).padStart(2, "0")}
-            </Text>
-          </View>
-          {pendingOnYourShift.length > 0 && (
-            <View style={s.friendsList}>
-              {pendingOnYourShift.map((f) => (
-                <FriendRow
-                  key={f.id}
-                  friend={f}
-                  isDark={isDark}
-                  colors={colors}
-                  showFriendBadge={f.isFriend}
-                  hideRole
-                />
-              ))}
-            </View>
-          )}
-          {otherPendingCount > 0 && (
-            <Text
-              style={[s.friendsGroupNote, { color: colors.textSecondary }]}
-            >
-              {pendingOnYourShift.length > 0 ? "and " : ""}
-              {otherPendingCount} other{" "}
-              {otherPendingCount === 1 ? "volunteer" : "volunteers"} waiting on
-              approval
-            </Text>
-          )}
+        <View style={s.subgroup}>
+          <Text style={[s.subgroupLabel, { color: colors.textSecondary }]}>
+            Awaiting approval
+          </Text>
+          <PeopleGroup
+            people={pendingOnYourShift}
+            othersCount={otherPendingCount}
+            colors={colors}
+            isDark={isDark}
+          />
         </View>
       )}
 
       {sameSession.length > 0 && (
-        <View style={s.friendsGroup}>
-          <View style={s.friendsGroupHead}>
-            <Text
-              style={[s.friendsGroupLabel, { color: colors.textSecondary }]}
+        <View style={s.subgroup}>
+          <Text style={[s.subgroupLabel, { color: colors.textSecondary }]}>
+            On other roles that session
+          </Text>
+          <PeopleGroup
+            people={sameSession}
+            othersCount={0}
+            showRole
+            colors={colors}
+            isDark={isDark}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** A grouped list of people, closed off with a count of anyone not named. */
+function PeopleGroup({
+  people,
+  othersCount,
+  showRole = false,
+  colors,
+  isDark,
+}: {
+  people: PeriodFriend[];
+  othersCount: number;
+  showRole?: boolean;
+  colors: ThemeColors;
+  isDark: boolean;
+}) {
+  const others =
+    people.length > 0
+      ? `${othersCount} more ${othersCount === 1 ? "volunteer" : "volunteers"}`
+      : `${othersCount} ${othersCount === 1 ? "volunteer" : "volunteers"}`;
+
+  return (
+    <View style={[s.group, { backgroundColor: colors.card }]}>
+      {people.map((person, index) => (
+        <View key={person.id}>
+          {index > 0 && (
+            <View style={[s.groupRule, { backgroundColor: colors.border }]} />
+          )}
+          <PersonRow
+            person={person}
+            showRole={showRole}
+            colors={colors}
+            isDark={isDark}
+          />
+        </View>
+      ))}
+      {othersCount > 0 && (
+        <View>
+          {people.length > 0 && (
+            <View style={[s.groupRule, { backgroundColor: colors.border }]} />
+          )}
+          <View style={s.personRow}>
+            <View
+              style={[s.avatar, s.avatarFallback, { backgroundColor: colors.surfaceSoft }]}
             >
-              ALSO IN THIS SESSION
+              <Ionicons name="people" size={17} color={colors.icon} />
+            </View>
+            <Text style={[s.othersText, { color: colors.textSecondary }]}>
+              {others}
             </Text>
-            <Text
-              style={[s.friendsGroupCount, { color: colors.textSecondary }]}
-            >
-              {String(sameSession.length).padStart(2, "0")}
-            </Text>
-          </View>
-          <View style={s.friendsList}>
-            {sameSession.map((f) => (
-              <FriendRow
-                key={f.id}
-                friend={f}
-                isDark={isDark}
-                colors={colors}
-              />
-            ))}
           </View>
         </View>
       )}
     </View>
   );
 }
+
+function PersonRow({
+  person,
+  showRole,
+  colors,
+  isDark,
+}: {
+  person: PeriodFriend;
+  showRole: boolean;
+  colors: ThemeColors;
+  isDark: boolean;
+}) {
+  const router = useRouter();
+
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.selectionAsync();
+        router.push(`/user/${person.id}` as Href);
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={`${person.name}${person.isFriend ? ", friend" : ""}${
+        showRole && person.shiftTypeName ? `, ${person.shiftTypeName}` : ""
+      }. View profile`}
+      style={({ pressed }) => [s.personRow, { opacity: pressed ? 0.7 : 1 }]}
+    >
+      {person.profilePhotoUrl ? (
+        <Image
+          source={{ uri: person.profilePhotoUrl }}
+          style={s.avatar}
+          contentFit="cover"
+        />
+      ) : (
+        <View
+          style={[
+            s.avatar,
+            s.avatarFallback,
+            { backgroundColor: isDark ? colors.primaryLight : Brand.greenLight },
+          ]}
+        >
+          <Text style={[s.avatarInitial, { color: colors.tint }]}>
+            {person.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
+      <View style={s.personBody}>
+        <View style={s.personNameRow}>
+          <Text
+            style={[s.personName, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {person.name}
+          </Text>
+          {person.isFriend && (
+            <Ionicons
+              name="heart"
+              size={13}
+              color={isDark ? Brand.accent : Palette.forest400}
+            />
+          )}
+        </View>
+        {showRole && person.shiftTypeName ? (
+          <Text
+            style={[s.personRole, { color: colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            {person.shiftTypeName}
+          </Text>
+        ) : null}
+      </View>
+      <Ionicons
+        name="chevron-forward"
+        size={16}
+        color={colors.tabIconDefault}
+      />
+    </Pressable>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   EVENTS — what else is on at the restaurant that day
+   ═════════════════════════════════════════════════════════ */
 
 function EventsSection({
   events,
   colors,
-  isDark,
 }: {
   events: ShiftEvent[];
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
+  colors: ThemeColors;
 }) {
   return (
     <View style={s.section}>
-      <SectionHeader
-        label="Special event"
-        title="On at the restaurant"
-        caption="Running on the day of this shift"
-        colors={colors}
-      />
-      <View style={s.eventList}>
-        {events.map((event) => (
-          <Pressable
-            key={event.id}
-            onPress={() => {
-              Haptics.selectionAsync();
-              openExternalLink(event.url);
-            }}
-            style={({ pressed }) => [
-              s.eventCard,
-              { backgroundColor: colors.card, opacity: pressed ? 0.85 : 1 },
-            ]}
-            accessibilityRole="link"
-            accessibilityLabel={`View ${event.name} on everybodyeats.nz`}
-          >
-            {event.imageUrl ? (
-              <Image
-                source={{ uri: event.imageUrl }}
-                style={s.eventImage}
-                contentFit="cover"
-                accessibilityLabel={`${event.name} image`}
-              />
-            ) : null}
-            <View style={s.eventCardBody}>
-              <Text style={[s.eventName, { color: colors.text }]}>
-                {event.name}
-              </Text>
-              <Text style={[s.eventMeta, { color: colors.textSecondary }]}>
-                🎟️{" "}
-                {event.displayTime ??
-                  formatNZT(new Date(event.date), "h:mma").toLowerCase()}
-                {event.priceLabel ? ` · ${event.priceLabel}` : ""}
-              </Text>
-              {event.description ? (
-                <Text
-                  style={[s.eventDescription, { color: colors.textSecondary }]}
-                  numberOfLines={3}
-                >
-                  {event.description}
-                </Text>
-              ) : null}
-              <View style={s.eventLinkRow}>
-                <Text
-                  style={[
-                    s.eventLink,
-                    { color: isDark ? Brand.accent : Brand.green },
-                  ]}
-                >
-                  Details & tickets
-                </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={14}
-                  color={isDark ? Brand.accent : Brand.green}
-                />
-              </View>
-            </View>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function FriendRow({
-  friend,
-  isDark,
-  colors,
-  showFriendBadge = false,
-  hideRole = false,
-}: {
-  friend: PeriodFriend;
-  isDark: boolean;
-  colors: (typeof Colors)["light"];
-  /** When true, renders the "Friend" indicator on the right of the row. */
-  showFriendBadge?: boolean;
-  /** Hide the role label & chip (redundant when the row is for the current shift). */
-  hideRole?: boolean;
-}) {
-  const router = useRouter();
-  const initial = friend.name.charAt(0).toUpperCase();
-  const roleTheme = friend.shiftTypeName
-    ? getShiftThemeByName(friend.shiftTypeName)
-    : null;
-  const roleAccent = roleTheme
-    ? isDark
-      ? roleTheme.colorDark
-      : roleTheme.color
-    : Brand.green;
-  const roleBg = roleTheme
-    ? isDark
-      ? roleTheme.bgDark
-      : roleTheme.bgLight
-    : isDark
-    ? "rgba(29,83,55,0.3)"
-    : Palette.forest100;
-
-  const openProfile = () => {
-    Haptics.selectionAsync();
-    router.push(`/user/${friend.id}` as Href);
-  };
-
-  return (
-    <Pressable
-      onPress={openProfile}
-      accessibilityLabel={`View ${friend.name}'s profile${
-        friend.status === "PENDING" ? ", awaiting approval" : ""
-      }`}
-      accessibilityRole="button"
-      style={({ pressed }) => [s.friendRow, { opacity: pressed ? 0.7 : 1 }]}
-    >
-      {/* Avatar with role tint */}
-      <View style={s.friendRowAvatar}>
-        {friend.profilePhotoUrl ? (
-          <Image
-            source={{ uri: friend.profilePhotoUrl }}
-            style={s.friendRowAvatarImg}
-            contentFit="cover"
-          />
-        ) : (
-          <View
-            style={[s.friendRowAvatarFallback, { backgroundColor: roleBg }]}
-          >
-            <Text style={[s.friendRowInitial, { color: roleAccent }]}>
-              {initial}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Name + role */}
-      <View style={s.friendRowBody}>
-        <Text
-          style={[s.friendRowName, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          {friend.name}
-        </Text>
-        {friend.shiftTypeName && !hideRole && (
-          <View style={s.friendRowRole}>
-            <View
-              style={[s.friendRowRoleDot, { backgroundColor: roleAccent }]}
-            />
-            <Text
-              style={[s.friendRowRoleText, { color: colors.textSecondary }]}
-              numberOfLines={1}
-            >
-              {friend.shiftTypeName}
-            </Text>
-            {/* A pending signup is a request, not a spot - say so on the row
-                rather than letting it read as another volunteer going. */}
-            {friend.status === "PENDING" && (
-              <View
-                style={[
-                  s.friendRowPendingChip,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(245, 158, 11, 0.18)"
-                      : "#fef3c7",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name="time"
-                  size={10}
-                  color={isDark ? "#fbbf24" : "#92400e"}
-                />
-                <Text
-                  style={[
-                    s.friendRowPendingChipText,
-                    { color: isDark ? "#fbbf24" : "#92400e" },
-                  ]}
-                >
-                  Pending
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Right-edge marker */}
-      {showFriendBadge && friend.isFriend ? (
-        <View
-          style={[
-            s.friendRowFriendChip,
-            { backgroundColor: Brand.accent, borderColor: Brand.green + "22" },
+      <Text
+        style={[s.sectionTitle, { color: colors.text }]}
+        accessibilityRole="header"
+      >
+        Also on that day
+      </Text>
+      {events.map((event) => (
+        <Pressable
+          key={event.id}
+          onPress={() => {
+            Haptics.selectionAsync();
+            openExternalLink(event.url);
+          }}
+          style={({ pressed }) => [
+            s.eventCard,
+            { backgroundColor: colors.card, opacity: pressed ? 0.85 : 1 },
           ]}
-          accessibilityLabel="Friend"
+          accessibilityRole="link"
+          accessibilityLabel={`${event.name}. Details and tickets on everybodyeats.nz`}
         >
-          <Ionicons name="heart" size={11} color={Brand.green} />
-          <Text style={[s.friendRowFriendChipText, { color: Brand.green }]}>
-            Friend
-          </Text>
-        </View>
-      ) : (
-        !hideRole &&
-        roleTheme && (
-          <View
-            style={[
-              s.friendRowEmojiChip,
-              { backgroundColor: roleBg, borderColor: roleAccent + "33" },
-            ]}
-          >
-            <Text style={s.friendRowEmoji}>{roleTheme.emoji}</Text>
+          {event.imageUrl ? (
+            <Image
+              source={{ uri: event.imageUrl }}
+              style={s.eventImage}
+              contentFit="cover"
+            />
+          ) : null}
+          <View style={s.eventBody}>
+            <Text
+              style={[s.eventName, { color: colors.text }]}
+              numberOfLines={2}
+            >
+              {event.name}
+            </Text>
+            <Text style={[s.eventMeta, { color: colors.textSecondary }]}>
+              {event.displayTime ??
+                formatNZT(new Date(event.date), "h:mma").toLowerCase()}
+              {event.priceLabel ? `, ${event.priceLabel}` : ""}
+            </Text>
+            <View style={s.eventLinkRow}>
+              <Text style={[s.eventLink, { color: colors.tint }]}>
+                Details & tickets
+              </Text>
+              <Ionicons name="open-outline" size={13} color={colors.tint} />
+            </View>
           </View>
-        )
-      )}
-    </Pressable>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -1322,7 +1225,7 @@ function BlockedPill({
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   tone: "neutral" | "warn";
-  colors: (typeof Colors)["light"];
+  colors: ThemeColors;
   isDark: boolean;
 }) {
   const warn = tone === "warn";
@@ -1343,46 +1246,9 @@ function BlockedPill({
     : colors.border;
 
   return (
-    <View style={[s.pastPill, { backgroundColor, borderColor }]}>
+    <View style={[s.blockedPill, { backgroundColor, borderColor }]}>
       <Ionicons name={icon} size={18} color={textColor} />
-      <Text style={[s.pastPillText, { color: textColor }]}>{label}</Text>
-    </View>
-  );
-}
-
-/* ═════════════════════════════════════════════════════════
-   GENERIC SECTION SHELL
-   ═════════════════════════════════════════════════════════ */
-
-function SectionHeader({
-  label,
-  title,
-  caption,
-  colors,
-}: {
-  label?: string;
-  title: string;
-  caption?: string;
-  colors: (typeof Colors)["light"];
-}) {
-  return (
-    <View style={s.sectionHeaderBlock}>
-      {label ? (
-        <View style={s.sectionOverlineRow}>
-          <View
-            style={[s.sectionOverlineDot, { backgroundColor: Brand.accent }]}
-          />
-          <Text style={[s.sectionOverline, { color: colors.textSecondary }]}>
-            {label}
-          </Text>
-        </View>
-      ) : null}
-      <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
-      {caption ? (
-        <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-          {caption}
-        </Text>
-      ) : null}
+      <Text style={[s.blockedPillText, { color: textColor }]}>{label}</Text>
     </View>
   );
 }
@@ -1393,7 +1259,7 @@ function SectionHeader({
 
 const s = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingBottom: 48, gap: 20 },
+  content: { paddingBottom: 48 },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -1412,7 +1278,7 @@ const s = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 999,
   },
   backButtonText: {
     color: Palette.cream50,
@@ -1420,473 +1286,241 @@ const s = StyleSheet.create({
     fontSize: 15,
   },
 
-  /* ── HERO ── */
-  hero: {
-    minHeight: 460,
-    paddingTop: 140,
-    paddingBottom: 48,
-    overflow: "hidden",
+  /* ── Cover + sheet ── */
+  cover: {
+    height: COVER_HEIGHT,
     backgroundColor: Palette.forest700,
   },
-  heroImage: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  heroGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  heroGlow: {
+  coverScrim: {
     position: "absolute",
-    bottom: -120,
-    left: -60,
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: "rgba(248,251,105,0.1)",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 140,
   },
-  heroBody: {
-    position: "relative",
-    paddingHorizontal: 24,
-    gap: 14,
-  },
-  heroTitle: {
-    color: Palette.cream50,
-    fontSize: 44,
-    lineHeight: 48,
-    fontFamily: FontFamily.display,
-    letterSpacing: -1,
-    marginTop: 4,
-  },
-  heroDescription: {
-    color: "rgba(253,248,239,0.8)",
-    fontSize: 15,
-    lineHeight: 22,
-    fontFamily: FontFamily.regular,
-    marginTop: -2,
-    maxWidth: 420,
-  },
-  heroMetaRow: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 14,
-    marginTop: 18,
-    paddingTop: 18,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(253,248,239,0.25)",
-  },
-  heroMetaCol: {
-    flex: 1,
-    gap: 3,
-  },
-  heroMetaLabel: {
-    color: "rgba(248,251,105,0.85)",
-    fontSize: 9.5,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 1.8,
-  },
-  heroMetaValue: {
-    color: Palette.cream50,
-    fontSize: 17,
-    lineHeight: 21,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.2,
-  },
-  heroMetaValueSmall: {
-    fontSize: 12,
-    letterSpacing: 0,
-  },
-  heroMetaLink: {
-    textDecorationLine: "underline",
-    textDecorationColor: "rgba(253,248,239,0.35)",
-  },
-  heroMetaRule: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(253,248,239,0.25)",
+  sheet: {
+    marginTop: -SHEET_OVERLAP,
+    borderTopLeftRadius: SHEET_OVERLAP,
+    borderTopRightRadius: SHEET_OVERLAP,
+    paddingTop: 26,
+    paddingHorizontal: 20,
+    gap: 28,
   },
 
-  /* ── STATUS STRIP (bridges hero + content) ── */
-  statusStripWrap: {
-    paddingHorizontal: 16,
-    marginTop: -46,
-    marginBottom: -4,
+  /* ── What and when ── */
+  intro: { gap: 16 },
+  title: {
+    fontSize: 34,
+    lineHeight: 40,
+    fontFamily: FontFamily.display,
+    letterSpacing: -0.8,
   },
-  offerWrap: { paddingHorizontal: 16, paddingTop: 20 },
-  statusStrip: {
-    borderRadius: 18,
-    padding: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 6,
+  facts: { gap: 10 },
+  factRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  statusConfirmed: {
+  factText: {
+    flexShrink: 1,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: FontFamily.medium,
+  },
+  factLink: { fontFamily: FontFamily.semiBold },
+
+  /* ── Status panel ── */
+  panel: {
+    borderRadius: 20,
+    padding: 16,
+  },
+  meter: { gap: 12 },
+  meterHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  meterHeadline: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.3,
+  },
+  meterDetail: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+  },
+  seats: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  seat: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+  },
+  bar: {
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  barFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  myStatus: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
   },
-  statusConfirmedBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Brand.accent,
+  myStatusBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
-  statusConfirmedTitle: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-  },
-  statusConfirmedMeta: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    marginTop: 2,
-  },
-  statusPastChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusPastChipText: {
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 1.2,
-  },
-  statusBrowsing: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statusBrowsingLeft: {
-    flex: 1,
-    gap: 2,
-    alignItems: "center",
-  },
-  statusBrowsingMid: {
-    flex: 1,
-    gap: 2,
-    alignItems: "center",
-  },
-  statusDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
-    backgroundColor: "rgba(128,128,128,0.22)",
-    marginHorizontal: 4,
-  },
-  statusCapacityNumber: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -0.8,
-  },
-  statusCapacitySlash: {
-    fontSize: 16,
-    fontFamily: FontFamily.heading,
-  },
-  statusSpotsNumber: {
-    fontSize: 22,
-    lineHeight: 28,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -0.4,
-  },
-  statusCapacityLabel: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-
-  /* ── NOTES ── */
-  notesText: {
-    fontSize: 15,
+  myStatusTitle: {
+    fontSize: 18,
     lineHeight: 23,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
+  },
+  myStatusMeta: {
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: FontFamily.regular,
   },
 
-  /* ── SECTION SHELL ── */
-  section: {
-    paddingHorizontal: 20,
-    gap: 14,
+  /* ── Description ── */
+  description: {
+    fontSize: 16,
+    lineHeight: 25,
+    fontFamily: FontFamily.regular,
   },
 
-  /* ── Marketing events ── */
-  eventList: {
+  /* ── Sections ── */
+  section: { gap: 12 },
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
     gap: 12,
   },
-  eventCard: {
+  sectionTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.3,
+  },
+  sectionMeta: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+  },
+  subgroup: { gap: 8, marginTop: 4 },
+  subgroupLabel: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+    paddingHorizontal: 14,
+  },
+
+  /* ── People ── */
+  group: {
     borderRadius: 18,
     overflow: "hidden",
   },
-  // Event images are portrait posters (4:5 / 9:16) — a 4:5 frame shows the
-  // poster content instead of a shallow cover-cropped strip.
-  eventImage: {
-    width: "100%",
-    aspectRatio: 4 / 5,
+  groupRule: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 68,
   },
-  eventCardBody: {
-    padding: 16,
+  personRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    minHeight: 60,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  avatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitial: {
+    fontSize: 16,
+    fontFamily: FontFamily.headingBold,
+  },
+  personBody: { flex: 1, gap: 2 },
+  personNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
-  eventName: {
+  personName: {
+    flexShrink: 1,
     fontSize: 16,
     fontFamily: FontFamily.semiBold,
   },
-  eventMeta: {
+  personRole: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
   },
-  eventDescription: {
-    fontSize: 13.5,
-    lineHeight: 19,
+  othersText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FontFamily.medium,
+  },
+
+  /* ── Events ── */
+  eventCard: {
+    flexDirection: "row",
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  // Event images are portrait posters (4:5 / 9:16): a 4:5 thumbnail keeps the
+  // poster recognisable without the poster taking over the screen.
+  eventImage: {
+    width: 88,
+    aspectRatio: 4 / 5,
+  },
+  eventBody: {
+    flex: 1,
+    padding: 14,
+    gap: 4,
+    justifyContent: "center",
+  },
+  eventName: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontFamily: FontFamily.semiBold,
+  },
+  eventMeta: {
+    fontSize: 14,
     fontFamily: FontFamily.regular,
   },
   eventLinkRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
     marginTop: 4,
-    minHeight: 32,
   },
   eventLink: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
   },
-  sectionHeaderBlock: {
-    gap: 4,
-  },
-  sectionOverlineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  sectionOverlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  sectionOverline: {
-    fontSize: 10.5,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-  },
-  sectionTitle: {
-    fontSize: 24,
-    lineHeight: 28,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.4,
-  },
-  sectionCaption: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: FontFamily.regular,
-  },
 
-  /* ── FRIENDS ── */
-  friendsStackRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-    marginBottom: 2,
-  },
-  friendsStack: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  friendsStackItem: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2.5,
-    overflow: "hidden",
-  },
-  friendsStackImg: {
-    width: "100%",
-    height: "100%",
-  },
-  friendsStackFallback: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendsStackInitial: {
-    fontSize: 15,
-    fontFamily: FontFamily.headingBold,
-  },
-  friendsStackMore: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2.5,
-    marginLeft: -12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendsStackMoreText: {
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
-  },
-
-  friendsGroup: {
-    gap: 6,
-    marginTop: 10,
-  },
-  friendsGroupHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 4,
-  },
-  friendsGroupLabel: {
-    flex: 1,
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 1.8,
-  },
-  friendsGroupCount: {
-    fontSize: 12,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.3,
-  },
-  friendsGroupNote: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: FontFamily.medium,
-    paddingHorizontal: 4,
-    paddingVertical: 6,
-  },
-  friendsList: {
-    gap: 2,
-  },
-  friendRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingVertical: 10,
-  },
-  friendRowAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-  friendRowAvatarImg: {
-    width: "100%",
-    height: "100%",
-  },
-  friendRowAvatarFallback: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendRowInitial: {
-    fontSize: 18,
-    fontFamily: FontFamily.headingBold,
-  },
-  friendRowBody: {
-    flex: 1,
-    gap: 3,
-  },
-  friendRowName: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.2,
-  },
-  friendRowRole: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-  friendRowRoleDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-  },
-  friendRowRoleText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 17,
-    fontFamily: FontFamily.medium,
-  },
-  friendRowPendingChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  friendRowPendingChipText: {
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 0.4,
-  },
-  friendRowMarker: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendRowEmojiChip: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendRowEmoji: {
-    fontSize: 18,
-  },
-  friendRowFriendChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  friendRowFriendChipText: {
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 0.4,
-  },
-  otherVolunteersRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    marginTop: 6,
-  },
-  otherVolunteersBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  otherVolunteersText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 18,
-    fontFamily: FontFamily.medium,
-  },
-
-  /* ── GLASS CTA ── */
+  /* ── Floating CTA ── */
   glassCtaText: {
     color: Palette.cream50,
     fontFamily: FontFamily.semiBold,
     fontSize: 16,
     letterSpacing: -0.1,
   },
-
-  /* ── FLOATING CTA ── */
   floatingCta: {
     position: "absolute",
     left: 0,
@@ -1895,7 +1529,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
-  pastPill: {
+  blockedPill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1905,13 +1539,13 @@ const s = StyleSheet.create({
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  pastPillText: {
+  blockedPillText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 14,
     letterSpacing: -0.1,
   },
 
-  /* ── CANCEL LINK ── */
+  /* ── Cancel ── */
   cancelButton: {
     alignSelf: "center",
     paddingVertical: 10,
@@ -1921,8 +1555,6 @@ const s = StyleSheet.create({
   },
   cancelText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 13,
-    textDecorationLine: "underline",
+    fontSize: 15,
   },
-
 });
