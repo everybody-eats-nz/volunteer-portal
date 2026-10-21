@@ -1,3 +1,9 @@
+## [0.193.4] - 2026-10-21
+
+### Changes
+- fix: enforce the scrape allowlist inside scrapeUrl, on every redirect ([#1376](https://github.com/everybody-eats-nz/volunteer-portal/pull/1376)) by @malinmalliyawadu
+
+
 ## [0.193.3] - 2026-10-21
 
 ### Changes
