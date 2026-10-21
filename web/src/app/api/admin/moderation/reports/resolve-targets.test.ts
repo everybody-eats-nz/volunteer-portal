@@ -45,7 +45,11 @@ describe("resolveReportTargets", () => {
     expect(targets.get("comment:c1")).toEqual({
       kind: "Comment",
       snippet: "rude words here",
-      author: { id: "u-alice", name: "Alice Ngata", email: "alice@example.com" },
+      author: {
+        id: "u-alice",
+        name: "Alice Ngata",
+        email: "alice@example.com",
+      },
       href: "/admin/volunteers/u-alice?from=%2Fadmin%2Fmoderation",
       exists: true,
     });

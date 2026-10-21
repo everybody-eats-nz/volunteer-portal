@@ -448,9 +448,7 @@ test.describe("Admin Dashboard Page", () => {
       await expect(adminHeading).toBeVisible();
 
       // Check that stat cards grid is visible
-      const statCards = page.locator(
-        '[class*="grid-cols-1"][class*="md:grid-cols-2"]'
-      );
+      const statCards = page.getByTestId("admin-stats-grid");
       await expect(statCards).toBeVisible();
 
       const quickActionsHeading = page.getByTestId("quick-actions-heading");

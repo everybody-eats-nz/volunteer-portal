@@ -96,25 +96,30 @@ test.describe("Admin Volunteer Profile View", () => {
       );
       await expect(pageDescription).toBeVisible();
 
-      // Check back to shifts button
-      const backButton = page.getByRole("link", { name: /back to shifts/i });
-      await expect(backButton).toBeVisible();
-      await expect(backButton).toHaveAttribute("href", "/admin/shifts");
+      // With no ?from=, the breadcrumb falls back to the users list
+      const backLink = page
+        .getByRole("navigation", { name: "Breadcrumb" })
+        .getByRole("link", { name: "All Users" });
+      await expect(backLink).toBeVisible();
+      await expect(backLink).toHaveAttribute("href", "/admin/users");
     });
 
-    test("should navigate back to admin shifts when clicking back button", async ({
+    test("should navigate back to where the profile was opened from", async ({
       page,
     }) => {
-      await page.goto(`/admin/volunteers/${volunteerId}`);
+      const from = "/admin/shifts?date=2026-10-22&location=Wellington";
+      await page.goto(
+        `/admin/volunteers/${volunteerId}?from=${encodeURIComponent(from)}`
+      );
       await waitForPageLoad(page);
 
-      // Click back button
-      const backButton = page.getByRole("link", { name: /back to shifts/i });
-      await backButton.click();
+      const backLink = page
+        .getByRole("navigation", { name: "Breadcrumb" })
+        .getByRole("link", { name: "Manage Shifts" });
+      await backLink.click();
       await waitForPageLoad(page);
 
-      // Should navigate to admin shifts page
-      await expect(page).toHaveURL("/admin/shifts");
+      await expect(page).toHaveURL(from);
     });
 
     test("should display three-column layout structure", async ({ page }) => {

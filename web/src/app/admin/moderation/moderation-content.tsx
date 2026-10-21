@@ -160,7 +160,7 @@ function ReportedContent({
           <p
             className={cn(
               "text-sm whitespace-pre-line break-words",
-              canExpand && !expanded && "line-clamp-2",
+              canExpand && !expanded && "line-clamp-2"
             )}
             data-testid="report-snippet"
           >
@@ -259,10 +259,10 @@ export function ModerationContent() {
             current && {
               ...current,
               reports: current.reports.map((r) =>
-                r.id === id ? { ...r, status } : r,
+                r.id === id ? { ...r, status } : r
               ),
             },
-          { revalidate: false },
+          { revalidate: false }
         );
         toast({
           title: "Updated",
@@ -278,7 +278,7 @@ export function ModerationContent() {
         setUpdatingId(null);
       }
     },
-    [mutateReports, toast],
+    [mutateReports, toast]
   );
 
   const pendingCount = reports.filter((r) => r.status === "PENDING").length;
@@ -293,7 +293,7 @@ export function ModerationContent() {
             <span
               className={cn(
                 "ml-1 rounded-full text-xs px-1.5 py-0.5 leading-none",
-                STATUS_SOLID.pending,
+                STATUS_SOLID.pending
               )}
             >
               {pendingCount}
@@ -367,7 +367,9 @@ export function ModerationContent() {
                   <TableHead className="hidden xl:table-cell">
                     Received
                   </TableHead>
-                  <TableHead className="hidden md:table-cell text-right">Actions</TableHead>
+                  <TableHead className="hidden md:table-cell text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -400,7 +402,7 @@ export function ModerationContent() {
                           <Link
                             href={volunteerProfileHref(
                               report.reporter.id,
-                              MODERATION_PATH,
+                              MODERATION_PATH
                             )}
                             className="text-sm font-medium leading-none underline-offset-2 hover:underline"
                           >
@@ -513,7 +515,7 @@ export function ModerationContent() {
                         <Ban
                           className={cn(
                             "h-3.5 w-3.5 shrink-0",
-                            STATUS_ICON.danger,
+                            STATUS_ICON.danger
                           )}
                           aria-hidden="true"
                         />

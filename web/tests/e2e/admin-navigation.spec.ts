@@ -181,9 +181,33 @@ test.describe("Admin Navigation", () => {
       await page.waitForURL("/admin/users");
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();
 
+      await expect(page.getByTestId("manage-users-button")).toHaveAttribute(
+        "aria-current",
+        "page"
+      );
+
       await page.getByTestId("manage-shifts-button").click();
       await page.waitForURL("/admin/shifts");
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();
+      await expect(page.getByTestId("manage-shifts-button")).toHaveAttribute(
+        "data-active",
+        "true"
+      );
+      await expect(page.getByTestId("manage-users-button")).toHaveAttribute(
+        "data-active",
+        "false"
+      );
+
+      // A nested route lights its own item, not the shorter prefix
+      await gotoSettled(page, "/admin/shifts/new");
+      await expect(page.getByTestId("sidebar-shifts/new")).toHaveAttribute(
+        "data-active",
+        "true"
+      );
+      await expect(page.getByTestId("manage-shifts-button")).toHaveAttribute(
+        "data-active",
+        "false"
+      );
     });
 
     test("sidebar accessibility and keyboard navigation", async ({ page }) => {

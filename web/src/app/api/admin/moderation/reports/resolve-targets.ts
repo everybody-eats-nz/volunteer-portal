@@ -106,7 +106,7 @@ function splitPostId(targetId: string): [PostPrefix | null, string] {
  * target kind), keyed by `${targetType}:${targetId}`.
  */
 export async function resolveReportTargets(
-  reports: ReportRef[],
+  reports: ReportRef[]
 ): Promise<Map<string, ReportTarget>> {
   const ids = {
     user: new Set<string>(),
@@ -301,6 +301,6 @@ export async function resolveReportTargets(
   };
 
   return new Map(
-    reports.map((r) => [`${r.targetType}:${r.targetId}`, resolve(r)]),
+    reports.map((r) => [`${r.targetType}:${r.targetId}`, resolve(r)])
   );
 }
