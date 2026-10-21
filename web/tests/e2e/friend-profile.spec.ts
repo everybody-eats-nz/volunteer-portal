@@ -16,8 +16,8 @@ import {
  *
  * The page requires an authenticated volunteer viewing an ACCEPTED friend,
  * so beforeAll seeds a pair of users, an accepted friendship, a shared past
- * shift (which also unlocks achievements for the friend) and an upcoming
- * shift for the friend — all via the test/admin APIs.
+ * shift, an achievement unlocked by the friend and an upcoming shift for the
+ * friend — all via the test/admin APIs.
  *
  * Serial mode keeps the whole file in one worker so this setup runs exactly
  * once; parallel workers each re-running beforeAll race each other on the
@@ -120,19 +120,18 @@ test.beforeAll(async ({ browser }, testInfo) => {
       }
     }
 
-    // A dedicated achievement the friend is guaranteed to unlock (one
-    // completed shift), so the test doesn't depend on seeded definitions.
+    // A dedicated achievement awarded straight to the friend, so the test
+    // doesn't depend on seeded definitions. It stays inactive: achievements
+    // unlock lazily for every volunteer who loads their dashboard, and an
+    // active one would leak onto real seeded volunteers during the run.
     const achievementResponse = await page.request.post(
-      "/api/admin/achievements",
+      "/api/test/achievements",
       {
         data: {
           name: achievementName,
           description: "Complete a volunteer shift (e2e seed)",
-          category: "MILESTONE",
-          icon: "🌟",
-          criteria: JSON.stringify({ type: "shifts_completed", value: 1 }),
           points: 15,
-          isActive: true,
+          unlockedFor: [friend.id],
         },
       }
     );
@@ -172,25 +171,14 @@ test.beforeAll(async ({ browser }, testInfo) => {
         `Failed to accept friend request: ${await acceptResponse.text()}`
       );
     }
-
-    // Unlock the friend's achievements based on their completed shift.
-    const unlockResponse = await page.request.post("/api/achievements");
-    if (!unlockResponse.ok()) {
-      throw new Error(
-        `Failed to unlock achievements: ${await unlockResponse.text()}`
-      );
-    }
   });
 });
 
 test.afterAll(async ({ browser }) => {
   await withPage(browser, async (page) => {
-    await loginAsAdmin(page);
-    await deleteTestUsers(page, [viewerEmail, friendEmail]);
-    await deleteTestShifts(page, shiftIds);
     if (achievementId) {
       const deleteResponse = await page.request.delete(
-        `/api/admin/achievements/${achievementId}`
+        `/api/test/achievements?id=${achievementId}`
       );
       if (!deleteResponse.ok()) {
         console.warn(
@@ -198,6 +186,9 @@ test.afterAll(async ({ browser }) => {
         );
       }
     }
+    await deleteTestUsers(page, [viewerEmail, friendEmail]);
+    await loginAsAdmin(page);
+    await deleteTestShifts(page, shiftIds);
   });
 });
 
