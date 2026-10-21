@@ -855,7 +855,7 @@ function WithExGst({
       <span className={cn(negative && NEGATIVE)}>{money(amount)}</span>
       <span
         className={cn(
-          "whitespace-nowrap text-[11px] font-normal",
+          "whitespace-nowrap text-xs font-normal",
           exGst < 0 ? NEGATIVE : "text-muted-foreground"
         )}
       >

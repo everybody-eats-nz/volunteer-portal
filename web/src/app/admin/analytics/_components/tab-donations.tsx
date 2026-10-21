@@ -32,15 +32,16 @@ import {
   SegmentedControl,
 } from "./primitives";
 import {
+  barGap,
   baseOptions,
   type ChartTokens,
   compactCount,
   compactMoney,
+  insideLabelStyle,
   money0,
   money2,
   num,
   oneDp,
-  PALETTE,
 } from "../_lib/chart-theme";
 
 const NZD2 = new Intl.NumberFormat("en-NZ", {
@@ -57,14 +58,14 @@ function fmtMonth(ym: string) {
 }
 
 const METRICS = [
-  { key: "koha", label: "Total koha", money: true, color: PALETTE.koha, chart: "area" },
-  { key: "perHead", label: "$ per head", money: true, color: PALETTE.guests, chart: "line" },
-  { key: "customers", label: "Customers", money: false, color: PALETTE.eftpos, chart: "area" },
-  { key: "avgCustomers", label: "Avg customers / night", money: false, color: "#0ea5e9", chart: "line" },
-  { key: "avgKohaPerNight", label: "Avg koha / night", money: true, color: PALETTE.koha, chart: "line" },
-  { key: "nights", label: "Record count", money: false, color: PALETTE.target, chart: "bar" },
-  { key: "newVolunteers", label: "New volunteers", money: false, color: PALETTE.volunteers, chart: "bar" },
-  { key: "bookings", label: "Bookings", money: false, color: PALETTE.bookings, chart: "area" },
+  { key: "koha", label: "Total koha", money: true, role: "koha", chart: "area" },
+  { key: "perHead", label: "$ per head", money: true, role: "koha", chart: "line" },
+  { key: "customers", label: "Customers", money: false, role: "customers", chart: "area" },
+  { key: "avgCustomers", label: "Avg customers / night", money: false, role: "customers", chart: "line" },
+  { key: "avgKohaPerNight", label: "Avg koha / night", money: true, role: "koha", chart: "line" },
+  { key: "nights", label: "Record count", money: false, role: "neutral", chart: "bar" },
+  { key: "newVolunteers", label: "New volunteers", money: false, role: "volunteers", chart: "bar" },
+  { key: "bookings", label: "Bookings", money: false, role: "bookings", chart: "area" },
 ] as const;
 
 export function TabDonations({
@@ -154,7 +155,7 @@ function MetricTrends({
         options={{
           ...baseOptions(tokens),
           chart: { ...baseOptions(tokens).chart, type: m.chart },
-          colors: [m.color],
+          colors: [tokens.palette[m.role]],
           xaxis: {
             categories: labels,
             tickAmount: gran === "monthly" ? Math.min(12, labels.length) : undefined,
@@ -230,7 +231,7 @@ function PayingVsNonPaying({
             stacked: true,
             stackType: is100 ? "100%" : "normal",
           },
-          colors: [PALETTE.positive, PALETTE.negative],
+          colors: [tokens.series[0], tokens.series[1]],
           xaxis: {
             categories: reports.monthLabels.map(fmtMonth),
             tickAmount: 12,
@@ -246,6 +247,7 @@ function PayingVsNonPaying({
             max: is100 ? 100 : undefined,
           },
           plotOptions: { bar: { columnWidth: "70%" } },
+          stroke: barGap(tokens),
           tooltip: {
             shared: true,
             intersect: false,
@@ -281,7 +283,7 @@ function CustomersVsBookings({
         options={{
           ...baseOptions(tokens),
           chart: { ...baseOptions(tokens).chart, type: "line" },
-          colors: [PALETTE.eftpos, PALETTE.bookings],
+          colors: [tokens.palette.customers, tokens.palette.bookings],
           xaxis: {
             categories: reports.monthLabels.map(fmtMonth),
             tickAmount: 12,
@@ -295,7 +297,7 @@ function CustomersVsBookings({
               labels: { formatter: compactCount, style: tokens.axisStyle },
               title: {
                 text: "Customers",
-                style: { fontFamily: "var(--font-jakarta)", fontSize: "11px", color: tokens.label },
+                style: { fontFamily: "var(--font-jakarta)", fontSize: "12px", color: tokens.label },
               },
             },
             {
@@ -304,7 +306,7 @@ function CustomersVsBookings({
               labels: { formatter: compactCount, style: tokens.axisStyle },
               title: {
                 text: "Bookings",
-                style: { fontFamily: "var(--font-jakarta)", fontSize: "11px", color: tokens.label },
+                style: { fontFamily: "var(--font-jakarta)", fontSize: "12px", color: tokens.label },
               },
             },
           ],
@@ -340,7 +342,7 @@ function PerHeadByWeekday({
         options={{
           ...baseOptions(tokens),
           chart: { ...baseOptions(tokens).chart, type: "bar" },
-          colors: [PALETTE.koha],
+          colors: [tokens.palette.koha],
           plotOptions: {
             bar: {
               horizontal: true,
@@ -360,12 +362,7 @@ function PerHeadByWeekday({
           dataLabels: {
             enabled: true,
             formatter: (v: number) => (v ? NZD2.format(v) : ""),
-            style: {
-              fontFamily: "var(--font-jakarta)",
-              fontSize: "11px",
-              fontWeight: 600,
-              colors: ["#fff"],
-            },
+            style: insideLabelStyle([tokens.palette.koha]),
           },
           grid: { ...baseOptions(tokens).grid, yaxis: { lines: { show: false } } },
           tooltip: { y: { formatter: (v: number) => money2(v ?? 0) } },
@@ -411,13 +408,13 @@ function BookingsScatter({
               type: "scatter",
               zoom: { enabled: false },
             },
-            colors: [PALETTE.eftpos],
+            colors: [tokens.series[0]],
             xaxis: {
               type: "numeric",
               tickAmount: 10,
               title: {
                 text: "Bookings",
-                style: { fontFamily: "var(--font-jakarta)", fontSize: "11px", color: tokens.label },
+                style: { fontFamily: "var(--font-jakarta)", fontSize: "12px", color: tokens.label },
               },
               labels: { style: tokens.axisStyle },
             },
@@ -425,7 +422,7 @@ function BookingsScatter({
               labels: { formatter: compactMoney, style: tokens.axisStyle },
               title: {
                 text: "Total koha",
-                style: { fontFamily: "var(--font-jakarta)", fontSize: "11px", color: tokens.label },
+                style: { fontFamily: "var(--font-jakarta)", fontSize: "12px", color: tokens.label },
               },
             },
             markers: { size: 5, fillOpacity: 0.5, strokeWidth: 0 },

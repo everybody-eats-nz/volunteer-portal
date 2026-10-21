@@ -10,8 +10,8 @@ import {
   type ChartTokens,
   compactCount,
   num,
-  PALETTE,
-  SERIES_COLORS,
+  colorForLocation,
+  insideLabelStyle,
 } from "../_lib/chart-theme";
 import type { FilterState } from "./filter-bar";
 
@@ -44,7 +44,6 @@ export function TabService({
           rows={data.proteinMix}
           tokens={tokens}
           filterKey={`protein-${filterKey}`}
-          distributed
           emptyMsg="No protein data yet"
         />
         <MixBar
@@ -78,7 +77,6 @@ function MixBar({
   rows,
   tokens,
   filterKey,
-  distributed = false,
   emptyMsg,
 }: {
   title: string;
@@ -87,7 +85,6 @@ function MixBar({
   rows: Array<{ label: string; nights: number }>;
   tokens: ChartTokens;
   filterKey: string;
-  distributed?: boolean;
   emptyMsg: string;
 }) {
   return (
@@ -106,10 +103,9 @@ function MixBar({
                 borderRadius: 4,
                 borderRadiusApplication: "end",
                 barHeight: "62%",
-                distributed,
               },
             },
-            colors: distributed ? SERIES_COLORS : [PALETTE.eftpos],
+            colors: [tokens.series[0]],
             xaxis: {
               categories: rows.map((r) => r.label),
               labels: { style: tokens.axisStyle },
@@ -118,12 +114,7 @@ function MixBar({
             dataLabels: {
               enabled: true,
               formatter: (val: number) => String(val),
-              style: {
-                fontFamily: "var(--font-jakarta)",
-                fontSize: "11px",
-                fontWeight: 600,
-                colors: ["#fff"],
-              },
+              style: insideLabelStyle([tokens.series[0]]),
             },
             grid: { ...baseOptions(tokens).grid, yaxis: { lines: { show: false } } },
             legend: { show: false },
@@ -172,7 +163,7 @@ function NewVolunteersByLocation({
           options={{
             ...baseOptions(tokens),
             chart: { ...baseOptions(tokens).chart, type: "line" },
-            colors: SERIES_COLORS,
+            colors: series.map((s) => colorForLocation(s.location, tokens)),
             xaxis: {
               categories: reports.monthLabels.map(fmtMonth),
               tickAmount: 12,

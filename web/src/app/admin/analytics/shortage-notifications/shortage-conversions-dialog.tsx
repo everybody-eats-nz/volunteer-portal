@@ -192,12 +192,12 @@ function ConversionRow({ conversion: c }: { conversion: ShortageConversion }) {
             </span>
             <Badge
               variant="outline"
-              className="text-[10px] font-medium px-1.5 py-0"
+              className="text-xs font-medium px-1.5 py-0"
             >
               {c.shiftLocation}
             </Badge>
           </div>
-          <p className="text-[11px] text-muted-foreground tabular-nums">
+          <p className="text-xs text-muted-foreground tabular-nums">
             {formatShiftDate(c.shiftDate)} · {lag}
           </p>
         </div>

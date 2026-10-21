@@ -1,6 +1,17 @@
 "use client";
 
-import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
+import {
+  ApexChart,
+  ChartEmpty,
+  ChartIcon,
+} from "@/app/admin/analytics/_components/primitives";
+import {
+  barGap,
+  baseOptions,
+  chartModeFrom,
+  chartTokens,
+  plural,
+} from "@/app/admin/analytics/_lib/chart-theme";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -116,9 +127,8 @@ export function CoverageAnalyticsClient({
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
   const [days, setDays] = useState(initialDays);
-  const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
-    | "dark"
-    | "light";
+  const tokens = chartTokens(chartModeFrom(resolvedTheme));
+  const base = baseOptions(tokens);
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
@@ -253,7 +263,7 @@ export function CoverageAnalyticsClient({
             <div className="flex flex-col md:flex-row">
               <div className="flex items-center gap-5 p-6">
                 <div className="relative">
-                  <CoverageRing value={totals.fillRate} color="#10b981" />
+                  <CoverageRing value={totals.fillRate} color={tokens.series[0]} />
                   <div className="absolute inset-0 flex items-center justify-center text-sm font-bold tabular-nums">
                     {totals.fillRate}%
                   </div>
@@ -374,48 +384,52 @@ export function CoverageAnalyticsClient({
                 <ApexChart
                   key={`coverage-${initialMonths}-${initialLocation}-${initialDays}`}
                   options={{
+                    ...base,
                     chart: {
+                      ...base.chart,
                       type: "bar" as const,
                       stacked: true,
-                      toolbar: { show: false },
-                      background: "transparent",
-                      fontFamily: "var(--font-jakarta), sans-serif",
                     },
                     plotOptions: {
                       bar: {
                         horizontal: true,
                         borderRadius: 4,
+                        borderRadiusApplication: "end" as const,
                         barHeight: "60%",
                       },
                     },
+                    stroke: barGap(tokens),
                     xaxis: {
                       categories: chartLocations,
-                      labels: { style: { fontSize: "11px" } },
+                      labels: {
+                        style: tokens.axisStyle,
+                        formatter: (v: string) =>
+                          String(Math.round(Number(v))),
+                      },
                       axisBorder: { show: false },
                       axisTicks: { show: false },
                     },
-                    yaxis: { labels: { style: { fontSize: "12px" } } },
-                    colors: ["#10b981", "#f59e0b", "#ef4444"],
-                    dataLabels: { enabled: false },
+                    yaxis: { labels: { style: tokens.catStyle } },
+                    // Staffing level is a status, so it wears the reserved
+                    // status scale (always labelled in the legend, tooltip
+                    // and the breakdown table below).
+                    colors: [
+                      tokens.status.good,
+                      tokens.status.warning,
+                      tokens.status.critical,
+                    ],
                     grid: {
-                      borderColor: "#e5e7eb",
-                      strokeDashArray: 4,
+                      ...base.grid,
+                      xaxis: { lines: { show: true } },
                       yaxis: { lines: { show: false } },
                     },
-                    legend: {
-                      position: "top" as const,
-                      fontSize: "12px",
-                      markers: { size: 6, offsetX: -2 },
-                    },
+                    legend: { ...base.legend, show: true },
                     tooltip: {
+                      ...base.tooltip,
                       shared: true,
                       intersect: false,
-                      y: {
-                        formatter: (val: number) =>
-                          `${Math.round(val)} shift${val === 1 ? "" : "s"}`,
-                      },
+                      y: { formatter: (val: number) => plural(val, "shift") },
                     },
-                    theme: { mode: chartThemeMode },
                   }}
                   series={[
                     { name: "Adequate (75%+)", data: adequateSeries },
@@ -426,9 +440,11 @@ export function CoverageAnalyticsClient({
                   height={Math.max(220, chartLocations.length * 56)}
                 />
               ) : (
-                <div className="flex items-center justify-center h-[220px] text-muted-foreground text-sm">
-                  No shifts in the selected period
-                </div>
+                <ChartEmpty
+                  height={220}
+                  message="No shifts in the selected period"
+                  hint="Try a longer time period, another location or more days of the week."
+                />
               )}
             </CardContent>
           </Card>
