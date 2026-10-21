@@ -1,3 +1,9 @@
+## [0.192.0] - 2026-10-21
+
+### Changes
+- feat: redesign the mobile shift details screen ([#1368](https://github.com/everybody-eats-nz/volunteer-portal/pull/1368)) by @malinmalliyawadu
+
+
 ## [0.191.0] - 2026-10-20
 
 ### Changes
