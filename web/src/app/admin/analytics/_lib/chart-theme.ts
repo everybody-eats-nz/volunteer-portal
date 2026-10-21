@@ -213,7 +213,9 @@ const SPARE_SLOTS = [Slot.Clay, Slot.Violet, Slot.Teal];
 /**
  * The colour for a restaurant. Stable by name, never by row position, so a
  * filter that drops a location doesn't repaint the others. Unknown locations
- * hash onto the spare slots.
+ * hash onto the three spare slots, so two new restaurants can land on the same
+ * colour: give a new permanent restaurant its own entry in LOCATION_SLOTS
+ * (there are three free slots) rather than relying on the hash.
  */
 export function colorForLocation(name: string, t: ChartTokens): string {
   if (name === UNSPECIFIED_LOCATION) return t.palette.neutral;
@@ -235,7 +237,8 @@ export function colorForLocation(name: string, t: ChartTokens): string {
  */
 export function ordinalScale(count: number, t: ChartTokens): string[] {
   const ramp = FOREST_RAMP[t.mode];
-  if (count <= 1) return [ramp[ramp.length - 2]];
+  if (count <= 0) return [];
+  if (count === 1) return [ramp[ramp.length - 2]];
   return Array.from({ length: count }, (_, i) => {
     const idx = Math.round((i * (ramp.length - 1)) / (count - 1));
     return ramp[idx];

@@ -50,6 +50,11 @@ describe("chart-theme", () => {
     expect([light.grid, dark.grid]).not.toContain("#e5e7eb");
   });
 
+  it("returns no ordinal steps for zero categories", () => {
+    expect(ordinalScale(0, light)).toEqual([]);
+    expect(ordinalScale(1, light)).toHaveLength(1);
+  });
+
   it("returns ordinal steps without repeats", () => {
     for (const n of [2, 4, 6]) {
       const steps = ordinalScale(n, light);
@@ -71,6 +76,8 @@ describe("chart-theme", () => {
     expect(format(78)).toBe("78");
     expect(format(5)).toBe("");
     expect(format(0)).toBe("");
+    // No stacks yet: any positive value still gets its label.
+    expect(segmentLabel([])(3)).toBe("3");
   });
 
   it("formats counts in en-NZ with singular and plural nouns", () => {
