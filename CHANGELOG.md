@@ -1,3 +1,9 @@
+## [0.193.3] - 2026-10-21
+
+### Changes
+- fix: count partial shift hours toward hours achievements ([#1371](https://github.com/everybody-eats-nz/volunteer-portal/pull/1371)) by @malinmalliyawadu
+
+
 ## [0.193.2] - 2026-10-21
 
 ### Changes
