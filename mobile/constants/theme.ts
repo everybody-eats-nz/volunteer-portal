@@ -147,6 +147,114 @@ export const Colors: { light: ThemeColors; dark: ThemeColors } = {
 };
 
 /**
+ * A soft tinted surface plus the foreground that reads on it (≥4.5:1 in both
+ * schemes). Used for icon tiles, small pills and status badges.
+ */
+export type Tone = { bg: string; fg: string };
+
+export type ToneName =
+  | 'forest'
+  | 'sun'
+  | 'amber'
+  | 'orange'
+  | 'red'
+  | 'pink'
+  | 'violet'
+  | 'blue'
+  | 'sky'
+  | 'teal'
+  | 'emerald'
+  | 'slate';
+
+/**
+ * Hue tones for the feed's icon tiles, category pills and notification icons.
+ * Light is a pastel fill with an 800-weight foreground; dark is the same hue
+ * at low opacity (so it sits on `card` and `background` alike) with a
+ * 300-weight foreground. Pick a tone by meaning, not by look.
+ */
+export const Tones: Record<'light' | 'dark', Record<ToneName, Tone>> = {
+  light: {
+    forest: { bg: '#E3EEE5', fg: Palette.forest500 },
+    sun: { bg: '#FEF9C3', fg: '#854D0E' },
+    amber: { bg: '#FEF3C7', fg: '#92400E' },
+    orange: { bg: '#FFEDD5', fg: '#9A3412' },
+    red: { bg: '#FEE2E2', fg: '#991B1B' },
+    pink: { bg: '#FCE7F3', fg: '#9D174D' },
+    violet: { bg: '#EDE9FE', fg: '#6D28D9' },
+    blue: { bg: '#DBEAFE', fg: '#1E40AF' },
+    sky: { bg: '#E0F2FE', fg: '#075985' },
+    teal: { bg: '#CCFBF1', fg: '#115E59' },
+    emerald: { bg: '#D1FAE5', fg: '#065F46' },
+    slate: { bg: '#E2E8F0', fg: '#334155' },
+  },
+  dark: {
+    forest: { bg: 'rgba(134, 217, 155, 0.14)', fg: tintColorDark },
+    sun: { bg: 'rgba(234, 179, 8, 0.18)', fg: '#FDE047' },
+    amber: { bg: 'rgba(245, 158, 11, 0.18)', fg: '#FBBF24' },
+    orange: { bg: 'rgba(249, 115, 22, 0.18)', fg: '#FDBA74' },
+    red: { bg: 'rgba(239, 68, 68, 0.18)', fg: '#FCA5A5' },
+    pink: { bg: 'rgba(236, 72, 153, 0.18)', fg: '#F9A8D4' },
+    violet: { bg: 'rgba(139, 92, 246, 0.22)', fg: '#C4B5FD' },
+    blue: { bg: 'rgba(59, 130, 246, 0.2)', fg: '#93C5FD' },
+    sky: { bg: 'rgba(14, 165, 233, 0.18)', fg: '#7DD3FC' },
+    teal: { bg: 'rgba(20, 184, 166, 0.18)', fg: '#5EEAD4' },
+    emerald: { bg: 'rgba(16, 185, 129, 0.18)', fg: '#6EE7B7' },
+    slate: { bg: 'rgba(148, 163, 184, 0.18)', fg: '#CBD5E1' },
+  },
+};
+
+export type StatusName = 'confirmed' | 'pending' | 'waitlisted' | 'completed' | 'destructive';
+
+/**
+ * A signup / shift status. `bg` + `fg` are the soft badge on a page or card;
+ * `solid` + `onSolid` are the filled pill used on dark statement panels
+ * (the home hero), where a pastel would wash out.
+ */
+export type StatusTone = Tone & { solid: string; onSolid: string };
+
+/**
+ * The one place a status gets its colour. Confirmed is forest, pending is
+ * amber, waitlisted is slate, completed is neutral paper and destructive
+ * (full, cancelled, declined) is red. Never colour-only: pair with an icon
+ * or a word.
+ */
+export const StatusColors: Record<'light' | 'dark', Record<StatusName, StatusTone>> = {
+  light: {
+    confirmed: { ...Tones.light.forest, solid: Palette.sun200, onSolid: Palette.ink },
+    pending: { ...Tones.light.amber, solid: '#FBBF24', onSolid: '#3A2808' },
+    waitlisted: { ...Tones.light.slate, solid: '#E2E8F0', onSolid: '#0F172A' },
+    completed: { bg: Palette.cream200, fg: '#57534E', solid: Palette.cream200, onSolid: '#57534E' },
+    destructive: { ...Tones.light.red, solid: '#B91C1C', onSolid: '#FFFFFF' },
+  },
+  dark: {
+    confirmed: { ...Tones.dark.forest, solid: Palette.sun200, onSolid: Palette.ink },
+    pending: { ...Tones.dark.amber, solid: '#FBBF24', onSolid: '#3A2808' },
+    waitlisted: { ...Tones.dark.slate, solid: '#E2E8F0', onSolid: '#0F172A' },
+    completed: { bg: 'rgba(253, 248, 239, 0.08)', fg: '#D6D3D1', solid: '#D6D3D1', onSolid: '#1C1917' },
+    destructive: { ...Tones.dark.red, solid: '#F87171', onSolid: '#1C1917' },
+  },
+};
+
+/**
+ * Caps how far Dynamic Type may grow text inside fixed-shape elements (pills,
+ * badges, chips, counters). Body text and buttons scale freely; these would
+ * otherwise burst their container. Pass as `maxFontSizeMultiplier`.
+ */
+export const MaxFontScale = {
+  /** Pills, badges, chips and other compact labels */
+  compact: 1.4,
+} as const;
+
+/** Card corner radii (see STYLE_GUIDE "Border Radius"). */
+export const Radius = {
+  panel: 28,
+  card: 24,
+  chip: 12,
+  tile: 14,
+  pill: 999,
+} as const;
+
+/**
  * Font family names registered via `useFonts` in `app/_layout.tsx`.
  *
  * Body keys (regular/medium/semiBold/bold) → Plus Jakarta Sans.

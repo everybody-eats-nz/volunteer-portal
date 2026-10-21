@@ -9,6 +9,12 @@ exports[`Button > matches the primary-button snapshot 1`] = `
       "disabled": false,
     }
   }
+  android_ripple={
+    {
+      "color": "rgba(253,248,239,0.22)",
+      "foreground": true,
+    }
+  }
   disabled={false}
   onPress={[Function]}
   style={[Function]}
@@ -24,12 +30,13 @@ exports[`Button > matches the primary-button snapshot 1`] = `
     }
   >
     <Text
-      numberOfLines={1}
       style={
         [
           {
+            "flexShrink": 1,
             "fontFamily": "PlusJakartaSans_600SemiBold",
             "letterSpacing": 0.1,
+            "textAlign": "center",
           },
           {
             "color": "#FDF8EF",
