@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   tripBody: { flex: 1, gap: 2 },
-  tripTitle: { fontFamily: FontFamily.semiBold, fontSize: 15.5 },
+  tripTitle: { fontFamily: FontFamily.semiBold, fontSize: 16 },
   tripMeta: { fontFamily: FontFamily.regular, fontSize: 13 },
   flagChip: {
     flexDirection: "row",

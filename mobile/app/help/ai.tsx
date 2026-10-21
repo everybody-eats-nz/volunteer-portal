@@ -24,11 +24,11 @@ import ReAnimated, {
 } from "react-native-reanimated";
 import MarkdownDisplay from "react-native-markdown-display";
 
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { Brand, Colors, FontFamily, MaxFontScale, Palette, StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { api } from "@/lib/api";
 import { chatWithAssistant } from "@/lib/chat";
-import { goBackOrHome } from "@/lib/navigation";
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -76,10 +76,10 @@ function usePaperTint(
   return {
     paper: colors.background,
     ink: isDark ? colors.text : Brand.green,
-    inkSoft: isDark ? colors.textSecondary : "#5B6A5E",
+    inkSoft: colors.textSecondary,
     rule: isDark ? "rgba(253,248,239,0.14)" : "rgba(29,83,55,0.15)",
     accent: Brand.accent,
-    eyebrow: isDark ? Brand.greenLight : Brand.green,
+    eyebrow: colors.tint,
   };
 }
 
@@ -215,6 +215,7 @@ const MessageBubble = React.memo(function MessageBubble({
           <LeafSeal size={22} isDark={isDark} />
           <Text
             style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}
+            maxFontSizeMultiplier={MaxFontScale.compact}
           >
             EE ASSISTANT
           </Text>
@@ -226,7 +227,7 @@ const MessageBubble = React.memo(function MessageBubble({
             body: {
               color: colors.text,
               fontFamily: FontFamily.regular,
-              fontSize: 15.5,
+              fontSize: 16,
               lineHeight: 24,
             },
             strong: { fontFamily: FontFamily.semiBold },
@@ -235,7 +236,7 @@ const MessageBubble = React.memo(function MessageBubble({
             ordered_list: { marginVertical: 6 },
             list_item: { marginVertical: 2 },
             link: {
-              color: isDark ? Brand.greenLight : Brand.green,
+              color: colors.tint,
               fontFamily: FontFamily.semiBold,
             },
             paragraph: { marginTop: 0, marginBottom: 10 },
@@ -349,6 +350,7 @@ function WelcomeHero({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onSuggestionPress(q.label);
             }}
+            android_ripple={{ color: paperTint.rule }}
             style={({ pressed }) => [
               styles.questionRow,
               {
@@ -364,7 +366,10 @@ function WelcomeHero({
             accessibilityLabel={q.label}
             accessibilityRole="button"
           >
-            <Text style={[styles.questionNumber, { color: paperTint.eyebrow }]}>
+            <Text
+              style={[styles.questionNumber, { color: paperTint.eyebrow }]}
+              maxFontSizeMultiplier={MaxFontScale.compact}
+            >
               {String(i + 1).padStart(2, "0")}
             </Text>
             <Text
@@ -572,7 +577,7 @@ export default function ChatScreen() {
               showAssistantError(
                 status === 429
                   ? "You've sent a lot of messages in a short time. Give it a few minutes and try again 🌿"
-                  : "Sorry, I had trouble responding. Please try again — or contact the team directly if you need help right away 🌿"
+                  : "Sorry, I had trouble responding. Please try again, or contact the team directly if you need help right away 🌿"
               );
               finishTurn();
               console.error("Chat error:", error);
@@ -708,6 +713,8 @@ export default function ChatScreen() {
       {isStreaming ? (
         <Pressable
           onPress={stopStreaming}
+          hitSlop={2}
+          android_ripple={{ color: "rgba(253,248,239,0.22)", borderless: true, radius: 22 }}
           style={({ pressed }) => [
             styles.glassSendBtn,
             {
@@ -724,6 +731,8 @@ export default function ChatScreen() {
         <Pressable
           onPress={() => sendMessage()}
           disabled={!hasInput}
+          hitSlop={2}
+          android_ripple={{ color: "rgba(253,248,239,0.22)", borderless: true, radius: 22 }}
           style={({ pressed }) => [
             styles.glassSendBtn,
             {
@@ -751,57 +760,57 @@ export default function ChatScreen() {
       style={[styles.container, { backgroundColor: paperTint.paper }]}
     >
       {/* ── Persistent header with back button ── */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 12,
-            borderBottomColor: showWelcome ? "transparent" : paperTint.rule,
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => goBackOrHome()}
-          hitSlop={12}
-          style={styles.backBtn}
-          accessibilityLabel="Back to Help"
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={22} color={paperTint.eyebrow} />
-        </Pressable>
-        <View style={styles.headerCenter}>
+      <ScreenHeader
+        backLabel="Back to Help"
+        tint={paperTint.eyebrow}
+        borderColor={showWelcome ? "transparent" : paperTint.rule}
+        style={styles.header}
+        center={
           <View style={styles.headerCenterRow}>
             <LeafSeal size={20} isDark={isDark} />
-            <Text style={[styles.headerTitle, { color: paperTint.eyebrow }]}>
+            <Text
+              style={[styles.headerTitle, { color: paperTint.eyebrow }]}
+              accessibilityRole="header"
+              accessibilityLabel="EE Assistant"
+              maxFontSizeMultiplier={MaxFontScale.compact}
+            >
               EE ASSISTANT
             </Text>
-            <View style={[styles.statusDot, { backgroundColor: "#22c55e" }]} />
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: StatusColors[colorScheme].confirmed.fg },
+              ]}
+            />
           </View>
-        </View>
-        <View style={styles.headerRight}>
-          {!showWelcome ? (
+        }
+        right={
+          !showWelcome ? (
             <Pressable
               onPress={resetChat}
+              android_ripple={{ color: paperTint.rule, borderless: true, radius: 24 }}
               style={({ pressed }) => [
                 styles.newChatBtn,
                 { opacity: pressed ? 0.55 : 1 },
               ]}
               accessibilityLabel="Start new conversation"
               accessibilityRole="button"
-              hitSlop={12}
             >
               <Ionicons
                 name="create-outline"
                 size={16}
                 color={paperTint.eyebrow}
               />
-              <Text style={[styles.newChatLabel, { color: paperTint.eyebrow }]}>
+              <Text
+                style={[styles.newChatLabel, { color: paperTint.eyebrow }]}
+                maxFontSizeMultiplier={MaxFontScale.compact}
+              >
                 NEW
               </Text>
             </Pressable>
-          ) : null}
-        </View>
-      </View>
+          ) : null
+        }
+      />
 
       {/* ── Content area ── */}
       {showWelcome ? (
@@ -850,6 +859,7 @@ export default function ChatScreen() {
                       styles.assistantMetaLabel,
                       { color: paperTint.eyebrow },
                     ]}
+                    maxFontSizeMultiplier={MaxFontScale.compact}
                   >
                     EE ASSISTANT
                   </Text>
@@ -871,6 +881,7 @@ export default function ChatScreen() {
       {!showWelcome && showScrollToBottom && (
         <Pressable
           onPress={scrollToBottom}
+          android_ripple={{ color: paperTint.rule, borderless: true, radius: 22 }}
           style={({ pressed }) => [
             styles.scrollToBottomBtn,
             {
@@ -884,7 +895,7 @@ export default function ChatScreen() {
           ]}
           accessibilityLabel="Scroll to latest message"
           accessibilityRole="button"
-          hitSlop={8}
+          hitSlop={3}
         >
           <Ionicons name="arrow-down" size={18} color={paperTint.eyebrow} />
         </Pressable>
@@ -967,29 +978,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   /* Persistent header */
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    alignItems: "center",
-    zIndex: 2,
-  },
-  backBtn: {
-    width: 60,
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
-  headerCenter: { flex: 1, alignItems: "center" },
+  // Sits above the welcome scroll view's content.
+  header: { paddingBottom: 10, zIndex: 2 },
   headerCenterRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  headerRight: {
-    width: 60,
-    alignItems: "flex-end",
-    justifyContent: "center",
   },
   headerTitle: {
     fontFamily: FontFamily.semiBold,
@@ -1002,12 +996,14 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginLeft: 2,
   },
+  // Kept close to the 44pt back target so the centred title stays centred.
   newChatBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    justifyContent: "flex-end",
+    gap: 4,
+    minHeight: 44,
+    minWidth: 44,
   },
   newChatLabel: {
     fontFamily: FontFamily.semiBold,
@@ -1028,7 +1024,7 @@ const styles = StyleSheet.create({
   },
   eyebrowCentered: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 10.5,
+    fontSize: 11,
     letterSpacing: 1.8,
     textAlign: "center",
   },
@@ -1106,7 +1102,7 @@ const styles = StyleSheet.create({
   userText: {
     color: Palette.cream50,
     fontFamily: FontFamily.regular,
-    fontSize: 15.5,
+    fontSize: 16,
     lineHeight: 22,
   },
 
@@ -1174,7 +1170,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   glassInputText: {
-    fontSize: 15.5,
+    fontSize: 16,
     lineHeight: 20,
     maxHeight: 100,
     paddingTop: 0,

@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { Brand, Colors, FontFamily, Radius, Tones } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { api, ApiError } from "@/lib/api";
 
@@ -33,6 +34,7 @@ export function WaitlistOfferCard({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
+  const forestTone = Tones[colorScheme].forest;
 
   const [pending, setPending] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,8 +73,8 @@ export function WaitlistOfferCard({
       ]}
     >
       <View style={styles.headRow}>
-        <View style={[styles.badge, { backgroundColor: colors.primaryLight }]}>
-          <Ionicons name="sparkles" size={15} color={Brand.green} />
+        <View style={[styles.badge, { backgroundColor: forestTone.bg }]}>
+          <Ionicons name="sparkles" size={15} color={forestTone.fg} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: colors.text }]}>
@@ -100,50 +102,23 @@ export function WaitlistOfferCard({
       ) : null}
 
       <View style={styles.actions}>
-        <Pressable
+        <Button
+          label="No thanks"
+          variant="ghost"
           onPress={() => respond("decline")}
+          loading={pending === "decline"}
           disabled={pending !== null}
-          accessibilityRole="button"
           accessibilityLabel="Decline this spot"
-          accessibilityState={{ disabled: pending !== null }}
-          style={({ pressed }) => [
-            styles.button,
-            styles.secondary,
-            { borderColor: isDark ? "rgba(253,248,239,0.22)" : "rgba(29,83,55,0.22)" },
-            pressed && { opacity: 0.6 },
-            pending !== null && styles.disabled,
-          ]}
-        >
-          {pending === "decline" ? (
-            <ActivityIndicator size="small" color={colors.textSecondary} />
-          ) : (
-            <Text style={[styles.buttonText, { color: colors.textSecondary }]}>
-              No thanks
-            </Text>
-          )}
-        </Pressable>
-
-        <Pressable
+          style={styles.button}
+        />
+        <Button
+          label="Yes, I'll take it"
           onPress={() => respond("accept")}
+          loading={pending === "accept"}
           disabled={pending !== null}
-          accessibilityRole="button"
           accessibilityLabel="Accept this spot"
-          accessibilityState={{ disabled: pending !== null }}
-          style={({ pressed }) => [
-            styles.button,
-            { backgroundColor: Brand.green },
-            pressed && { opacity: 0.85 },
-            pending !== null && styles.disabled,
-          ]}
-        >
-          {pending === "accept" ? (
-            <ActivityIndicator size="small" color={Brand.accent} />
-          ) : (
-            <Text style={[styles.buttonText, { color: Brand.accent }]}>
-              Yes, I&apos;ll take it
-            </Text>
-          )}
-        </Pressable>
+          style={styles.button}
+        />
       </View>
     </View>
   );
@@ -151,7 +126,7 @@ export function WaitlistOfferCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: Radius.card,
     borderWidth: 1.5,
     padding: 16,
     gap: 14,
@@ -168,8 +143,8 @@ const styles = StyleSheet.create({
   title: { fontFamily: FontFamily.headingBold, fontSize: 17, lineHeight: 22 },
   body: {
     fontFamily: FontFamily.regular,
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     marginTop: 4,
   },
   errorRow: { flexDirection: "row", alignItems: "center", gap: 7 },
@@ -180,17 +155,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   actions: { flexDirection: "row", gap: 10 },
-  button: {
-    flex: 1,
-    // Comfortably past the 44pt minimum: this is a decision with a deadline,
-    // not somewhere to make people aim.
-    minHeight: 48,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-  secondary: { borderWidth: StyleSheet.hairlineWidth },
-  buttonText: { fontFamily: FontFamily.semiBold, fontSize: 15 },
-  disabled: { opacity: 0.5 },
+  // md draws at 48pt, comfortably past the 44pt minimum: this is a decision
+  // with a deadline, not somewhere to make people aim. Both stretch to the
+  // taller one when a label wraps at large text sizes.
+  button: { flex: 1, alignSelf: "stretch", paddingHorizontal: 14 },
 });

@@ -2440,7 +2440,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyFriendsMeta: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: FontFamily.regular,
     textAlign: "center",
   },
@@ -2524,7 +2524,7 @@ const styles = StyleSheet.create({
     height: 1,
   },
   subsectionLabel: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontFamily: FontFamily.bold,
     letterSpacing: 1.5,
   },

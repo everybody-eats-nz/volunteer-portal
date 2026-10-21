@@ -3,26 +3,26 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { ThemedText } from "@/components/themed-text";
 import { OdometerCapture } from "@/components/van/odometer-capture";
-import { DriveFlowScreen, FlowHeader } from "@/components/van/van-chrome";
+import { DriveFlowScreen, FlowHeader, FlowScroll } from "@/components/van/van-chrome";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { Brand, Colors, FontFamily, Palette, Radius } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useKeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
 import { useTrip } from "@/hooks/use-van";
 import { queryKeys } from "@/lib/query-keys";
 import { endTrip, setTripNotes, type TripDetail } from "@/lib/van";
@@ -193,12 +193,10 @@ export default function TripScreen() {
           knownReading={data.startOdo}
           submitLabel="End trip"
           submitting={submitting}
+          error={error}
           onSubmit={(odo, photoUrl) => void close(odo, photoUrl, false)}
           key={data.id}
         />
-        {error ? (
-          <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
-        ) : null}
 
         <WarningSheet
           warning={warning}
@@ -251,6 +249,10 @@ function TripDetailView({
   const [savingNote, setSavingNote] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
   const open = trip.status === "OPEN";
+  const keyboardScroll = useKeyboardAwareScroll();
+  // The note and its "Note saved" line come up together.
+  const noteRef = useRef<View>(null);
+  const revealNote = keyboardScroll.inputProps(noteRef);
 
   async function saveNote() {
     setSavingNote(true);
@@ -275,78 +277,79 @@ function TripDetailView({
         subtitle={`${trip.vehicleRego} · ${trip.dayLabel}`}
         onBack={onBack}
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.flex}
+      <FlowScroll
+        keyboardScroll={keyboardScroll}
+        contentContainerStyle={styles.detailScroll}
+        footer={
+          open ? <Button label="End trip" onPress={onEnd} size="lg" fullWidth /> : null
+        }
       >
-        <ScrollView
-          contentContainerStyle={styles.detailScroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.detailEyebrow}>
-            <Eyebrow color={colors.textSecondary}>
-              {open
-                ? justStarted
-                  ? "Trip started"
-                  : "On a trip"
-                : trip.flagged
-                  ? "Logged · flagged for the office"
-                  : "Logged"}
-            </Eyebrow>
-          </View>
-
-          <Text style={[styles.detailNumber, { color: colors.text }]}>
-            {open ? `${trip.startOdoLabel} km` : trip.distanceLabel}
-          </Text>
-          <Text style={[styles.detailCaption, { color: colors.textSecondary }]}>
+        <View style={styles.detailEyebrow}>
+          <Eyebrow color={colors.textSecondary}>
             {open
-              ? `on the dial when you left, ${trip.sinceLabel}`
-              : `${trip.startOdoLabel} → ${trip.endOdoLabel} km${
-                  trip.durationLabel ? ` · ${trip.durationLabel}` : ""
-                }`}
-          </Text>
+              ? justStarted
+                ? "Trip started"
+                : "On a trip"
+              : trip.flagged
+                ? "Logged · flagged for the office"
+                : "Logged"}
+          </Eyebrow>
+        </View>
 
-          <View
-            style={[
-              styles.factCard,
-              {
-                backgroundColor: isDark ? colors.surfaceSoft : Palette.cream100,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Fact label="For" value={trip.orgLabel} colors={colors} />
-            <Fact label="Doing" value={trip.purposeLabel} colors={colors} />
-            <Fact
-              label="Started"
-              value={`${trip.dayLabel}, ${trip.startedAtLabel}`}
-              colors={colors}
-            />
-            {trip.endedAtLabel ? (
-              <Fact label="Ended" value={trip.endedAtLabel} colors={colors} last />
-            ) : null}
-          </View>
+        <Text style={[styles.detailNumber, { color: colors.text }]}>
+          {open ? `${trip.startOdoLabel} km` : trip.distanceLabel}
+        </Text>
+        <ThemedText style={[styles.detailCaption, { color: colors.textSecondary }]}>
+          {open
+            ? `on the dial when you left, ${trip.sinceLabel}`
+            : `${trip.startOdoLabel} → ${trip.endOdoLabel} km${
+                trip.durationLabel ? ` · ${trip.durationLabel}` : ""
+              }`}
+        </ThemedText>
 
-          {trip.flagged && !trip.isMine ? (
-            <Text style={[styles.note, { color: colors.textSecondary }]}>
-              You closed this trip on your way into the van. Its end time is when
-              the van went out again, so the office checks it.
-            </Text>
+        <View
+          style={[
+            styles.factCard,
+            {
+              backgroundColor: isDark ? colors.surfaceSoft : Palette.cream100,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Fact label="For" value={trip.orgLabel} colors={colors} />
+          <Fact label="Doing" value={trip.purposeLabel} colors={colors} />
+          <Fact
+            label="Started"
+            value={`${trip.dayLabel}, ${trip.startedAtLabel}`}
+            colors={colors}
+          />
+          {trip.endedAtLabel ? (
+            <Fact label="Ended" value={trip.endedAtLabel} colors={colors} last />
           ) : null}
+        </View>
 
-          <Photos trip={trip} colors={colors} isDark={isDark} />
+        {trip.flagged && !trip.isMine ? (
+          <ThemedText style={[styles.note, { color: colors.textSecondary }]}>
+            You closed this trip on your way into the van. Its end time is when
+            the van went out again, so the office checks it.
+          </ThemedText>
+        ) : null}
 
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-            NOTE FOR THE OFFICE — OPTIONAL
-          </Text>
+        <Photos trip={trip} colors={colors} isDark={isDark} />
+
+        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+          NOTE FOR THE OFFICE — OPTIONAL
+        </Text>
+        <View ref={noteRef}>
           <TextInput
             value={note}
             onChangeText={(value) => {
               setNote(value);
               setNoteSaved(false);
             }}
-            onBlur={() => {
+            onFocus={revealNote.onFocus}
+            onBlur={(event) => {
+              revealNote.onBlur(event);
               if (note.trim() !== (trip.notes ?? "").trim()) void saveNote();
             }}
             placeholder="Anything worth knowing — a warning light, a detour"
@@ -363,22 +366,16 @@ function TripDetailView({
             ]}
           />
           {savingNote ? (
-            <Text style={[styles.noteState, { color: colors.textSecondary }]}>
+            <ThemedText style={[styles.noteState, { color: colors.textSecondary }]}>
               Saving…
-            </Text>
+            </ThemedText>
           ) : noteSaved ? (
-            <Text style={[styles.noteState, { color: colors.textSecondary }]}>
+            <ThemedText style={[styles.noteState, { color: colors.textSecondary }]}>
               Note saved
-            </Text>
+            </ThemedText>
           ) : null}
-        </ScrollView>
-
-        {open ? (
-          <View style={styles.detailActions}>
-            <Button label="End trip" onPress={onEnd} size="lg" fullWidth />
-          </View>
-        ) : null}
-      </KeyboardAvoidingView>
+        </View>
+      </FlowScroll>
     </DriveFlowScreen>
   );
 }
@@ -402,9 +399,9 @@ function Fact({
       ]}
     >
       <Text style={[styles.factLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[styles.factValue, { color: colors.text }]} numberOfLines={2}>
+      <ThemedText style={[styles.factValue, { color: colors.text }]} numberOfLines={2}>
         {value}
-      </Text>
+      </ThemedText>
     </View>
   );
 }
@@ -532,7 +529,6 @@ function WarningSheet({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   centre: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   tick: {
@@ -571,13 +567,13 @@ const styles = StyleSheet.create({
   },
   detailCaption: {
     fontFamily: FontFamily.regular,
-    fontSize: 14.5,
+    fontSize: 15,
     lineHeight: 21,
     marginTop: 4,
   },
 
   factCard: {
-    borderRadius: 24,
+    borderRadius: Radius.card,
     borderWidth: 1,
     paddingHorizontal: 18,
     marginTop: 24,
@@ -588,12 +584,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 1.6,
   },
-  factValue: { fontFamily: FontFamily.regular, fontSize: 15.5, lineHeight: 21 },
+  factValue: { fontFamily: FontFamily.regular, fontSize: 16, lineHeight: 22 },
 
   note: {
     fontFamily: FontFamily.regular,
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     marginTop: 16,
   },
 
@@ -622,10 +618,10 @@ const styles = StyleSheet.create({
   },
   noteState: {
     fontFamily: FontFamily.regular,
-    fontSize: 12.5,
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: 8,
   },
-  detailActions: { paddingTop: 12 },
 
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(9,26,17,0.55)" },
   sheet: {

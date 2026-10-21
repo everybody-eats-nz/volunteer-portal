@@ -6,10 +6,9 @@ import {
   WebBrowserPresentationStyle,
 } from "expo-web-browser";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -19,11 +18,13 @@ import {
   View,
 } from "react-native";
 
+import { ThemedText } from "@/components/themed-text";
 import { OdometerCapture } from "@/components/van/odometer-capture";
-import { DriveFlowScreen, FlowHeader } from "@/components/van/van-chrome";
+import { DriveFlowScreen, FlowHeader, FlowScroll } from "@/components/van/van-chrome";
 import { Button } from "@/components/ui/button";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { Brand, Colors, FontFamily, Palette, Radius } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useKeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
 import { useDriveHome, useDriverState, useVan } from "@/hooks/use-van";
 import { API_URL } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
@@ -90,6 +91,12 @@ export default function StartTripScreen() {
   }, [options]);
 
   const [organisationId, setOrganisationId] = useState<string | null>(null);
+
+  // The typing steps (a purpose's note, a borrowed van) only scroll to keep
+  // the field clear of the keyboard. The whole form is each field's group, so
+  // Start trip comes up with it whenever both fit above the keyboard.
+  const keyboardScroll = useKeyboardAwareScroll();
+  const formRef = useRef<View>(null);
 
   async function commit(input: {
     organisationId: string;
@@ -210,11 +217,11 @@ export default function StartTripScreen() {
             ]}
           >
             <Ionicons name="swap-horizontal" size={18} color={colors.tint} />
-            <Text style={[styles.handoverText, { color: colors.textSecondary }]}>
+            <ThemedText style={[styles.handoverText, { color: colors.textSecondary }]}>
               {openTrip.isMine
                 ? `Your last trip in this van has been open ${openTrip.sinceLabel}. The reading you photograph ends it and starts this one.`
                 : `${openTrip.holderFirstName} has had this van out ${openTrip.sinceLabel}. The reading you photograph closes their trip and opens yours.`}
-            </Text>
+            </ThemedText>
           </View>
         ) : null}
         <OdometerCapture
@@ -328,49 +335,49 @@ export default function StartTripScreen() {
       return (
         <DriveFlowScreen testID="van-start-purpose-note">
           {header}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.formBody}
-          >
-            <Text style={[styles.question, { color: colors.text }]}>
-              {noteFor.label} — what is it?
-            </Text>
-            <TextInput
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholder="A few words is plenty"
-              placeholderTextColor={colors.textSecondary}
-              autoFocus
-              multiline
-              accessibilityLabel={`What the ${noteFor.label} trip is for`}
-              style={[
-                styles.input,
-                styles.inputTall,
-                {
-                  backgroundColor: isDark ? colors.surfaceSoft : Palette.cream100,
-                  borderColor: colors.border,
-                  color: colors.text,
-                },
-              ]}
-            />
-            <View style={styles.formActions}>
-              <Button
-                label="Start trip"
-                onPress={() =>
-                  commit({
-                    organisationId: organisationId!,
-                    externalOrgName: null,
-                    purposeId: noteFor.id,
-                    purposeOther: noteText.trim() || null,
-                  })
-                }
-                size="lg"
-                fullWidth
-                loading={submitting}
-                disabled={noteText.trim().length < 3}
+          <FlowScroll keyboardScroll={keyboardScroll}>
+            <View ref={formRef} style={styles.formBody}>
+              <Text style={[styles.question, { color: colors.text }]}>
+                {noteFor.label} — what is it?
+              </Text>
+              <TextInput
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholder="A few words is plenty"
+                placeholderTextColor={colors.textSecondary}
+                autoFocus
+                multiline
+                accessibilityLabel={`What the ${noteFor.label} trip is for`}
+                {...keyboardScroll.inputProps(formRef)}
+                style={[
+                  styles.input,
+                  styles.inputTall,
+                  {
+                    backgroundColor: isDark ? colors.surfaceSoft : Palette.cream100,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
               />
+              <View style={styles.formActions}>
+                <Button
+                  label="Start trip"
+                  onPress={() =>
+                    commit({
+                      organisationId: organisationId!,
+                      externalOrgName: null,
+                      purposeId: noteFor.id,
+                      purposeOther: noteText.trim() || null,
+                    })
+                  }
+                  size="lg"
+                  fullWidth
+                  loading={submitting}
+                  disabled={noteText.trim().length < 3}
+                />
+              </View>
             </View>
-          </KeyboardAvoidingView>
+          </FlowScroll>
         </DriveFlowScreen>
       );
     }
@@ -426,15 +433,8 @@ export default function StartTripScreen() {
   return (
     <DriveFlowScreen testID="van-start-external">
       {header}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.formBody}
-      >
-        <ScrollView
-          contentContainerStyle={styles.formScroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+      <FlowScroll keyboardScroll={keyboardScroll}>
+        <View ref={formRef} style={styles.formBody}>
           <Text style={[styles.question, { color: colors.text }]}>
             {isCatchAll ? "Who has it, and what for?" : "What is it doing?"}
           </Text>
@@ -451,6 +451,7 @@ export default function StartTripScreen() {
                 placeholderTextColor={colors.textSecondary}
                 autoFocus
                 accessibilityLabel="Who is borrowing the van"
+                {...keyboardScroll.inputProps(formRef)}
                 style={[
                   styles.input,
                   {
@@ -474,6 +475,7 @@ export default function StartTripScreen() {
             autoFocus={!isCatchAll}
             multiline
             accessibilityLabel="What the van is being used for"
+            {...keyboardScroll.inputProps(formRef)}
             style={[
               styles.input,
               styles.inputTall,
@@ -488,26 +490,26 @@ export default function StartTripScreen() {
           {error ? (
             <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
           ) : null}
-        </ScrollView>
 
-        <View style={styles.formActions}>
-          <Button
-            label="Start trip"
-            onPress={() =>
-              commit({
-                organisationId: organisationId!,
-                externalOrgName: isCatchAll ? externalName.trim() : null,
-                purposeId: null,
-                purposeOther: externalUse.trim(),
-              })
-            }
-            size="lg"
-            fullWidth
-            loading={submitting}
-            disabled={!canSubmitExternal}
-          />
+          <View style={styles.formActions}>
+            <Button
+              label="Start trip"
+              onPress={() =>
+                commit({
+                  organisationId: organisationId!,
+                  externalOrgName: isCatchAll ? externalName.trim() : null,
+                  purposeId: null,
+                  purposeOther: externalUse.trim(),
+                })
+              }
+              size="lg"
+              fullWidth
+              loading={submitting}
+              disabled={!canSubmitExternal}
+            />
+          </View>
         </View>
-      </KeyboardAvoidingView>
+      </FlowScroll>
     </DriveFlowScreen>
   );
 }
@@ -545,6 +547,7 @@ function ChoiceRow({
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={caption ? `${label}. ${caption}` : label}
+      android_ripple={{ color: colors.border }}
       style={({ pressed }) => [
         styles.choice,
         {
@@ -627,9 +630,11 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 18,
     paddingHorizontal: 20,
-    borderRadius: 24,
+    borderRadius: Radius.card,
     borderWidth: 1,
     minHeight: 64,
+    // Keeps the Android ripple inside the rounded row.
+    overflow: "hidden",
   },
   choiceBody: { flex: 1, gap: 2 },
   choiceLabel: { fontFamily: FontFamily.semiBold, fontSize: 17 },
@@ -640,19 +645,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
     padding: 16,
-    borderRadius: 22,
+    borderRadius: Radius.card,
     borderWidth: 1,
     marginBottom: 22,
   },
   handoverText: {
     flex: 1,
     fontFamily: FontFamily.regular,
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
   },
 
-  formBody: { flex: 1 },
-  formScroll: { paddingBottom: 24 },
+  formBody: { flexGrow: 1 },
   fieldLabel: {
     fontFamily: FontFamily.semiBold,
     fontSize: 11,

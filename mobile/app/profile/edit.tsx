@@ -2044,7 +2044,7 @@ const s = StyleSheet.create({
   },
   fieldErrorText: {
     flex: 1,
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: FontFamily.medium,
     lineHeight: 17,
   },

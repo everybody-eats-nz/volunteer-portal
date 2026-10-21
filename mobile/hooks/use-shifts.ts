@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 
 import { api } from "@/lib/api";
 import { syncShifts } from "@/lib/calendar-sync";
+import { loadErrorKind, type LoadErrorKind } from "@/lib/load-error";
 import type { Shift } from "@/lib/dummy-data";
 import { queryKeys } from "@/lib/query-keys";
 import { normalizeSignupStatus, type SignupStatus } from "@/lib/signup-status";
@@ -106,6 +107,8 @@ type UseShiftsReturn = {
   past: Shift[];
   isLoading: boolean;
   error: string | null;
+  /** Why the load failed (offline or a server error), from the raw error. */
+  errorKind: LoadErrorKind | null;
   refresh: () => Promise<void>;
   loadMorePast: () => Promise<void>;
   hasMorePast: boolean;
@@ -242,6 +245,7 @@ export function useShifts(): UseShiftsReturn {
         ? query.error.message
         : "Failed to load shifts"
       : null,
+    errorKind: query.error ? loadErrorKind(query.error) : null,
     refresh: async () => {
       await query.refetch();
     },

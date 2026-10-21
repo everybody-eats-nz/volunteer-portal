@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { loadErrorKind, type LoadErrorKind } from "@/lib/load-error";
 import type { Shift, ShiftSignup } from "@/lib/dummy-data";
 import { queryKeys } from "@/lib/query-keys";
 import type { DayLeads } from "@/hooks/use-shifts";
@@ -139,6 +140,8 @@ type UseShiftDetailReturn = {
   eligibility: ShiftEligibility | null;
   isLoading: boolean;
   error: string | null;
+  /** Why the detail load failed (gone, offline or a server error), from the raw error. */
+  errorKind: LoadErrorKind | null;
   refresh: () => Promise<void>;
 };
 
@@ -216,6 +219,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
         ? detail.error.message
         : "Failed to load shift details"
       : null,
+    errorKind: detail.error ? loadErrorKind(detail.error) : null,
     refresh: async () => {
       await Promise.all([detail.refetch(), concurrent.refetch()]);
     },

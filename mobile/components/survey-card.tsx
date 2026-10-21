@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { Colors, FontFamily } from "@/constants/theme";
+import { Colors, FontFamily, Radius, Tones } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSurveyDraftStore } from "@/hooks/use-survey-drafts";
 import type { PendingSurvey } from "@/lib/surveys";
@@ -28,6 +28,7 @@ export function SurveyCard({
 }) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+  const forestTone = Tones[colorScheme].forest;
   // Answers they have already given are kept for this session, so say so.
   const started = useSurveyDraftStore(
     (state) => state.drafts[survey.token] !== undefined
@@ -42,11 +43,11 @@ export function SurveyCard({
       ]}
     >
       <View style={styles.headRow}>
-        <View style={[styles.badge, { backgroundColor: colors.primaryLight }]}>
+        <View style={[styles.badge, { backgroundColor: forestTone.bg }]}>
           <Ionicons
             name="chatbubble-ellipses-outline"
             size={19}
-            color={colors.tint}
+            color={forestTone.fg}
           />
         </View>
         <View style={styles.headText}>
@@ -82,9 +83,16 @@ export function SurveyCard({
           hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
           accessibilityRole="button"
           accessibilityLabel={`Don't ask again about the survey: ${survey.title}`}
+          android_ripple={{
+            color:
+              colorScheme === "dark"
+                ? "rgba(253,248,239,0.12)"
+                : "rgba(29,83,55,0.12)",
+            borderless: true,
+          }}
           style={({ pressed }) => [
             styles.dismiss,
-            { opacity: pressed ? 0.6 : 1 },
+            { opacity: pressed && Platform.OS === "ios" ? 0.6 : 1 },
           ]}
         >
           <Text style={[styles.dismissText, { color: colors.textSecondary }]}>
@@ -98,7 +106,7 @@ export function SurveyCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
+    borderRadius: Radius.card,
     borderWidth: 1,
     padding: 18,
     gap: 12,
@@ -107,7 +115,7 @@ const styles = StyleSheet.create({
   badge: {
     width: 40,
     height: 40,
-    borderRadius: 14,
+    borderRadius: Radius.tile,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -133,6 +141,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   dismiss: {
+    // 40pt + the 12pt vertical hitSlop clears the 44pt minimum.
     minHeight: 40,
     justifyContent: "center",
   },

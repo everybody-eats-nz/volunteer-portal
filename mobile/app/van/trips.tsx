@@ -1,12 +1,23 @@
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { DriveFlowScreen, FlowHeader } from "@/components/van/van-chrome";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { EmptyState, ErrorState } from "@/components/ui/state-view";
 import { Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTripHistory } from "@/hooks/use-van";
+import { loadErrorKind } from "@/lib/load-error";
 
 /**
  * The driver's own trip history.
@@ -19,9 +30,30 @@ export default function TripHistoryScreen() {
   const colors = Colors[useColorScheme()];
   const router = useRouter();
   const history = useTripHistory();
+  // Only a pull (or a retry) shows the spinner, not "Load more" or a
+  // background refetch.
+  const [refreshing, setRefreshing] = useState(false);
+  const { refetch } = history;
+  const pullToRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const days = history.data?.pages.flatMap((page) => page.days) ?? [];
   const total = history.data?.pages.reduce((sum, page) => sum + page.pageKm, 0) ?? 0;
+  // A failed refetch keeps the trips already shown; only a first load that
+  // failed gets the error state. There is no single record to be "not found"
+  // here, so a 404 reads as a failed load too.
+  const failedKind =
+    history.isError && !history.data
+      ? loadErrorKind(history.error) === "offline"
+        ? "offline"
+        : "error"
+      : null;
 
   return (
     <DriveFlowScreen testID="van-trip-history">
@@ -29,6 +61,15 @@ export default function TripHistoryScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={pullToRefresh}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
+          />
+        }
       >
         {days.length > 0 ? (
           <View style={styles.total}>
@@ -57,6 +98,7 @@ export default function TripHistoryScreen() {
                 }
                 accessibilityRole="button"
                 accessibilityLabel={`${trip.purposeLabel}, ${trip.subtitle}, ${trip.distanceLabel}`}
+                android_ripple={{ color: colors.border }}
                 style={({ pressed }) => [
                   styles.row,
                   { borderColor: colors.border, opacity: pressed ? 0.65 : 1 },
@@ -89,10 +131,22 @@ export default function TripHistoryScreen() {
           <ActivityIndicator color={colors.tint} style={styles.spinner} />
         ) : null}
 
-        {!history.isLoading && days.length === 0 ? (
-          <Text style={[styles.empty, { color: colors.textSecondary }]}>
-            No trips logged yet. The first van you take out shows up here.
-          </Text>
+        {failedKind ? (
+          <ErrorState
+            kind={failedKind}
+            onRetry={pullToRefresh}
+            retrying={refreshing}
+            testID="van-trip-history-error"
+          />
+        ) : null}
+
+        {!history.isLoading && !failedKind && days.length === 0 ? (
+          <EmptyState
+            icon="car-outline"
+            title="No trips yet"
+            body="The first van you take out shows up here."
+            testID="van-trip-history-empty"
+          />
         ) : null}
 
         {history.hasNextPage ? (
@@ -112,7 +166,8 @@ export default function TripHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: 32 },
+  // flexGrow lets an empty or error state centre in the space under the header.
+  scroll: { flexGrow: 1, paddingBottom: 32 },
   total: { flexDirection: "row", alignItems: "baseline", gap: 10, marginBottom: 26 },
   totalNumber: {
     fontFamily: FontFamily.display,
@@ -133,7 +188,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   rowBody: { flex: 1, gap: 2 },
-  rowTitle: { fontFamily: FontFamily.semiBold, fontSize: 15.5 },
+  rowTitle: { fontFamily: FontFamily.semiBold, fontSize: 16 },
   rowMeta: { fontFamily: FontFamily.regular, fontSize: 13 },
   rowKm: {
     fontFamily: FontFamily.semiBold,
@@ -141,11 +196,5 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   spinner: { marginTop: 24 },
-  empty: {
-    fontFamily: FontFamily.regular,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 20,
-  },
   more: { marginTop: 8 },
 });

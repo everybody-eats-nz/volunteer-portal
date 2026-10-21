@@ -4,6 +4,7 @@ import {
   Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,8 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/state-view";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -55,7 +58,7 @@ export function AgreementModal({
   // still unlock the agree button.
   const viewportH = useRef(0);
 
-  const surface = isDark ? "#15181d" : Brand.warmWhite;
+  const surface = isDark ? colors.card : colors.background;
   const headerStroke = isDark
     ? "rgba(255,255,255,0.08)"
     : "rgba(14,58,35,0.10)";
@@ -118,9 +121,14 @@ export function AgreementModal({
           </ThemedText>
           <Pressable
             onPress={handleClose}
-            hitSlop={12}
+            // 36pt circle + 4pt slop each side = a 44pt target.
+            hitSlop={4}
             accessibilityRole="button"
             accessibilityLabel="Close"
+            android_ripple={{
+              color: isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.12)",
+              borderless: true,
+            }}
             style={[
               styles.closeBtn,
               {
@@ -137,34 +145,17 @@ export function AgreementModal({
         {/* Body */}
         {loading ? (
           <View style={styles.centerFill}>
-            <ActivityIndicator color={Brand.green} />
+            <ActivityIndicator color={colors.tint} />
             <ThemedText style={[styles.centerText, { color: mutedText }]}>
               Loading the agreement…
             </ThemedText>
           </View>
         ) : error ? (
-          <View style={styles.centerFill}>
-            <Ionicons
-              name="cloud-offline-outline"
-              size={32}
-              color={mutedText}
-            />
-            <ThemedText style={[styles.centerText, { color: mutedText }]}>
-              Couldn&apos;t load the agreement.
-            </ThemedText>
-            <Pressable
-              onPress={onRetry}
-              style={({ pressed }) => [
-                styles.retryBtn,
-                { borderColor: Brand.green, opacity: pressed ? 0.85 : 1 },
-              ]}
-            >
-              <Ionicons name="refresh" size={16} color={Brand.green} />
-              <ThemedText style={[styles.retryText, { color: Brand.green }]}>
-                Try again
-              </ThemedText>
-            </Pressable>
-          </View>
+          <ErrorState
+            kind="offline"
+            title="Couldn't load the agreement"
+            onRetry={onRetry}
+          />
         ) : (
           <ScrollView
             style={{ flex: 1 }}
@@ -206,27 +197,17 @@ export function AgreementModal({
               </ThemedText>
             </Animated.View>
           )}
-          <Pressable
+          <Button
+            label={canAgree ? "I agree" : "Read the full agreement"}
             onPress={handleAgree}
+            size="lg"
+            fullWidth
+            icon={canAgree ? "checkmark-circle" : undefined}
+            iconLeading
             disabled={!canAgree}
-            style={({ pressed }) => [
-              styles.agreeBtn,
-              {
-                backgroundColor: Brand.green,
-                opacity: !canAgree ? 0.45 : pressed ? 0.9 : 1,
-                transform: [{ scale: pressed ? 0.985 : 1 }],
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: !canAgree }}
-          >
-            {canAgree && (
-              <Ionicons name="checkmark-circle" size={20} color={Brand.accent} />
-            )}
-            <ThemedText style={styles.agreeBtnText}>
-              {canAgree ? "I agree" : "Read the full agreement"}
-            </ThemedText>
-          </Pressable>
+            // handleAgree fires a success haptic of its own.
+            haptic={false}
+          />
         </View>
       </View>
     </Modal>
@@ -254,15 +235,20 @@ export function AgreementGate({
   mutedText: string;
   textColor: string;
 }) {
+  const scheme = useColorScheme();
+  const tint = Colors[scheme].tint;
   return (
     <Pressable
       onPress={onPress}
+      android_ripple={{
+        color: scheme === "dark" ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.12)",
+      }}
       style={({ pressed }) => [
         gateStyles.gate,
         {
           backgroundColor: inputBg,
-          borderColor: agreed ? Brand.green : inputStroke,
-          opacity: pressed ? 0.85 : 1,
+          borderColor: agreed ? tint : inputStroke,
+          opacity: pressed && Platform.OS === "ios" ? 0.85 : 1,
         },
       ]}
       accessibilityRole="button"
@@ -289,13 +275,13 @@ export function AgreementGate({
           {title}
         </ThemedText>
         <ThemedText style={[gateStyles.gateSub, { color: mutedText }]}>
-          {agreed ? "Agreed — tap to review" : "Tap to read & agree"}
+          {agreed ? "Agreed - tap to review" : "Tap to read & agree"}
         </ThemedText>
       </View>
       <Ionicons
         name={agreed ? "document-text" : "chevron-forward"}
         size={20}
-        color={agreed ? Brand.green : mutedText}
+        color={agreed ? tint : mutedText}
       />
     </Pressable>
   );
@@ -311,6 +297,8 @@ const gateStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     minHeight: 60,
+    // Clips the Android ripple to the row.
+    overflow: "hidden",
   },
   gateCheck: {
     width: 26,
@@ -327,7 +315,8 @@ const gateStyles = StyleSheet.create({
   },
   gateSub: {
     fontFamily: FontFamily.regular,
-    fontSize: 12.5,
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: 1,
   },
 });
@@ -397,7 +386,7 @@ function MarkdownBlock({
   if (block.kind === "bullet") {
     return (
       <View style={styles.bulletRow}>
-        <ThemedText style={[styles.bulletDot, { color: Brand.green }]}>
+        <ThemedText style={[styles.bulletDot, { color: colors.tint }]}>
           {"•"}
         </ThemedText>
         <ThemedText style={[styles.bodyText, { color: colors.text }]}>
@@ -478,20 +467,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
   },
-  retryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    marginTop: 4,
-  },
-  retryText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 14,
-  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 18,
@@ -521,7 +496,7 @@ const styles = StyleSheet.create({
   bodyText: {
     flex: 1,
     fontFamily: FontFamily.regular,
-    fontSize: 14.5,
+    fontSize: 15,
     lineHeight: 22,
     marginBottom: 8,
   },
@@ -556,20 +531,5 @@ const styles = StyleSheet.create({
   scrollHintText: {
     fontFamily: FontFamily.medium,
     fontSize: 13,
-  },
-  agreeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    minHeight: 54,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-  },
-  agreeBtnText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 16,
-    color: "#fffdf7",
-    letterSpacing: 0.2,
   },
 });

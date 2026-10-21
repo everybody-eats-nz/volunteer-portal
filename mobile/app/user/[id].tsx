@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,9 +21,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 
-import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
+import { EmptyState, ErrorState } from "@/components/ui/state-view";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { Colors, FontFamily, Palette, Radius } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useUserProfile,
@@ -68,7 +70,19 @@ export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
-  const { profile, isLoading, error, setProfile, refresh } = useUserProfile(id);
+  const { profile, isLoading, errorKind, setProfile, refresh } =
+    useUserProfile(id);
+  // Only a pull (or a retry) shows the spinner; the refetch after accepting a
+  // request stays quiet.
+  const [refreshing, setRefreshing] = useState(false);
+  const pullToRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refresh]);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -320,38 +334,38 @@ export default function UserProfileScreen() {
       <>
         <Stack.Screen options={{ headerTintColor: colors.text }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       </>
     );
   }
 
-  if (error || !profile) {
+  // A failed refetch keeps the profile already on screen; only a profile we
+  // never got shows a state. A 404 means the volunteer is gone (or hidden);
+  // anything else is a failed load worth retrying.
+  if (!profile) {
+    const missing = !errorKind || errorKind === "not-found";
     return (
       <>
         <Stack.Screen options={{ headerTintColor: colors.text }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
-          <View
-            style={[s.notFoundIcon, { backgroundColor: colors.surfaceSoft }]}
-          >
-            <Ionicons
-              name="person-outline"
-              size={32}
-              color={colors.textSecondary}
+          {missing ? (
+            <EmptyState
+              icon="person-outline"
+              title="Volunteer not found"
+              body="Their profile may have been removed."
+              action={{ label: "Go back", onPress: () => goBackOrHome() }}
+              testID="user-profile-not-found"
             />
-          </View>
-          <ThemedText type="subtitle" style={{ marginTop: 12 }}>
-            Volunteer not found
-          </ThemedText>
-          <Pressable
-            onPress={() => goBackOrHome()}
-            style={({ pressed }) => [
-              s.backButton,
-              { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <Text style={s.backButtonText}>Go back</Text>
-          </Pressable>
+          ) : (
+            <ErrorState
+              kind={errorKind}
+              onRetry={pullToRefresh}
+              retrying={refreshing}
+              secondaryAction={{ label: "Go back", onPress: () => goBackOrHome() }}
+              testID="user-profile-error"
+            />
+          )}
         </View>
       </>
     );
@@ -377,6 +391,15 @@ export default function UserProfileScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={pullToRefresh}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
+          />
+        }
       >
         {/* ═══ Who they are ═══ */}
         <Cover
@@ -400,7 +423,6 @@ export default function UserProfileScreen() {
               onAcceptRequest={handleAcceptRequest}
               onDeclineRequest={handleDeclineRequest}
               colors={colors}
-              isDark={isDark}
             />
           )}
 
@@ -668,7 +690,6 @@ function FriendshipAction({
   onAcceptRequest,
   onDeclineRequest,
   colors,
-  isDark,
 }: {
   profile: UserProfile;
   firstName: string;
@@ -678,11 +699,7 @@ function FriendshipAction({
   onAcceptRequest: () => void;
   onDeclineRequest: () => void;
   colors: ThemeColors;
-  isDark: boolean;
 }) {
-  const primaryBg = isDark ? Brand.accent : Brand.green;
-  const primaryFg = isDark ? Palette.ink : Palette.cream50;
-
   if (profile.friendshipStatus === "REQUEST_SENT") {
     return (
       <View style={[s.panel, { backgroundColor: colors.card }]}>
@@ -707,47 +724,23 @@ function FriendshipAction({
           colors={colors}
         />
         <View style={s.requestButtons}>
-          <Pressable
+          <Button
+            label="Decline"
+            variant="destructive"
             onPress={onDeclineRequest}
-            disabled={isBusy}
-            style={({ pressed }) => [
-              s.button,
-              s.buttonFlex,
-              {
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: colors.border,
-                opacity: pressed || isBusy ? 0.7 : 1,
-              },
-            ]}
-            accessibilityRole="button"
+            disabled={isBusy && respondingTo !== "decline"}
+            loading={respondingTo === "decline"}
+            style={s.buttonFlex}
             accessibilityLabel={`Decline friend request from ${firstName}`}
-          >
-            {respondingTo === "decline" ? (
-              <ActivityIndicator size="small" color={colors.text} />
-            ) : (
-              <Text style={[s.buttonText, { color: colors.text }]}>Decline</Text>
-            )}
-          </Pressable>
-          <Pressable
+          />
+          <Button
+            label="Accept"
             onPress={onAcceptRequest}
-            disabled={isBusy}
-            style={({ pressed }) => [
-              s.button,
-              s.buttonFlex,
-              {
-                backgroundColor: primaryBg,
-                opacity: pressed || isBusy ? 0.85 : 1,
-              },
-            ]}
-            accessibilityRole="button"
+            disabled={isBusy && respondingTo !== "accept"}
+            loading={respondingTo === "accept"}
+            style={s.buttonFlex}
             accessibilityLabel={`Accept friend request from ${firstName}`}
-          >
-            {respondingTo === "accept" ? (
-              <ActivityIndicator size="small" color={primaryFg} />
-            ) : (
-              <Text style={[s.buttonText, { color: primaryFg }]}>Accept</Text>
-            )}
-          </Pressable>
+          />
         </View>
       </View>
     );
@@ -767,28 +760,15 @@ function FriendshipAction({
   }
 
   return (
-    <Pressable
+    <Button
+      label="Add friend"
+      icon="person-add-outline"
+      iconLeading
       onPress={onAddFriend}
-      disabled={isSending}
-      style={({ pressed }) => [
-        s.button,
-        {
-          backgroundColor: primaryBg,
-          opacity: pressed || isSending ? 0.85 : 1,
-        },
-      ]}
-      accessibilityRole="button"
+      loading={isSending}
+      fullWidth
       accessibilityLabel={`Add ${firstName} as a friend`}
-    >
-      {isSending ? (
-        <ActivityIndicator size="small" color={primaryFg} />
-      ) : (
-        <Ionicons name="person-add-outline" size={18} color={primaryFg} />
-      )}
-      <Text style={[s.buttonText, { color: primaryFg }]}>
-        {isSending ? "Sending…" : "Add friend"}
-      </Text>
-    </Pressable>
+    />
   );
 }
 
@@ -1282,24 +1262,6 @@ const s = StyleSheet.create({
     gap: 4,
     padding: 20,
   },
-  notFoundIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
-  backButtonText: {
-    color: Palette.cream50,
-    fontFamily: FontFamily.semiBold,
-    fontSize: 15,
-  },
 
   /* ── Cover ── */
   cover: {
@@ -1410,7 +1372,7 @@ const s = StyleSheet.create({
 
   /* ── Connect ── */
   panel: {
-    borderRadius: 20,
+    borderRadius: Radius.card,
     padding: 16,
   },
   requestPanel: { gap: 16 },
@@ -1441,21 +1403,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
   },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    minHeight: 50,
-    paddingHorizontal: 20,
-    borderRadius: 999,
-  },
   buttonFlex: { flex: 1 },
-  buttonText: {
-    fontSize: 16,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: -0.1,
-  },
 
   /* ── Sections ── */
   section: { gap: 12 },
@@ -1484,7 +1432,7 @@ const s = StyleSheet.create({
 
   /* ── Grouped rows ── */
   group: {
-    borderRadius: 18,
+    borderRadius: Radius.card,
     overflow: "hidden",
   },
   groupRule: {

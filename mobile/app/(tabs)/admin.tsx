@@ -8,13 +8,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { Brand, Colors, FontFamily, MaxFontScale, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useAdminPending,
   useAdminToday,
   useAdminUnreadCount,
 } from "@/hooks/use-admin";
+import { useTeamUnreadCount } from "@/hooks/use-team-unread";
+import { useDriverState } from "@/hooks/use-van";
 import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { useAuth } from "@/lib/auth";
 
@@ -60,6 +62,13 @@ export default function AdminScreen() {
   const pending = useAdminPending(selectedLocation);
   const today = useAdminToday("", selectedLocation);
 
+  // An admin who also drives has no Help tab (it would be their sixth, and
+  // iOS would hide Profile under "More"), so Help lives here instead. Keep
+  // this condition in step with app/(tabs)/_layout.tsx.
+  const { data: driver } = useDriverState(true);
+  const helpInHub = driver?.canDrive === true;
+  const teamUnread = useTeamUnreadCount(helpInHub);
+
   const refetchAll = useCallback(() => {
     void pending.refetch();
     void today.refetch();
@@ -87,7 +96,14 @@ export default function AdminScreen() {
   const shortShifts = (today.data ?? []).filter((s) => s.fillGap > 0).length;
   const firstName = user?.name?.trim().split(/\s+/)[0] ?? "team";
 
-  const go = (path: "/admin/messages" | "/admin/shifts/today" | "/admin/approvals") => {
+  const go = (
+    path:
+      | "/admin/messages"
+      | "/admin/shifts/today"
+      | "/admin/approvals"
+      | "/help/ai"
+      | "/help/team"
+  ) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(path as Href);
   };
@@ -167,6 +183,39 @@ export default function AdminScreen() {
           />
         </View>
 
+        {helpInHub && (
+          <>
+            <View style={styles.channelEyebrow}>
+              <Eyebrow color={paperTint.eyebrow}>Get help</Eyebrow>
+            </View>
+            <View style={styles.optionList}>
+              <ActionRow
+                emoji="🌿"
+                title="Ask the AI assistant"
+                description="Instant answers, day or night"
+                onPress={() => go("/help/ai")}
+                paperTint={paperTint}
+                colors={colors}
+                firstRow
+              />
+              <ActionRow
+                emoji="💬"
+                title="Message the team"
+                description={
+                  teamUnread > 0
+                    ? `${teamUnread} new ${teamUnread === 1 ? "reply" : "replies"} from the team`
+                    : "Your own thread with the EE team"
+                }
+                badgeCount={teamUnread}
+                badgeTone="primary"
+                onPress={() => go("/help/team")}
+                paperTint={paperTint}
+                colors={colors}
+              />
+            </View>
+          </>
+        )}
+
         <View style={styles.welcomeFooter}>
           <View style={[styles.hairline, { backgroundColor: paperTint.rule, marginBottom: 14 }]} />
           <View style={styles.footerEyebrow}>
@@ -215,6 +264,7 @@ function ActionRow({
       accessibilityLabel={
         hasBadge ? `${title}. ${badgeCount}. ${description}` : `${title}. ${description}`
       }
+      android_ripple={{ color: paperTint.rule, foreground: true }}
       style={({ pressed }) => [
         styles.optionRow,
         {
@@ -227,21 +277,22 @@ function ActionRow({
       ]}
     >
       <View style={[styles.optionEmojiWrap, { backgroundColor: paperTint.accent }]}>
-        <Text style={styles.optionEmoji}>{emoji}</Text>
+        <Text style={styles.optionEmoji} maxFontSizeMultiplier={MaxFontScale.compact}>
+          {emoji}
+        </Text>
       </View>
       <View style={styles.optionBody}>
         <View style={styles.optionTitleRow}>
           <Text style={[styles.optionTitle, { color: colors.text }]}>{title}</Text>
           {hasBadge && (
             <View style={[styles.badgePill, { backgroundColor: badgeBg }]}>
-              <Text style={styles.badgePillText}>{countLabel}</Text>
+              <Text style={styles.badgePillText} maxFontSizeMultiplier={MaxFontScale.compact}>
+                {countLabel}
+              </Text>
             </View>
           )}
         </View>
-        <Text
-          style={[styles.optionDescription, { color: paperTint.inkSoft }]}
-          numberOfLines={2}
-        >
+        <Text style={[styles.optionDescription, { color: paperTint.inkSoft }]}>
           {description}
         </Text>
       </View>
@@ -298,6 +349,7 @@ const styles = StyleSheet.create({
     gap: 14,
     borderRadius: 24,
     borderWidth: 1,
+    overflow: "hidden",
   },
   optionRowSpacing: { marginTop: 12 },
   optionEmojiWrap: {
@@ -316,7 +368,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   optionTitle: { fontFamily: FontFamily.semiBold, fontSize: 17, lineHeight: 22 },
-  optionDescription: { fontFamily: FontFamily.regular, fontSize: 13.5, lineHeight: 18 },
+  optionDescription: { fontFamily: FontFamily.regular, fontSize: 14, lineHeight: 19 },
   optionArrow: {
     width: 32,
     height: 32,

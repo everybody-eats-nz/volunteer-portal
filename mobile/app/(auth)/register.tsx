@@ -22,7 +22,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
 import { AgreementGate, AgreementModal } from "@/components/agreement-modal";
 import { OAuthButtons } from "@/components/oauth-buttons";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useKeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
 import { useAuth } from "@/lib/auth";
@@ -124,14 +125,20 @@ export default function RegisterScreen({
     !isSubmitting &&
     !oauthBusy;
 
-  // Card surface tokens shared with the login screen for visual continuity.
+  // Card surface tokens shared with the login screen for visual continuity:
+  // cream paper (light) or the dark card (dark) laid over the photo.
   const cardSurface = isDark
-    ? "rgba(16, 20, 24, 0.88)"
-    : "rgba(255, 253, 247, 0.96)";
-  const cardStroke = isDark ? "rgba(255,255,255,0.08)" : "rgba(14,58,35,0.08)";
-  const inputBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(14,58,35,0.04)";
-  const inputStroke = isDark ? "rgba(255,255,255,0.10)" : "rgba(14,58,35,0.12)";
-  const mutedText = isDark ? "rgba(229,240,232,0.62)" : "rgba(16,20,24,0.56)";
+    ? "rgba(22, 24, 29, 0.90)"
+    : "rgba(253, 248, 239, 0.97)";
+  const cardStroke = isDark
+    ? "rgba(253,248,239,0.10)"
+    : "rgba(29,83,55,0.12)";
+  const inputBg = isDark ? "rgba(253,248,239,0.05)" : Palette.cream200;
+  const inputStroke = isDark
+    ? "rgba(253,248,239,0.12)"
+    : "rgba(29,83,55,0.15)";
+  const mutedText = isDark ? colors.textSecondary : "rgba(26,20,16,0.56)";
+  const rippleColor = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.12)";
 
   const windowHeight = Dimensions.get("window").height;
   const heroHeight = Math.min(Math.max(windowHeight * 0.3, 220), 340);
@@ -171,7 +178,12 @@ export default function RegisterScreen({
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? "#0b0d10" : "#f1eadc" }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: isDark ? colors.background : Palette.cream100,
+      }}
+    >
       <StatusBar style="light" />
 
       {/* Hero image — shorter than login to leave room for the longer form */}
@@ -184,9 +196,10 @@ export default function RegisterScreen({
         />
         <LinearGradient
           colors={[
-            "rgba(14,58,35,0.55)",
-            "rgba(14,58,35,0.18)",
-            isDark ? "rgba(11,13,16,0.9)" : "rgba(241,234,220,0.98)",
+            "rgba(14,42,28,0.55)",
+            "rgba(14,42,28,0.18)",
+            // Fades into the page background (colors.background / cream100).
+            isDark ? "rgba(15,17,20,0.88)" : "rgba(250,242,228,0.98)",
           ]}
           locations={[0, 0.45, 1]}
           style={StyleSheet.absoluteFill}
@@ -198,12 +211,13 @@ export default function RegisterScreen({
             Haptics.selectionAsync();
             onBackToLogin?.();
           }}
-          hitSlop={12}
+          hitSlop={4}
           accessibilityRole="button"
           accessibilityLabel="Back to sign in"
+          android_ripple={{ color: "rgba(253,248,239,0.22)", borderless: true }}
           style={[styles.backBtn, { top: insets.top + 12 }]}
         >
-          <Ionicons name="chevron-back" size={22} color="#fffdf7" />
+          <Ionicons name="chevron-back" size={22} color={Palette.cream50} />
         </Pressable>
 
         <Animated.View
@@ -215,8 +229,8 @@ export default function RegisterScreen({
           <View style={styles.greetingRow}>
             <ThemedText
               style={styles.haereMai}
-              lightColor="#fffdf7"
-              darkColor="#fffdf7"
+              lightColor={Palette.cream50}
+              darkColor={Palette.cream50}
             >
               Haere mai
             </ThemedText>
@@ -224,8 +238,8 @@ export default function RegisterScreen({
           </View>
           <ThemedText
             style={styles.tagline}
-            lightColor="#fffdf7"
-            darkColor="#fffdf7"
+            lightColor={Palette.cream50}
+            darkColor={Palette.cream50}
           >
             Join the whānau and serve up some manaaki
           </ThemedText>
@@ -418,6 +432,8 @@ export default function RegisterScreen({
                 <Pressable
                   onPress={() => setShowPassword((v) => !v)}
                   hitSlop={12}
+                  accessibilityRole="button"
+                  android_ripple={{ color: rippleColor, borderless: true }}
                   accessibilityLabel={
                     showPassword ? "Hide password" : "Show password"
                   }
@@ -445,7 +461,7 @@ export default function RegisterScreen({
                             : "ellipse-outline"
                         }
                         size={15}
-                        color={check.passed ? Brand.greenHover : mutedText}
+                        color={check.passed ? colors.tint : mutedText}
                       />
                       <ThemedText
                         style={[
@@ -501,7 +517,7 @@ export default function RegisterScreen({
                   <Ionicons
                     name={passwordsMatch ? "checkmark-circle" : "close-circle"}
                     size={20}
-                    color={passwordsMatch ? Brand.greenHover : colors.destructive}
+                    color={passwordsMatch ? colors.tint : colors.destructive}
                   />
                 )}
               </View>
@@ -541,24 +557,22 @@ export default function RegisterScreen({
           </View>
 
           {/* Submit */}
-          <Pressable
+          <Button
+            label="Create account"
             onPress={handleRegister}
-            disabled={!canSubmit}
-            style={({ pressed }) => [
-              styles.primaryBtn,
-              {
-                backgroundColor: Brand.green,
-                opacity: !canSubmit ? 0.5 : pressed ? 0.9 : 1,
-                transform: [{ scale: pressed ? 0.985 : 1 }],
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ busy: isSubmitting, disabled: !canSubmit }}
-          >
-            <ThemedText style={styles.primaryBtnText}>
-              {isSubmitting ? "Creating account…" : "Create account"}
-            </ThemedText>
-          </Pressable>
+            size="lg"
+            fullWidth
+            loading={isSubmitting}
+            // canSubmit is false while submitting; keep the spinner at full
+            // strength rather than dimmed as disabled.
+            disabled={!canSubmit && !isSubmitting}
+            // handleRegister fires its own haptic once the guard passes.
+            haptic={false}
+            accessibilityLabel={
+              isSubmitting ? "Creating account" : "Create account"
+            }
+            style={styles.submitBtn}
+          />
 
           {/* Footer */}
           <View style={styles.footer}>
@@ -566,13 +580,18 @@ export default function RegisterScreen({
               Already volunteering?
             </ThemedText>
             <Pressable
-              hitSlop={8}
+              hitSlop={12}
               onPress={() => {
                 Haptics.selectionAsync();
                 onBackToLogin?.();
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Sign in"
+              android_ripple={{ color: rippleColor, borderless: true }}
             >
-              <ThemedText style={styles.footerLink}>Sign in</ThemedText>
+              <ThemedText style={[styles.footerLink, { color: colors.tint }]}>
+                Sign in
+              </ThemedText>
             </Pressable>
           </View>
         </Animated.View>
@@ -611,6 +630,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    // 40pt circle + 4pt hitSlop = a 44pt target.
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(11,13,16,0.28)",
@@ -650,7 +670,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 14,
     paddingBottom: 24,
-    shadowColor: "#0b0d10",
+    shadowColor: Palette.forest800,
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: -6 },
@@ -742,21 +762,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingHorizontal: 2,
   },
-  primaryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    minHeight: 54,
-    borderRadius: 16,
-    paddingHorizontal: 20,
+  submitBtn: {
     marginTop: 22,
-  },
-  primaryBtnText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 16,
-    color: "#fffdf7",
-    letterSpacing: 0.2,
   },
   footer: {
     marginTop: 22,
@@ -771,6 +778,5 @@ const styles = StyleSheet.create({
   footerLink: {
     fontFamily: FontFamily.semiBold,
     fontSize: 14,
-    color: Brand.green,
   },
 });

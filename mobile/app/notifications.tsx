@@ -22,13 +22,23 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { ErrorState } from "@/components/ui/state-view";
+import {
+  Brand,
+  Colors,
+  FontFamily,
+  MaxFontScale,
+  StatusColors,
+  Tones,
+  type Tone,
+} from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useNotifications,
   type AppNotification,
   type NotificationType,
 } from "@/hooks/use-notifications";
+import { loadErrorKind } from "@/lib/load-error";
 import { navigateToNotificationTarget } from "@/lib/notification-routing";
 
 /* ─── Icon language ──────────────────────────────────────────── */
@@ -39,83 +49,44 @@ type IconSpec = {
   bg: string;
 };
 
-const ICON_MAP: Record<NotificationType, IconSpec> = {
-  FRIEND_REQUEST_RECEIVED: {
-    name: "person-add",
-    color: "#2563eb",
-    bg: "rgba(37, 99, 235, 0.12)",
-  },
-  FRIEND_REQUEST_ACCEPTED: {
-    name: "people",
-    color: "#16a34a",
-    bg: "rgba(22, 163, 74, 0.12)",
-  },
-  SHIFT_CONFIRMED: {
-    name: "checkmark-circle",
-    color: Brand.green,
-    bg: "rgba(29, 83, 55, 0.10)",
-  },
-  SHIFT_WAITLISTED: {
-    name: "time",
-    color: "#b45309",
-    bg: "rgba(180, 83, 9, 0.12)",
-  },
-  // An offer is good news with a deadline on it, so it reads as an
-  // invitation rather than as another waiting-room update.
-  SHIFT_WAITLIST_OFFER: {
-    name: "sparkles",
-    color: Brand.green,
-    bg: "rgba(29, 83, 55, 0.10)",
-  },
-  SHIFT_CANCELED: {
-    name: "close-circle",
-    color: "#b91c1c",
-    bg: "rgba(185, 28, 28, 0.12)",
-  },
-  ACHIEVEMENT_UNLOCKED: {
-    name: "trophy",
-    color: "#a16207",
-    bg: "rgba(161, 98, 7, 0.14)",
-  },
-  SHIFT_CANCELLATION_MANAGER: {
-    name: "warning",
-    color: "#b91c1c",
-    bg: "rgba(185, 28, 28, 0.12)",
-  },
-  FLEXIBLE_PLACEMENT: {
-    name: "swap-horizontal",
-    color: "#2563eb",
-    bg: "rgba(37, 99, 235, 0.12)",
-  },
-  UNDERAGE_USER_REGISTERED: {
-    name: "alert-circle",
-    color: "#6d28d9",
-    bg: "rgba(109, 40, 217, 0.12)",
-  },
-  SURVEY_ASSIGNED: {
-    name: "document-text",
-    color: "#0e7490",
-    bg: "rgba(14, 116, 144, 0.12)",
-  },
-  FEED_ITEM_LIKED: {
-    name: "heart",
-    color: "#dc2626",
-    bg: "rgba(220, 38, 38, 0.12)",
-  },
-  FEED_ITEM_COMMENTED: {
-    name: "chatbubble",
-    color: "#2563eb",
-    bg: "rgba(37, 99, 235, 0.12)",
-  },
-  FEED_ITEM_COMMENT_REPLY: {
-    name: "chatbubbles",
-    color: "#7c3aed",
-    bg: "rgba(124, 58, 237, 0.12)",
-  },
+type Scheme = "light" | "dark";
+
+/** Each type picks its hue by meaning: a status where it has one, else a tone. */
+function buildIconMap(scheme: Scheme): Record<NotificationType, IconSpec> {
+  const status = StatusColors[scheme];
+  const tones = Tones[scheme];
+  const spec = (name: IconSpec["name"], tone: Tone): IconSpec => ({
+    name,
+    color: tone.fg,
+    bg: tone.bg,
+  });
+  return {
+    FRIEND_REQUEST_RECEIVED: spec("person-add", tones.blue),
+    FRIEND_REQUEST_ACCEPTED: spec("people", tones.emerald),
+    SHIFT_CONFIRMED: spec("checkmark-circle", status.confirmed),
+    SHIFT_WAITLISTED: spec("time", status.pending),
+    // An offer is good news with a deadline on it, so it reads as an
+    // invitation rather than as another waiting-room update.
+    SHIFT_WAITLIST_OFFER: spec("sparkles", status.confirmed),
+    SHIFT_CANCELED: spec("close-circle", status.destructive),
+    ACHIEVEMENT_UNLOCKED: spec("trophy", tones.sun),
+    SHIFT_CANCELLATION_MANAGER: spec("warning", status.destructive),
+    FLEXIBLE_PLACEMENT: spec("swap-horizontal", tones.sky),
+    UNDERAGE_USER_REGISTERED: spec("alert-circle", tones.violet),
+    SURVEY_ASSIGNED: spec("document-text", tones.teal),
+    FEED_ITEM_LIKED: spec("heart", tones.pink),
+    FEED_ITEM_COMMENTED: spec("chatbubble", tones.blue),
+    FEED_ITEM_COMMENT_REPLY: spec("chatbubbles", tones.violet),
+  };
+}
+
+const ICON_MAP: Record<Scheme, Record<NotificationType, IconSpec>> = {
+  light: buildIconMap("light"),
+  dark: buildIconMap("dark"),
 };
 
-function iconFor(type: NotificationType): IconSpec {
-  return ICON_MAP[type] ?? ICON_MAP.FRIEND_REQUEST_RECEIVED;
+function iconFor(type: NotificationType, scheme: Scheme): IconSpec {
+  return ICON_MAP[scheme][type] ?? ICON_MAP[scheme].FRIEND_REQUEST_RECEIVED;
 }
 
 /* ─── Grouping ───────────────────────────────────────────────── */
@@ -206,12 +177,13 @@ export default function NotificationsScreen() {
       <NotificationRow
         notification={item}
         colors={colors}
+        scheme={colorScheme}
         isDark={isDark}
         isLast={index === section.data.length - 1}
         onPress={() => handleOpen(item)}
       />
     ),
-    [colors, isDark, handleOpen]
+    [colors, colorScheme, isDark, handleOpen]
   );
 
   const renderSectionHeader = useCallback(
@@ -248,6 +220,7 @@ export default function NotificationsScreen() {
                   <Pressable
                     onPress={handleMarkAll}
                     hitSlop={12}
+                    android_ripple={{ color: colors.border, borderless: true }}
                     accessibilityRole="button"
                     accessibilityLabel={`Mark all ${unreadCount} notifications as read`}
                     style={({ pressed }) => ({
@@ -271,31 +244,20 @@ export default function NotificationsScreen() {
 
       {isLoading && notifications.length === 0 ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.tint} />
         </View>
       ) : error ? (
-        <View style={styles.centered}>
-          <Text style={[styles.errorTitle, { color: colors.text }]}>
-            Couldn&apos;t load your notifications
-          </Text>
-          <Text style={[styles.errorBody, { color: colors.textSecondary }]}>
-            {error}
-          </Text>
-          <Pressable
-            onPress={refresh}
-            style={({ pressed }) => [
-              styles.retryButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Retry loading notifications"
-          >
-            <Text style={styles.retryText}>Try again</Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          kind={loadErrorKind(error) === "offline" ? "offline" : "error"}
+          title={
+            loadErrorKind(error) === "offline"
+              ? undefined
+              : "Couldn't load your notifications"
+          }
+          onRetry={refresh}
+          retrying={isLoading}
+          style={{ paddingTop: headerHeight }}
+        />
       ) : (
         <SectionList
           sections={sections}
@@ -349,7 +311,7 @@ type HeroProps = {
 function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
   const hasUnread = unreadCount > 0;
   const subtitle = hasUnread
-    ? `Kia ora — ${unreadCount} new ${
+    ? `Kia ora, ${unreadCount} new ${
         unreadCount === 1 ? "update" : "updates"
       } for you`
     : total > 0
@@ -397,6 +359,7 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
                 color: isDark ? Brand.accent : Brand.nearBlack,
               },
             ]}
+            maxFontSizeMultiplier={MaxFontScale.compact}
           >
             {unreadCount} unread
           </Text>
@@ -411,6 +374,7 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
 type RowProps = {
   notification: AppNotification;
   colors: (typeof Colors)["light"];
+  scheme: Scheme;
   isDark: boolean;
   isLast: boolean;
   onPress: () => void;
@@ -419,11 +383,12 @@ type RowProps = {
 function NotificationRow({
   notification,
   colors,
+  scheme,
   isDark,
   isLast,
   onPress,
 }: RowProps) {
-  const icon = iconFor(notification.type);
+  const icon = iconFor(notification.type, scheme);
   const unread = !notification.isRead;
 
   return (
@@ -436,6 +401,7 @@ function NotificationRow({
       accessibilityHint={
         notification.actionUrl ? "Opens the related screen" : undefined
       }
+      android_ripple={{ color: colors.border }}
       style={({ pressed }) => [
         styles.row,
         {
@@ -453,7 +419,7 @@ function NotificationRow({
         style={[
           styles.accentBar,
           {
-            backgroundColor: unread ? Brand.green : "transparent",
+            backgroundColor: unread ? colors.tint : "transparent",
           },
         ]}
       />
@@ -534,8 +500,8 @@ function EmptyState({
         All caught up
       </ThemedText>
       <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-        When a shift is confirmed, a friend reaches out, or an announcement
-        lands — it&apos;ll show up here.
+        When a shift is confirmed, a friend reaches out or an announcement
+        lands, it&apos;ll show up here.
       </Text>
     </Animated.View>
   );
@@ -711,30 +677,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontSize: 15,
     letterSpacing: 0.2,
-  },
-
-  /* Error */
-  errorTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 18,
-    textAlign: "center",
-  },
-  errorBody: {
-    fontFamily: FontFamily.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-  },
-  retryButton: {
-    paddingHorizontal: 22,
-    paddingVertical: 13,
-    borderRadius: 999,
-    marginTop: 8,
-  },
-  retryText: {
-    color: Palette.cream50,
-    fontFamily: FontFamily.semiBold,
-    fontSize: 15,
   },
 
   /* Empty */

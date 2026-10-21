@@ -7,6 +7,7 @@ import {
   FlatList,
   Image,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -14,15 +15,18 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdminLocationFilter } from "@/components/admin/location-filter";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Button } from "@/components/ui/button";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { EmptyState, ErrorState } from "@/components/ui/state-view";
+import { Colors, FontFamily, MaxFontScale, Radius } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAdminPending } from "@/hooks/use-admin";
 import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { formatLongDate, formatTimeRange, GRADE_COLORS, initialOf } from "@/lib/admin-format";
 import { actOnSignup, type PendingSignup } from "@/lib/admin";
+import { loadErrorKind } from "@/lib/load-error";
 import { queryClient } from "@/lib/query-client";
 import { queryKeys } from "@/lib/query-keys";
-import { goBackOrHome } from "@/lib/navigation";
 
 export default function ApprovalsScreen() {
   const colorScheme = useColorScheme();
@@ -31,12 +35,12 @@ export default function ApprovalsScreen() {
   const insets = useSafeAreaInsets();
 
   const selectedLocation = useAdminLocationFilter((s) => s.selected);
-  const { data, isPending, isError, refetch, isRefetching } =
+  const { data, isPending, isError, error, refetch, isRefetching } =
     useAdminPending(selectedLocation);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const rule = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)";
-  const eyebrow = isDark ? Brand.greenLight : Brand.green;
+  const offline = isError && loadErrorKind(error) === "offline";
 
   const runAction = useCallback(
     async (signup: PendingSignup, action: "approve" | "reject" | "waitlist") => {
@@ -109,13 +113,7 @@ export default function ApprovalsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: rule }]}>
-        <Pressable onPress={() => goBackOrHome()} hitSlop={12} style={styles.headerSide} accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={24} color={eyebrow} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Approvals</Text>
-        <View style={styles.headerSide} />
-      </View>
+      <ScreenHeader title="Approvals" borderColor={rule} />
 
       <View style={styles.filterRow}>
         <AdminLocationFilter />
@@ -123,25 +121,25 @@ export default function ApprovalsScreen() {
 
       {isPending ? (
         <View style={styles.center}>
-          <ActivityIndicator color={eyebrow} />
+          <ActivityIndicator color={colors.tint} />
         </View>
       ) : isError ? (
-        <View style={styles.center}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Couldn&apos;t load approvals</Text>
-          <Pressable onPress={() => refetch()} style={styles.retryBtn}>
-            <Text style={[styles.retryText, { color: eyebrow }]}>Try again</Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          kind={offline ? "offline" : "error"}
+          title={offline ? undefined : "Couldn't load approvals"}
+          onRetry={() => refetch()}
+          retrying={isRefetching}
+        />
       ) : (data?.length ?? 0) === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>✅</Text>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Queue&apos;s clear</Text>
-          <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-            {selectedLocation
+        <EmptyState
+          emoji="✅"
+          title="Queue's clear"
+          body={
+            selectedLocation
               ? `No signups waiting at ${selectedLocation}. Ka pai!`
-              : "No signups waiting on approval. Ka pai!"}
-          </Text>
-        </View>
+              : "No signups waiting on approval. Ka pai!"
+          }
+        />
       ) : (
         <FlatList
           data={data}
@@ -158,8 +156,14 @@ export default function ApprovalsScreen() {
             />
           )}
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, gap: 14 }}
-          onRefresh={refetch}
-          refreshing={isRefetching}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.tint}
+              colors={[colors.tint]}
+            />
+          }
         />
       )}
     </View>
@@ -185,7 +189,7 @@ function PendingCard({
   onDecline: () => void;
   onWaitlist: () => void;
 }) {
-  const grade = GRADE_COLORS[signup.volunteer.volunteerGrade];
+  const grade = GRADE_COLORS[useColorScheme()][signup.volunteer.volunteerGrade];
   const full = signup.shift.confirmedCount >= signup.shift.capacity;
   // Approving into a full shift waitlists them, unless they asked at signup
   // not to wait - then it releases them. Older servers don't send the field.
@@ -199,7 +203,7 @@ function PendingCard({
           <Image source={{ uri: signup.volunteer.profilePhotoUrl }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.primaryLight }]}>
-            <Text style={[styles.avatarInitial, { color: Brand.green }]}>
+            <Text style={[styles.avatarInitial, { color: colors.tint }]}>
               {initialOf(signup.volunteer.name)}
             </Text>
           </View>
@@ -213,7 +217,12 @@ function PendingCard({
           </Text>
         </View>
         <View style={[styles.gradePill, { backgroundColor: grade.bg }]}>
-          <Text style={[styles.gradePillText, { color: grade.fg }]}>{grade.label}</Text>
+          <Text
+            style={[styles.gradePillText, { color: grade.fg }]}
+            maxFontSizeMultiplier={MaxFontScale.compact}
+          >
+            {grade.label}
+          </Text>
         </View>
       </View>
 
@@ -249,27 +258,25 @@ function PendingCard({
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Pressable
+        <Button
+          label="Decline"
+          variant="destructive"
+          icon="close"
+          iconLeading
           onPress={onDecline}
           disabled={busy}
-          style={({ pressed }) => [
-            styles.declineBtn,
-            { borderColor: rule, opacity: busy ? 0.4 : pressed ? 0.6 : 1 },
-          ]}
-          accessibilityRole="button"
+          haptic={false}
+          style={styles.declineBtn}
           accessibilityLabel="Decline signup"
-        >
-          <Ionicons name="close" size={18} color={colors.destructive} />
-          <Text style={[styles.declineText, { color: colors.destructive }]}>Decline</Text>
-        </Pressable>
-        <Pressable
+        />
+        <Button
+          label={releaseIfFull ? "Release" : full ? "Waitlist" : "Approve"}
+          icon="checkmark"
+          iconLeading
           onPress={onApprove}
-          disabled={busy}
-          style={({ pressed }) => [
-            styles.approveBtn,
-            { backgroundColor: Brand.green, opacity: pressed ? 0.85 : 1 },
-          ]}
-          accessibilityRole="button"
+          loading={busy}
+          haptic={false}
+          style={styles.approveBtn}
           accessibilityLabel={
             releaseIfFull
               ? "Release signup, the shift is full"
@@ -277,24 +284,14 @@ function PendingCard({
               ? "Waitlist signup, the shift is full"
               : "Approve signup"
           }
-        >
-          {busy ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
-              <Text style={styles.approveText}>
-                {releaseIfFull ? "Release" : full ? "Waitlist" : "Approve"}
-              </Text>
-            </>
-          )}
-        </Pressable>
+        />
       </View>
 
       {!full && (
         <Pressable
           onPress={onWaitlist}
           disabled={busy}
+          android_ripple={{ color: rule }}
           style={({ pressed }) => [
             styles.waitlistBtn,
             { borderTopColor: rule, opacity: busy ? 0.4 : pressed ? 0.6 : 1 },
@@ -302,6 +299,7 @@ function PendingCard({
           accessibilityRole="button"
           accessibilityLabel="Move to waitlist"
           accessibilityHint="Holds this volunteer without confirming or declining them"
+          accessibilityState={{ disabled: busy }}
         >
           <Ionicons name="list-outline" size={17} color={colors.textSecondary} />
           <Text style={[styles.waitlistText, { color: colors.textSecondary }]}>
@@ -315,16 +313,6 @@ function PendingCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerSide: { width: 40, alignItems: "flex-start", justifyContent: "center" },
-  headerTitle: { fontFamily: FontFamily.heading, fontSize: 20 },
   filterRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -333,55 +321,32 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
-  emptyEmoji: { fontSize: 42, marginBottom: 12 },
-  emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 21, marginBottom: 8, textAlign: "center" },
-  emptyBody: { fontFamily: FontFamily.regular, fontSize: 14.5, lineHeight: 21, textAlign: "center", maxWidth: 280 },
-  retryBtn: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 16 },
-  retryText: { fontFamily: FontFamily.semiBold, fontSize: 15 },
-  card: { borderRadius: 20, borderWidth: 1, padding: 16, gap: 14 },
+  card: { borderRadius: Radius.card, borderWidth: 1, padding: 16, gap: 14 },
   cardHead: { flexDirection: "row", alignItems: "center", gap: 12 },
   avatar: { width: 46, height: 46, borderRadius: 23 },
   avatarFallback: { alignItems: "center", justifyContent: "center" },
   avatarInitial: { fontFamily: FontFamily.bold, fontSize: 17 },
   name: { fontFamily: FontFamily.semiBold, fontSize: 16 },
-  email: { fontFamily: FontFamily.regular, fontSize: 12.5, marginTop: 1 },
+  email: { fontFamily: FontFamily.regular, fontSize: 13, marginTop: 1 },
   gradePill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
   gradePillText: { fontFamily: FontFamily.semiBold, fontSize: 11 },
   divider: { height: StyleSheet.hairlineWidth },
   shiftBlock: { gap: 6 },
-  shiftName: { fontFamily: FontFamily.semiBold, fontSize: 15.5 },
+  shiftName: { fontFamily: FontFamily.semiBold, fontSize: 16 },
   shiftMetaRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   shiftMeta: { fontFamily: FontFamily.regular, fontSize: 13, flex: 1 },
   actions: { flexDirection: "row", gap: 10, marginTop: 2 },
-  declineBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    height: 46,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  declineText: { fontFamily: FontFamily.semiBold, fontSize: 15 },
-  approveBtn: {
-    flex: 1.4,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    height: 46,
-    borderRadius: 14,
-  },
-  approveText: { fontFamily: FontFamily.semiBold, fontSize: 15, color: "#fff" },
+  // Approve carries the weight, so it gets the wider share of the row.
+  declineBtn: { flex: 1, alignSelf: "auto" },
+  approveBtn: { flex: 1.4, alignSelf: "auto" },
   waitlistBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    height: 44,
+    minHeight: 44,
     marginTop: 2,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  waitlistText: { fontFamily: FontFamily.semiBold, fontSize: 14.5 },
+  waitlistText: { fontFamily: FontFamily.semiBold, fontSize: 15 },
 });

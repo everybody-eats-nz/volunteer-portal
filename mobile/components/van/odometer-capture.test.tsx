@@ -47,7 +47,6 @@ vi.mock("react-native", async () => {
   return {
     ...stub,
     TextInput: host("TextInput"),
-    KeyboardAvoidingView: host("KeyboardAvoidingView"),
     Keyboard: { dismiss: vi.fn() },
     Linking: { openSettings: vi.fn() },
     Alert: { alert: vi.fn() },
@@ -56,12 +55,19 @@ vi.mock("react-native", async () => {
 vi.mock("react-native-reanimated", async () => {
   const stub = await import("@/test-utils/react-native");
   return {
-    default: { View: stub.View },
+    default: { View: stub.View, ScrollView: stub.View },
     FadeIn: { duration: () => "fade-in" },
-    useAnimatedKeyboard: () => ({ height: { value: 0 } }),
-    useAnimatedStyle: () => ({}),
   };
 });
+// The keyboard handling runs on the UI thread; here the form only has to render.
+vi.mock("@/hooks/use-keyboard-aware-scroll", () => ({
+  useKeyboardAwareScroll: () => ({
+    scrollProps: {},
+    spacerStyle: {},
+    inputProps: () => ({}),
+  }),
+}));
+vi.mock("expo-router", () => ({ router: {} }));
 vi.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -214,6 +220,14 @@ describe("OdometerCapture", () => {
 
     expect(pressableLabelled(tree, "Next")!.props.disabled).toBe(true);
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("says why the last submit failed, under the button", () => {
+    const tree = renderCapture({ initialOdo: 12400, error: "Could not end the trip." });
+
+    expect(
+      tree.root.findAll((node) => node.props.children === "Could not end the trip.")
+    ).not.toHaveLength(0);
   });
 
   it("lets the driver skip the photo and type the reading", () => {

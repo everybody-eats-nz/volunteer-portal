@@ -221,6 +221,7 @@ export default function LoginScreen({
     ? "rgba(253,248,239,0.12)"
     : "rgba(29,83,55,0.15)";
   const mutedText = isDark ? colors.textSecondary : "rgba(26,20,16,0.56)";
+  const rippleColor = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.12)";
 
   const windowHeight = Dimensions.get("window").height;
   const heroHeight = Math.min(Math.max(windowHeight * 0.48, 320), 520);
@@ -477,6 +478,8 @@ export default function LoginScreen({
                 <Pressable
                   onPress={() => setShowPassword((v) => !v)}
                   hitSlop={12}
+                  accessibilityRole="button"
+                  android_ripple={{ color: rippleColor, borderless: true }}
                   accessibilityLabel={
                     showPassword ? "Hide password" : "Show password"
                   }
@@ -497,12 +500,13 @@ export default function LoginScreen({
                 hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
                 accessibilityRole="link"
                 accessibilityLabel="Forgot password? Reset it on the website"
+                android_ripple={{ color: rippleColor, borderless: true }}
                 style={({ pressed }) => [
                   styles.forgotBtn,
                   { opacity: anyBusy ? 0.5 : pressed ? 0.6 : 1 },
                 ]}
               >
-                <ThemedText style={styles.forgotText}>
+                <ThemedText style={[styles.forgotText, { color: colors.tint }]}>
                   Forgot password?
                 </ThemedText>
               </Pressable>
@@ -540,7 +544,10 @@ export default function LoginScreen({
               New here?
             </ThemedText>
             <Pressable
-              hitSlop={8}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Join our whānau"
+              android_ripple={{ color: rippleColor, borderless: true }}
               onPress={() => {
                 Haptics.selectionAsync();
                 if (onNavigateToRegister) {
@@ -558,7 +565,7 @@ export default function LoginScreen({
                 }
               }}
             >
-              <ThemedText style={styles.footerLink}>
+              <ThemedText style={[styles.footerLink, { color: colors.tint }]}>
                 Join our whānau
               </ThemedText>
             </Pressable>
@@ -688,7 +695,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 24,
     // Soft elevation to lift card off the photo
-    shadowColor: "#0b0d10",
+    shadowColor: Palette.forest800,
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: -6 },
@@ -739,7 +746,6 @@ const styles = StyleSheet.create({
   forgotText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 14,
-    color: Brand.green,
   },
   signInBtn: {
     marginTop: 6,
@@ -814,7 +820,6 @@ const styles = StyleSheet.create({
   footerLink: {
     fontFamily: FontFamily.semiBold,
     fontSize: 14,
-    color: Brand.green,
   },
   ngaMihi: {
     marginTop: 18,

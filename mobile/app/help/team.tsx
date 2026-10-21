@@ -22,11 +22,13 @@ import ReAnimated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { EmptyState, ErrorState } from "@/components/ui/state-view";
+import { Brand, Colors, FontFamily, MaxFontScale, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { clearTeamUnreadCount } from "@/hooks/use-team-unread";
+import { loadErrorKind } from "@/lib/load-error";
 import { queryClient } from "@/lib/query-client";
-import { goBackOrHome } from "@/lib/navigation";
 import {
   fetchTeamThread,
   markTeamThreadRead,
@@ -54,10 +56,10 @@ function usePaperTint(
   return {
     paper: colors.background,
     ink: isDark ? colors.text : Brand.green,
-    inkSoft: isDark ? colors.textSecondary : "#5B6A5E",
+    inkSoft: colors.textSecondary,
     rule: isDark ? "rgba(253,248,239,0.14)" : "rgba(29,83,55,0.15)",
     accent: Brand.accent,
-    eyebrow: isDark ? Brand.greenLight : Brand.green,
+    eyebrow: colors.tint,
   };
 }
 
@@ -133,7 +135,10 @@ const Bubble = React.memo(function Bubble({
               </Text>
             </View>
           )}
-          <Text style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}>
+          <Text
+            style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}
+            maxFontSizeMultiplier={MaxFontScale.compact}
+          >
             {senderName ? senderName.toUpperCase() : "EE TEAM"} · TEAM
           </Text>
           <Text style={[styles.timeLabel, { color: paperTint.inkSoft }]}>
@@ -162,6 +167,9 @@ export default function TeamThreadScreen() {
   const [messages, setMessages] = useState<TeamMessage[]>([]);
   const [hours, setHours] = useState<HoursStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  // A failed load with nothing on screen yet gets a retry; a failed poll
+  // keeps the thread already shown.
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [composerHeight, setComposerHeight] = useState(FLOATING_BAR_HEIGHT);
@@ -174,6 +182,7 @@ export default function TeamThreadScreen() {
       const data = await fetchTeamThread();
       setMessages(data.messages);
       setHours(data.hours);
+      setLoadError(null);
       if (markRead && data.thread.unread) {
         markTeamThreadRead()
           .then(() => clearTeamUnreadCount(queryClient))
@@ -183,6 +192,7 @@ export default function TeamThreadScreen() {
       }
     } catch (err) {
       console.warn("[help/team] refresh failed", err);
+      setLoadError(err);
     } finally {
       setLoading(false);
     }
@@ -296,6 +306,8 @@ export default function TeamThreadScreen() {
       <Pressable
         onPress={send}
         disabled={!hasInput}
+        hitSlop={2}
+        android_ripple={{ color: "rgba(253,248,239,0.22)", borderless: true, radius: 22 }}
         style={({ pressed }) => [
           styles.glassSendBtn,
           {
@@ -327,46 +339,51 @@ export default function TeamThreadScreen() {
       keyboardVerticalOffset={0}
       style={[styles.container, { backgroundColor: paperTint.paper }]}
     >
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 14,
-            borderBottomColor: paperTint.rule,
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => goBackOrHome()}
-          hitSlop={12}
-          style={styles.backBtn}
-          accessibilityLabel="Back"
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={22} color={paperTint.eyebrow} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, { color: paperTint.eyebrow }]}>
-            EE TEAM
-          </Text>
-          <Text
-            style={[styles.headerSubtitle, { color: paperTint.inkSoft }]}
-            numberOfLines={1}
-          >
-            {hoursSubtitle(hours)}
-          </Text>
-        </View>
-        <View style={styles.backBtn} />
-      </View>
+      <ScreenHeader
+        tint={paperTint.eyebrow}
+        borderColor={paperTint.rule}
+        style={styles.header}
+        center={
+          <>
+            <Text
+              style={[styles.headerTitle, { color: paperTint.eyebrow }]}
+              accessibilityRole="header"
+              accessibilityLabel="EE Team"
+            >
+              EE TEAM
+            </Text>
+            <Text
+              style={[styles.headerSubtitle, { color: paperTint.inkSoft }]}
+              numberOfLines={1}
+            >
+              {hoursSubtitle(hours)}
+            </Text>
+          </>
+        }
+      />
 
       {/* Messages */}
       {loading ? (
         <View style={styles.loadingState}>
           <ActivityIndicator color={paperTint.eyebrow} />
         </View>
+      ) : messages.length === 0 && loadError ? (
+        <ErrorState
+          kind={loadErrorKind(loadError) === "offline" ? "offline" : "error"}
+          title={loadErrorKind(loadError) === "offline" ? undefined : "Couldn't load your messages"}
+          onRetry={() => {
+            setLoading(true);
+            void refresh();
+          }}
+          style={styles.stateInset}
+        />
       ) : messages.length === 0 ? (
-        <EmptyState paperTint={paperTint} colors={colors} />
+        <EmptyState
+          emoji="💬"
+          title="Say kia ora to the team"
+          body="Tell us what's up: running late, swapping a shift, a question, anything. We'll get back as soon as we can."
+          style={styles.stateInset}
+        />
       ) : (
         <FlatList
           ref={flatListRef}
@@ -481,29 +498,6 @@ export default function TeamThreadScreen() {
   );
 }
 
-/* ─── Empty state ───────────────────────────────────────────── */
-
-function EmptyState({
-  paperTint,
-  colors,
-}: {
-  paperTint: PaperTint;
-  colors: (typeof Colors)["light"];
-}) {
-  return (
-    <View style={styles.emptyState}>
-      <Text style={[styles.emptyEmoji]}>💬</Text>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        Say kia ora to the team
-      </Text>
-      <Text style={[styles.emptyBody, { color: paperTint.inkSoft }]}>
-        Tell us what&apos;s up — running late, swapping a shift, a question,
-        anything. We&apos;ll get back as soon as we can.
-      </Text>
-    </View>
-  );
-}
-
 /* ─── Helpers ───────────────────────────────────────────────── */
 
 function formatTime(iso: string): string {
@@ -529,16 +523,8 @@ function hoursSubtitle(hours: HoursStatus | null): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backBtn: { width: 40, alignItems: "flex-start", justifyContent: "center" },
-  headerCenter: { flex: 1, alignItems: "center" },
+  // Keeps the editorial header's original breathing room under the status bar.
+  header: { paddingBottom: 10 },
   headerTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: 12,
@@ -554,28 +540,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 36,
-    paddingBottom: FLOATING_BAR_HEIGHT * 2,
-  },
-  emptyEmoji: { fontSize: 44, marginBottom: 14 },
-  emptyTitle: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 24,
-    letterSpacing: -0.4,
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptyBody: {
-    fontFamily: FontFamily.regular,
-    fontSize: 14.5,
-    lineHeight: 21,
-    textAlign: "center",
-    maxWidth: 320,
-  },
+  stateInset: { paddingBottom: FLOATING_BAR_HEIGHT * 2 },
   messageList: {
     paddingHorizontal: 22,
     paddingTop: 12,
@@ -592,7 +557,7 @@ const styles = StyleSheet.create({
   userBubbleText: {
     color: Palette.cream50,
     fontFamily: FontFamily.regular,
-    fontSize: 15.5,
+    fontSize: 16,
     lineHeight: 22,
   },
   assistantBlock: { flexDirection: "column" },
@@ -632,7 +597,7 @@ const styles = StyleSheet.create({
   },
   assistantBubbleText: {
     fontFamily: FontFamily.regular,
-    fontSize: 15.5,
+    fontSize: 16,
     lineHeight: 23,
   },
   offHoursHint: {
@@ -675,7 +640,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   glassInputText: {
-    fontSize: 15.5,
+    fontSize: 16,
     lineHeight: 20,
     maxHeight: 120,
     paddingTop: 0,

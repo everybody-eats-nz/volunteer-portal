@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Brand, Colors, FontFamily, MaxFontScale } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAdminLocations } from "@/hooks/use-admin";
 import { useAdminLocationFilter } from "@/lib/admin-location-filter";
@@ -53,6 +53,7 @@ export function AdminLocationFilter() {
           setOpen(true);
         }}
         hitSlop={8}
+        android_ripple={{ color: colors.border }}
         style={({ pressed }) => [
           styles.pill,
           {
@@ -77,21 +78,22 @@ export function AdminLocationFilter() {
         <Ionicons
           name="location"
           size={13}
-          color={selected ? (isDark ? Brand.greenLight : Brand.green) : colors.textSecondary}
+          color={selected ? colors.tint : colors.textSecondary}
         />
         <Text
           style={[
             styles.pillText,
-            { color: selected ? (isDark ? Brand.greenLight : Brand.green) : colors.text },
+            { color: selected ? colors.tint : colors.text },
           ]}
           numberOfLines={1}
+          maxFontSizeMultiplier={MaxFontScale.compact}
         >
           {label}
         </Text>
         <Ionicons
           name="chevron-down"
           size={13}
-          color={selected ? (isDark ? Brand.greenLight : Brand.green) : colors.textSecondary}
+          color={selected ? colors.tint : colors.textSecondary}
         />
       </Pressable>
 
@@ -186,6 +188,7 @@ function LocationSheet({
             hitSlop={10}
             accessibilityLabel="Close"
             accessibilityRole="button"
+            android_ripple={{ color: colors.border, borderless: true, radius: 22 }}
             style={({ pressed }) => [
               styles.sheetClose,
               {
@@ -210,6 +213,7 @@ function LocationSheet({
               <Pressable
                 key={item.key}
                 onPress={() => onSelect(item.value)}
+                android_ripple={{ color: colors.border }}
                 style={({ pressed }) => [
                   styles.sheetItem,
                   {
@@ -230,13 +234,13 @@ function LocationSheet({
                 <Ionicons
                   name={item.icon}
                   size={18}
-                  color={active ? (isDark ? colors.tint : Brand.green) : colors.textSecondary}
+                  color={active ? colors.tint : colors.textSecondary}
                 />
                 <Text
                   style={[
                     styles.sheetItemText,
                     {
-                      color: active ? (isDark ? colors.tint : Brand.green) : colors.text,
+                      color: active ? colors.tint : colors.text,
                       fontFamily: active ? FontFamily.semiBold : FontFamily.regular,
                     },
                   ]}
@@ -247,7 +251,7 @@ function LocationSheet({
                   <Ionicons
                     name="checkmark"
                     size={18}
-                    color={isDark ? colors.tint : Brand.green}
+                    color={colors.tint}
                   />
                 )}
               </Pressable>
@@ -269,6 +273,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     maxWidth: 200,
+    overflow: "hidden",
   },
   pillText: {
     fontSize: 13,
@@ -314,6 +319,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     minHeight: 48,
+    overflow: "hidden",
   },
   sheetItemText: { flex: 1, fontSize: 15, lineHeight: 20 },
 });

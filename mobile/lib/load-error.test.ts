@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("expo-secure-store", () => ({ getItemAsync: vi.fn() }));
-
 import { ApiError } from "@/lib/api";
 import { loadErrorKind } from "@/lib/load-error";
+
+// Hoisted above the imports by vitest.
+vi.mock("expo-secure-store", () => ({ getItemAsync: vi.fn() }));
 
 describe("loadErrorKind", () => {
   it("treats a 404 as not-found", () => {

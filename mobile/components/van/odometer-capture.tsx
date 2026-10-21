@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
   Linking,
   Platform,
   Pressable,
@@ -16,19 +15,17 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, {
-  FadeIn,
-  useAnimatedKeyboard,
-  useAnimatedStyle,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
 
+import { ThemedText } from "@/components/themed-text";
 import { Button } from "@/components/ui/button";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { Colors, FontFamily, MaxFontScale, Palette, Radius } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useKeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
 import { uploadOdometerPhoto } from "@/lib/van";
 
 import { OdometerViewfinder } from "./load-viewfinder";
+import { FlowScroll } from "./van-chrome";
 
 /**
  * The odometer. Both ends of a trip come through here.
@@ -74,6 +71,8 @@ export type OdometerCaptureProps = {
   initialOdo?: number | null;
   initialPhotoUri?: string | null;
   initialPhotoUrl?: string | null;
+  /** Why the last submit failed, shown under the button. */
+  error?: string | null;
   onSubmit: (odo: number, photoUrl: string | null, photoUri: string | null) => void;
 };
 
@@ -88,6 +87,7 @@ export function OdometerCapture({
   initialOdo = null,
   initialPhotoUri = null,
   initialPhotoUrl = null,
+  error = null,
   onSubmit,
 }: OdometerCaptureProps) {
   const scheme = useColorScheme();
@@ -130,21 +130,14 @@ export function OdometerCapture({
   const canSubmit = odo !== null && !belowStart && !submitting;
 
   /*
-   * Android is edge-to-edge from Expo SDK 55, so the window no longer resizes
-   * for the keyboard and the iOS-only KeyboardAvoidingView padding never runs
-   * there. The number pad opens on this screen automatically, and the button
-   * under it is the one that commits the trip — so grow the action row's
-   * bottom padding with the live IME inset rather than letting the keyboard
-   * bury it.
+   * The number pad opens on this screen by itself, and the button under it is
+   * the one that commits the trip. The button sits on the bottom edge of the
+   * flow, so the keyboard spacer lifts it clear of the pad on both platforms;
+   * the whole form is the field's group, so on a screen too short for both
+   * the form scrolls to keep the button in view when it fits.
    */
-  const keyboard = useAnimatedKeyboard();
-  const insets = useSafeAreaInsets();
-  const lift = useAnimatedStyle(() => ({
-    paddingBottom:
-      Platform.OS === "android"
-        ? Math.max(keyboard.height.value - insets.bottom, 0)
-        : 0,
-  }));
+  const keyboardScroll = useKeyboardAwareScroll();
+  const formRef = useRef<View>(null);
 
   const acceptPhoto = useCallback(
     async (
@@ -232,12 +225,12 @@ export function OdometerCapture({
     return (
       <View style={styles.cameraRoot} testID="odometer-camera">
         <View style={styles.readingBlock}>
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+          <ThemedText style={[styles.fieldLabel, { color: colors.textSecondary }]}>
             {label.toUpperCase()}
-          </Text>
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          </ThemedText>
+          <ThemedText style={[styles.hint, { color: colors.textSecondary }]}>
             {knownReadingCaption} {knownReadingLabel}
-          </Text>
+          </ThemedText>
         </View>
 
         <OdometerViewfinder
@@ -263,116 +256,122 @@ export function OdometerCapture({
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.root}
-    >
-      <Animated.View
-        style={styles.readingBlock}
-        entering={startsOnCamera || openedByTap ? FadeIn.duration(220) : undefined}
-      >
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-          {label.toUpperCase()}
-        </Text>
-        <View style={styles.fieldRow}>
-          {/*
-            A mirror of the value, measured but never seen, so the field is
-            exactly as wide as the number in it — otherwise a flexed input
-            strands "km" against the far edge of the screen, away from the
-            figure it belongs to. It sits directly in the full-width row rather
-            than inside the field's own wrapper: measuring it against a box
-            whose width it is being used to decide is a loop, and the loop
-            settles too narrow, clipping the leading digits.
-          */}
-          <Text
-            style={[styles.field, styles.fieldMirror]}
-            onLayout={(event) => setFieldWidth(event.nativeEvent.layout.width)}
-            numberOfLines={1}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-          >
-            {text || "0"}
-          </Text>
-          <TextInput
-            value={text}
-            onChangeText={(value) => {
-              setText(value);
-              setReadFromPhoto(false);
-            }}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            returnKeyType="done"
-            autoFocus
-            maxLength={7}
-            placeholder="0"
-            placeholderTextColor={
-              isDark ? "rgba(229,240,232,0.25)" : "rgba(14,42,28,0.22)"
-            }
-            selectionColor={colors.tint}
-            accessibilityLabel={label}
-            style={[
-              styles.field,
-              { color: fieldTint, width: Math.max(fieldWidth + 3, 30) },
-            ]}
-          />
-          <Text style={[styles.unit, { color: colors.textSecondary }]}>km</Text>
-        </View>
-
-        {belowStart ? (
-          <Text style={[styles.hint, { color: colors.destructive }]}>
-            Has to be more than {minimum?.toLocaleString("en-NZ")} km, the reading
-            this trip started with.
-          </Text>
-        ) : (
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>
-            {knownReadingCaption} {knownReadingLabel}
-          </Text>
-        )}
-
-        {readFromPhoto && !belowStart ? (
-          <Animated.View
-            entering={FadeIn.duration(180)}
-            style={[
-              styles.readNote,
-              { backgroundColor: isDark ? "rgba(248,251,105,0.14)" : Palette.sun100 },
-            ]}
-            accessibilityRole="text"
-            testID="odometer-read-note"
-          >
-            <Ionicons
-              name="scan-outline"
-              size={15}
-              color={isDark ? Palette.sun200 : Palette.ink}
-            />
+    <FlowScroll keyboardScroll={keyboardScroll}>
+      <View ref={formRef} style={styles.root}>
+        <Animated.View
+          style={styles.readingBlock}
+          entering={startsOnCamera || openedByTap ? FadeIn.duration(220) : undefined}
+        >
+          <ThemedText style={[styles.fieldLabel, { color: colors.textSecondary }]}>
+            {label.toUpperCase()}
+          </ThemedText>
+          <View style={styles.fieldRow}>
+            {/*
+              A mirror of the value, measured but never seen, so the field is
+              exactly as wide as the number in it — otherwise a flexed input
+              strands "km" against the far edge of the screen, away from the
+              figure it belongs to. It sits directly in the full-width row rather
+              than inside the field's own wrapper: measuring it against a box
+              whose width it is being used to decide is a loop, and the loop
+              settles too narrow, clipping the leading digits.
+            */}
             <Text
-              style={[styles.readNoteText, { color: isDark ? Palette.sun200 : Palette.ink }]}
+              style={[styles.field, styles.fieldMirror]}
+              onLayout={(event) => setFieldWidth(event.nativeEvent.layout.width)}
+              numberOfLines={1}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
             >
-              Read from your photo. Check it matches the dial.
+              {text || "0"}
             </Text>
-          </Animated.View>
-        ) : null}
-      </Animated.View>
+            <TextInput
+              value={text}
+              onChangeText={(value) => {
+                setText(value);
+                setReadFromPhoto(false);
+              }}
+              keyboardType="number-pad"
+              inputMode="numeric"
+              returnKeyType="done"
+              autoFocus
+              maxLength={7}
+              placeholder="0"
+              placeholderTextColor={
+                isDark ? "rgba(229,240,232,0.25)" : "rgba(14,42,28,0.22)"
+              }
+              selectionColor={colors.tint}
+              accessibilityLabel={label}
+              {...keyboardScroll.inputProps(formRef)}
+              style={[
+                styles.field,
+                { color: fieldTint, width: Math.max(fieldWidth + 3, 30) },
+              ]}
+            />
+            <Text style={[styles.unit, { color: colors.textSecondary }]}>km</Text>
+          </View>
 
-      <PhotoWell
-        uri={photoUri}
-        state={photoState}
-        onPress={takePhoto}
-        colors={colors}
-        isDark={isDark}
-      />
+          {belowStart ? (
+            <ThemedText style={[styles.hint, { color: colors.destructive }]}>
+              Has to be more than {minimum?.toLocaleString("en-NZ")} km, the reading
+              this trip started with.
+            </ThemedText>
+          ) : (
+            <ThemedText style={[styles.hint, { color: colors.textSecondary }]}>
+              {knownReadingCaption} {knownReadingLabel}
+            </ThemedText>
+          )}
 
-      <Animated.View style={[styles.actions, lift]}>
-        <Button
-          label={submitLabel}
-          onPress={submit}
-          size="lg"
-          fullWidth
-          disabled={!canSubmit}
-          loading={submitting}
-          icon="arrow-forward"
+          {readFromPhoto && !belowStart ? (
+            <Animated.View
+              entering={FadeIn.duration(180)}
+              style={[
+                styles.readNote,
+                { backgroundColor: isDark ? "rgba(248,251,105,0.14)" : Palette.sun100 },
+              ]}
+              accessibilityRole="text"
+              testID="odometer-read-note"
+            >
+              <Ionicons
+                name="scan-outline"
+                size={15}
+                color={isDark ? Palette.sun200 : Palette.ink}
+              />
+              <ThemedText
+                maxFontSizeMultiplier={MaxFontScale.compact}
+                style={[styles.readNoteText, { color: isDark ? Palette.sun200 : Palette.ink }]}
+              >
+                Read from your photo. Check it matches the dial.
+              </ThemedText>
+            </Animated.View>
+          ) : null}
+        </Animated.View>
+
+        <PhotoWell
+          uri={photoUri}
+          state={photoState}
+          onPress={takePhoto}
+          colors={colors}
+          isDark={isDark}
         />
-      </Animated.View>
-    </KeyboardAvoidingView>
+
+        <View style={styles.actions}>
+          <Button
+            label={submitLabel}
+            onPress={submit}
+            size="lg"
+            fullWidth
+            disabled={!canSubmit}
+            loading={submitting}
+            icon="arrow-forward"
+          />
+          {error ? (
+            <ThemedText style={[styles.error, { color: colors.destructive }]}>
+              {error}
+            </ThemedText>
+          ) : null}
+        </View>
+      </View>
+    </FlowScroll>
   );
 }
 
@@ -406,6 +405,7 @@ function PhotoWell({
         uri ? "Retake the odometer photo" : "Photograph the odometer"
       }
       accessibilityHint="Optional. The reading is recorded either way."
+      android_ripple={{ color: colors.border }}
       style={({ pressed }) => [
         styles.photoWell,
         {
@@ -434,10 +434,10 @@ function PhotoWell({
       </View>
 
       <View style={styles.photoBody}>
-        <Text style={[styles.photoTitle, { color: colors.text }]}>
+        <ThemedText style={[styles.photoTitle, { color: colors.text }]}>
           {uri ? "Retake photo" : "Add odometer photo"}
-        </Text>
-        <Text
+        </ThemedText>
+        <ThemedText
           style={[
             styles.photoCaption,
             { color: state === "failed" ? colors.destructive : colors.textSecondary },
@@ -445,24 +445,25 @@ function PhotoWell({
           numberOfLines={2}
         >
           {caption}
-        </Text>
+        </ThemedText>
       </View>
 
       {state === "stored" && (
-        <Ionicons name="checkmark-circle" size={20} color={Brand.green} />
+        <Ionicons name="checkmark-circle" size={20} color={colors.tint} />
       )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, gap: 22 },
+  root: { flexGrow: 1, gap: 22 },
   cameraRoot: { flex: 1, gap: 14 },
   viewfinder: { flex: 1, minHeight: 280 },
   readingBlock: { gap: 6 },
   fieldLabel: {
     fontFamily: FontFamily.semiBold,
     fontSize: 11,
+    lineHeight: 14,
     letterSpacing: 2,
   },
   fieldRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
@@ -483,8 +484,8 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontFamily: FontFamily.regular,
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
   },
   readNote: {
     flexDirection: "row",
@@ -493,18 +494,20 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingHorizontal: 11,
     paddingVertical: 6,
-    borderRadius: 999,
+    borderRadius: Radius.pill,
     marginTop: 4,
   },
-  readNoteText: { fontFamily: FontFamily.semiBold, fontSize: 13 },
+  readNoteText: { fontFamily: FontFamily.semiBold, fontSize: 13, lineHeight: 17 },
   photoWell: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     padding: 14,
-    borderRadius: 24,
+    borderRadius: Radius.card,
     borderWidth: 1,
     minHeight: 76,
+    // Keeps the Android ripple inside the rounded well.
+    overflow: "hidden",
   },
   photoThumb: {
     width: 52,
@@ -522,7 +525,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(14,42,28,0.45)",
   },
   photoBody: { flex: 1, gap: 2 },
-  photoTitle: { fontFamily: FontFamily.semiBold, fontSize: 15.5 },
+  photoTitle: { fontFamily: FontFamily.semiBold, fontSize: 16, lineHeight: 20 },
   photoCaption: { fontFamily: FontFamily.regular, fontSize: 13, lineHeight: 18 },
   actions: { marginTop: "auto" },
+  error: {
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 12,
+    textAlign: "center",
+  },
 });

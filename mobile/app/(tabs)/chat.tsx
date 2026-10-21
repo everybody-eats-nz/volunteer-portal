@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import { Brand, Colors, FontFamily, MaxFontScale, Palette, Radius, StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTeamUnreadCount } from "@/hooks/use-team-unread";
 import { fetchTeamThread } from "@/lib/messages";
@@ -41,7 +41,7 @@ function usePaperTint(
     inkSoft: colors.textSecondary,
     rule: isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)",
     accent: Brand.accent,
-    eyebrow: isDark ? Brand.greenLight : Brand.green,
+    eyebrow: colors.tint,
     card: isDark ? colors.surfaceSoft : Palette.cream100,
     cardStroke: isDark ? "rgba(253,248,239,0.10)" : "rgba(29,83,55,0.12)",
   };
@@ -89,7 +89,7 @@ export default function HelpScreen() {
         setHoursLabel(null);
       }
     } catch {
-      // Quiet failure — landing screen still functions without status data.
+      // Quiet failure - landing screen still functions without status data.
     }
   }, []);
 
@@ -159,7 +159,7 @@ export default function HelpScreen() {
             onPress={goToTeam}
             paperTint={paperTint}
             colors={colors}
-            statusDotColor={openNow ? "#22c55e" : null}
+            statusDotColor={openNow ? StatusColors[colorScheme].confirmed.fg : null}
             unreadCount={teamUnreadCount}
             preview={latestAdminMessage}
           />
@@ -221,6 +221,7 @@ function OptionRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
+      android_ripple={{ color: paperTint.cardStroke }}
       style={({ pressed }) => [
         styles.optionRow,
         {
@@ -247,7 +248,7 @@ function OptionRow({
           </Text>
           {hasUnread && (
             <View style={styles.unreadPill}>
-              <Text style={styles.unreadPillText}>
+              <Text style={styles.unreadPillText} maxFontSizeMultiplier={MaxFontScale.compact}>
                 {countLabel} new
               </Text>
             </View>
@@ -258,11 +259,11 @@ function OptionRow({
             style={[styles.optionPreview, { color: colors.text }]}
             numberOfLines={2}
           >
-            <Text style={[styles.optionPreviewQuote, { color: Brand.green }]}>
+            <Text style={[styles.optionPreviewQuote, { color: colors.tint }]}>
               {"“"}
             </Text>
             {previewText}
-            <Text style={[styles.optionPreviewQuote, { color: Brand.green }]}>
+            <Text style={[styles.optionPreviewQuote, { color: colors.tint }]}>
               {"”"}
             </Text>
           </Text>
@@ -335,8 +336,10 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 18,
     gap: 14,
-    borderRadius: 24,
+    borderRadius: Radius.card,
     borderWidth: 1,
+    // Clips the Android ripple to the card.
+    overflow: "hidden",
   },
   optionRowSpacing: {
     marginTop: 12,
@@ -363,8 +366,8 @@ const styles = StyleSheet.create({
   },
   optionDescription: {
     fontFamily: FontFamily.regular,
-    fontSize: 13.5,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 19,
   },
   optionArrow: {
     width: 32,
@@ -383,7 +386,7 @@ const styles = StyleSheet.create({
   unreadPillText: {
     color: Palette.cream50,
     fontFamily: FontFamily.semiBold,
-    fontSize: 10.5,
+    fontSize: 11,
     letterSpacing: 0.4,
   },
   optionPreview: {
