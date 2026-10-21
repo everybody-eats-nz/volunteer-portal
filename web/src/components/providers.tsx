@@ -4,7 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { SWRConfig } from "swr";
 import { swrConfig } from "@/lib/swr";
 import { ThemeProvider } from "./theme-provider";
-import { MotionConfig } from "./motion-config";
+import { MotionSettings } from "./motion-config";
 import { PostHogIdentifier } from "./posthog-identifier";
 
 interface ProvidersProps {
@@ -21,8 +21,9 @@ export function Providers({ children }: ProvidersProps) {
         enableSystem
         disableTransitionOnChange
       >
-        <MotionConfig />
-        <SWRConfig value={swrConfig}>{children}</SWRConfig>
+        <MotionSettings>
+          <SWRConfig value={swrConfig}>{children}</SWRConfig>
+        </MotionSettings>
       </ThemeProvider>
     </SessionProvider>
   );

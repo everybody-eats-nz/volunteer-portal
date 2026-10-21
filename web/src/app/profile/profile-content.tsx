@@ -17,15 +17,7 @@ import {
   type AnnouncementCategoryMeta,
   type AnnouncementPreferences,
 } from "@/lib/announcement-categories";
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
+import { Sparkle } from "@/components/sparkle";
 
 /* Shared styling for the detail cards — paper card with forest hairline,
    matching the marketing-site card system. */
@@ -63,7 +55,7 @@ function CardHeading({
         >
           {title}
         </h2>
-        <p className="mt-0.5 text-sm text-forest-700/60 dark:text-cream-50/60">
+        <p className="mt-0.5 text-sm text-forest-700/70 dark:text-cream-50/60">
           {subtitle}
         </p>
       </div>
@@ -90,7 +82,7 @@ function DetailRow({
       }`}
     >
       <span
-        className="eyebrow shrink-0 text-forest-500/70 dark:text-cream-50/55"
+        className="eyebrow shrink-0 text-forest-500/85 dark:text-cream-50/55"
         data-testid={labelTestId}
       >
         {label}
@@ -114,7 +106,7 @@ function Chip({
     <span
       className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
         muted
-          ? "border-forest-500/10 bg-transparent text-forest-700/50 dark:border-cream-50/10 dark:text-cream-50/50"
+          ? "border-forest-500/10 bg-transparent text-forest-700/70 dark:border-cream-50/10 dark:text-cream-50/50"
           : "border-forest-500/15 bg-forest-500/5 text-forest-700 dark:border-cream-50/15 dark:bg-cream-50/5 dark:text-cream-50"
       }`}
     >
@@ -141,7 +133,7 @@ function StatusPill({
       className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold ${
         on
           ? "border-forest-500/20 bg-forest-500/10 text-forest-600 dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50"
-          : "border-forest-500/15 text-forest-700/50 dark:border-cream-50/15 dark:text-cream-50/50"
+          : "border-forest-500/15 text-forest-700/70 dark:border-cream-50/15 dark:text-cream-50/50"
       }`}
     >
       <span
@@ -183,11 +175,11 @@ function NotificationCategoryRow({
       <div className="min-w-0">
         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm font-medium text-forest-700 dark:text-cream-50">
           {meta.preferenceLabel}
-          <span className="eyebrow text-[10px] text-forest-500/60 dark:text-cream-50/50">
+          <span className="eyebrow text-[10px] text-forest-500/85 dark:text-cream-50/50">
             {meta.mandatory ? "Mandatory" : "Optional"}
           </span>
         </p>
-        <p className="mt-0.5 text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
+        <p className="mt-0.5 text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
           {meta.preferenceDescription}
         </p>
       </div>
@@ -229,7 +221,7 @@ function PreferenceGroup({
 }) {
   return (
     <section>
-      <h3 className="eyebrow mb-2.5 font-sans text-forest-500/70 dark:text-cream-50/55">
+      <h3 className="eyebrow mb-2.5 font-sans text-forest-500/85 dark:text-cream-50/55">
         {title}
       </h3>
       {children}
@@ -633,7 +625,7 @@ export async function ProfileContent() {
                   )}
                 </>
               ) : (
-                <p className="py-4 text-center text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
+                <p className="py-4 text-center text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                   No emergency contact information provided
                 </p>
               )}
@@ -669,7 +661,7 @@ export async function ProfileContent() {
             <div className="space-y-5" data-testid="availability-section">
               {availableDays.length > 0 && (
                 <div>
-                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+                  <span className="eyebrow text-forest-500/85 dark:text-cream-50/55">
                     Available Days:
                   </span>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -683,7 +675,7 @@ export async function ProfileContent() {
               )}
               {availableLocations.length > 0 && (
                 <div>
-                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+                  <span className="eyebrow text-forest-500/85 dark:text-cream-50/55">
                     Available Locations:
                   </span>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -697,7 +689,7 @@ export async function ProfileContent() {
               )}
               {userProfile?.defaultLocation && (
                 <div>
-                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+                  <span className="eyebrow text-forest-500/85 dark:text-cream-50/55">
                     Default Location:
                   </span>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -707,7 +699,7 @@ export async function ProfileContent() {
               )}
               {availableDays.length === 0 &&
                 availableLocations.length === 0 && (
-                  <p className="py-4 text-center text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
+                  <p className="py-4 text-center text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                     No availability preferences set
                   </p>
                 )}
@@ -828,7 +820,7 @@ export async function ProfileContent() {
                             {list.name}
                           </p>
                           {list.description && (
-                            <p className="mt-0.5 text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
+                            <p className="mt-0.5 text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                               {list.description}
                             </p>
                           )}
@@ -857,7 +849,7 @@ export async function ProfileContent() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-forest-500/20 px-4 text-forest-700 hover:bg-forest-500 hover:text-cream-50 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
+                  className="border-forest-500/20 px-4 text-forest-700 hover:bg-forest-500 hover:text-cream-50 motion-safe:hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                   data-testid="edit-notification-preferences"
                   asChild
                 >
@@ -884,7 +876,7 @@ export async function ProfileContent() {
               <Button
                 asChild
                 variant="outline"
-                className="h-11 w-full justify-start border-forest-500/20 bg-transparent px-5 text-forest-700 hover:bg-forest-500 hover:text-cream-50 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
+                className="h-11 w-full justify-start border-forest-500/20 bg-transparent px-5 text-forest-700 hover:bg-forest-500 hover:text-cream-50 motion-safe:hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                 data-testid="browse-shifts-button"
               >
                 <Link href="/shifts" className="flex items-center gap-3">
@@ -909,7 +901,7 @@ export async function ProfileContent() {
               <Button
                 asChild
                 variant="outline"
-                className="h-11 w-full justify-start border-forest-500/20 bg-transparent px-5 text-forest-700 hover:bg-forest-500 hover:text-cream-50 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
+                className="h-11 w-full justify-start border-forest-500/20 bg-transparent px-5 text-forest-700 hover:bg-forest-500 hover:text-cream-50 motion-safe:hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                 data-testid="view-schedule-button"
               >
                 <Link href="/shifts/mine" className="flex items-center gap-3">

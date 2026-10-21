@@ -430,7 +430,7 @@ export async function FriendProfileContent({
             title="Achievements"
             meta={
               unlockedAchievements.length > 0
-                ? `${unlockedAchievements.length} of ${activeAchievementCount} unlocked · ${totalPoints} points`
+                ? `${unlockedAchievements.length} of ${activeAchievementCount} unlocked · ${totalPoints.toLocaleString("en-NZ")} points`
                 : undefined
             }
           />
@@ -458,16 +458,16 @@ export async function FriendProfileContent({
                     {latestUnlock.achievement.description}
                   </p>
                   <p className="mt-2 text-xs font-medium text-muted-foreground sm:hidden">
-                    +{latestUnlock.achievement.points} pts ·{" "}
-                    {formatInNZT(latestUnlock.unlockedAt, "MMM d, yyyy")}
+                    +{latestUnlock.achievement.points.toLocaleString("en-NZ")} pts ·{" "}
+                    {formatInNZT(latestUnlock.unlockedAt, "d MMM yyyy")}
                   </p>
                 </div>
                 <div className="relative hidden shrink-0 flex-col items-end gap-1.5 sm:flex">
                   <span className="inline-flex items-center rounded-full bg-forest-500/10 px-3 py-1 text-xs font-bold text-forest-600 dark:bg-sun-200/15 dark:text-sun-200">
-                    +{latestUnlock.achievement.points} pts
+                    +{latestUnlock.achievement.points.toLocaleString("en-NZ")} pts
                   </span>
                   <p className="text-xs text-muted-foreground">
-                    {formatInNZT(latestUnlock.unlockedAt, "MMM d, yyyy")}
+                    {formatInNZT(latestUnlock.unlockedAt, "d MMM yyyy")}
                   </p>
                 </div>
               </div>
@@ -478,17 +478,17 @@ export async function FriendProfileContent({
                   {shelfItems.map((ua) => (
                     <li
                       key={ua.achievement.id}
-                      title={`${ua.achievement.description} · unlocked ${formatInNZT(ua.unlockedAt, "MMM d, yyyy")}`}
-                      className="group flex flex-col items-center gap-2.5 rounded-2xl border border-border/70 bg-card p-4 pt-5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500/30 hover:shadow-md dark:hover:border-sun-200/30"
+                      title={`${ua.achievement.description} · unlocked ${formatInNZT(ua.unlockedAt, "d MMM yyyy")}`}
+                      className="group flex flex-col items-center gap-2.5 rounded-2xl border border-border/70 bg-card p-4 pt-5 text-center transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-forest-500/30 hover:shadow-md dark:hover:border-sun-200/30"
                     >
-                      <div className="transition-transform duration-200 group-hover:scale-110">
+                      <div className="transition-transform duration-200 motion-safe:group-hover:scale-110">
                         <AchievementPlate icon={ua.achievement.icon} />
                       </div>
                       <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground">
                         {ua.achievement.name}
                       </p>
-                      <p className="-mt-1 text-[11px] font-medium text-forest-500/80 dark:text-sun-200/70">
-                        {ua.achievement.points} pts
+                      <p className="-mt-1 text-[11px] font-medium text-forest-500/85 dark:text-sun-200/70">
+                        {ua.achievement.points.toLocaleString("en-NZ")} pts
                       </p>
                     </li>
                   ))}
@@ -640,7 +640,7 @@ export async function FriendProfileContent({
                           <span className="font-accent text-xl font-semibold leading-6 text-forest-600 tabular-nums dark:text-forest-200">
                             {formatInNZT(signup.shift.start, "d")}
                           </span>
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-forest-500/80 dark:text-forest-200/80">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-forest-500/85 dark:text-forest-200/80">
                             {formatInNZT(signup.shift.start, "MMM")}
                           </span>
                         </div>
@@ -653,7 +653,7 @@ export async function FriendProfileContent({
                             {formatInNZT(signup.shift.start, "h:mm a")}
                           </p>
                         </div>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform motion-safe:group-hover:translate-x-0.5" />
                       </Link>
                     </li>
                   );

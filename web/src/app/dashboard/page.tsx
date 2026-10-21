@@ -17,6 +17,7 @@ import { DashboardSurveyBannerServer } from "@/components/dashboard-survey-banne
 import { DashboardSuggestedFriends } from "@/components/dashboard-suggested-friends";
 import { AchievementTracker } from "@/components/achievement-tracker";
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -25,15 +26,6 @@ export const metadata: Metadata = {
     follow: false,
   },
 };
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -50,30 +42,22 @@ export default async function DashboardPage() {
 
   return (
     <PageContainer testid="dashboard-page">
-      {/* Branded greeting header — page-local, matches the shifts flow's
-          Fraunces display treatment (new.everybodyeats.nz). */}
-      <header className="pb-2">
-        <h1
-          className="display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50"
-          data-testid="dashboard-welcome-heading"
-        >
-          <span>
+      <PageHeader
+        title={
+          <>
             {greeting}
             {firstName ? (
               <>
                 , <em>{firstName}</em>
               </>
             ) : null}
-          </span>
-          <Sparkle className="h-6 w-6 shrink-0 self-center text-sun-300 sm:h-7 sm:w-7" />
-        </h1>
-        <p
-          className="mt-4 max-w-xl text-lg leading-relaxed text-forest-700/75 dark:text-cream-50/75"
-          data-testid="dashboard-page-description"
-        >
-          Here&apos;s what&apos;s happening with your volunteer journey
-        </p>
-      </header>
+          </>
+        }
+        description="Here's what's happening with your volunteer journey"
+        className="pb-2"
+        data-testid="dashboard-welcome-heading"
+        descriptionTestId="dashboard-page-description"
+      />
 
       {/* Profile completion banner - streams in from server */}
       <Suspense fallback={null}>

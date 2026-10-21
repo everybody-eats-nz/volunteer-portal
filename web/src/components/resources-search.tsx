@@ -92,7 +92,7 @@ export function ResourcesSearch({ availableTags }: ResourcesSearchProps) {
         {/* Search pill — transparent input inside a coloured wrapper */}
         <div className="flex h-12 flex-1 items-center gap-2 rounded-full border border-forest-500/15 bg-cream-100 p-1.5 pl-4 transition-colors focus-within:border-forest-500/40 dark:border-cream-50/10 dark:bg-forest-800/60 dark:focus-within:border-cream-50/30">
           <Search
-            className="h-4 w-4 shrink-0 text-forest-500/70 dark:text-cream-50/60"
+            className="h-4 w-4 shrink-0 text-forest-500/85 dark:text-cream-50/60"
             aria-hidden
           />
           <input
@@ -101,11 +101,11 @@ export function ResourcesSearch({ availableTags }: ResourcesSearchProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="h-9 w-full min-w-0 flex-1 bg-transparent text-sm text-forest-700 placeholder:text-forest-700/45 focus:outline-none dark:text-cream-50 dark:placeholder:text-cream-50/45 [&::-webkit-search-cancel-button]:hidden"
+            className="h-9 w-full min-w-0 flex-1 bg-transparent text-sm text-forest-700 placeholder:text-forest-700/70 focus:outline-none dark:text-cream-50 dark:placeholder:text-cream-50/55 [&::-webkit-search-cancel-button]:hidden"
           />
           <Button
             onClick={handleSearch}
-            className="h-9 shrink-0 rounded-full bg-forest-500 px-5 text-cream-50 hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-lg active:translate-y-0 dark:bg-forest-500 dark:hover:bg-forest-400"
+            className="h-9 shrink-0 rounded-full bg-forest-500 px-5 text-cream-50 motion-safe:hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-lg motion-safe:active:translate-y-0 dark:bg-forest-500 dark:hover:bg-forest-400"
           >
             Search
           </Button>
@@ -166,7 +166,7 @@ export function ResourcesSearch({ availableTags }: ResourcesSearchProps) {
       {/* Tags */}
       {availableTags.length > 0 && (
         <div className="mt-4 border-t border-forest-500/10 pt-4 dark:border-cream-50/10">
-          <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+          <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
             Filter by tags:
           </p>
           <div className="mt-3 flex flex-wrap gap-2">

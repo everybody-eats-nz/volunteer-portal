@@ -28,19 +28,18 @@ export default async function ArchiveExtendedPage({ searchParams }: PageProps) {
       testid="archive-extended-page"
     >
       <div className="w-full max-w-md">
-        <div className="text-center">
-          <PageHeader
-            title={
-              success ? "You're still with us — ka pai!" : "Link no longer valid"
-            }
-            description={
-              success
-                ? "Thanks for staying on. Your volunteer account will remain active."
-                : "This extension link has expired or already been used."
-            }
-            className="mb-6"
-          />
-        </div>
+        <PageHeader
+          title={
+            success ? "You're still with us — ka pai!" : "Link no longer valid"
+          }
+          description={
+            success
+              ? "Thanks for staying on. Your volunteer account will remain active."
+              : "This extension link has expired or already been used."
+          }
+          sparkle={success}
+          align="center"
+        />
 
         <MotionCard testid="archive-extended-card">
           <CardContent className="p-8">

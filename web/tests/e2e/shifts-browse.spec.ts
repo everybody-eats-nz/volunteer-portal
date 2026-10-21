@@ -59,7 +59,7 @@ test.describe("Shifts Browse Page", () => {
       // Check location selection title and description
       const selectionTitle = page.getByTestId("location-selection-title");
       await expect(selectionTitle).toBeVisible();
-      await expect(selectionTitle).toContainText("Choose Your Location");
+      await expect(selectionTitle).toContainText("Choose your location");
 
       const selectionDescription = page.getByTestId(
         "location-selection-description"

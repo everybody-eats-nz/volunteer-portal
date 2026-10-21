@@ -151,7 +151,7 @@ test.describe("Home Page", () => {
 
       const signInButton = page.getByTestId("final-sign-in-button");
       await expect(signInButton).toBeVisible();
-      await expect(signInButton).toContainText("Sign In");
+      await expect(signInButton).toContainText("Sign in");
     });
 
     test("should navigate to shifts page from hero browse button", async ({

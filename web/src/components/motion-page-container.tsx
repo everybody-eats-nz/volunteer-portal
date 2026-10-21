@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { cn } from "@/lib/utils";
 import { fadeVariants } from "@/lib/motion";
 
@@ -23,6 +24,7 @@ export function MotionPageContainer({
   testid,
   ...props
 }: MotionPageContainerProps) {
+  const entrance = useEntrance();
   const testProps = testid ? { "data-testid": testid } : {};
 
   // If animations are disabled, just return a regular div
@@ -38,7 +40,7 @@ export function MotionPageContainer({
     <motion.div
       className={cn("space-y-2", className)}
       variants={fadeVariants}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
       {...props}
       {...testProps}

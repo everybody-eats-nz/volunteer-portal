@@ -11,6 +11,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { MotionFormError, MotionFormSuccess } from "@/components/motion-form";
 import { MotionSpinner } from "@/components/motion-spinner";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import Link from "next/link";
 import { forgotPasswordAction } from "@/lib/actions/password-reset";
 
@@ -33,6 +34,7 @@ const brandPoints = [
 ];
 
 export default function ForgotPasswordPage() {
+  const entrance = useEntrance();
   const searchParams = useSearchParams();
   const urlEmail = searchParams.get("email") || "";
   const [email, setEmail] = useState(urlEmail);
@@ -75,7 +77,7 @@ export default function ForgotPasswordPage() {
         action={formAction}
         className="space-y-6"
         data-testid="forgot-password-form"
-        initial={{ opacity: 0 }}
+        initial={entrance({ opacity: 0 })}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
@@ -83,7 +85,7 @@ export default function ForgotPasswordPage() {
           className="space-y-2"
           data-testid="email-field"
           variants={formFieldVariants}
-          initial="hidden"
+          initial={entrance("hidden")}
           animate="visible"
         >
           <Label
@@ -94,12 +96,12 @@ export default function ForgotPasswordPage() {
           </Label>
           <Input
             id="email"
+            autoComplete="email"
             placeholder="Enter your email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
             disabled={isPending}
             data-testid="email-input"
             name="email"
@@ -177,7 +179,7 @@ export default function ForgotPasswordPage() {
       <motion.div
         className="mt-8 pt-8 border-t border-forest-500/10 dark:border-cream-50/10 text-center"
         data-testid="forgot-password-footer"
-        initial={{ opacity: 0, y: 20 }}
+        initial={entrance({ opacity: 0, y: 20 })}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: 0.5,
@@ -185,7 +187,7 @@ export default function ForgotPasswordPage() {
           ease: [0.22, 1, 0.36, 1],
         }}
       >
-        <p className="text-sm text-forest-700/65 dark:text-cream-50/65 mb-3">
+        <p className="text-sm text-forest-700/70 dark:text-cream-50/65 mb-3">
           Remember your password?
         </p>
         <Button asChild variant="outline" data-testid="back-to-login-link">

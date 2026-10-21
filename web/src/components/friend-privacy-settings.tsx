@@ -146,7 +146,7 @@ function FriendPrivacyForm({ onClose }: { onClose: () => void }) {
                     <Users className="h-4 w-4" aria-hidden />
                     <span>Public</span>
                   </span>
-                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                  <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                     Any logged-in volunteer can see your profile, shared shift
                     history, and which shifts you&apos;ve signed up for on the
                     browse shifts page.
@@ -165,7 +165,7 @@ function FriendPrivacyForm({ onClose }: { onClose: () => void }) {
                     <UserCheck className="h-4 w-4" aria-hidden />
                     <span>Friends Only</span>
                   </span>
-                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                  <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                     Only your friends can see your profile, shared shift
                     history, and which shifts you&apos;ve signed up for on the
                     browse shifts page.
@@ -184,7 +184,7 @@ function FriendPrivacyForm({ onClose }: { onClose: () => void }) {
                     <Lock className="h-4 w-4" aria-hidden />
                     <span>Private</span>
                   </span>
-                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                  <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                     Your profile cannot be viewed, you won&apos;t appear on
                     the browse shifts page, and your shift history will be
                     hidden from everyone.
@@ -208,7 +208,7 @@ function FriendPrivacyForm({ onClose }: { onClose: () => void }) {
                 />
                 <div className="space-y-1">
                   <span className={optionTitle}>Allow friend requests</span>
-                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                  <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                     Other volunteers can send you friend requests
                   </p>
                 </div>
@@ -225,7 +225,7 @@ function FriendPrivacyForm({ onClose }: { onClose: () => void }) {
                   <span className={optionTitle}>
                     Appear in friend suggestions
                   </span>
-                  <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
+                  <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/60">
                     Show up as a suggested friend for volunteers you&apos;ve
                     recently worked with (3+ shared shifts in the last 3
                     months)

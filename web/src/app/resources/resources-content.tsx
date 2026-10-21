@@ -73,7 +73,7 @@ export async function ResourcesContent({
   return (
     <div className="space-y-5">
       {/* Results Count — editorial kicker */}
-      <div className="text-xs font-medium uppercase tracking-[0.18em] text-forest-500/80 dark:text-cream-50/60">
+      <div className="text-xs font-medium uppercase tracking-[0.18em] text-forest-500/85 dark:text-cream-50/60">
         Showing {resources.length} resource{resources.length !== 1 ? "s" : ""}
       </div>
 

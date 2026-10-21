@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Sign In",
+  title: "Sign in",
   description:
     "Sign in to your Everybody Eats volunteer account to manage shifts, track achievements, and connect with the community.",
   path: "/login",

@@ -586,7 +586,7 @@ export default function RegisterClient({
                   <span className="w-full border-t border-forest-500/15 dark:border-cream-50/15" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase tracking-[0.18em]">
-                  <span className="bg-card px-3 text-forest-700/55 dark:text-cream-50/55">
+                  <span className="bg-card px-3 text-forest-700/70 dark:text-cream-50/55">
                     Or create account with email
                   </span>
                 </div>
@@ -748,7 +748,7 @@ export default function RegisterClient({
                         ? `${step.color} text-cream-50 shadow-lg`
                         : index < currentStep
                         ? "bg-forest-700 text-cream-50"
-                        : "bg-forest-500/10 text-forest-700/50 dark:bg-cream-50/10 dark:text-cream-50/50"
+                        : "bg-forest-500/10 text-forest-700/70 dark:bg-cream-50/10 dark:text-cream-50/50"
                     }`}
                     data-testid={`step-${index + 1}-icon`}
                   >
@@ -780,7 +780,7 @@ export default function RegisterClient({
               {steps[currentStep].title}
             </h3>
             <p
-              className="text-sm text-forest-700/65 dark:text-cream-50/60"
+              className="text-sm text-forest-700/70 dark:text-cream-50/60"
               data-testid="current-step-description"
             >
               {steps[currentStep].description}

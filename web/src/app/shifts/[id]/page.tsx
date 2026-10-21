@@ -51,15 +51,7 @@ import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/utils";
 import { getDayLeadsForShifts } from "@/lib/day-leads.server";
 import { DayLeadsStrip } from "@/components/day-leads-strip";
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
+import { Sparkle } from "@/components/sparkle";
 
 export async function generateMetadata({
   params,
@@ -289,7 +281,7 @@ export default async function ShiftDetailPage({
     !hasIncompleteProfile &&
     !hasConflictingSignup;
 
-  const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
+  const shiftDate = formatInNZT(new Date(shift.start), "EEEE d MMMM yyyy");
   const shiftTime = `${formatInNZT(
     new Date(shift.start),
     "h:mm a"
@@ -416,7 +408,7 @@ export default async function ShiftDetailPage({
             <div className="grain overflow-hidden rounded-3xl border border-forest-500/10 bg-card dark:border-cream-50/10">
               <div className="flex items-start justify-between gap-4 p-6 sm:p-7">
                 <div className="min-w-0 space-y-1">
-                  <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+                  <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
                     Where
                   </p>
                   <p className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
@@ -426,7 +418,7 @@ export default async function ShiftDetailPage({
                     href={mapsSearchUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-forest-700/65 underline-offset-4 transition-colors hover:text-forest-500 hover:underline dark:text-cream-50/60 dark:hover:text-cream-50"
+                    className="inline-flex items-center gap-1.5 text-sm text-forest-700/70 underline-offset-4 transition-colors hover:text-forest-500 hover:underline dark:text-cream-50/60 dark:hover:text-cream-50"
                   >
                     <MapPin className="h-3.5 w-3.5" />
                     {locationAddresses[shift.location as Location] ||
@@ -445,7 +437,7 @@ export default async function ShiftDetailPage({
               </div>
               {shiftDayLeads && (
                 <div className="space-y-3 border-t border-forest-500/10 px-6 py-5 sm:px-7 dark:border-cream-50/10">
-                  <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+                  <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
                     Running the day
                   </p>
                   <DayLeadsStrip leads={shiftDayLeads} testId="shift-day-leads" />
@@ -468,7 +460,7 @@ export default async function ShiftDetailPage({
           {/* Special events on this day, from the marketing CMS */}
           {cmsEvents.length > 0 && (
             <div className="space-y-3" data-testid="shift-cms-events">
-              <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+              <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
                 Special event at {shift.location} on this day
               </p>
               {cmsEvents.map((event) => (
@@ -488,7 +480,7 @@ export default async function ShiftDetailPage({
                     <p className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
                       {event.name}
                     </p>
-                    <p className="inline-flex items-center gap-1.5 text-sm text-forest-700/65 dark:text-cream-50/60">
+                    <p className="inline-flex items-center gap-1.5 text-sm text-forest-700/70 dark:text-cream-50/60">
                       <Ticket className="h-3.5 w-3.5 text-forest-500 dark:text-cream-50/70" />
                       {event.displayTime ??
                         formatInNZT(new Date(event.date), "h:mma").toLowerCase()}
@@ -550,7 +542,7 @@ export default async function ShiftDetailPage({
           {/* Calendar + share */}
           {!isPastShift && (
             <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-7 dark:border-cream-50/10">
-              <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+              <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
                 Don&apos;t miss it
               </p>
               <div className="mt-5 grid gap-6 sm:grid-cols-2">
@@ -608,7 +600,7 @@ export default async function ShiftDetailPage({
         <aside className="lg:col-span-5">
           <div className="lg:sticky lg:top-24">
             <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
-              <p className="eyebrow text-forest-500/80 dark:text-cream-50/60">
+              <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
                 Your spot
               </p>
 
@@ -618,7 +610,7 @@ export default async function ShiftDetailPage({
                   {isPastShift ? "—" : isWaitlist ? "Full" : spotsRemaining}
                 </span>
                 {!isPastShift && !isWaitlist && (
-                  <span className="text-sm text-forest-700/60 dark:text-cream-50/55">
+                  <span className="text-sm text-forest-700/70 dark:text-cream-50/55">
                     {spotsRemaining === 1 ? "spot left" : "spots left"}
                   </span>
                 )}
@@ -629,7 +621,7 @@ export default async function ShiftDetailPage({
                   style={{ width: `${capacityPct}%` }}
                 />
               </div>
-              <p className="mt-2 text-sm tabular-nums text-forest-700/60 dark:text-cream-50/55">
+              <p className="mt-2 text-sm tabular-nums text-forest-700/70 dark:text-cream-50/55">
                 {confirmedCount} of {shift.capacity} volunteers signed up
               </p>
 
@@ -637,7 +629,7 @@ export default async function ShiftDetailPage({
                   holding a standby place is worth it */}
               {!isPastShift && waitlistCount > 0 && (
                 <p
-                  className="mt-1 text-sm tabular-nums text-forest-700/60 dark:text-cream-50/55"
+                  className="mt-1 text-sm tabular-nums text-forest-700/70 dark:text-cream-50/55"
                   data-testid="shift-waitlist-count"
                 >
                   {waitlistCountLabel(waitlistCount)}
@@ -694,7 +686,7 @@ export default async function ShiftDetailPage({
                         Sign in to sign up
                       </Link>
                     </Button>
-                    <p className="text-center text-sm text-forest-700/55 dark:text-cream-50/55">
+                    <p className="text-center text-sm text-forest-700/70 dark:text-cream-50/55">
                       You&apos;ll need an account to join this shift.
                     </p>
                   </>
@@ -735,7 +727,7 @@ export default async function ShiftDetailPage({
                       <Button disabled variant="secondary" className="w-full">
                         Parental Consent Required
                       </Button>
-                      <p className="text-sm text-forest-700/65 dark:text-cream-50/60">
+                      <p className="text-sm text-forest-700/70 dark:text-cream-50/60">
                         Please download the consent form from your dashboard,
                         have your parent/guardian sign it, and email it to{" "}
                         <strong>volunteer@everybodyeats.nz</strong> for approval.
@@ -759,7 +751,7 @@ export default async function ShiftDetailPage({
                           Complete Your Profile
                         </Link>
                       </Button>
-                      <div className="text-sm text-forest-700/65 dark:text-cream-50/60">
+                      <div className="text-sm text-forest-700/70 dark:text-cream-50/60">
                         <p>Your profile still needs:</p>
                         <ul
                           className="mt-1 list-disc space-y-0.5 pl-5"

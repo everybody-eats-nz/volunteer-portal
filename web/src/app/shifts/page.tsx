@@ -28,6 +28,7 @@ import {
   FunnelEvent,
   getPhidFromCookies,
 } from "@/lib/funnel";
+import { Sparkle } from "@/components/sparkle";
 
 export async function generateMetadata({
   searchParams,
@@ -63,16 +64,7 @@ export async function generateMetadata({
   });
 }
 
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
-
-const eyebrowLight = "eyebrow text-forest-500/80 dark:text-cream-50/60";
+const eyebrowLight = "eyebrow text-forest-500/85 dark:text-cream-50/60";
 
 interface ShiftSummary {
   id: string;
@@ -345,7 +337,7 @@ export default async function ShiftsCalendarPage({
               className="display text-4xl leading-[1.02] tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50"
               data-testid="location-selection-title"
             >
-              Choose Your <em>Location</em>
+              Choose your <em>location</em>
             </h1>
             <p
               className="mt-4 max-w-md text-lg leading-relaxed text-forest-700/75 dark:text-cream-50/75"
@@ -373,7 +365,7 @@ export default async function ShiftsCalendarPage({
                         <Link
                           key={loc}
                           href={`/shifts?location=${loc}`}
-                          className="grain group flex items-center justify-between gap-4 rounded-2xl border border-forest-500/15 bg-sun-100/60 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500/30 hover:shadow-lg dark:border-cream-50/10 dark:bg-sun-200/10"
+                          className="grain group flex items-center justify-between gap-4 rounded-2xl border border-forest-500/15 bg-sun-100/60 p-4 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-forest-500/30 hover:shadow-lg dark:border-cream-50/10 dark:bg-sun-200/10"
                           data-testid={`preferred-location-${loc
                             .toLowerCase()
                             .replace(/\s+/g, "-")}`}
@@ -393,7 +385,7 @@ export default async function ShiftsCalendarPage({
                               )}
                             </div>
                           </div>
-                          <span className="text-forest-500 transition-transform duration-200 group-hover:translate-x-1 dark:text-cream-50/80">
+                          <span className="text-forest-500 transition-transform duration-200 motion-safe:group-hover:translate-x-1 dark:text-cream-50/80">
                             →
                           </span>
                         </Link>
@@ -421,7 +413,7 @@ export default async function ShiftsCalendarPage({
                     <Link
                       key={loc.name}
                       href={`/shifts?location=${loc.name}`}
-                      className="grain group flex items-center justify-between gap-4 rounded-2xl border border-forest-500/15 bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500/30 hover:shadow-lg dark:border-cream-50/10"
+                      className="grain group flex items-center justify-between gap-4 rounded-2xl border border-forest-500/15 bg-card p-4 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-forest-500/30 hover:shadow-lg dark:border-cream-50/10"
                       data-testid={`location-option-${loc.name
                         .toLowerCase()
                         .replace(/\s+/g, "-")}`}
@@ -449,7 +441,7 @@ export default async function ShiftsCalendarPage({
                           )}
                         </div>
                       </div>
-                      <span className="text-forest-500/60 transition-all duration-200 group-hover:translate-x-1 group-hover:text-forest-500 dark:text-cream-50/50">
+                      <span className="text-forest-500/85 transition-all duration-200 motion-safe:group-hover:translate-x-1 group-hover:text-forest-500 dark:text-cream-50/50">
                         →
                       </span>
                     </Link>
@@ -458,18 +450,18 @@ export default async function ShiftsCalendarPage({
                 {/* Show all locations option */}
                 <Link
                   href="/shifts?showAll=true"
-                  className="group flex items-center justify-between gap-4 rounded-2xl border border-dashed border-forest-500/25 bg-transparent p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500/45 hover:bg-forest-500/5 dark:border-cream-50/20 dark:hover:bg-cream-50/5"
+                  className="group flex items-center justify-between gap-4 rounded-2xl border border-dashed border-forest-500/25 bg-transparent p-4 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-forest-500/45 hover:bg-forest-500/5 dark:border-cream-50/20 dark:hover:bg-cream-50/5"
                   data-testid="show-all-locations"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-forest-500/30 text-forest-500/70 dark:border-cream-50/25 dark:text-cream-50/60">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-forest-500/30 text-forest-500/85 dark:border-cream-50/25 dark:text-cream-50/60">
                       <Sparkle className="h-4 w-4" />
                     </span>
                     <span className="font-medium text-forest-700 dark:text-cream-50">
-                      All Locations
+                      All locations
                     </span>
                   </div>
-                  <span className="text-forest-500/60 transition-all duration-200 group-hover:translate-x-1 group-hover:text-forest-500 dark:text-cream-50/50">
+                  <span className="text-forest-500/85 transition-all duration-200 motion-safe:group-hover:translate-x-1 group-hover:text-forest-500 dark:text-cream-50/50">
                     →
                   </span>
                 </Link>
@@ -479,7 +471,7 @@ export default async function ShiftsCalendarPage({
 
           {/* Help text */}
           {userPreferredLocations.length === 0 && isLoggedIn && (
-            <div className="mt-8 max-w-lg text-sm text-forest-700/65 dark:text-cream-50/60">
+            <div className="mt-8 max-w-lg text-sm text-forest-700/70 dark:text-cream-50/60">
               <p>
                 <Link
                   href="/profile/edit"

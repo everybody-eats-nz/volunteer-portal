@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 
 interface AnimatedProps {
@@ -10,11 +11,12 @@ interface AnimatedProps {
 
 // Animated wrapper for shift cards grid
 export function ShiftsGrid({ children, className }: AnimatedProps) {
+  const entrance = useEntrance();
   return (
     <motion.div 
       className={className}
       variants={staggerContainer}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
     >
       {children}
@@ -41,9 +43,10 @@ export function AnimatedShiftCard({ children, className }: AnimatedProps) {
 
 // Animated wrapper for the entire shifts container
 export function ShiftsContainer({ children, className }: AnimatedProps) {
+  const entrance = useEntrance();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={entrance({ opacity: 0, y: 20 })}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       className={className}

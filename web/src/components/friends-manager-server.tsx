@@ -57,7 +57,7 @@ export function FriendsManagerServer({
               onClick={() => setShowSendRequest(true)}
               data-testid="add-friend-button"
               aria-label="Send a friend request"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-forest-500 px-6 py-3 text-sm font-medium text-cream-50 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-lg active:translate-y-0"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-forest-500 px-6 py-3 text-sm font-medium text-cream-50 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-lg motion-safe:active:translate-y-0"
             >
               <UserPlus className="h-4 w-4" aria-hidden />
               Add Friend

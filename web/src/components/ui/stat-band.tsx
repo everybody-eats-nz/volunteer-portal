@@ -41,11 +41,11 @@ export function StatBand({
           >
             {stat.value}
           </div>
-          <div className="mt-2 text-[0.65rem] uppercase tracking-[0.15em] text-forest-500/70 sm:text-xs dark:text-cream-50/55">
+          <div className="mt-2 text-[0.65rem] uppercase tracking-[0.15em] text-forest-500/85 sm:text-xs dark:text-cream-50/55">
             {stat.label}
           </div>
           {stat.subtitle && (
-            <div className="mt-1 text-xs text-forest-500/70 dark:text-cream-50/55">
+            <div className="mt-1 text-xs text-forest-500/85 dark:text-cream-50/55">
               {stat.subtitle}
             </div>
           )}

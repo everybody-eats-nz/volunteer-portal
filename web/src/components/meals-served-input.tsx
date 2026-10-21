@@ -160,7 +160,7 @@ const ACCENT: Record<
 > = {
   SERVICE_NIGHT: {
     header:
-      "border-emerald-900/10 from-[var(--ee-muted)]/55 dark:border-emerald-400/10 dark:from-emerald-950/30",
+      "border-emerald-900/10 from-muted/55 dark:border-emerald-400/10 dark:from-emerald-950/30",
     eyebrow: "text-emerald-700 dark:text-emerald-400",
     icon: "text-emerald-600 dark:text-emerald-400",
     button:

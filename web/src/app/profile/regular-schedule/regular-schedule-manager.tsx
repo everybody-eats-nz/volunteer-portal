@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { PauseIcon, PlayIcon, EditIcon, CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 
 type RegularVolunteer = {
   id: string;
@@ -197,7 +197,7 @@ export function RegularScheduleManager({
             <Button
               onClick={() => handlePause(true)}
               disabled={loading}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+              className="flex items-center gap-2"
             >
               <PlayIcon className="h-4 w-4" />
               {loading ? "Resuming..." : "Resume Schedule"}
@@ -206,7 +206,7 @@ export function RegularScheduleManager({
             <Button
               onClick={() => setPauseDialogOpen(true)}
               variant="outline"
-              className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+              className="flex items-center gap-2"
             >
               <PauseIcon className="h-4 w-4" />
               Pause Schedule
@@ -215,12 +215,12 @@ export function RegularScheduleManager({
         </div>
 
         {regularVolunteer.isPausedByUser && regularVolunteer.pausedUntil && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="mt-4 rounded-2xl border border-sun-300/60 bg-sun-100/70 p-3 dark:border-sun-200/20 dark:bg-sun-200/10">
             <div className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4 text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-800">
+              <CalendarIcon className="h-4 w-4 text-forest-700 dark:text-sun-100" />
+              <span className="text-sm font-medium text-forest-800 dark:text-sun-100">
                 Paused until{" "}
-                {format(regularVolunteer.pausedUntil, "MMMM d, yyyy")}
+                {formatInNZT(regularVolunteer.pausedUntil, "d MMMM yyyy")}
               </span>
             </div>
           </div>
@@ -353,7 +353,7 @@ export function RegularScheduleManager({
               <Textarea
                 id="reason"
                 rows={2}
-                placeholder="e.g., vacation, personal break, temporarily unavailable..."
+                placeholder="e.g. holiday, personal break, temporarily unavailable..."
                 value={pauseForm.reason}
                 onChange={(e) =>
                   setPauseForm((prev) => ({ ...prev, reason: e.target.value }))
@@ -373,7 +373,6 @@ export function RegularScheduleManager({
             <Button
               onClick={() => handlePause(false)}
               disabled={loading}
-              className="bg-yellow-600 hover:bg-yellow-700"
             >
               {loading ? "Pausing..." : "Pause Schedule"}
             </Button>

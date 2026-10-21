@@ -55,14 +55,15 @@ import {
 
 export { daysOfWeek, pronounOptions, notificationOptions, hearAboutUsOptions };
 
-/* Brand form styling — matches the login page's treatment of inputs and
-   labels (rounded inputs with forest hairlines, quiet forest labels).
-   Shared across registration and profile editing. */
-const inputStyles =
-  "h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15";
+/* Brand form styling — quiet forest labels and helper text. Inputs and
+   selects take the brand field style (rounded, forest hairline) from the
+   ui primitives. Shared across registration and profile editing. */
+/* The date-of-birth picker is a Button standing in for a field. */
+const fieldButtonStyles =
+  "h-11 rounded-xl border-forest-500/20 dark:border-cream-50/15";
 const labelStyles =
   "text-sm font-medium text-forest-700/80 dark:text-cream-50/80";
-const helperTextStyles = "text-xs text-forest-700/60 dark:text-cream-50/60";
+const helperTextStyles = "text-xs text-forest-700/70 dark:text-cream-50/60";
 /* Quiet checkbox panel */
 const panelStyles =
   "p-4 rounded-2xl border border-forest-500/15 bg-forest-500/[0.04] dark:border-cream-50/15 dark:bg-cream-50/[0.04]";
@@ -77,7 +78,7 @@ const toggleCardOff =
   "border-forest-500/15 bg-transparent hover:bg-forest-500/5 dark:border-cream-50/15 dark:hover:bg-cream-50/5";
 /* Uppercase kicker used for in-form group headings */
 const groupHeadingStyles =
-  "eyebrow flex items-center gap-2 text-forest-500/80 dark:text-cream-50/60";
+  "eyebrow flex items-center gap-2 text-forest-500/85 dark:text-cream-50/60";
 
 export interface UserProfileFormData {
   // Basic account info (for registration only)
@@ -166,12 +167,12 @@ export function AccountStep({
           </Label>
           <Input
             id="email"
+            autoComplete="email"
             type="email"
             value={formData.email || ""}
             onChange={(e) => onInputChange("email", e.target.value)}
             placeholder="your.email@example.com"
             disabled={loading}
-            className={inputStyles}
             required
             data-testid="email-input"
           />
@@ -185,25 +186,28 @@ export function AccountStep({
         <div className="relative">
           <Input
             id="password"
+            autoComplete="new-password"
             type={showPassword ? "text" : "password"}
             value={formData.password || ""}
             onChange={(e) => onInputChange("password", e.target.value)}
             placeholder="Create a secure password"
             disabled={loading}
-            className={cn(inputStyles, "pr-10")}
+            className="pr-11"
             required
             data-testid="password-input"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-xl text-muted-foreground transition-colors hover:text-foreground"
             data-testid="toggle-password-visibility"
           >
             {showPassword ? (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-4 w-4" aria-hidden />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Eye className="h-4 w-4" aria-hidden />
             )}
           </button>
         </div>
@@ -217,25 +221,28 @@ export function AccountStep({
         <div className="relative">
           <Input
             id="confirmPassword"
+            autoComplete="new-password"
             type={showConfirmPassword ? "text" : "password"}
             value={formData.confirmPassword || ""}
             onChange={(e) => onInputChange("confirmPassword", e.target.value)}
             placeholder="Confirm your password"
             disabled={loading}
-            className={cn(inputStyles, "pr-10")}
+            className="pr-11"
             required
             data-testid="confirm-password-input"
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={showConfirmPassword ? "Hide confirmed password" : "Show confirmed password"}
+            aria-pressed={showConfirmPassword}
+            className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-xl text-muted-foreground transition-colors hover:text-foreground"
             data-testid="toggle-confirm-password-visibility"
           >
             {showConfirmPassword ? (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-4 w-4" aria-hidden />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Eye className="h-4 w-4" aria-hidden />
             )}
           </button>
         </div>
@@ -345,12 +352,12 @@ export function PersonalInfoStep({
           </Label>
           <Input
             id="firstName"
+            autoComplete="given-name"
             data-testid="first-name-input"
             value={formData.firstName}
             onChange={(e) => onInputChange("firstName", e.target.value)}
             placeholder="Your first name"
             disabled={loading}
-            className={inputStyles}
             required
           />
         </div>
@@ -360,12 +367,12 @@ export function PersonalInfoStep({
           </Label>
           <Input
             id="lastName"
+            autoComplete="family-name"
             data-testid="last-name-input"
             value={formData.lastName}
             onChange={(e) => onInputChange("lastName", e.target.value)}
             placeholder="Your last name"
             disabled={loading}
-            className={inputStyles}
             required
           />
         </div>
@@ -378,12 +385,12 @@ export function PersonalInfoStep({
           </Label>
           <Input
             id="email"
+            autoComplete="email"
             type="email"
             value={formData.email || ""}
             onChange={(e) => onInputChange("email", e.target.value)}
             placeholder="your.email@example.com"
             disabled={loading || isEmailLocked}
-            className={inputStyles}
             data-testid="email-input"
           />
           {isEmailLocked && (
@@ -401,13 +408,13 @@ export function PersonalInfoStep({
         </Label>
         <Input
           id="phone"
+          autoComplete="tel"
           data-testid="phone-input"
           type="tel"
           value={formData.phone}
           onChange={(e) => onInputChange("phone", e.target.value)}
           placeholder="0211234567"
           disabled={loading}
-          className={inputStyles}
         />
       </div>
 
@@ -432,7 +439,7 @@ export function PersonalInfoStep({
               <Button
                 variant="outline"
                 className={cn(
-                  inputStyles,
+                  fieldButtonStyles,
                   "w-full justify-start bg-transparent px-3 text-left font-normal shadow-xs hover:bg-forest-500/5 hover:text-current dark:bg-transparent dark:hover:bg-cream-50/5",
                   !dateOfBirth && "text-muted-foreground"
                 )}
@@ -487,7 +494,7 @@ export function PersonalInfoStep({
             options={pronounOptions}
             defaultValue={formData.pronouns}
             disabled={loading}
-            className={cn(inputStyles, "w-full")}
+            className="w-full"
             data-testid="pronouns-select"
           />
           {formData.pronouns === "other" && (
@@ -500,7 +507,6 @@ export function PersonalInfoStep({
                 }
                 placeholder="Please specify your pronouns"
                 disabled={loading}
-                className={inputStyles}
                 data-testid="custom-pronouns-input"
               />
             </div>
@@ -644,7 +650,6 @@ export function EmergencyContactStep({
           }
           placeholder="Full name of emergency contact"
           disabled={loading}
-          className={inputStyles}
         />
       </div>
 
@@ -664,7 +669,6 @@ export function EmergencyContactStep({
           }
           placeholder="e.g., Parent, Spouse, Sibling, Friend"
           disabled={loading}
-          className={inputStyles}
         />
       </div>
 
@@ -682,7 +686,6 @@ export function EmergencyContactStep({
           }
           placeholder="0211234567"
           disabled={loading}
-          className={inputStyles}
         />
       </div>
     </div>
@@ -715,7 +718,7 @@ export function MedicalInfoStep({
           placeholder="Please list any medical conditions, allergies, or dietary restrictions that may be relevant to your volunteer work. Leave blank if none."
           disabled={loading}
           rows={4}
-          className="resize-none rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
+          className="resize-none"
         />
         <p className={helperTextStyles}>
           This information helps us ensure your safety and accommodate any
@@ -755,7 +758,7 @@ export function MedicalInfoStep({
           options={hearAboutUsOptions}
           defaultValue={formData.howDidYouHearAboutUs}
           disabled={loading}
-          className={cn(inputStyles, "w-full")}
+          className="w-full"
           data-testid="how-did-you-hear-select"
         />
 
@@ -770,7 +773,6 @@ export function MedicalInfoStep({
               }
               placeholder="Please specify how you heard about us"
               disabled={loading}
-              className={inputStyles}
             />
           </div>
         )}
@@ -956,7 +958,7 @@ function MandatoryNotifications() {
             key={category.value}
             className={cn(panelStyles, "flex items-start gap-5")}
           >
-            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-forest-500/70 dark:text-cream-50/60">
+            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center text-forest-500/85 dark:text-cream-50/60">
               <Lock className="h-3.5 w-3.5" aria-hidden />
             </span>
             <div className="text-sm font-medium">

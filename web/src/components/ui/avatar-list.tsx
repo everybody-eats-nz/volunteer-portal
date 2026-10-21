@@ -92,7 +92,7 @@ export function AvatarList({
                 <Link href={`/friends/${user.id}`} className="cursor-pointer">
                   <div
                     className={cn(
-                      "group relative z-0 flex scale-100 items-center transition-all duration-200 ease-in-out hover:z-10 hover:scale-110",
+                      "group relative z-0 flex scale-100 items-center transition-all duration-200 ease-in-out hover:z-10 motion-safe:hover:scale-110",
                       index > 0 && marginClasses[size]
                     )}
                     style={{ zIndex: users.length - index }}
@@ -104,7 +104,7 @@ export function AvatarList({
                           src={user.profilePhotoUrl || undefined}
                           alt={getDisplayName(user)}
                         />
-                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                        <AvatarFallback className="bg-primary/10 text-primary-text font-medium">
                           {getInitials(user)}
                         </AvatarFallback>
                       </Avatar>
@@ -114,7 +114,7 @@ export function AvatarList({
               ) : (
                 <div
                   className={cn(
-                    "group relative z-0 flex scale-100 items-center transition-all duration-200 ease-in-out hover:z-10 hover:scale-110",
+                    "group relative z-0 flex scale-100 items-center transition-all duration-200 ease-in-out hover:z-10 motion-safe:hover:scale-110",
                     index > 0 && marginClasses[size]
                   )}
                   style={{ zIndex: users.length - index }}
@@ -126,7 +126,7 @@ export function AvatarList({
                         src={user.profilePhotoUrl || undefined}
                         alt={getDisplayName(user)}
                       />
-                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                      <AvatarFallback className="bg-primary/10 text-primary-text font-medium">
                         {getInitials(user)}
                       </AvatarFallback>
                     </Avatar>
@@ -145,7 +145,7 @@ export function AvatarList({
             <TooltipTrigger asChild>
               <div
                 className={cn(
-                  "group relative z-0 flex scale-100 items-center transition-all duration-200 ease-in-out hover:z-10 hover:scale-110",
+                  "group relative z-0 flex scale-100 items-center transition-all duration-200 ease-in-out hover:z-10 motion-safe:hover:scale-110",
                   displayUsers.length > 0 && marginClasses[size]
                 )}
                 style={{ zIndex: 0 }}

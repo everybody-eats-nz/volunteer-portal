@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatInNZT } from "@/lib/timezone";
 import { sendFriendRequestByUserId } from "@/lib/friends-actions";
@@ -17,15 +18,7 @@ import {
   getRecommendedFriendDisplayName,
   getRecommendedFriendInitials,
 } from "@/lib/friends-utils";
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
+import { Sparkle } from "@/components/sparkle";
 
 /** Dark forest panel — the marketing site's "app section" treatment, with the
     sun glow as a radial gradient (NOT blur-3xl, which escapes the corner clip
@@ -51,6 +44,7 @@ function SuggestionsPanel({ children }: { children: React.ReactNode }) {
 }
 
 export function RecommendedFriends() {
+  const entrance = useEntrance();
   const router = useRouter();
   const [sendingRequest, setSendingRequest] = useState<Set<string>>(new Set());
 
@@ -130,7 +124,7 @@ export function RecommendedFriends() {
           </p>
           <Link
             href="/shifts"
-            className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-sun-200 px-6 py-3 text-sm font-medium text-forest-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sun-300 hover:shadow-lg active:translate-y-0"
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-sun-200 px-6 py-3 text-sm font-medium text-forest-700 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-sun-300 hover:shadow-lg motion-safe:active:translate-y-0"
           >
             <Calendar className="h-4 w-4" aria-hidden />
             Browse shifts
@@ -153,7 +147,7 @@ export function RecommendedFriends() {
       <motion.div
         className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
         variants={staggerContainer}
-        initial="hidden"
+        initial={entrance("hidden")}
         animate="visible"
       >
         {recommendedFriends.map((friend) => {
@@ -197,7 +191,7 @@ export function RecommendedFriends() {
                       <Calendar className="h-3 w-3 shrink-0" aria-hidden />
                       <span className="truncate">
                         {shift.shiftTypeName} ·{" "}
-                        {formatInNZT(new Date(shift.start), "MMM d")}
+                        {formatInNZT(new Date(shift.start), "d MMM")}
                       </span>
                     </li>
                   ))}
@@ -209,7 +203,7 @@ export function RecommendedFriends() {
                 onClick={() => handleSendRequest(friend.id, displayName)}
                 disabled={isSending}
                 data-testid="recommended-add-friend-button"
-                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-sun-200 px-5 py-2.5 text-sm font-medium text-forest-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sun-300 hover:shadow-lg active:translate-y-0 disabled:pointer-events-none disabled:opacity-60"
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-sun-200 px-5 py-2.5 text-sm font-medium text-forest-700 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:bg-sun-300 hover:shadow-lg motion-safe:active:translate-y-0 disabled:pointer-events-none disabled:opacity-60"
               >
                 {isSending ? (
                   <>

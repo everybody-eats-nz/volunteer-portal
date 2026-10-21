@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { motion, Variants } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { MotionSpinner } from "@/components/motion-spinner";
 import { MotionFormError, MotionFormSuccess } from "@/components/motion-form";
 import { AuthShell } from "@/components/auth-shell";
@@ -70,6 +71,7 @@ const formFieldVariants: Variants = {
 };
 
 export default function LoginClient({ providers }: LoginClientProps) {
+  const entrance = useEntrance();
   const [email, setEmail] = useState(
     !isProductionEnv() ? "volunteer@example.com" : ""
   );
@@ -453,10 +455,10 @@ export default function LoginClient({ providers }: LoginClientProps) {
       cardTestid="login-form-card"
       brandHeading={
         <>
-          Good to have you <em>back</em>
+          Pick up where you <em>left off</em>
         </>
       }
-      brandCopy="Sign in to pick up your shifts, track your hours and stay connected with the volunteering whānau across Aotearoa."
+      brandCopy="Your shifts, your hours and the volunteering whānau across Aotearoa, all in one place."
       brandPoints={brandPoints}
       brandFooter="Ngā mihi nui — thank you for showing up."
       heading={
@@ -472,11 +474,11 @@ export default function LoginClient({ providers }: LoginClientProps) {
                 className="mb-4"
                 data-testid="oauth-providers"
                 variants={containerVariants}
-                initial="hidden"
+                initial={entrance("hidden")}
                 animate="visible"
               >
                 <motion.div variants={itemVariants}>
-                  <p className="mb-4 text-sm text-forest-700/60 dark:text-cream-50/60">
+                  <p className="mb-4 text-sm text-forest-700/70 dark:text-cream-50/60">
                     Sign in with your preferred method
                   </p>
                 </motion.div>
@@ -515,7 +517,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                 <motion.div
                   className="mb-6"
                   variants={containerVariants}
-                  initial="hidden"
+                  initial={entrance("hidden")}
                   animate="visible"
                 >
                   <motion.div variants={itemVariants}>
@@ -524,7 +526,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                       disabled={
                         isLoading || oauthLoading !== null || passkeyLoading
                       }
-                      className="w-full h-11 bg-forest-700 text-cream-50 hover:bg-forest-800 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 border-0 dark:bg-forest-500 dark:hover:bg-forest-400"
+                      className="w-full h-11 bg-forest-700 text-cream-50 hover:bg-forest-800 motion-safe:hover:-translate-y-0.5 hover:shadow-lg motion-safe:active:translate-y-0 border-0 dark:bg-forest-500 dark:hover:bg-forest-400"
                       data-testid="passkey-login-button"
                     >
                       {passkeyLoading ? (
@@ -547,7 +549,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                       <span className="w-full border-t border-forest-500/15 dark:border-cream-50/15" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase tracking-[0.18em]">
-                      <span className="bg-card px-3 text-forest-700/55 dark:text-cream-50/55">
+                      <span className="bg-card px-3 text-forest-700/70 dark:text-cream-50/55">
                         Or use email and password
                       </span>
                     </div>
@@ -561,7 +563,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
               className="space-y-6"
               data-testid="login-form"
               variants={containerVariants}
-              initial="hidden"
+              initial={entrance("hidden")}
               animate="visible"
             >
               <motion.div
@@ -583,7 +585,6 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="username"
-                  className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="email-input"
                 />
@@ -616,7 +617,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
+                  autoComplete="current-password"
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="password-input"
                 />
@@ -625,7 +626,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
               {showReactivation && (
                 <motion.div
                   data-testid="reactivation-banner"
-                  initial={{ opacity: 0, y: -8 }}
+                  initial={entrance({ opacity: 0, y: -8 })}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
                 >
@@ -724,7 +725,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                       Signing in...
                     </div>
                   ) : (
-                    "Sign in with Email"
+                    "Sign in with email"
                   )}
                 </Button>
               </motion.div>
@@ -733,7 +734,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
             <motion.div
               className="mt-8 pt-8 border-t border-forest-500/10 dark:border-cream-50/10"
               data-testid="login-footer"
-              initial={{ opacity: 0, y: 20 }}
+              initial={entrance({ opacity: 0, y: 20 })}
               animate={{ opacity: 1, y: 0 }}
               transition={{
                 duration: 0.5,
@@ -742,7 +743,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
               }}
             >
               <div className="text-center mb-4">
-                <p className="text-sm text-forest-700/65 dark:text-cream-50/65">
+                <p className="text-sm text-forest-700/70 dark:text-cream-50/65">
                   Don&apos;t have an account yet?
                 </p>
                 <Button
@@ -751,7 +752,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   className="mt-3"
                   data-testid="register-link"
                 >
-                  <Link href="/register">Create Volunteer Account</Link>
+                  <Link href="/register">Create volunteer account</Link>
                 </Button>
               </div>
 
@@ -761,7 +762,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   className="grain rounded-2xl border border-forest-500/10 bg-forest-500/5 p-4 text-center dark:border-cream-50/10 dark:bg-cream-50/5"
                   data-testid="demo-credentials"
                 >
-                  <p className="eyebrow mb-3 text-forest-500/80 dark:text-cream-50/70">
+                  <p className="eyebrow mb-3 text-forest-500/85 dark:text-cream-50/70">
                     Demo Credentials
                   </p>
                   <div className="flex flex-col gap-2">
@@ -809,7 +810,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                       </div>
                     </div>
                   </div>
-                  <p className="mt-3 text-xs text-forest-700/55 dark:text-cream-50/55">
+                  <p className="mt-3 text-xs text-forest-700/70 dark:text-cream-50/55">
                     Volunteer: volunteer@example.com | Admin:
                     admin@everybodyeats.nz
                   </p>

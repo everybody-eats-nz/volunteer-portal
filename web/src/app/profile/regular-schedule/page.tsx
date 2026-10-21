@@ -6,7 +6,6 @@ import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import {
   StarIcon,
@@ -15,10 +14,13 @@ import {
   ClockIcon,
   SettingsIcon,
   ArrowLeftIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { RegularScheduleManager } from "./regular-schedule-manager";
 import { UpcomingRegularShifts } from "./upcoming-regular-shifts";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
+import { cn } from "@/lib/utils";
+import { Sparkle } from "@/components/sparkle";
 
 export default async function RegularSchedulePage() {
   const session = await getServerSession(authOptions);
@@ -54,22 +56,18 @@ export default async function RegularSchedulePage() {
       return {
         status: "inactive",
         label: "Inactive",
-        description: "Regular volunteer status is currently inactive",
-        color: "text-gray-500",
-        bgColor: "bg-gray-100",
+        description: "Your regular volunteer status is currently inactive",
       };
     }
 
     if (regular.isPausedByUser) {
       const until = regular.pausedUntil
-        ? ` until ${format(regular.pausedUntil, "MMM d, yyyy")}`
+        ? ` until ${formatInNZT(regular.pausedUntil, "d MMMM yyyy")}`
         : "";
       return {
         status: "paused",
         label: "Paused",
-        description: `Regular schedule is paused${until}`,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50",
+        description: `Your regular schedule is paused${until}`,
       };
     }
 
@@ -77,8 +75,6 @@ export default async function RegularSchedulePage() {
       status: "active",
       label: "Active",
       description: "Auto-applying to matching shifts",
-      color: "text-green-600",
-      bgColor: "bg-green-50",
     };
   };
 
@@ -124,13 +120,17 @@ export default async function RegularSchedulePage() {
   return (
     <PageContainer testid="regular-schedule-page">
       <PageHeader
-        title="Regular Schedule"
+        title={
+          <>
+            Regular <em>schedule</em>
+          </>
+        }
         description="Manage your recurring volunteer shift assignments"
         actions={
           <Button asChild variant="outline" size="sm">
             <Link href="/profile">
-              <ArrowLeftIcon className="h-4 w-4 mr-2" />
-              Back to Profile
+              <ArrowLeftIcon className="h-4 w-4" />
+              Back to profile
             </Link>
           </Button>
         }
@@ -138,68 +138,73 @@ export default async function RegularSchedulePage() {
 
       {regularVolunteers.length === 0 ? (
         /* No Regular Status */
-        <Card className="text-center py-12">
-          <CardContent>
-            <div className="max-w-md mx-auto">
-              <StarIcon className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-              <h2 className="text-xl font-semibold mb-2">
-                Not a Regular Volunteer Yet
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                You haven&apos;t been assigned as a regular volunteer. Regular
-                volunteers automatically appear as signed up for their assigned
-                shifts, making scheduling easier for both you and the admins.
-              </p>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>• Auto-apply to matching shifts</p>
-                <p>• Set your preferred days and frequency</p>
-                <p>• Pause anytime for vacations or breaks</p>
-              </div>
-              <p className="text-sm text-muted-foreground mt-6">
-                Contact an administrator if you&apos;d like to become a regular
-                volunteer.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <section className={cn(panel, "px-6 py-12 text-center")}>
+          <div className="mx-auto max-w-md">
+            <span className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-sun-200/60 text-forest-700 dark:bg-sun-200/15 dark:text-sun-100">
+              <StarIcon className="h-7 w-7" aria-hidden />
+            </span>
+            <h2 className="display display-medium text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+              Not a regular volunteer yet
+            </h2>
+            <p className="mt-3 text-forest-700/75 dark:text-cream-50/75">
+              You haven&apos;t been assigned as a regular volunteer. Regular
+              volunteers automatically appear as signed up for their assigned
+              shifts, making scheduling easier for both you and the admins.
+            </p>
+            <ul className="mx-auto mt-6 w-fit space-y-2 text-left text-sm text-forest-700/80 dark:text-cream-50/75">
+              <li className="flex items-center gap-2">
+                <Sparkle className="h-3 w-3 shrink-0 text-forest-500 dark:text-forest-200" />
+                Auto-apply to matching shifts
+              </li>
+              <li className="flex items-center gap-2">
+                <Sparkle className="h-3 w-3 shrink-0 text-forest-500 dark:text-forest-200" />
+                Set your preferred days and frequency
+              </li>
+              <li className="flex items-center gap-2">
+                <Sparkle className="h-3 w-3 shrink-0 text-forest-500 dark:text-forest-200" />
+                Pause any time for holidays or breaks
+              </li>
+            </ul>
+            <p className="mt-6 text-sm text-forest-700/75 dark:text-cream-50/70">
+              Contact an administrator if you&apos;d like to become a regular
+              volunteer.
+            </p>
+          </div>
+        </section>
       ) : (
         <div className="space-y-8">
           {/* Status Overview */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-lg bg-yellow-50">
-                    <StarIcon className="h-6 w-6 text-yellow-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      Regular Volunteer Status
-                      <Badge variant="success">{activeCount} Active</Badge>
-                      {pausedCount > 0 && (
-                        <Badge variant="warning">{pausedCount} Paused</Badge>
-                      )}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {regularVolunteers.length === 1
-                        ? "You have 1 regular schedule"
-                        : `You have ${regularVolunteers.length} regular schedules`}
-                    </p>
-                  </div>
-                </div>
+          <section className={cn(panel, "p-6")}>
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sun-200/60 text-forest-700 dark:bg-sun-200/15 dark:text-sun-100">
+                <StarIcon className="h-6 w-6" aria-hidden />
+              </span>
+              <div>
+                <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-forest-700 dark:text-cream-50">
+                  Regular volunteer status
+                  <Badge variant="success">{activeCount} active</Badge>
+                  {pausedCount > 0 && (
+                    <Badge variant="warning">{pausedCount} paused</Badge>
+                  )}
+                </h2>
+                <p className="mt-1 text-sm text-forest-700/75 dark:text-cream-50/70">
+                  {regularVolunteers.length === 1
+                    ? "You have 1 regular schedule"
+                    : `You have ${regularVolunteers.length} regular schedules`}
+                </p>
               </div>
-            </CardHeader>
-          </Card>
+            </div>
+          </section>
 
           {/* Individual Schedule Cards */}
           {regularVolunteers.map((regularVolunteer) => {
             const statusInfo = getStatusInfo(regularVolunteer);
             return (
-              <Card key={regularVolunteer.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <CalendarIcon className="h-5 w-5" />
+              <section key={regularVolunteer.id} className={cn(panel, "p-6")}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-forest-700 dark:text-cream-50">
+                      <CalendarIcon className="h-5 w-5 text-primary-text" aria-hidden />
                       {regularVolunteer.shiftType.name}
                       <Badge
                         variant={
@@ -212,89 +217,55 @@ export default async function RegularSchedulePage() {
                       >
                         {statusInfo.label}
                       </Badge>
-                    </CardTitle>
-                    {statusInfo.status === "active" && (
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-green-600">
-                          {regularVolunteer.autoSignups.length} auto-signups
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Since {format(regularVolunteer.createdAt, "MMM yyyy")}
-                        </div>
-                      </div>
-                    )}
+                    </h2>
+                    <p className="mt-1 text-sm text-forest-700/75 dark:text-cream-50/70">
+                      {statusInfo.description}
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                          <SettingsIcon className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Shift Type</div>
-                          <div className="text-sm text-muted-foreground">
-                            {regularVolunteer.shiftType.name}
-                          </div>
-                        </div>
+                  {statusInfo.status === "active" && (
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-primary-text">
+                        {regularVolunteer.autoSignups.length.toLocaleString("en-NZ")}{" "}
+                        auto-signups
                       </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-green-50 rounded-lg">
-                          <MapPinIcon className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Location</div>
-                          <div className="text-sm text-muted-foreground">
-                            {regularVolunteer.location}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-50 rounded-lg">
-                          <ClockIcon className="h-4 w-4 text-purple-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Frequency</div>
-                          <div className="text-sm text-muted-foreground">
-                            {getFrequencyLabel(regularVolunteer.frequency)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-50 rounded-lg">
-                          <CalendarIcon className="h-4 w-4 text-orange-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Available Days</div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatDays(regularVolunteer.availableDays)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {regularVolunteer.volunteerNotes && (
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                      <div className="font-medium mb-2">Your Notes</div>
-                      <div className="text-sm text-muted-foreground">
-                        {regularVolunteer.volunteerNotes}
+                      <div className="text-xs text-forest-700/75 dark:text-cream-50/70">
+                        Since {formatInNZT(regularVolunteer.createdAt, "MMMM yyyy")}
                       </div>
                     </div>
                   )}
+                </div>
 
-                  {/* Schedule Management for this schedule */}
-                  <div className="mt-6 pt-6 border-t">
-                    <RegularScheduleManager regularVolunteer={regularVolunteer} />
+                <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Detail icon={SettingsIcon} label="Shift type">
+                    {regularVolunteer.shiftType.name}
+                  </Detail>
+                  <Detail icon={ClockIcon} label="Frequency">
+                    {getFrequencyLabel(regularVolunteer.frequency)}
+                  </Detail>
+                  <Detail icon={MapPinIcon} label="Location">
+                    {regularVolunteer.location}
+                  </Detail>
+                  <Detail icon={CalendarIcon} label="Available days">
+                    {formatDays(regularVolunteer.availableDays)}
+                  </Detail>
+                </dl>
+
+                {regularVolunteer.volunteerNotes && (
+                  <div className="mt-6 rounded-2xl bg-forest-500/5 p-4 dark:bg-cream-50/5">
+                    <div className="mb-1 text-sm font-medium text-forest-700 dark:text-cream-50">
+                      Your notes
+                    </div>
+                    <div className="text-sm text-forest-700/80 dark:text-cream-50/75">
+                      {regularVolunteer.volunteerNotes}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+
+                {/* Schedule Management for this schedule */}
+                <div className="mt-6 border-t border-forest-500/10 pt-6 dark:border-cream-50/10">
+                  <RegularScheduleManager regularVolunteer={regularVolunteer} />
+                </div>
+              </section>
             );
           })}
 
@@ -303,5 +274,35 @@ export default async function RegularSchedulePage() {
         </div>
       )}
     </PageContainer>
+  );
+}
+
+/** The cream-paper panel used across the volunteer pages. */
+const panel =
+  "grain relative overflow-hidden rounded-3xl border border-forest-500/10 bg-card dark:border-cream-50/10";
+
+function Detail({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+        <Icon className="h-4 w-4" aria-hidden />
+      </span>
+      <div>
+        <dt className="text-sm font-medium text-forest-700 dark:text-cream-50">
+          {label}
+        </dt>
+        <dd className="text-sm text-forest-700/75 dark:text-cream-50/70">
+          {children}
+        </dd>
+      </div>
+    </div>
   );
 }

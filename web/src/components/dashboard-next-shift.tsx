@@ -164,7 +164,7 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
             <div className="space-y-2 text-forest-700/85 dark:text-cream-50/80">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-forest-500 dark:text-cream-50/60" />
-                {formatInNZT(nextShift.shift.start, "EEEE, MMMM do")}
+                {formatInNZT(nextShift.shift.start, "EEEE d MMMM")}
               </div>
               <div className="flex items-center gap-2 text-sm tabular-nums">
                 <Clock className="h-4 w-4 text-forest-500 dark:text-cream-50/60" />

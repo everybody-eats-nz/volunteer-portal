@@ -6,6 +6,7 @@ import { Globe, Mail } from "lucide-react";
 import { FacebookIcon, InstagramIcon } from "@/components/brand-icons";
 import packageJson from "../../package.json";
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
+import { SITE_CONTAINER } from "@/lib/site-container";
 
 interface SiteFooterProps {
   session?: Session | null;
@@ -39,7 +40,7 @@ export function SiteFooter({ session, isSessionLoading }: SiteFooterProps) {
         className="absolute -bottom-32 -right-32 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(closest-side,rgb(248_251_105/0.18),transparent)]"
         aria-hidden
       />
-      <div className="relative max-w-[88rem] mx-auto px-5 sm:px-8 lg:px-12 pt-16 pb-10">
+      <div className={`relative ${SITE_CONTAINER} pt-16 pb-10`}>
         <h2 className="display max-w-3xl text-4xl leading-[1.02] tracking-tight sm:text-5xl">
           Make a difference <em className="text-sun-200">one plate</em> at a
           time
@@ -179,7 +180,7 @@ export function SiteFooter({ session, isSessionLoading }: SiteFooterProps) {
                 Download on the App Store
                 <span
                   aria-hidden
-                  className="transition-transform group-hover:translate-x-0.5"
+                  className="transition-transform motion-safe:group-hover:translate-x-0.5"
                 >
                   →
                 </span>
@@ -193,7 +194,7 @@ export function SiteFooter({ session, isSessionLoading }: SiteFooterProps) {
                 Get it on Google Play
                 <span
                   aria-hidden
-                  className="transition-transform group-hover:translate-x-0.5"
+                  className="transition-transform motion-safe:group-hover:translate-x-0.5"
                 >
                   →
                 </span>
@@ -206,10 +207,10 @@ export function SiteFooter({ session, isSessionLoading }: SiteFooterProps) {
         <div className="flex flex-col gap-4 border-t border-cream-50/15 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-cream-50/60">
             <p>© Everybody Eats {currentYear}. All rights reserved.</p>
-            <span className="hidden sm:inline text-cream-50/30">•</span>
+            <span className="hidden sm:inline text-cream-50/30" aria-hidden>•</span>
             <p>Making a difference, one meal at a time.</p>
-            <span className="hidden sm:inline text-cream-50/30">•</span>
-            <span className="text-cream-50/40">v{packageJson.version}</span>
+            <span className="hidden sm:inline text-cream-50/30" aria-hidden>•</span>
+            <span className="text-cream-50/55">v{packageJson.version}</span>
           </div>
           <div className="flex items-center gap-3">
             <a

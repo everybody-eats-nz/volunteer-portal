@@ -9,6 +9,7 @@ import ErrorBoundary from "@/components/error-boundary";
 import { FriendsErrorFallback } from "@/components/friends-error-fallback";
 import { FriendsContent } from "./friends-content";
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = {
   title: "Friends",
@@ -17,15 +18,6 @@ export const metadata: Metadata = {
     follow: false,
   },
 };
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
 
 /* Pill links — shared brand system with the marketing site
    (marketing-cms STYLEGUIDE.md: btn-primary / btn-ghost). */
@@ -115,30 +107,25 @@ async function FriendsPageContent({
 
   return (
     <PageContainer testid="friends-page">
-      {/* Branded header — Fraunces display treatment, matching the
-          dashboard, shifts and profile pages (new.everybodyeats.nz). */}
-      <div className="flex flex-col gap-6 pb-8 lg:flex-row lg:items-end lg:justify-between">
-        <header>
-          <h1 className="display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50">
-            <span>
-              My <em>Friends</em>
-            </span>
-            <Sparkle className="h-6 w-6 shrink-0 self-center text-sun-300 sm:h-7 sm:w-7" />
-          </h1>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-forest-700/75 dark:text-cream-50/75">
-            Volunteering is better together — keep up with the people you meet
-            on the mahi.
-          </p>
-        </header>
-        <Link
-          href="/friends/stats"
-          className={`${pillGhost} w-fit shrink-0`}
-          data-testid="view-statistics-link"
-        >
-          <BarChart3 className="h-4 w-4" aria-hidden />
-          View Statistics
-        </Link>
-      </div>
+      <PageHeader
+        title={
+          <>
+            My <em>Friends</em>
+          </>
+        }
+        description="Volunteering is better together — keep up with the people you meet on the mahi."
+        className="pb-8"
+        actions={
+          <Link
+            href="/friends/stats"
+            className={`${pillGhost} w-fit`}
+            data-testid="view-statistics-link"
+          >
+            <BarChart3 className="h-4 w-4" aria-hidden />
+            View statistics
+          </Link>
+        }
+      />
 
       {/* Friends content streams in */}
       <ErrorBoundary fallback={FriendsErrorFallback}>

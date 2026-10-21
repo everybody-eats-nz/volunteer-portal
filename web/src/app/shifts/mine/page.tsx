@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/page-container";
 import { MyShiftsContent } from "./my-shifts-content";
 import { MyShiftsContentSkeleton } from "./my-shifts-skeleton";
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = {
   title: "My Shifts",
@@ -14,15 +15,6 @@ export const metadata: Metadata = {
     follow: false,
   },
 };
-
-/** Four-point sparkle — the marketing site's signature accent mark. */
-function Sparkle({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
-      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
-    </svg>
-  );
-}
 
 export default async function MyShiftsPage({
   searchParams,
@@ -40,19 +32,15 @@ export default async function MyShiftsPage({
 
   return (
     <PageContainer testid="my-shifts-page">
-      {/* Branded header — Fraunces display treatment, matching the
-          dashboard, shifts and profile pages (new.everybodyeats.nz). */}
-      <header className="pb-4">
-        <h1 className="display flex flex-wrap items-baseline gap-x-3 text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50">
-          <span>
+      <PageHeader
+        title={
+          <>
             My <em>Shifts</em>
-          </span>
-          <Sparkle className="h-6 w-6 shrink-0 self-center text-sun-300 sm:h-7 sm:w-7" />
-        </h1>
-        <p className="mt-4 max-w-xl text-lg leading-relaxed text-forest-700/75 dark:text-cream-50/75">
-          Your volunteer schedule and shift history.
-        </p>
-      </header>
+          </>
+        }
+        description="Your volunteer schedule and shift history."
+        className="pb-4"
+      />
 
       <Suspense fallback={<MyShiftsContentSkeleton />}>
         <MyShiftsContent userId={userId} monthParam={monthParam} />

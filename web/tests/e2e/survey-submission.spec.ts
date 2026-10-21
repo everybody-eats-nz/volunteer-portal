@@ -857,9 +857,10 @@ test.describe("Survey Submission Flow", () => {
       await expect(page.getByText("Required question")).toBeVisible();
       await expect(page.getByText("Rate this")).toBeVisible();
 
-      // Required questions should show asterisk
-      const requiredIndicators = page.locator('[aria-label="required"]');
-      expect(await requiredIndicators.count()).toBeGreaterThan(0);
+      // Required questions are marked for assistive tech, not just by the
+      // visual asterisk
+      const requiredControls = page.locator('[aria-required="true"]');
+      expect(await requiredControls.count()).toBeGreaterThan(0);
     });
 
     test("should support keyboard navigation", async ({ page }) => {

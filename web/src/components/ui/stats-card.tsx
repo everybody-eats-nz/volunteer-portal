@@ -87,7 +87,7 @@ export function StatsCard({
             {title}
           </div>
           {subtitle && (
-            <div className="text-xs text-forest-500/70 dark:text-cream-50/55 mt-1">
+            <div className="text-xs text-forest-500/85 dark:text-cream-50/55 mt-1">
               {subtitle}
             </div>
           )}

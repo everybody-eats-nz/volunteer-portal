@@ -9,6 +9,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { MotionFormError, MotionFormSuccess } from "@/components/motion-form";
 import { MotionSpinner } from "@/components/motion-spinner";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import Link from "next/link";
 import { resetPasswordAction } from "@/lib/actions/password-reset";
 import { validatePassword } from "@/lib/utils/password-validation";
@@ -40,6 +41,7 @@ const brandPoints = [
  * missing or dead token itself.
  */
 export function ResetPasswordForm({ token }: { token: string }) {
+  const entrance = useEntrance();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -114,7 +116,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         onSubmit={onSubmit}
         className="space-y-6"
         data-testid="reset-password-form"
-        initial={{ opacity: 0 }}
+        initial={entrance({ opacity: 0 })}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
@@ -122,7 +124,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           className="space-y-2"
           data-testid="password-field"
           variants={formFieldVariants}
-          initial="hidden"
+          initial={entrance("hidden")}
           animate="visible"
         >
           <Label
@@ -133,12 +135,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
           </Label>
           <Input
             id="password"
+            autoComplete="new-password"
             placeholder="Enter new password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
             disabled={isLoading}
             data-testid="password-input"
           />
@@ -149,7 +151,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           className="space-y-2"
           data-testid="confirm-password-field"
           variants={formFieldVariants}
-          initial="hidden"
+          initial={entrance("hidden")}
           animate="visible"
           transition={{ delay: 0.1 }}
         >
@@ -161,12 +163,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
           </Label>
           <Input
             id="confirmPassword"
+            autoComplete="new-password"
             placeholder="Confirm new password"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
             disabled={isLoading}
             data-testid="confirm-password-input"
           />
@@ -263,7 +265,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       <motion.div
         className="mt-8 pt-8 border-t border-forest-500/10 dark:border-cream-50/10 text-center"
         data-testid="reset-password-footer"
-        initial={{ opacity: 0, y: 20 }}
+        initial={entrance({ opacity: 0, y: 20 })}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: 0.5,
@@ -271,7 +273,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           ease: [0.22, 1, 0.36, 1],
         }}
       >
-        <p className="text-sm text-forest-700/65 dark:text-cream-50/65 mb-3">
+        <p className="text-sm text-forest-700/70 dark:text-cream-50/65 mb-3">
           Remember your password?
         </p>
         <Button asChild variant="outline" data-testid="back-to-login-link">

@@ -16,7 +16,7 @@ export function ViewFriendProfileButton({
         type="button"
         disabled
         data-testid="view-friend-profile-button"
-        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-forest-500/15 px-5 py-2.5 text-sm font-medium text-forest-700/50 dark:border-cream-50/15 dark:text-cream-50/50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-forest-500/15 px-5 py-2.5 text-sm font-medium text-forest-700/70 dark:border-cream-50/15 dark:text-cream-50/50"
       >
         <Lock className="h-3.5 w-3.5" aria-hidden />
         Profile Private

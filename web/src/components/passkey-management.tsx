@@ -49,6 +49,7 @@ import {
   Key,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { MotionSpinner } from "@/components/motion-spinner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -82,6 +83,7 @@ const staggerItem = {
 };
 
 export function PasskeyManagement() {
+  const entrance = useEntrance();
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
   const [loading, setLoading] = useState(true);
   const [supported, setSupported] = useState(false);
@@ -311,7 +313,7 @@ export function PasskeyManagement() {
             <motion.div
               className="space-y-3"
               variants={staggerContainer}
-              initial="hidden"
+              initial={entrance("hidden")}
               animate="visible"
             >
               {passkeys.map((passkey) => (
@@ -323,7 +325,7 @@ export function PasskeyManagement() {
                 >
                   <div className="flex items-start gap-3 flex-1">
                     <div className="p-2 bg-primary/10 rounded-lg mt-1">
-                      <Fingerprint className="w-5 h-5 text-primary" />
+                      <Fingerprint className="w-5 h-5 text-primary-text" />
                     </div>
                     <div className="flex-1">
                       <h4

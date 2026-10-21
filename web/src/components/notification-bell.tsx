@@ -17,6 +17,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Fetch initial unread count
   const fetchUnreadCount = useCallback(async () => {
@@ -80,6 +81,19 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     }
   }, [isOpen]);
 
+  // Escape closes the panel and returns focus to the bell
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   // Prevent body scroll when dropdown is open (mobile only)
   useEffect(() => {
     const handleBodyScroll = () => {
@@ -105,13 +119,16 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   return (
     <div className="relative" ref={containerRef}>
       <Button
+        ref={buttonRef}
         variant="ghost"
         size="sm"
         className="relative text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-colors duration-200 rounded-full p-2"
         data-testid="notification-bell-button"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? "notification-panel" : undefined}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-5 w-5" aria-hidden />
         {unreadCount > 0 && (
           <Badge
             variant="destructive"
@@ -144,6 +161,9 @@ export function NotificationBell({ userId }: NotificationBellProps) {
               initial="hidden"
               animate="visible"
               exit="exit"
+              id="notification-panel"
+              role="region"
+              aria-label="Notifications"
               data-testid="notification-dropdown"
             >
               <NotificationList

@@ -12,7 +12,7 @@ test.describe("Mobile Navigation", () => {
 
       // Hamburger menu should be visible on mobile
       const hamburgerButton = page.getByRole("button", {
-        name: "Toggle mobile menu",
+        name: "Menu", exact: true,
       });
       await expect(hamburgerButton).toBeVisible();
 
@@ -30,7 +30,7 @@ test.describe("Mobile Navigation", () => {
 
       // Hamburger menu should not be visible on desktop
       const hamburgerButton = page.getByRole("button", {
-        name: "Toggle mobile menu",
+        name: "Menu", exact: true,
       });
       await expect(hamburgerButton).not.toBeVisible();
     });
@@ -46,20 +46,20 @@ test.describe("Mobile Navigation", () => {
 
       // Click hamburger menu
       const hamburgerButton = page.getByRole("button", {
-        name: "Toggle mobile menu",
+        name: "Menu", exact: true,
       });
       await hamburgerButton.click();
 
       // Menu should be visible with navigation options (in mobile menu specifically)
       const mobileMenu = page.locator(".lg\\:hidden nav");
       await expect(
-        mobileMenu.getByRole("link", { name: "Browse Shifts" })
+        mobileMenu.getByRole("link", { name: "Browse shifts" })
       ).toBeVisible();
       await expect(
-        mobileMenu.getByRole("link", { name: "Join Us" })
+        mobileMenu.getByRole("link", { name: "Join us" })
       ).toBeVisible();
       await expect(
-        mobileMenu.getByRole("link", { name: "Login" })
+        mobileMenu.getByRole("link", { name: "Sign in" })
       ).toBeVisible();
       await expect(
         mobileMenu.getByText("Theme", { exact: true })
@@ -77,14 +77,14 @@ test.describe("Mobile Navigation", () => {
 
       // Open menu
       const hamburgerButton = page.getByRole("button", {
-        name: "Toggle mobile menu",
+        name: "Menu", exact: true,
       });
       await hamburgerButton.click();
 
       // Click a navigation link in the mobile menu
       const mobileMenu = page.locator(".lg\\:hidden nav");
       const shiftsLink = mobileMenu.getByRole("link", {
-        name: "Browse Shifts",
+        name: "Browse shifts",
       });
       await shiftsLink.click();
 
@@ -92,7 +92,7 @@ test.describe("Mobile Navigation", () => {
       await page.waitForURL("/shifts");
 
       // Menu should be closed (shifts link in menu should not be visible)
-      // Note: There might be another "Browse Shifts" link on the page, so we check for the mobile menu specifically
+      // Note: There might be another "Browse shifts" link on the page, so we check for the mobile menu specifically
       await expect(mobileMenu).not.toBeVisible();
     });
 
@@ -110,7 +110,7 @@ test.describe("Mobile Navigation", () => {
 
       // Open menu
       const hamburgerButton = page.getByRole("button", {
-        name: "Toggle mobile menu",
+        name: "Menu", exact: true,
       });
       await hamburgerButton.click();
 
@@ -120,7 +120,7 @@ test.describe("Mobile Navigation", () => {
         mobileMenu.getByRole("link", { name: "Dashboard" })
       ).toBeVisible();
       await expect(
-        mobileMenu.getByRole("link", { name: "Browse Shifts" })
+        mobileMenu.getByRole("link", { name: "Browse shifts" })
       ).toBeVisible();
       await expect(
         mobileMenu.getByRole("link", { name: "My Shifts" })
@@ -130,8 +130,8 @@ test.describe("Mobile Navigation", () => {
       ).toBeVisible();
 
       // Should not show login/register in mobile menu
-      const loginLink = mobileMenu.getByRole("link", { name: "Login" });
-      const joinLink = mobileMenu.getByRole("link", { name: "Join Us" });
+      const loginLink = mobileMenu.getByRole("link", { name: "Sign in" });
+      const joinLink = mobileMenu.getByRole("link", { name: "Join us" });
       await expect(loginLink).toHaveCount(0);
       await expect(joinLink).toHaveCount(0);
     });
@@ -172,7 +172,7 @@ test.describe("Mobile Navigation", () => {
       await page.waitForLoadState("load");
 
       const hamburgerButton = page.getByRole("button", {
-        name: "Toggle mobile menu",
+        name: "Menu", exact: true,
       });
       const mobileMenu = page.locator(".lg\\:hidden nav");
 
@@ -183,7 +183,7 @@ test.describe("Mobile Navigation", () => {
       await hamburgerButton.click();
       await expect(mobileMenu).toBeVisible();
       await expect(
-        mobileMenu.getByRole("link", { name: "Browse Shifts" })
+        mobileMenu.getByRole("link", { name: "Browse shifts" })
       ).toBeVisible();
 
       // Close menu
@@ -202,7 +202,7 @@ test.describe("Mobile Navigation", () => {
 
       // Hamburger should be visible on tablet
       const hamburgerButton = page.getByRole("button", {
-        name: "Toggle mobile menu",
+        name: "Menu", exact: true,
       });
       await expect(hamburgerButton).toBeVisible();
 
@@ -210,7 +210,7 @@ test.describe("Mobile Navigation", () => {
       await hamburgerButton.click();
       const mobileMenu = page.locator(".lg\\:hidden nav");
       await expect(
-        mobileMenu.getByRole("link", { name: "Browse Shifts" })
+        mobileMenu.getByRole("link", { name: "Browse shifts" })
       ).toBeVisible();
     });
   });

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, Save, X, Loader2, SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { formatInNZT } from "@/lib/timezone";
 
 interface ShiftCountAdjustmentProps {
   userId: string;
@@ -151,7 +152,7 @@ export function ShiftCountAdjustment({
                     {adjustedBy && adjustedAt && (
                       <p className="text-xs text-muted-foreground">
                         Set by {adjustedBy} on{" "}
-                        {new Date(adjustedAt).toLocaleDateString()}
+                        {formatInNZT(adjustedAt, "d MMM yyyy")}
                       </p>
                     )}
                   </div>

@@ -169,7 +169,7 @@ export function StartFlow({
                   testid="van-shortcut"
                   title={`${shortcut.organisationName} · ${shortcut.purposeLabel}`}
                   subtitle="Same as your last trip"
-                  trailing={<Check className="size-5 shrink-0 text-primary dark:text-forest-200" aria-hidden />}
+                  trailing={<Check className="size-5 shrink-0 text-primary-text dark:text-forest-200" aria-hidden />}
                   disabled={submitting}
                   onClick={() =>
                     void commit({

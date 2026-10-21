@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { cn } from "@/lib/utils";
 
 interface MotionFormProps {
@@ -18,12 +19,13 @@ export function MotionFormField({
   testid,
   delay = 0 
 }: MotionFormProps & { delay?: number }) {
+  const entrance = useEntrance();
   const testProps = testid ? { "data-testid": testid } : {};
 
   return (
     <motion.div
       className={cn(className)}
-      initial={{ opacity: 0, y: 10 }}
+      initial={entrance({ opacity: 0, y: 10 })}
       animate={{ opacity: 1, y: 0 }}
       transition={{ 
         duration: 0.3, 
@@ -45,17 +47,18 @@ export function MotionFormSection({
   className,
   title 
 }: MotionFormProps & { title?: string }) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn("space-y-4", className)}
-      initial={{ opacity: 0, x: -20 }}
+      initial={entrance({ opacity: 0, x: -20 })}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
       {title && (
         <motion.h3 
           className="text-lg font-semibold"
-          initial={{ opacity: 0 }}
+          initial={entrance({ opacity: 0 })}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
@@ -75,11 +78,12 @@ export function MotionFormError({
   show,
   ...props
 }: { children: React.ReactNode; show: boolean; [key: string]: unknown }) {
+  const entrance = useEntrance();
   return (
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
+          initial={entrance({ opacity: 0, height: 0 })}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.2 }}
@@ -101,6 +105,7 @@ export function MotionFormSubmit({
   isLoading,
   className 
 }: MotionFormProps & { isLoading?: boolean }) {
+  const entrance = useEntrance();
   return (
     <motion.div
       className={cn(className)}
@@ -112,7 +117,7 @@ export function MotionFormSubmit({
         {isLoading ? (
           <motion.div
             key="loading"
-            initial={{ opacity: 0 }}
+            initial={entrance({ opacity: 0 })}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="flex items-center justify-center"
@@ -126,7 +131,7 @@ export function MotionFormSubmit({
         ) : (
           <motion.div
             key="button"
-            initial={{ opacity: 0 }}
+            initial={entrance({ opacity: 0 })}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
@@ -146,11 +151,12 @@ export function MotionFormSuccess({
   show,
   ...props 
 }: { children: React.ReactNode; show: boolean; [key: string]: unknown }) {
+  const entrance = useEntrance();
   return (
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          initial={entrance({ opacity: 0, scale: 0.95, y: -10 })}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -10 }}
           transition={{ 

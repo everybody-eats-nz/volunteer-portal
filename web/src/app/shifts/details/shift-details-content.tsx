@@ -179,7 +179,7 @@ function ShiftCard({
   return (
     <Card
       data-testid={`shift-card-${shift.id}`}
-      className="grain group relative overflow-hidden rounded-3xl border border-forest-500/10 bg-card shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 dark:border-cream-50/10 h-full"
+      className="grain group relative overflow-hidden rounded-3xl border border-forest-500/10 bg-card shadow-sm hover:shadow-xl transition-all duration-300 transform motion-safe:hover:-translate-y-1 dark:border-cream-50/10 h-full"
     >
       <div
         className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.fullGradient}`}
@@ -245,7 +245,7 @@ function ShiftCard({
                   <div className="font-medium text-forest-700 dark:text-cream-50 tabular-nums">
                     {formatInNZT(shift.start, "h:mm a")}
                   </div>
-                  <div className="text-xs text-forest-700/55 dark:text-cream-50/50 tabular-nums">
+                  <div className="text-xs text-forest-700/70 dark:text-cream-50/50 tabular-nums">
                     to {formatInNZT(shift.end, "h:mm a")}
                   </div>
                 </div>
@@ -278,7 +278,7 @@ function ShiftCard({
                     {/* How long the queue is, so nobody joins standby blind */}
                     {waitlistCount > 0 && (
                       <span
-                        className="text-forest-700/60 dark:text-cream-50/55"
+                        className="text-forest-700/70 dark:text-cream-50/55"
                         data-testid={`shift-card-waitlist-${shift.id}`}
                       >
                         {" · "}
@@ -496,14 +496,14 @@ export async function ShiftDetailsContent({
     return (
       <div className="text-center py-20" data-testid="empty-state">
         <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Calendar className="w-10 h-10 text-primary/60" />
+          <Calendar className="w-10 h-10 text-primary-text/60" />
         </div>
         <h3 className="text-2xl font-semibold mb-3" data-testid="empty-state-title">
           No shifts scheduled
         </h3>
         <p className="text-muted-foreground max-w-md mx-auto" data-testid="empty-state-description">
           No shifts are scheduled for{" "}
-          {formatInNZT(selectedDate, "MMMM d, yyyy")}
+          {formatInNZT(selectedDate, "d MMMM yyyy")}
           {selectedLocation ? ` in ${selectedLocation}` : ""}.
         </p>
         <div className="mt-6 space-x-4">
@@ -544,12 +544,12 @@ export async function ShiftDetailsContent({
             {!selectedLocation && sortedLocations.length > 1 && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-primary" />
+                  <MapPin className="h-5 w-5 text-primary-text" />
                   <div>
                     <h2 className="display text-2xl tracking-tight text-forest-700 dark:text-cream-50">
                       {locationKey}
                     </h2>
-                    <p className="text-sm text-forest-700/60 dark:text-cream-50/55">
+                    <p className="text-sm text-forest-700/70 dark:text-cream-50/55">
                       {totalShifts} shift{totalShifts !== 1 ? "s" : ""} available
                     </p>
                   </div>

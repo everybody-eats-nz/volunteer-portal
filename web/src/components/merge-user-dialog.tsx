@@ -327,7 +327,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
               src={targetUser.profilePhotoUrl || undefined}
               alt={getDisplayName(targetUser)}
             />
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+            <AvatarFallback className="bg-primary/10 text-primary-text font-semibold">
               {getInitials(targetUser)}
             </AvatarFallback>
           </Avatar>
@@ -337,7 +337,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
               {targetUser.email}
             </p>
           </div>
-          <Badge variant="outline" className="shrink-0 bg-primary/10 text-primary border-primary/30">
+          <Badge variant="outline" className="shrink-0 bg-primary/10 text-primary-text border-primary/30">
             Target
           </Badge>
         </div>

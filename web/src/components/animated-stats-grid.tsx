@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
+import { useEntrance } from "@/hooks/use-entrance";
 import { StatsGrid } from "@/components/dashboard-animated";
 import { StatsCard } from "@/components/ui/stats-card";
 import { staggerItem, staggerContainer } from "@/lib/motion";
@@ -34,6 +35,7 @@ const iconMap = {
 };
 
 export function AnimatedStatsGrid({ stats, useStatsGrid = true, className, "data-testid": dataTestId }: AnimatedStatsGridProps) {
+  const entrance = useEntrance();
   const content = stats.map((stat, index) => (
     <motion.div key={index} variants={staggerItem}>
       <StatsCard
@@ -55,7 +57,7 @@ export function AnimatedStatsGrid({ stats, useStatsGrid = true, className, "data
     <motion.div
       className={className}
       data-testid={dataTestId}
-      initial="hidden"
+      initial={entrance("hidden")}
       animate="visible"
       variants={staggerContainer}
     >

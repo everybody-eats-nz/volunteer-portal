@@ -41,23 +41,23 @@ export function UpcomingRegularShifts() {
       case "CONFIRMED":
         return <Badge variant="success">Confirmed</Badge>;
       case "REGULAR_PENDING":
-        return <Badge variant="warning">Auto-Applied</Badge>;
+        return <Badge variant="warning">Auto-applied</Badge>;
       case "PENDING":
         return <Badge variant="outline">Pending</Badge>;
       case "WILL_AUTO_APPLY":
-        return <Badge variant="secondary">Will Auto-Apply</Badge>;
+        return <Badge variant="secondary">Will auto-apply</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   return (
-    <Card>
+    <Card className="grain relative overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Upcoming Regular Shifts
+            <Calendar className="h-5 w-5 text-primary-text" aria-hidden />
+            Upcoming regular shifts
           </CardTitle>
           <div className="flex items-center gap-2">
             <select
@@ -90,7 +90,7 @@ export function UpcomingRegularShifts() {
           </div>
         ) : shifts.length === 0 ? (
           <div className="text-center py-8">
-            <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <Calendar className="h-12 w-12 mx-auto mb-4 text-forest-500/85 dark:text-cream-50/55" aria-hidden />
             <p className="text-muted-foreground">
               No matching shifts found for the next {previewWeeks} weeks
             </p>
@@ -104,7 +104,7 @@ export function UpcomingRegularShifts() {
             {shifts.map((shift) => (
               <div
                 key={shift.id}
-                className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="rounded-2xl border p-4 transition-colors hover:bg-forest-500/5 dark:hover:bg-cream-50/5"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -116,7 +116,7 @@ export function UpcomingRegularShifts() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {formatInNZT(new Date(shift.start), "EEE, MMM d, yyyy")}
+                        {formatInNZT(new Date(shift.start), "EEE d MMM yyyy")}
                       </div>
 
                       <div className="flex items-center gap-1">

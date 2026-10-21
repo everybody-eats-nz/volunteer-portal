@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { MotionGlobalConfig } from "motion/react";
+import { MotionConfig, MotionGlobalConfig } from "motion/react";
 
 /**
- * Configures motion.dev to disable animations in test environments
- * Should be included once in the app layout
+ * App-wide motion.dev settings. Included once, in Providers.
+ *
+ * - `reducedMotion="user"`: when the OS asks for reduced motion, transform
+ *   and layout animations are skipped and only opacity / colour still tween.
+ * - Animations are switched off entirely in test environments.
  */
-export function MotionConfig() {
+export function MotionSettings({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Disable animations in test environment
     const isPlaywright = !!(window as unknown as { playwright?: unknown })
@@ -25,5 +28,5 @@ export function MotionConfig() {
     }
   }, []);
 
-  return null;
+  return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
 }

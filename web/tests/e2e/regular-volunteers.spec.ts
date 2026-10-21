@@ -272,7 +272,7 @@ test.describe("Regular Volunteers System", () => {
         );
         await expect(description).toBeVisible();
 
-        const benefits = page.getByText("• Auto-apply to matching shifts");
+        const benefits = page.getByText("Auto-apply to matching shifts");
         await expect(benefits).toBeVisible();
       }
 

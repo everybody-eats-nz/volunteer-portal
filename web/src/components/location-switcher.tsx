@@ -116,7 +116,7 @@ export function LocationSwitcher({
               className="gap-3 py-2.5"
               data-testid={`location-switcher-option-${slugify(location.name)}`}
             >
-              <MapPin className="h-4 w-4 shrink-0 text-forest-500/70 dark:text-cream-50/55" />
+              <MapPin className="h-4 w-4 shrink-0 text-forest-500/85 dark:text-cream-50/55" />
               <span className="flex min-w-0 flex-1 items-center gap-2">
                 <span className="truncate font-medium">{location.name}</span>
                 {location.isNew && (
@@ -128,7 +128,7 @@ export function LocationSwitcher({
                   </Badge>
                 )}
                 {location.name === userDefaultLocation && (
-                  <span className="text-[10px] uppercase tracking-wide text-forest-700/55 dark:text-cream-50/50">
+                  <span className="text-[10px] uppercase tracking-wide text-forest-700/70 dark:text-cream-50/50">
                     Default
                   </span>
                 )}
@@ -142,7 +142,7 @@ export function LocationSwitcher({
           className="gap-3 py-2.5"
           data-testid="location-switcher-all"
         >
-          <Globe className="h-4 w-4 shrink-0 text-forest-500/70 dark:text-cream-50/55" />
+          <Globe className="h-4 w-4 shrink-0 text-forest-500/85 dark:text-cream-50/55" />
           <span className="flex-1 font-medium">All locations</span>
           {showAll && <Check className="h-4 w-4 shrink-0 text-forest-500 dark:text-cream-50" />}
         </DropdownMenuItem>

@@ -116,7 +116,7 @@ export function UserMenu({
           <Link href="/dashboard">
             <ThemedDropdownMenuIcon>
               <svg
-                className="w-4 h-4 text-primary dark:text-emerald-400"
+                className="w-4 h-4 text-primary-text dark:text-emerald-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -140,7 +140,7 @@ export function UserMenu({
           <Link href="/profile">
             <ThemedDropdownMenuIcon>
               <svg
-                className="w-4 h-4 text-primary dark:text-emerald-400"
+                className="w-4 h-4 text-primary-text dark:text-emerald-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -164,7 +164,7 @@ export function UserMenu({
           <Link href="/shifts/mine">
             <ThemedDropdownMenuIcon>
               <svg
-                className="w-4 h-4 text-primary dark:text-emerald-400"
+                className="w-4 h-4 text-primary-text dark:text-emerald-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
