@@ -534,8 +534,15 @@ export async function calculateUserProgress(
   };
 }
 
-export async function checkAndUnlockAchievements(userId: string) {
-  const progress = await calculateUserProgress(userId);
+/**
+ * Unlock every active achievement the volunteer now qualifies for. Pass
+ * `progress` when the caller has already calculated it, to skip doing it twice.
+ */
+export async function checkAndUnlockAchievements(
+  userId: string,
+  progress?: UserProgress
+) {
+  progress ??= await calculateUserProgress(userId);
   const unlockedAchievements: string[] = [];
 
   // Get all achievements and user's current achievements

@@ -42,16 +42,30 @@ export type UserConnection = {
     unlockedCount: number;
     totalCount: number;
     totalPoints: number;
-    items: {
-      id: string;
-      name: string;
-      description: string;
-      icon: string;
-      category: string;
-      points: number;
-      unlockedAt: string;
-    }[];
+    items: AchievementItem[];
+    /**
+     * Achievements still to unlock, closest to done first. Missing from
+     * servers older than the progress view.
+     */
+    inProgress?: AchievementProgressItem[];
   };
+};
+
+export type AchievementProgressItem = Omit<AchievementItem, "unlockedAt"> & {
+  current: number;
+  target: number;
+  /** The goal in plain units, e.g. "10 shifts". */
+  targetLabel: string;
+};
+
+export type AchievementItem = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  points: number;
+  unlockedAt: string;
 };
 
 export type UserProfile = {

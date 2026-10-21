@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 export async function GET(
   req: Request,
@@ -106,7 +107,9 @@ export async function GET(
       take: 10, // Limit to next 10 shifts
     });
 
-    // Get friend's achievements
+    // Get friend's achievements, brought up to date first: they are only
+    // evaluated when a volunteer loads their own dashboard.
+    await checkAndUnlockAchievements(friendId);
     const achievements = await prisma.userAchievement.findMany({
       where: {
         userId: friendId,
