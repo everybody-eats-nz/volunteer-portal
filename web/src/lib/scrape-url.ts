@@ -1,6 +1,6 @@
 import { parseHTML } from "linkedom";
 
-import { isAllowedScrapeUrl } from "./scrape-allowlist";
+import { toScrapeUrl } from "./scrape-allowlist";
 
 /** Tags whose entire subtree should be removed before extraction. */
 const REMOVE_TAGS = new Set([
@@ -176,14 +176,15 @@ const MAX_REDIRECTS = 5;
  * follow an allowed page to an internal address).
  * Returns the final response and its URL, or `null` if any hop is disallowed.
  */
-async function fetchAllowed(url: URL): Promise<{ response: Response; url: URL } | null> {
+async function fetchAllowed(url: string): Promise<{ response: Response; url: URL } | null> {
   const signal = AbortSignal.timeout(15000);
-  let current = url;
+  let current: string | URL = url;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    if (!isAllowedScrapeUrl(current)) return null;
+    const target = toScrapeUrl(current);
+    if (!target) return null;
 
-    const response = await fetch(current, {
+    const response = await fetch(target, {
       headers: {
         "User-Agent": "EverybodyEats-ChatBot/1.0 (content extraction for AI context)",
         Accept: "text/html,application/xhtml+xml",
@@ -194,11 +195,11 @@ async function fetchAllowed(url: URL): Promise<{ response: Response; url: URL } 
 
     const location = response.headers.get("location");
     if (response.status < 300 || response.status >= 400 || !location) {
-      return { response, url: current };
+      return { response, url: new URL(target) };
     }
 
     await response.body?.cancel();
-    current = new URL(location, current);
+    current = new URL(location, target);
   }
 
   return null;
@@ -211,7 +212,7 @@ async function fetchAllowed(url: URL): Promise<{ response: Response; url: URL } 
  */
 export async function scrapeUrl(url: string): Promise<{ text: string; title: string } | null> {
   try {
-    const fetched = await fetchAllowed(new URL(url));
+    const fetched = await fetchAllowed(url);
     if (!fetched) return null;
     const { response } = fetched;
 
