@@ -1,5 +1,5 @@
 import { parseHTML } from "linkedom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { extractStructuredText, scrapeUrl } from "./scrape-url";
 
@@ -260,13 +260,28 @@ describe("extractStructuredText", () => {
   });
 });
 
+function htmlResponse(html: string): Response {
+  return new Response(html, {
+    status: 200,
+    headers: { "content-type": "text/html" },
+  });
+}
+
+function redirectResponse(location: string, status = 302): Response {
+  return new Response(null, { status, headers: { location } });
+}
+
 describe("scrapeUrl", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("returns null for non-200 responses", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response("Not Found", { status: 404 }),
     );
 
-    const result = await scrapeUrl("https://example.com/missing");
+    const result = await scrapeUrl("https://everybodyeats.nz/missing");
     expect(result).toBeNull();
   });
 
@@ -278,7 +293,7 @@ describe("scrapeUrl", () => {
       }),
     );
 
-    const result = await scrapeUrl("https://example.com/api");
+    const result = await scrapeUrl("https://everybodyeats.nz/api");
     expect(result).toBeNull();
   });
 
@@ -289,14 +304,9 @@ describe("scrapeUrl", () => {
         <body><main><h1>Hello</h1><p>World</p></main></body>
       </html>
     `;
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(html, {
-        status: 200,
-        headers: { "content-type": "text/html" },
-      }),
-    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(htmlResponse(html));
 
-    const result = await scrapeUrl("https://example.com");
+    const result = await scrapeUrl("https://everybodyeats.nz");
     expect(result).not.toBeNull();
     expect(result!.text).toContain("# Hello");
     expect(result!.text).toContain("World");
@@ -313,21 +323,76 @@ describe("scrapeUrl", () => {
         <body><p>Content</p></body>
       </html>
     `;
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(html, {
-        status: 200,
-        headers: { "content-type": "text/html" },
-      }),
-    );
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(htmlResponse(html));
 
-    const result = await scrapeUrl("https://example.com");
+    const result = await scrapeUrl("https://everybodyeats.nz");
     expect(result!.title).toBe("OG Title");
   });
 
   it("returns null when fetch throws", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("Network error"));
 
-    const result = await scrapeUrl("https://example.com");
+    const result = await scrapeUrl("https://everybodyeats.nz");
     expect(result).toBeNull();
+  });
+
+  it("returns null for an invalid URL without fetching", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    const result = await scrapeUrl("not a url");
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "https://example.com",
+    "http://169.254.169.254/latest/meta-data/",
+    "http://localhost:3000/api/admin/users",
+    "https://everybodyeats.nz:8080/",
+    "ftp://everybodyeats.nz/file",
+  ])("refuses to fetch %s", async (url) => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    const result = await scrapeUrl(url);
+    expect(result).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("follows redirects within the allowlist", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(redirectResponse("https://www.everybodyeats.nz/menu", 301))
+      .mockResolvedValueOnce(redirectResponse("/menu/today"))
+      .mockResolvedValueOnce(htmlResponse("<html><body><p>Tonight's menu</p></body></html>"));
+
+    const result = await scrapeUrl("https://everybodyeats.nz/menu");
+    expect(result!.text).toBe("Tonight's menu");
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(String(fetchSpy.mock.calls[2][0])).toBe(
+      "https://www.everybodyeats.nz/menu/today",
+    );
+    for (const [, init] of fetchSpy.mock.calls) {
+      expect(init?.redirect).toBe("manual");
+    }
+  });
+
+  it("refuses a redirect that leaves the allowlist", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(redirectResponse("http://169.254.169.254/latest/meta-data/"));
+
+    const result = await scrapeUrl("https://everybodyeats.nz/menu");
+    expect(result).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up after too many redirects", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () => redirectResponse("https://everybodyeats.nz/loop"));
+
+    const result = await scrapeUrl("https://everybodyeats.nz/loop");
+    expect(result).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledTimes(6);
   });
 });

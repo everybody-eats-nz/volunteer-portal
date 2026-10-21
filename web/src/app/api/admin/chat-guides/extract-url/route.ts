@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { isAllowedScrapeUrl } from "@/lib/scrape-allowlist";
 import { scrapeUrl } from "@/lib/scrape-url";
 
 /**
@@ -52,25 +53,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate the URL
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(targetUrl);
-    } catch {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
-    }
-
-    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-      return NextResponse.json({ error: "Only HTTP/HTTPS URLs are supported" }, { status: 400 });
-    }
-
-    // Only allow scraping from everybodyeats.nz (exact domain or subdomains —
-    // a bare endsWith would also match e.g. "noteverybodyeats.nz")
-    const hostname = parsedUrl.hostname.toLowerCase();
-    if (
-      hostname !== "everybodyeats.nz" &&
-      !hostname.endsWith(".everybodyeats.nz")
-    ) {
+    // scrapeUrl enforces this too (including on redirects); checking here
+    // gives the admin a clear message instead of a generic failure
+    if (!isAllowedScrapeUrl(targetUrl)) {
       return NextResponse.json(
         { error: "Only URLs from everybodyeats.nz are allowed" },
         { status: 400 },

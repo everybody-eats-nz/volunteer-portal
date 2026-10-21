@@ -59,6 +59,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_CHAT_MODEL } from "@/lib/chat-model";
+import { isAllowedScrapeUrl } from "@/lib/scrape-allowlist";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -381,21 +382,9 @@ export function ChatGuidesContent({
     );
   };
 
-  const isValidEEUrl = (url: string) => {
-    try {
-      const hostname = new URL(url).hostname.toLowerCase();
-      return (
-        hostname === "everybodyeats.nz" ||
-        hostname.endsWith(".everybodyeats.nz")
-      );
-    } catch {
-      return false;
-    }
-  };
-
   const handleExtractImportUrl = async () => {
     if (!importUrl.trim()) return;
-    if (!isValidEEUrl(importUrl.trim())) {
+    if (!isAllowedScrapeUrl(importUrl.trim())) {
       toast({
         title: "Invalid URL",
         description: "Only URLs from everybodyeats.nz are allowed.",
@@ -1368,7 +1357,7 @@ export function ChatGuidesContent({
                 </div>
                 <Button
                   onClick={handleExtractImportUrl}
-                  disabled={!importUrl.trim() || isExtractingImportUrl || !isValidEEUrl(importUrl.trim())}
+                  disabled={!importUrl.trim() || isExtractingImportUrl || !isAllowedScrapeUrl(importUrl.trim())}
                   variant="secondary"
                 >
                   {isExtractingImportUrl ? (
