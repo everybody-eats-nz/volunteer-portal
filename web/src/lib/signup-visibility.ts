@@ -10,7 +10,7 @@ import type { FriendVisibility, Prisma, SignupStatus } from "@/generated/client"
  * PRIVATE profiles are never named. Waitlisted signups are never listed.
  */
 
-const PENDING_STATUSES = ["PENDING", "REGULAR_PENDING"] as const;
+const PENDING_STATUSES: SignupStatus[] = ["PENDING", "REGULAR_PENDING"];
 
 /**
  * Prisma filter for the signups the viewer may see named. Combine it with the
@@ -38,7 +38,7 @@ export function visibleSignupsWhere(
         },
       },
       {
-        status: { in: [...PENDING_STATUSES] },
+        status: { in: PENDING_STATUSES },
         user: { friendVisibility: "PUBLIC" },
       },
     ],
@@ -60,7 +60,7 @@ export function isSignupVisible(
       (friendVisibility === "FRIENDS_ONLY" && friendIds.has(id))
     );
   }
-  if ((PENDING_STATUSES as readonly string[]).includes(signup.status)) {
+  if (PENDING_STATUSES.includes(signup.status)) {
     return friendVisibility === "PUBLIC";
   }
   return false;
