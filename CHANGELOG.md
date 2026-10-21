@@ -1,3 +1,9 @@
+## [0.193.1] - 2026-10-21
+
+### Changes
+- fix: don't fail the deploy when the PostHog source map upload fails ([#1373](https://github.com/everybody-eats-nz/volunteer-portal/pull/1373)) by @malinmalliyawadu
+
+
 ## [0.193.0] - 2026-10-21
 
 ### Changes
