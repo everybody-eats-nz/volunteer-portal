@@ -1,45 +1,63 @@
 import { Ionicons } from "@expo/vector-icons";
-import { differenceInDays } from "date-fns";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
+import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter, type Href } from "expo-router";
-import { useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 
 import { ThemedText } from "@/components/themed-text";
+import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
-import { formatNZT } from "@/lib/dates";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useUserProfile,
   type UserConnection,
-  type UserFriendshipStatus,
   type UserProfile,
 } from "@/hooks/use-user-profile";
 import { api } from "@/lib/api";
-import { getShiftThemeByName } from "@/lib/dummy-data";
+import { formatNZDateOnly, formatNZT } from "@/lib/dates";
 import { goBackOrHome } from "@/lib/navigation";
 
+type ThemeColors = (typeof Colors)["light"];
+
+/** How far the content sheet overlaps the bottom of the cover. */
+const SHEET_OVERLAP = 28;
+const AVATAR_SIZE = 112;
+/** Diameter of the warm glow the avatar sits in. */
+const GLOW_SIZE = 300;
+
+/** Rows shown per list before the rest collapse into an "N more" row. */
+const MAX_SHARED_SHIFTS = 5;
+/** Achievements listed before "Show all". */
+const COLLAPSED_ACHIEVEMENTS = 5;
+
+function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
 /**
- * Unified volunteer profile screen.
+ * Volunteer profile, opened from a shift's people list, the friends list or a
+ * friend notification.
  *
- * Renders one of two views from a single fetch:
- * - Trimmed (not-friends): identity + minimal stats + connect / safety actions.
- * - Full (friends): adds connection bento, monthly rhythm, favourite role,
- *   shared-moments timeline, the friend's upcoming shifts, and remove-friend.
- *
- * Both states share the same hero/identity/safety footer so the transition
- * from "stranger → friend" inside the same session feels continuous.
+ * One fetch drives two depths: anyone sees who the volunteer is, their totals
+ * and how to connect; friends also see their upcoming shifts, the shifts you
+ * have done together and their achievements. Report and block are always at
+ * the bottom.
  */
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,6 +66,7 @@ export default function UserProfileScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
 
   const { profile, isLoading, error, setProfile, refresh } = useUserProfile(id);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
@@ -55,6 +74,18 @@ export default function UserProfileScreen() {
   const [isRemoving, setIsRemoving] = useState(false);
   const [respondingTo, setRespondingTo] = useState<"accept" | "decline" | null>(
     null
+  );
+  // Once the cover has scrolled away the header controls sit on paper, so
+  // they (and the status bar) switch from light-on-forest to page colours.
+  const [coverHeight, setCoverHeight] = useState(0);
+  const [pastCover, setPastCover] = useState(false);
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const threshold = coverHeight - SHEET_OVERLAP - headerHeight;
+      const next = coverHeight > 0 && e.nativeEvent.contentOffset.y > threshold;
+      setPastCover((prev) => (prev === next ? prev : next));
+    },
+    [coverHeight, headerHeight]
   );
 
   const firstName = profile?.firstName ?? profile?.name.split(" ")[0] ?? "them";
@@ -103,9 +134,9 @@ export default function UserProfileScreen() {
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Pull the freshly-friends payload (now includes the connection block)
-      // so the screen flips to the rich layout without a manual reload. The
+      // so the screen flips to the friends view without a manual reload. The
       // request itself succeeded at this point, so a refresh failure only
-      // delays the rich view — tell the user they're connected either way.
+      // delays that view; tell the user they're connected either way.
       try {
         await refresh();
       } catch {
@@ -125,7 +156,7 @@ export default function UserProfileScreen() {
     if (!profile?.friendRequestId || respondingTo) return;
     Alert.alert(
       "Decline request?",
-      `${firstName} won't be notified — you can still send them a request later if you change your mind.`,
+      `${firstName} won't be notified. You can still send them a request later if you change your mind.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -286,1089 +317,350 @@ export default function UserProfileScreen() {
 
   if (isLoading) {
     return (
-      <View
-        style={[
-          styles.container,
-          styles.centered,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <Stack.Screen options={{ title: "", headerTransparent: true }} />
-        <ActivityIndicator size="large" color={Brand.green} />
-      </View>
+      <>
+        <Stack.Screen options={{ headerTintColor: colors.text }} />
+        <View style={[s.centered, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </>
     );
   }
 
   if (error || !profile) {
     return (
-      <View
-        style={[
-          styles.container,
-          styles.centered,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <Stack.Screen options={{ title: "", headerTransparent: true }} />
-        <Text style={{ fontSize: 48, marginBottom: 12 }}>😕</Text>
-        <ThemedText type="heading">Volunteer not found</ThemedText>
-        <Pressable onPress={() => goBackOrHome()} style={styles.backLink}>
-          <Text
-            style={[
-              styles.backLinkText,
-              { color: isDark ? Brand.greenLight : Brand.green },
+      <>
+        <Stack.Screen options={{ headerTintColor: colors.text }} />
+        <View style={[s.centered, { backgroundColor: colors.background }]}>
+          <View
+            style={[s.notFoundIcon, { backgroundColor: colors.surfaceSoft }]}
+          >
+            <Ionicons
+              name="person-outline"
+              size={32}
+              color={colors.textSecondary}
+            />
+          </View>
+          <ThemedText type="subtitle" style={{ marginTop: 12 }}>
+            Volunteer not found
+          </ThemedText>
+          <Pressable
+            onPress={() => goBackOrHome()}
+            style={({ pressed }) => [
+              s.backButton,
+              { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
             ]}
           >
-            Go back
-          </Text>
-        </Pressable>
-      </View>
+            <Text style={s.backButtonText}>Go back</Text>
+          </Pressable>
+        </View>
+      </>
     );
   }
 
-  const isFriends = profile.friendshipStatus === "FRIENDS";
-  const heroHeight = insets.top + 128;
-  const avatarSize = 104;
-  const accentShapeSize = 220;
+  const connection =
+    profile.friendshipStatus === "FRIENDS" ? profile.connection : null;
+
+  // On iOS 26 the back button sits in liquid glass, which keeps the system's
+  // own label colour over any backdrop; elsewhere it needs light glyphs until
+  // the cover has scrolled away.
+  const headerTint =
+    pastCover || isLiquidGlassAvailable() ? colors.text : Palette.cream50;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen
-        options={{
-          title: "",
-          headerTransparent: true,
-          headerTintColor: Palette.cream50,
-        }}
-      />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <Stack.Screen options={{ headerTintColor: headerTint }} />
+      <StatusBar style={pastCover ? "auto" : "light"} />
       <ScrollView
         contentContainerStyle={{
-          paddingBottom: Math.max(insets.bottom, 24) + 32,
+          paddingBottom: Math.max(insets.bottom, 24) + 24,
         }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero canvas ────────────────────────────────── */}
-        <View style={[styles.hero, { height: heroHeight }]}>
-          <LinearGradient
-            colors={
-              isDark
-                ? [Palette.forest600, Palette.forest800]
-                : [Palette.forest500, Palette.forest700]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <View
-            style={[
-              styles.accentShape,
-              {
-                width: accentShapeSize,
-                height: accentShapeSize,
-                top: heroHeight - accentShapeSize * 0.55,
-                right: -accentShapeSize * 0.35,
-                backgroundColor: isDark ? Palette.forest500 : Brand.accent,
-                opacity: isDark ? 0.45 : 0.85,
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.gridDot,
-              { top: insets.top + 8, left: 24, opacity: isDark ? 0.4 : 0.5 },
-            ]}
-          />
-          <View
-            style={[
-              styles.gridDot,
-              { top: insets.top + 8, left: 40, opacity: isDark ? 0.2 : 0.25 },
-            ]}
-          />
-          <View
-            style={[
-              styles.gridDot,
-              { top: insets.top + 24, left: 24, opacity: isDark ? 0.2 : 0.25 },
-            ]}
-          />
-        </View>
-
-        {/* ── Identity block ───────────────────────────── */}
-        <IdentityBlock
+        {/* ═══ Who they are ═══ */}
+        <Cover
           profile={profile}
-          isDark={isDark}
-          colors={colors}
-          avatarSize={avatarSize}
+          connection={connection}
+          topInset={headerHeight}
+          onHeight={setCoverHeight}
         />
 
-        {isFriends && profile.connection ? (
-          <FullProfile
-            profile={profile}
-            connection={profile.connection}
-            firstName={firstName}
-            colors={colors}
-            isDark={isDark}
-            isRemoving={isRemoving}
-            onRemoveFriend={handleRemoveFriend}
-            onOpenShift={(shiftId) => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push(`/shift/${shiftId}` as Href);
-            }}
-          />
-        ) : (
-          <TrimmedProfile
-            profile={profile}
-            firstName={firstName}
-            colors={colors}
-            isDark={isDark}
-            isSendingRequest={isSendingRequest}
-            respondingTo={respondingTo}
-            onAddFriend={handleAddFriend}
-            onAcceptRequest={handleAcceptRequest}
-            onDeclineRequest={handleDeclineRequest}
-          />
-        )}
+        <View style={[s.sheet, { backgroundColor: colors.background }]}>
+          <Facts connection={connection} colors={colors} />
 
-        {/* ── Safety actions (always visible) ────────────── */}
-        <View style={[styles.section, styles.safetyRow]}>
-          <Pressable
-            onPress={handleReport}
-            style={({ pressed }) => [
-              styles.safetyBtn,
-              {
-                borderColor: colors.border,
-                backgroundColor: "transparent",
-                opacity: pressed ? 0.6 : 1,
-              },
-            ]}
-            accessibilityLabel="Report this volunteer"
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name={profile.hasReported ? "flag" : "flag-outline"}
-              size={15}
-              color={profile.hasReported ? "#dc2626" : colors.textSecondary}
+          {/* ═══ Connect ═══ */}
+          {!connection && (
+            <FriendshipAction
+              profile={profile}
+              firstName={firstName}
+              isSending={isSendingRequest}
+              respondingTo={respondingTo}
+              onAddFriend={handleAddFriend}
+              onAcceptRequest={handleAcceptRequest}
+              onDeclineRequest={handleDeclineRequest}
+              colors={colors}
+              isDark={isDark}
             />
-            <Text
-              style={[
-                styles.safetyBtnText,
-                {
-                  color: profile.hasReported ? "#dc2626" : colors.textSecondary,
-                },
-              ]}
-            >
-              {profile.hasReported ? "Reported" : "Report"}
-            </Text>
-          </Pressable>
+          )}
 
-          <Pressable
-            onPress={handleBlock}
-            disabled={isBlocking || profile.isBlocked}
-            style={({ pressed }) => [
-              styles.safetyBtn,
-              {
-                borderColor: isDark ? "rgba(239,68,68,0.35)" : "#fecaca",
-                backgroundColor: "transparent",
-                opacity: pressed || isBlocking || profile.isBlocked ? 0.6 : 1,
-              },
-            ]}
-            accessibilityLabel="Block this volunteer"
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name="ban-outline"
-              size={15}
-              color={isDark ? "#fca5a5" : "#dc2626"}
+          {connection && (
+            <>
+              {connection.upcomingShifts.length > 0 && (
+                <UpcomingShifts
+                  shifts={connection.upcomingShifts}
+                  firstName={firstName}
+                  colors={colors}
+                  onOpen={(shiftId) => {
+                    Haptics.selectionAsync();
+                    router.push(`/shift/${shiftId}` as Href);
+                  }}
+                />
+              )}
+              <SharedShifts connection={connection} colors={colors} />
+              <Achievements
+                achievements={connection.achievements}
+                profile={profile}
+                firstName={firstName}
+                colors={colors}
+                isDark={isDark}
+              />
+            </>
+          )}
+
+          {/* ═══ Manage ═══ */}
+          <View style={[s.group, { backgroundColor: colors.card }]}>
+            {connection && (
+              <ActionRow
+                icon="person-remove-outline"
+                label={isRemoving ? "Removing…" : "Remove friend"}
+                color={colors.text}
+                disabled={isRemoving}
+                onPress={handleRemoveFriend}
+                accessibilityLabel={`Remove ${firstName} from your friends`}
+                colors={colors}
+              />
+            )}
+            <ActionRow
+              icon={profile.hasReported ? "flag" : "flag-outline"}
+              label={profile.hasReported ? "Reported" : `Report ${firstName}`}
+              color={colors.text}
+              onPress={handleReport}
+              accessibilityLabel="Report this volunteer"
+              withRule={Boolean(connection)}
+              colors={colors}
             />
-            <Text
-              style={[
-                styles.safetyBtnText,
-                { color: isDark ? "#fca5a5" : "#dc2626" },
-              ]}
-            >
-              {profile.isBlocked
-                ? "Blocked"
-                : isBlocking
-                ? "Blocking…"
-                : "Block"}
-            </Text>
-          </Pressable>
-        </View>
-
-        <Text style={[styles.footerNote, { color: colors.textSecondary }]}>
-          {isFriends
-            ? "Treat our whānau with manaakitanga."
-            : "Kia tūpato — treat our whānau with manaakitanga. Reports are reviewed within 24 hours."}
-        </Text>
-      </ScrollView>
-    </View>
-  );
-}
-
-/* ─── Identity ──────────────────────────────────────────────── */
-
-function IdentityBlock({
-  profile,
-  isDark,
-  colors,
-  avatarSize,
-}: {
-  profile: UserProfile;
-  isDark: boolean;
-  colors: (typeof Colors)["light"];
-  avatarSize: number;
-}) {
-  const isFriends =
-    profile.friendshipStatus === "FRIENDS" && profile.connection;
-  const connection = profile.connection;
-
-  const daysSinceFriends = connection
-    ? differenceInDays(new Date(), new Date(connection.friendsSince))
-    : 0;
-  const isNewFriend = isFriends && daysSinceFriends <= 30;
-  const isCloseBuddy = isFriends && (connection?.shiftsTogether ?? 0) > 10;
-  const connectedSince = connection
-    ? formatNZT(new Date(connection.friendsSince), "MMMM yyyy")
-    : null;
-
-  return (
-    <View style={[styles.identityBlock, { marginTop: -avatarSize / 2 }]}>
-      <View style={styles.avatarWrap}>
-        {profile.profilePhotoUrl ? (
-          <Image
-            source={{ uri: profile.profilePhotoUrl }}
-            style={[
-              styles.avatar,
-              {
-                width: avatarSize,
-                height: avatarSize,
-                borderRadius: avatarSize / 2,
-                borderColor: colors.background,
-              },
-            ]}
-          />
-        ) : (
-          <View
-            style={[
-              styles.avatarFallback,
-              {
-                width: avatarSize,
-                height: avatarSize,
-                borderRadius: avatarSize / 2,
-                borderColor: colors.background,
-                backgroundColor: isDark ? Palette.forest600 : Brand.greenLight,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.avatarInitial,
-                { color: isDark ? Brand.greenLight : Brand.green },
-              ]}
-            >
-              {profile.name.charAt(0).toUpperCase()}
-            </Text>
+            <ActionRow
+              icon="ban-outline"
+              label={
+                profile.isBlocked
+                  ? "Blocked"
+                  : isBlocking
+                  ? "Blocking…"
+                  : `Block ${firstName}`
+              }
+              color={colors.destructive}
+              disabled={isBlocking || profile.isBlocked}
+              onPress={handleBlock}
+              accessibilityLabel="Block this volunteer"
+              withRule
+              colors={colors}
+            />
           </View>
-        )}
-      </View>
-
-      <Text style={[styles.heroName, { color: colors.text }]}>
-        {profile.name}
-      </Text>
-
-      {isFriends && connectedSince ? (
-        <Text style={[styles.connectedSince, { color: colors.textSecondary }]}>
-          Connected since {connectedSince}
-          <Text
-            style={{ color: isDark ? Brand.accentSubtle : Brand.greenHover }}
-          >
-            {" "}
-            · {daysSinceFriends} days
-          </Text>
-        </Text>
-      ) : (
-        <Text style={[styles.heroTagline, { color: colors.textSecondary }]}>
-          Everybody Eats volunteer
-        </Text>
-      )}
-
-      {isFriends && (isNewFriend || isCloseBuddy) ? (
-        <View style={styles.badgeRow}>
-          {isNewFriend && (
-            <Badge
-              label="New friend"
-              emoji="✨"
-              tone="accent"
-              isDark={isDark}
-            />
-          )}
-          {isCloseBuddy && (
-            <Badge
-              label="Close buddy"
-              emoji="🤝"
-              tone="green"
-              isDark={isDark}
-            />
-          )}
         </View>
-      ) : null}
+      </ScrollView>
+      {pastCover && <StatusBarScrim />}
     </View>
   );
 }
 
-/* ─── Trimmed (not-friends) view ─────────────────────────────── */
+/* ═════════════════════════════════════════════════════════
+   IDENTITY
+   ═════════════════════════════════════════════════════════ */
 
-function TrimmedProfile({
-  profile,
-  firstName,
-  colors,
-  isDark,
-  isSendingRequest,
-  respondingTo,
-  onAddFriend,
-  onAcceptRequest,
-  onDeclineRequest,
-}: {
-  profile: UserProfile;
-  firstName: string;
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
-  isSendingRequest: boolean;
-  respondingTo: "accept" | "decline" | null;
-  onAddFriend: () => void;
-  onAcceptRequest: () => void;
-  onDeclineRequest: () => void;
-}) {
-  return (
-    <>
-      {/* ── Stats bento ──────────────────────────────── */}
-      <View style={styles.bento}>
-        <View
-          style={[
-            styles.bentoCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
-            THEIR SHIFTS
-          </Text>
-          <Text style={[styles.bentoValue, { color: colors.text }]}>
-            {profile.totalShifts}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.bentoCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
-            THEIR HOURS
-          </Text>
-          <Text style={[styles.bentoValue, { color: colors.text }]}>
-            {profile.hoursVolunteered}
-          </Text>
-        </View>
-      </View>
-
-      {/* ── Friendship action ────────────────────────── */}
-      <SectionHeading title="Connect" colors={colors} />
-      <View style={styles.section}>
-        <FriendshipAction
-          status={profile.friendshipStatus}
-          firstName={firstName}
-          allowFriendRequests={profile.allowFriendRequests}
-          isSending={isSendingRequest}
-          respondingTo={respondingTo}
-          onAddFriend={onAddFriend}
-          onAcceptRequest={onAcceptRequest}
-          onDeclineRequest={onDeclineRequest}
-          colors={colors}
-          isDark={isDark}
-        />
-      </View>
-    </>
-  );
-}
-
-/* ─── Full (friends) view ───────────────────────────────────── */
-
-function FullProfile({
+/**
+ * Forest cover with the volunteer at its centre: their photo ringed in sun
+ * yellow on a plate, their name, and their totals with Everybody Eats.
+ */
+function Cover({
   profile,
   connection,
-  firstName,
-  colors,
-  isDark,
-  isRemoving,
-  onRemoveFriend,
-  onOpenShift,
+  topInset,
+  onHeight,
 }: {
   profile: UserProfile;
-  connection: UserConnection;
-  firstName: string;
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
-  isRemoving: boolean;
-  onRemoveFriend: () => void;
-  onOpenShift: (shiftId: string) => void;
+  connection: UserConnection | null;
+  topInset: number;
+  onHeight: (height: number) => void;
 }) {
+  const stats: { value: number; one: string; many: string }[] = [
+    { value: profile.totalShifts, one: "shift", many: "shifts" },
+    { value: profile.hoursVolunteered, one: "hour", many: "hours" },
+  ];
+  if (connection) {
+    stats.push({
+      value: connection.shiftsTogether,
+      one: "with you",
+      many: "with you",
+    });
+  }
+
   return (
-    <>
-      {/* ── Connection bento (asymmetric) ────────────── */}
-      <View style={styles.bentoFull}>
-        <View
-          style={[
-            styles.bentoHero,
-            { backgroundColor: Palette.forest700 },
-          ]}
+    <View
+      style={[s.cover, { paddingTop: topInset + 4 }]}
+      onLayout={(e) => onHeight(e.nativeEvent.layout.height)}
+    >
+      {/* Keeps the forest behind the status bar when the page is pulled down */}
+      <View pointerEvents="none" style={s.overscroll} />
+      <View style={s.glowWrap}>
+        {/* A soft sun glow behind the photo, fading out into the forest */}
+        <Svg
+          width={GLOW_SIZE}
+          height={GLOW_SIZE}
+          style={s.glow}
+          pointerEvents="none"
         >
-          {/* Warm sun glow on the dark forest stat panel */}
-          <View pointerEvents="none" style={styles.bentoGlow} />
-          <Text
-            style={[styles.bentoLabel, { color: "rgba(253,248,239,0.7)" }]}
-          >
-            SHARED SHIFTS
-          </Text>
-          <Text
-            style={[styles.bentoHeroValue, { color: Palette.sun200 }]}
-          >
-            {connection.shiftsTogether}
-          </Text>
-          <Text
-            style={[
-              styles.bentoHeroCaption,
-              { color: "rgba(253,248,239,0.7)" },
-            ]}
-          >
-            mahi done together
-          </Text>
-          <View
-            style={[
-              styles.bentoArc,
-              {
-                borderColor: Palette.cream50,
-                opacity: 0.12,
-              },
-            ]}
+          <Defs>
+            <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor={Palette.sun200} stopOpacity={0.34} />
+              <Stop offset="0.45" stopColor={Palette.sun200} stopOpacity={0.12} />
+              <Stop offset="1" stopColor={Palette.sun200} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Circle
+            cx={GLOW_SIZE / 2}
+            cy={GLOW_SIZE / 2}
+            r={GLOW_SIZE / 2}
+            fill="url(#glow)"
           />
-        </View>
-
-        <View style={styles.bentoColumn}>
-          <View
-            style={[
-              styles.bentoMini,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
-              THEIR HOURS
-            </Text>
-            <Text style={[styles.bentoMiniValue, { color: colors.text }]}>
-              {profile.hoursVolunteered}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.bentoMini,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
-              MUTUAL FRIENDS
-            </Text>
-            <Text style={[styles.bentoMiniValue, { color: colors.text }]}>
-              {connection.mutualFriends}
-            </Text>
-          </View>
-        </View>
+        </Svg>
+        <Avatar profile={profile} />
       </View>
 
-      {/* ── Achievements ───────────────────────────────── */}
-      <SectionHeading title="Achievements" colors={colors} />
-      <View style={styles.section}>
-        <TrophyShelf
-          achievements={connection.achievements}
-          firstName={firstName}
-          colors={colors}
-          isDark={isDark}
-        />
-      </View>
+      <Text style={s.name} accessibilityRole="header">
+        {profile.name}
+      </Text>
+      {connection ? (
+        <Text style={s.coverMeta}>
+          Friends since{" "}
+          {formatNZT(new Date(connection.friendsSince), "MMMM yyyy")}
+        </Text>
+      ) : null}
 
-      {/* ── Their Mahi ─────────────────────────────────── */}
-      <SectionHeading title="Their mahi" colors={colors} />
-      <View style={styles.section}>
-        <View
-          style={[
-            styles.rhythmCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <RhythmStat
-            value={connection.shiftsThisMonth.toString()}
-            label="This month"
-            colors={colors}
-          />
-          <View
-            style={[styles.rhythmDivider, { backgroundColor: colors.border }]}
-          />
-          <RhythmStat
-            value={connection.avgPerMonth.toString()}
-            label="Avg / month"
-            colors={colors}
-          />
-          <View
-            style={[styles.rhythmDivider, { backgroundColor: colors.border }]}
-          />
-          <RhythmStat
-            value={profile.totalShifts.toString()}
-            label="All-time"
-            colors={colors}
-          />
-        </View>
-
-        <View
-          style={[
-            styles.featureCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
-        >
-          <View
-            style={[
-              styles.featureRule,
-              { backgroundColor: isDark ? Brand.accent : Brand.green },
-            ]}
-          />
-          <View style={styles.featureBody}>
-            <Text
-              style={[styles.featureEyebrow, { color: colors.textSecondary }]}
-            >
-              FAVOURITE ROLE
-            </Text>
-            <View style={styles.featureRow}>
-              <Text style={styles.featureEmoji}>
-                {getShiftThemeByName(connection.favoriteRole).emoji}
-              </Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.featureTitle, { color: colors.text }]}>
-                  {connection.favoriteRole}
-                </Text>
-                <Text
-                  style={[
-                    styles.featureMeta,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Completed {connection.favoriteRoleCount}{" "}
-                  {connection.favoriteRoleCount === 1 ? "time" : "times"}
+      {profile.totalShifts > 0 ? (
+        <View style={s.stats}>
+          {stats.map((stat, index) => (
+            <View key={stat.one} style={s.statCell}>
+              {index > 0 && <View style={s.statRule} />}
+              <View
+                style={s.stat}
+                accessible
+                accessibilityLabel={`${stat.value} ${
+                  stat.value === 1 ? stat.one : stat.many
+                }`}
+              >
+                <Text style={s.statValue}>{stat.value}</Text>
+                <Text style={s.statLabel}>
+                  {stat.value === 1 ? stat.one : stat.many}
                 </Text>
               </View>
             </View>
-          </View>
+          ))}
         </View>
-      </View>
-
-      {/* ── Shared shifts ──────────────────────────────── */}
-      <SectionHeading title="Shared shifts" colors={colors} />
-      <View style={styles.section}>
-        {connection.sharedShifts.length > 0 ? (
-          <View>
-            {connection.sharedShifts.slice(0, 5).map((shift, idx) => {
-              const isLast =
-                idx === Math.min(connection.sharedShifts.length, 5) - 1;
-              const shiftDate = new Date(shift.date);
-              return (
-                <View key={shift.id} style={styles.timelineRow}>
-                  <View style={styles.timelineDateCol}>
-                    <Text style={[styles.timelineDay, { color: colors.text }]}>
-                      {formatNZT(shiftDate, "d")}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.timelineMonth,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {formatNZT(shiftDate, "MMM").toUpperCase()}
-                    </Text>
-                  </View>
-
-                  <View style={styles.timelineRail}>
-                    <View
-                      style={[
-                        styles.timelineNode,
-                        {
-                          backgroundColor: shift.isUpcoming
-                            ? isDark
-                              ? Brand.accent
-                              : Brand.green
-                            : colors.border,
-                          borderColor: colors.background,
-                        },
-                      ]}
-                    />
-                    {!isLast && (
-                      <View
-                        style={[
-                          styles.timelineLine,
-                          { backgroundColor: colors.border },
-                        ]}
-                      />
-                    )}
-                  </View>
-
-                  <View style={styles.timelineContent}>
-                    <Text
-                      style={[styles.timelineTitle, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {shift.type}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.timelineMeta,
-                        { color: colors.textSecondary },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {shift.location}
-                    </Text>
-                    {shift.isUpcoming && (
-                      <View
-                        style={[
-                          styles.upcomingTag,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(248,251,105,0.12)"
-                              : Palette.sun100,
-                          },
-                        ]}
-                      >
-                        <View
-                          style={[
-                            styles.upcomingDot,
-                            {
-                              backgroundColor: isDark
-                                ? Brand.accent
-                                : Brand.green,
-                            },
-                          ]}
-                        />
-                        <Text
-                          style={[
-                            styles.upcomingTagText,
-                            {
-                              color: isDark ? Brand.accent : Brand.greenHover,
-                            },
-                          ]}
-                        >
-                          Coming up
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
-            {connection.sharedShifts.length > 5 && (
-              <Text style={[styles.moreText, { color: colors.textSecondary }]}>
-                + {connection.sharedShifts.length - 5} more shifts together
-              </Text>
-            )}
-          </View>
-        ) : (
-          <EmptyCanvas
-            title="No shared shifts yet"
-            subtitle={`Sign up for the same shifts to create moments with ${firstName}.`}
-            colors={colors}
-            isDark={isDark}
-          />
-        )}
-      </View>
-
-      {/* ── Join them on a shift ─────────────────────────── */}
-      <SectionHeading title={`Join ${firstName}`} colors={colors} />
-      <View style={styles.section}>
-        {connection.upcomingShifts.length > 0 ? (
-          <>
-            <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
-              Tap a shift to sign up alongside {firstName}.
-            </Text>
-            <View style={{ gap: 10 }}>
-              {connection.upcomingShifts.map((shift) => {
-                const theme = getShiftThemeByName(shift.type);
-                const date = new Date(shift.date);
-                return (
-                  <Pressable
-                    key={shift.id}
-                    onPress={() => onOpenShift(shift.id)}
-                    style={({ pressed }) => [
-                      styles.upcomingRow,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                        opacity: pressed ? 0.85 : 1,
-                        transform: [{ scale: pressed ? 0.99 : 1 }],
-                      },
-                    ]}
-                    accessibilityLabel={`Sign up for ${shift.type} on ${formatNZT(date, "MMMM d")} with ${firstName}`}
-                    accessibilityRole="button"
-                  >
-                    <View
-                      style={[
-                        styles.upcomingIcon,
-                        {
-                          backgroundColor: isDark
-                            ? theme.bgDark
-                            : theme.bgLight,
-                        },
-                      ]}
-                    >
-                      <Text style={{ fontSize: 22 }}>{theme.emoji}</Text>
-                    </View>
-                    <View style={styles.upcomingBody}>
-                      <Text
-                        style={[styles.upcomingType, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {shift.type}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.upcomingMeta,
-                          { color: colors.textSecondary },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {shift.location} · {shift.time}
-                      </Text>
-                    </View>
-                    <View style={styles.upcomingTrailing}>
-                      <Text
-                        style={[styles.upcomingDate, { color: colors.text }]}
-                      >
-                        {formatNZT(date, "MMM d")}
-                      </Text>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={colors.textSecondary}
-                      />
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </>
-        ) : (
-          <EmptyCanvas
-            title="Quiet for now"
-            subtitle={`Check back later — ${firstName}'s schedule will appear here.`}
-            colors={colors}
-            isDark={isDark}
-          />
-        )}
-      </View>
-
-      {/* ── Remove friend ──────────────────────────────── */}
-      <View style={[styles.section, { marginTop: 28 }]}>
-        <Pressable
-          onPress={onRemoveFriend}
-          disabled={isRemoving}
-          style={({ pressed }) => [
-            styles.removeFriendBtn,
-            {
-              borderColor: colors.border,
-              opacity: pressed || isRemoving ? 0.6 : 1,
-            },
-          ]}
-          accessibilityLabel={`Remove ${firstName} from your friends`}
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="person-remove-outline"
-            size={16}
-            color={colors.textSecondary}
-          />
-          <Text
-            style={[styles.removeFriendText, { color: colors.textSecondary }]}
-          >
-            {isRemoving ? "Removing…" : `Remove ${firstName} from friends`}
-          </Text>
-        </Pressable>
-      </View>
-    </>
-  );
-}
-
-/* ─── Sub-components ────────────────────────────────────────── */
-
-function SectionHeading({
-  title,
-  colors,
-}: {
-  title: string;
-  colors: (typeof Colors)["light"];
-}) {
-  return (
-    <View style={styles.sectionMarker}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
-      <View
-        style={[styles.sectionMarkerRule, { backgroundColor: colors.border }]}
-      />
+      ) : (
+        <Text style={[s.coverMeta, s.coverMetaGap]}>
+          Yet to do their first shift
+        </Text>
+      )}
     </View>
   );
 }
 
-function RhythmStat({
-  value,
-  label,
-  colors,
-}: {
-  value: string;
-  label: string;
-  colors: (typeof Colors)["light"];
-}) {
-  return (
-    <View style={styles.rhythmStat}>
-      <Text style={[styles.rhythmValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.rhythmLabel, { color: colors.textSecondary }]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function Badge({
-  label,
-  emoji,
-  tone,
-  isDark,
-}: {
-  label: string;
-  emoji: string;
-  tone: "accent" | "green";
-  isDark: boolean;
-}) {
-  const bg =
-    tone === "accent"
-      ? isDark
-        ? "rgba(248,251,105,0.14)"
-        : Palette.sun100
-      : isDark
-      ? "rgba(155,189,160,0.16)"
-      : Brand.greenLight;
-  const fg =
-    tone === "accent"
-      ? isDark
-        ? Brand.accent
-        : Palette.ink
-      : isDark
-      ? Palette.forest200
-      : Brand.green;
-  return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <Text style={{ fontSize: 12 }}>{emoji}</Text>
-      <Text style={[styles.badgeText, { color: fg }]}>{label}</Text>
-    </View>
-  );
-}
-
-/**
- * The friend's achievements rendered as "plates on a shelf" — a featured
- * latest unlock, then the rest as a horizontally scrolling row of plates.
- * Tolerates an undefined payload (older cached profiles) by showing the
- * empty state.
- */
-function TrophyShelf({
-  achievements,
-  firstName,
-  colors,
-  isDark,
-}: {
-  achievements: UserConnection["achievements"] | undefined;
-  firstName: string;
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
-}) {
-  if (!achievements || achievements.unlockedCount === 0) {
+function Avatar({ profile }: { profile: UserProfile }) {
+  if (profile.profilePhotoUrl) {
     return (
-      <EmptyCanvas
-        title="The shelf is waiting"
-        subtitle={`${firstName} hasn't unlocked any achievements yet — their first shift will start the collection.`}
-        colors={colors}
-        isDark={isDark}
+      <Image
+        source={{ uri: profile.profilePhotoUrl }}
+        style={s.avatar}
+        contentFit="cover"
+        accessibilityIgnoresInvertColors
       />
     );
   }
-
-  const [latest, ...rest] = achievements.items;
-  const overflow = achievements.unlockedCount - achievements.items.length;
-
   return (
-    <View style={{ gap: 12 }}>
-      <Text style={[styles.shelfSummary, { color: colors.textSecondary }]}>
-        {achievements.unlockedCount} of {achievements.totalCount} unlocked ·{" "}
-        {achievements.totalPoints} points
+    <View style={[s.avatar, s.avatarFallback]}>
+      <Text style={s.avatarInitial}>
+        {profile.name.charAt(0).toUpperCase()}
       </Text>
-
-      {/* Featured latest unlock */}
-      <View
-        style={[
-          styles.featuredUnlock,
-          {
-            backgroundColor: colors.card,
-            borderColor: isDark ? "rgba(248,251,105,0.25)" : Palette.sun300,
-          },
-        ]}
-      >
-        <View
-          style={[
-            styles.plate,
-            styles.plateLarge,
-            {
-              backgroundColor: isDark
-                ? "rgba(248,251,105,0.12)"
-                : Palette.sun100,
-              borderColor: isDark ? "rgba(248,251,105,0.3)" : Palette.sun300,
-            },
-          ]}
-        >
-          <Text style={{ fontSize: 30 }}>{latest.icon}</Text>
-        </View>
-        <View style={{ flex: 1, gap: 3 }}>
-          <Text
-            style={[styles.featureEyebrow, { color: colors.textSecondary }]}
-          >
-            LATEST UNLOCK
-          </Text>
-          <Text
-            style={[styles.featuredUnlockName, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {latest.name}
-          </Text>
-          <Text
-            style={[styles.featuredUnlockMeta, { color: colors.textSecondary }]}
-            numberOfLines={2}
-          >
-            {latest.description}
-          </Text>
-          <Text
-            style={[
-              styles.featuredUnlockDate,
-              { color: isDark ? Brand.accentSubtle : Brand.greenHover },
-            ]}
-          >
-            +{latest.points} pts · {formatNZT(new Date(latest.unlockedAt), "MMM yyyy")}
-          </Text>
-        </View>
-      </View>
-
-      {/* The shelf */}
-      {rest.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.shelfScroll}
-        >
-          {rest.map((achievement) => (
-            <View
-              key={achievement.id}
-              style={[
-                styles.shelfItem,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-              accessibilityLabel={`${achievement.name}: ${achievement.description}`}
-            >
-              <View
-                style={[
-                  styles.plate,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(248,251,105,0.10)"
-                      : Palette.cream100,
-                    borderColor: isDark
-                      ? "rgba(248,251,105,0.16)"
-                      : colors.border,
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 22 }}>{achievement.icon}</Text>
-              </View>
-              <Text
-                style={[styles.shelfItemName, { color: colors.text }]}
-                numberOfLines={2}
-              >
-                {achievement.name}
-              </Text>
-              <Text
-                style={[styles.shelfItemPoints, { color: colors.textSecondary }]}
-              >
-                {achievement.points} pts
-              </Text>
-            </View>
-          ))}
-          {overflow > 0 && (
-            <View
-              style={[
-                styles.shelfItem,
-                styles.shelfOverflow,
-                { borderColor: colors.border },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.shelfOverflowCount,
-                  { color: isDark ? Palette.forest200 : Brand.green },
-                ]}
-              >
-                +{overflow}
-              </Text>
-              <Text
-                style={[styles.shelfItemPoints, { color: colors.textSecondary }]}
-              >
-                more
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-      )}
     </View>
   );
 }
 
-function EmptyCanvas({
-  title,
-  subtitle,
+/** What else there is to know about a friend, one line per fact. */
+function Facts({
+  connection,
   colors,
-  isDark,
 }: {
-  title: string;
-  subtitle: string;
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
+  connection: UserConnection | null;
+  colors: ThemeColors;
+}) {
+  if (!connection) return null;
+  const facts: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [];
+  if (connection.favoriteRoleCount > 0) {
+    facts.push({
+      icon: "restaurant-outline",
+      text: `Mostly ${connection.favoriteRole}`,
+    });
+  }
+  if (connection.avgPerMonth > 0) {
+    facts.push({
+      icon: "repeat-outline",
+      text: `About ${plural(connection.avgPerMonth, "shift")} a month`,
+    });
+  }
+  if (connection.mutualFriends > 0) {
+    facts.push({
+      icon: "people-outline",
+      text: plural(connection.mutualFriends, "mutual friend"),
+    });
+  }
+  if (facts.length === 0) return null;
+
+  return (
+    <View style={s.facts}>
+      {facts.map((fact) => (
+        <FactRow key={fact.icon} icon={fact.icon} colors={colors}>
+          {fact.text}
+        </FactRow>
+      ))}
+    </View>
+  );
+}
+
+function FactRow({
+  icon,
+  colors,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  colors: ThemeColors;
+  children: React.ReactNode;
 }) {
   return (
-    <View
-      style={[
-        styles.emptyCanvas,
-        {
-          borderColor: colors.border,
-          backgroundColor: isDark
-            ? "rgba(255,255,255,0.015)"
-            : "rgba(29,83,55,0.03)",
-        },
-      ]}
-    >
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-        {subtitle}
-      </Text>
+    <View style={s.factRow}>
+      <Ionicons name={icon} size={18} color={colors.icon} />
+      <Text style={[s.factText, { color: colors.text }]}>{children}</Text>
     </View>
   );
 }
 
+/* ═════════════════════════════════════════════════════════
+   CONNECT - not friends yet
+   ═════════════════════════════════════════════════════════ */
+
 function FriendshipAction({
-  status,
+  profile,
   firstName,
-  allowFriendRequests,
   isSending,
   respondingTo,
   onAddFriend,
@@ -1377,120 +669,99 @@ function FriendshipAction({
   colors,
   isDark,
 }: {
-  status: UserFriendshipStatus;
+  profile: UserProfile;
   firstName: string;
-  allowFriendRequests: boolean;
   isSending: boolean;
   respondingTo: "accept" | "decline" | null;
   onAddFriend: () => void;
   onAcceptRequest: () => void;
   onDeclineRequest: () => void;
-  colors: (typeof Colors)["light"];
+  colors: ThemeColors;
   isDark: boolean;
 }) {
-  if (status === "REQUEST_SENT") {
-    return (
-      <StatusCard
-        eyebrow="PENDING"
-        title={`Request sent — hang tight ⏳`}
-        ruleColor={isDark ? "#fde047" : "#b45309"}
-        colors={colors}
-        isDark={isDark}
-      />
-    );
-  }
+  const primaryBg = isDark ? Brand.accent : Brand.green;
+  const primaryFg = isDark ? Palette.ink : Palette.cream50;
 
-  if (status === "REQUEST_RECEIVED") {
-    const isAccepting = respondingTo === "accept";
-    const isDeclining = respondingTo === "decline";
-    const isBusy = respondingTo !== null;
-
+  if (profile.friendshipStatus === "REQUEST_SENT") {
     return (
-      <View style={{ gap: 12 }}>
-        <StatusCard
-          eyebrow="INCOMING"
-          title={`Kia ora — ${firstName} wants to connect`}
-          ruleColor={isDark ? "#93c5fd" : "#1d4ed8"}
+      <View style={[s.panel, { backgroundColor: colors.card }]}>
+        <StatusRow
+          icon="paper-plane-outline"
+          title="Friend request sent"
+          meta={`You'll be friends once ${firstName} accepts.`}
           colors={colors}
-          isDark={isDark}
         />
-        <Pressable
-          onPress={onAcceptRequest}
-          disabled={isBusy}
-          style={({ pressed }) => [
-            styles.primaryBtn,
-            {
-              backgroundColor: isDark ? Brand.accent : Brand.green,
-              opacity: pressed || isBusy ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.985 : 1 }],
-            },
-          ]}
-          accessibilityLabel={`Accept friend request from ${firstName}`}
-          accessibilityRole="button"
-        >
-          {isAccepting ? (
-            <ActivityIndicator
-              size="small"
-              color={isDark ? Brand.green : Palette.cream50}
-            />
-          ) : (
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={18}
-              color={isDark ? Brand.green : Palette.cream50}
-            />
-          )}
-          <Text
-            style={[
-              styles.primaryBtnText,
-              { color: isDark ? Brand.green : Palette.cream50 },
-            ]}
-          >
-            {isAccepting ? "Accepting…" : "Accept request"}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={onDeclineRequest}
-          disabled={isBusy}
-          style={({ pressed }) => [
-            styles.declineBtn,
-            {
-              borderColor: colors.border,
-              opacity: pressed || isBusy ? 0.7 : 1,
-            },
-          ]}
-          accessibilityLabel={`Decline friend request from ${firstName}`}
-          accessibilityRole="button"
-        >
-          {isDeclining ? (
-            <ActivityIndicator size="small" color={colors.textSecondary} />
-          ) : (
-            <Ionicons
-              name="close-outline"
-              size={16}
-              color={colors.textSecondary}
-            />
-          )}
-          <Text
-            style={[styles.declineBtnText, { color: colors.textSecondary }]}
-          >
-            {isDeclining ? "Declining…" : "Decline"}
-          </Text>
-        </Pressable>
       </View>
     );
   }
 
-  // NONE
-  if (!allowFriendRequests) {
+  if (profile.friendshipStatus === "REQUEST_RECEIVED") {
+    const isBusy = respondingTo !== null;
     return (
-      <StatusCard
-        eyebrow="PRIVATE"
-        title={`${firstName} isn't accepting new friend requests`}
-        ruleColor={colors.border}
-        colors={colors}
-        isDark={isDark}
-      />
+      <View style={[s.panel, s.requestPanel, { backgroundColor: colors.card }]}>
+        <StatusRow
+          icon="person-add-outline"
+          title={`${firstName} wants to be friends`}
+          meta={null}
+          colors={colors}
+        />
+        <View style={s.requestButtons}>
+          <Pressable
+            onPress={onDeclineRequest}
+            disabled={isBusy}
+            style={({ pressed }) => [
+              s.button,
+              s.buttonFlex,
+              {
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: colors.border,
+                opacity: pressed || isBusy ? 0.7 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`Decline friend request from ${firstName}`}
+          >
+            {respondingTo === "decline" ? (
+              <ActivityIndicator size="small" color={colors.text} />
+            ) : (
+              <Text style={[s.buttonText, { color: colors.text }]}>Decline</Text>
+            )}
+          </Pressable>
+          <Pressable
+            onPress={onAcceptRequest}
+            disabled={isBusy}
+            style={({ pressed }) => [
+              s.button,
+              s.buttonFlex,
+              {
+                backgroundColor: primaryBg,
+                opacity: pressed || isBusy ? 0.85 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`Accept friend request from ${firstName}`}
+          >
+            {respondingTo === "accept" ? (
+              <ActivityIndicator size="small" color={primaryFg} />
+            ) : (
+              <Text style={[s.buttonText, { color: primaryFg }]}>Accept</Text>
+            )}
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (!profile.allowFriendRequests) {
+    return (
+      <View style={[s.panel, { backgroundColor: colors.card }]}>
+        <StatusRow
+          icon="lock-closed-outline"
+          title={`${firstName} isn't taking friend requests`}
+          meta={null}
+          colors={colors}
+        />
+      </View>
     );
   }
 
@@ -1499,692 +770,813 @@ function FriendshipAction({
       onPress={onAddFriend}
       disabled={isSending}
       style={({ pressed }) => [
-        styles.primaryBtn,
+        s.button,
         {
-          backgroundColor: isDark ? Brand.accent : Brand.green,
-          opacity: pressed || isSending ? 0.9 : 1,
-          transform: [{ scale: pressed ? 0.985 : 1 }],
+          backgroundColor: primaryBg,
+          opacity: pressed || isSending ? 0.85 : 1,
         },
       ]}
-      accessibilityLabel={`Add ${firstName} as a friend`}
       accessibilityRole="button"
+      accessibilityLabel={`Add ${firstName} as a friend`}
     >
       {isSending ? (
-        <ActivityIndicator
-          size="small"
-          color={isDark ? Brand.green : Palette.cream50}
-        />
+        <ActivityIndicator size="small" color={primaryFg} />
       ) : (
-        <Ionicons
-          name="person-add-outline"
-          size={18}
-          color={isDark ? Brand.green : Palette.cream50}
-        />
+        <Ionicons name="person-add-outline" size={18} color={primaryFg} />
       )}
-      <Text
-        style={[
-          styles.primaryBtnText,
-          { color: isDark ? Brand.green : Palette.cream50 },
-        ]}
-      >
+      <Text style={[s.buttonText, { color: primaryFg }]}>
         {isSending ? "Sending…" : "Add friend"}
       </Text>
     </Pressable>
   );
 }
 
-function StatusCard({
-  eyebrow,
+function StatusRow({
+  icon,
   title,
-  ruleColor,
+  meta,
   colors,
 }: {
-  eyebrow: string;
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
-  ruleColor: string;
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
+  meta: string | null;
+  colors: ThemeColors;
 }) {
   return (
-    <View
-      style={[
-        styles.statusCard,
-        { backgroundColor: colors.card, borderColor: colors.border },
-      ]}
-    >
-      <View style={[styles.statusRule, { backgroundColor: ruleColor }]} />
-      <View style={styles.statusBody}>
-        <Text style={[styles.statusEyebrow, { color: colors.textSecondary }]}>
-          {eyebrow}
-        </Text>
-        <Text style={[styles.statusTitle, { color: colors.text }]}>
-          {title}
-        </Text>
+    <View style={s.statusRow}>
+      <View style={[s.statusBadge, { backgroundColor: colors.surfaceSoft }]}>
+        <Ionicons name={icon} size={18} color={colors.tint} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[s.statusTitle, { color: colors.text }]}>{title}</Text>
+        {meta ? (
+          <Text style={[s.statusMeta, { color: colors.textSecondary }]}>
+            {meta}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
 }
 
-/* ─── Styles ────────────────────────────────────────────────── */
+/* ═════════════════════════════════════════════════════════
+   FRIENDS - their next shifts, your shifts together, achievements
+   ═════════════════════════════════════════════════════════ */
 
-const HORIZONTAL = 22;
+function SectionTitle({
+  title,
+  meta,
+  colors,
+}: {
+  title: string;
+  meta?: string;
+  colors: ThemeColors;
+}) {
+  return (
+    <View style={s.sectionHead}>
+      <Text
+        style={[s.sectionTitle, { color: colors.text }]}
+        accessibilityRole="header"
+      >
+        {title}
+      </Text>
+      {meta ? (
+        <Text style={[s.sectionMeta, { color: colors.textSecondary }]}>
+          {meta}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+/** Day number over short month, the leading tile of a dated row. */
+function DateTile({ date, colors }: { date: string; colors: ThemeColors }) {
+  return (
+    <View style={[s.dateTile, { backgroundColor: colors.surfaceSoft }]}>
+      <Text style={[s.dateTileDay, { color: colors.text }]}>
+        {formatNZDateOnly(date, "d")}
+      </Text>
+      <Text style={[s.dateTileMonth, { color: colors.textSecondary }]}>
+        {formatNZDateOnly(date, "MMM")}
+      </Text>
+    </View>
+  );
+}
+
+function GroupRule({ colors }: { colors: ThemeColors }) {
+  return <View style={[s.groupRule, { backgroundColor: colors.border }]} />;
+}
+
+/** Closes a capped list with a count of the rows left out. */
+function MoreRow({
+  count,
+  noun,
+  colors,
+}: {
+  count: number;
+  noun: string;
+  colors: ThemeColors;
+}) {
+  return (
+    <>
+      <GroupRule colors={colors} />
+      <View style={s.row}>
+        <View style={s.moreSpacer} />
+        <Text style={[s.moreText, { color: colors.textSecondary }]}>
+          {count} more {count === 1 ? noun : `${noun}s`}
+        </Text>
+      </View>
+    </>
+  );
+}
+
+function UpcomingShifts({
+  shifts,
+  firstName,
+  colors,
+  onOpen,
+}: {
+  shifts: UserConnection["upcomingShifts"];
+  firstName: string;
+  colors: ThemeColors;
+  onOpen: (shiftId: string) => void;
+}) {
+  return (
+    <View style={s.section}>
+      <SectionTitle title={`${firstName}'s next shifts`} colors={colors} />
+      <View style={[s.group, { backgroundColor: colors.card }]}>
+        {shifts.map((shift, index) => {
+          const weekday = formatNZDateOnly(shift.date, "EEEE");
+          // "12:00 PM" -> "12pm", "5:30 PM" -> "5:30pm", as on the shift screen.
+          const time = shift.time
+            .replace(":00", "")
+            .replace(" ", "")
+            .toLowerCase();
+          return (
+            <View key={shift.id}>
+              {index > 0 && <GroupRule colors={colors} />}
+              <Pressable
+                onPress={() => onOpen(shift.id)}
+                style={({ pressed }) => [s.row, { opacity: pressed ? 0.7 : 1 }]}
+                accessibilityRole="button"
+                accessibilityLabel={`${shift.type}, ${weekday} ${formatNZDateOnly(
+                  shift.date,
+                  "d MMMM"
+                )} at ${time}, ${shift.location}. View shift`}
+              >
+                <DateTile date={shift.date} colors={colors} />
+                <View style={s.rowBody}>
+                  <Text
+                    style={[s.rowTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {shift.type}
+                  </Text>
+                  <Text
+                    style={[s.rowMeta, { color: colors.textSecondary }]}
+                    numberOfLines={1}
+                  >
+                    {weekday} {time}, {shift.location}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.tabIconDefault}
+                />
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function SharedShifts({
+  connection,
+  colors,
+}: {
+  connection: UserConnection;
+  colors: ThemeColors;
+}) {
+  const shown = connection.sharedShifts.slice(0, MAX_SHARED_SHIFTS);
+  const more = connection.shiftsTogether - shown.length;
+  const thisYear = formatNZT(new Date(), "yyyy");
+
+  return (
+    <View style={s.section}>
+      <SectionTitle title="Shifts together" colors={colors} />
+      {shown.length === 0 ? (
+        <Text style={[s.emptyText, { color: colors.textSecondary }]}>
+          You haven&apos;t been on a shift together yet.
+        </Text>
+      ) : (
+        <View style={[s.group, { backgroundColor: colors.card }]}>
+          {shown.map((shift, index) => (
+            <View key={shift.id}>
+              {index > 0 && <GroupRule colors={colors} />}
+              <View style={s.row}>
+                <DateTile date={shift.date} colors={colors} />
+                <View style={s.rowBody}>
+                  <Text
+                    style={[s.rowTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {formatNZDateOnly(
+                      shift.date,
+                      shift.date.startsWith(thisYear)
+                        ? "EEEE d MMMM"
+                        : "EEEE d MMMM yyyy"
+                    )}
+                  </Text>
+                  <Text
+                    style={[s.rowMeta, { color: colors.textSecondary }]}
+                    numberOfLines={1}
+                  >
+                    {shift.type} shift, {shift.location}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ))}
+          {more > 0 && <MoreRow count={more} noun="shift" colors={colors} />}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Their achievements in one list: what they've unlocked (newest first), then
+ * what they're working towards with how far along they are (closest first).
+ * The first few rows show, and the rest expand in place. Tolerates an undefined payload
+ * (older cached profiles) by showing the empty line.
+ */
+function Achievements({
+  achievements,
+  profile,
+  firstName,
+  colors,
+  isDark,
+}: {
+  achievements: UserConnection["achievements"] | undefined;
+  profile: UserProfile;
+  firstName: string;
+  colors: ThemeColors;
+  isDark: boolean;
+}) {
+  const unlocked = achievements?.items ?? [];
+  // One list: unlocked first, then the rest with how far along they are.
+  const rows = [
+    ...unlocked.map((a) => ({ ...a, kind: "unlocked" as const })),
+    ...(achievements?.inProgress ?? []).map((a) => ({
+      ...a,
+      kind: "locked" as const,
+    })),
+  ];
+  // Older servers capped `items` at 12, so the count can run past the list.
+  const unlisted = (achievements?.unlockedCount ?? 0) - unlocked.length;
+  const trackColor = isDark
+    ? "rgba(253,248,239,0.12)"
+    : "rgba(29,83,55,0.12)";
+
+  return (
+    <View style={s.section}>
+      <SectionTitle
+        title="Achievements"
+        meta={
+          achievements && unlocked.length > 0
+            ? `${achievements.unlockedCount} of ${achievements.totalCount}`
+            : undefined
+        }
+        colors={colors}
+      />
+      {unlocked.length === 0 && (
+        <Text style={[s.emptyText, { color: colors.textSecondary }]}>
+          {profile.totalShifts === 0
+            ? `${firstName}'s first shift will unlock their first achievement.`
+            : `${firstName} hasn't unlocked any yet.`}
+        </Text>
+      )}
+      {rows.length > 0 && (
+        <ExpandableGroup
+          items={rows}
+          collapsedCount={COLLAPSED_ACHIEVEMENTS}
+          extraCount={unlisted}
+          colors={colors}
+          renderItem={(row) =>
+            row.kind === "unlocked" ? (
+              <View
+                style={s.row}
+                accessible
+                accessibilityLabel={`${row.name}. ${row.description}`}
+              >
+                <View
+                  style={[
+                    s.achievementIcon,
+                    {
+                      backgroundColor: isDark
+                        ? colors.accentGlow
+                        : Palette.sun100,
+                    },
+                  ]}
+                >
+                  <Text style={s.achievementEmoji}>{row.icon}</Text>
+                </View>
+                <View style={s.rowBody}>
+                  <Text
+                    style={[s.rowTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {row.name}
+                  </Text>
+                  <Text
+                    style={[s.rowMeta, { color: colors.textSecondary }]}
+                    numberOfLines={2}
+                  >
+                    {row.description}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View
+                style={s.row}
+                accessible
+                accessibilityLabel={`${row.name}, not unlocked yet. ${row.description}. ${row.current} of ${row.targetLabel}`}
+              >
+                <View
+                  style={[
+                    s.achievementIcon,
+                    { backgroundColor: colors.surfaceSoft },
+                  ]}
+                >
+                  <Text style={[s.achievementEmoji, s.lockedEmoji]}>
+                    {row.icon}
+                  </Text>
+                </View>
+                <View style={s.rowBody}>
+                  <Text
+                    style={[s.rowTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {row.name}
+                  </Text>
+                  <Text style={[s.rowMeta, { color: colors.textSecondary }]}>
+                    {row.current} of {row.targetLabel}
+                  </Text>
+                  <View
+                    style={[s.progressTrack, { backgroundColor: trackColor }]}
+                  >
+                    <View
+                      style={[
+                        s.progressFill,
+                        {
+                          backgroundColor: colors.tint,
+                          width: `${Math.round(
+                            (row.current / row.target) * 100
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+              </View>
+            )
+          }
+        />
+      )}
+    </View>
+  );
+}
+
+/**
+ * A grouped list showing its first `collapsedCount` rows, with a row at the
+ * bottom that expands it to all of them and back.
+ */
+function ExpandableGroup<T extends { id: string }>({
+  items,
+  collapsedCount,
+  extraCount = 0,
+  renderItem,
+  colors,
+}: {
+  items: T[];
+  collapsedCount: number;
+  /** Rows that exist but weren't sent, counted after the expanded list. */
+  extraCount?: number;
+  renderItem: (item: T) => React.ReactNode;
+  colors: ThemeColors;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? items : items.slice(0, collapsedCount);
+
+  return (
+    <View style={[s.group, { backgroundColor: colors.card }]}>
+      {shown.map((item, index) => (
+        <View key={item.id}>
+          {index > 0 && <GroupRule colors={colors} />}
+          {renderItem(item)}
+        </View>
+      ))}
+      {items.length > collapsedCount && (
+        <>
+          <GroupRule colors={colors} />
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setExpanded((prev) => !prev);
+            }}
+            style={({ pressed }) => [
+              s.row,
+              s.toggleRow,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+            accessibilityRole="button"
+          >
+            <View style={s.moreSpacer} />
+            <View style={s.toggleLabel}>
+              <Ionicons
+                name={expanded ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={colors.tint}
+              />
+              <Text style={[s.toggleText, { color: colors.tint }]}>
+                {expanded ? "Show fewer" : `Show all ${items.length}`}
+              </Text>
+            </View>
+          </Pressable>
+        </>
+      )}
+      {expanded && extraCount > 0 && (
+        <MoreRow count={extraCount} noun="achievement" colors={colors} />
+      )}
+    </View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   MANAGE - remove, report, block
+   ═════════════════════════════════════════════════════════ */
+
+function ActionRow({
+  icon,
+  label,
+  color,
+  disabled = false,
+  onPress,
+  accessibilityLabel,
+  withRule = false,
+  colors,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  color: string;
+  disabled?: boolean;
+  onPress: () => void;
+  accessibilityLabel: string;
+  withRule?: boolean;
+  colors: ThemeColors;
+}) {
+  return (
+    <>
+      {withRule && (
+        <View style={[s.actionRule, { backgroundColor: colors.border }]} />
+      )}
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [
+          s.actionRow,
+          { opacity: pressed ? 0.6 : disabled ? 0.5 : 1 },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ disabled }}
+      >
+        <Ionicons name={icon} size={19} color={color} />
+        <Text style={[s.actionText, { color }]}>{label}</Text>
+      </Pressable>
+    </>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   STYLES
+   ═════════════════════════════════════════════════════════ */
+
+const s = StyleSheet.create({
+  sheet: {
+    marginTop: -SHEET_OVERLAP,
+    borderTopLeftRadius: SHEET_OVERLAP,
+    borderTopRightRadius: SHEET_OVERLAP,
+    paddingTop: 28,
+    paddingHorizontal: 20,
+    gap: 28,
   },
   centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    padding: 20,
+  },
+  notFoundIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
   },
-  backLink: {
+  backButton: {
     marginTop: 16,
-    padding: 12,
-  },
-  backLinkText: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-  },
-
-  /* Hero */
-  hero: {
-    width: "100%",
-    position: "relative",
-    overflow: "hidden",
-  },
-  accentShape: {
-    position: "absolute",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 999,
   },
-  gridDot: {
-    position: "absolute",
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Palette.cream50,
+  backButtonText: {
+    color: Palette.cream50,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
   },
 
-  /* Identity */
-  identityBlock: {
+  /* ── Cover ── */
+  cover: {
     alignItems: "center",
-    paddingHorizontal: HORIZONTAL,
+    paddingHorizontal: 24,
+    paddingBottom: SHEET_OVERLAP + 28,
+    backgroundColor: Palette.forest700,
   },
-  avatarWrap: {
-    marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+  overscroll: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: "100%",
+    height: 1000,
+    backgroundColor: Palette.forest700,
+  },
+  glowWrap: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    marginTop: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  glow: {
+    position: "absolute",
+    top: (AVATAR_SIZE - GLOW_SIZE) / 2,
+    left: (AVATAR_SIZE - GLOW_SIZE) / 2,
   },
   avatar: {
-    borderWidth: 4,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
   },
   avatarFallback: {
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 4,
+    backgroundColor: Palette.forest600,
   },
   avatarInitial: {
     fontSize: 44,
     fontFamily: FontFamily.headingBold,
+    color: Palette.sun200,
   },
-  heroName: {
-    fontSize: 34,
-    lineHeight: 40,
+  name: {
+    marginTop: 24,
+    fontSize: 36,
+    lineHeight: 42,
     fontFamily: FontFamily.display,
-    textAlign: "center",
     letterSpacing: -0.8,
-  },
-  heroTagline: {
-    marginTop: 6,
-    fontSize: 14,
-    fontFamily: FontFamily.regular,
-    fontStyle: "italic",
     textAlign: "center",
+    color: Palette.cream50,
   },
-  connectedSince: {
-    marginTop: 6,
-    fontSize: 14,
-    fontFamily: FontFamily.regular,
+  coverMeta: {
+    marginTop: 4,
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: FontFamily.medium,
     textAlign: "center",
+    color: "rgba(253, 248, 239, 0.7)",
   },
-  badgeRow: {
+  coverMetaGap: { marginTop: 16 },
+  stats: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 14,
-    flexWrap: "wrap",
+    marginTop: 24,
+    alignSelf: "stretch",
     justifyContent: "center",
   },
-  badge: {
+  statCell: {
+    flex: 1,
+    maxWidth: 120,
+    flexDirection: "row",
+  },
+  statRule: {
+    width: StyleSheet.hairlineWidth,
+    marginVertical: 6,
+    backgroundColor: "rgba(253, 248, 239, 0.25)",
+  },
+  stat: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.5,
+    fontVariant: ["tabular-nums"],
+    color: Palette.sun200,
+  },
+  statLabel: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    color: "rgba(253, 248, 239, 0.7)",
+  },
+  facts: { gap: 10 },
+  factRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    gap: 12,
   },
-  badgeText: {
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.2,
+  factText: {
+    flexShrink: 1,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: FontFamily.medium,
   },
 
-  /* Bento — trimmed view */
-  bento: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 26,
-    marginHorizontal: HORIZONTAL,
-  },
-  bentoCard: {
-    flex: 1,
+  /* ── Connect ── */
+  panel: {
     borderRadius: 20,
     padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 8,
   },
-  bentoValue: {
-    fontSize: 34,
-    lineHeight: 36,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -1,
-    fontVariant: ["tabular-nums"],
-  },
-
-  /* Bento — full (friends) view */
-  bentoFull: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 26,
-    marginHorizontal: HORIZONTAL,
-  },
-  bentoHero: {
-    flex: 1.35,
-    borderRadius: 24,
-    padding: 20,
-    justifyContent: "space-between",
-    overflow: "hidden",
-    minHeight: 160,
-  },
-  bentoGlow: {
-    position: "absolute",
-    top: -60,
-    left: -40,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(248,251,105,0.12)",
-  },
-  bentoArc: {
-    position: "absolute",
-    right: -60,
-    bottom: -60,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 2,
-  },
-  bentoColumn: {
-    flex: 1,
-    gap: 10,
-  },
-  bentoMini: {
-    flex: 1,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    justifyContent: "space-between",
-  },
-  bentoLabel: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 1.2,
-  },
-  bentoHeroValue: {
-    fontSize: 56,
-    lineHeight: 60,
-    fontFamily: FontFamily.display,
-    letterSpacing: -2,
-    fontVariant: ["tabular-nums"],
-    marginTop: 4,
-  },
-  bentoHeroCaption: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    fontStyle: "italic",
-  },
-  bentoMiniValue: {
-    fontSize: 28,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -1,
-    fontVariant: ["tabular-nums"],
-    marginTop: 8,
-  },
-
-  /* Section heading */
-  sectionMarker: {
+  requestPanel: { gap: 16 },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    paddingHorizontal: HORIZONTAL,
-    marginTop: 32,
-    marginBottom: 14,
   },
-  sectionMarkerRule: {
-    height: StyleSheet.hairlineWidth,
-    flex: 1,
+  statusBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusTitle: {
+    fontSize: 18,
+    lineHeight: 23,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
+  },
+  statusMeta: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: FontFamily.regular,
+  },
+  requestButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 50,
+    paddingHorizontal: 20,
+    borderRadius: 999,
+  },
+  buttonFlex: { flex: 1 },
+  buttonText: {
+    fontSize: 16,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.1,
+  },
+
+  /* ── Sections ── */
+  section: { gap: 12 },
+  sectionHead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 12,
   },
   sectionTitle: {
-    fontSize: 20,
+    flexShrink: 1,
+    fontSize: 22,
+    lineHeight: 28,
     fontFamily: FontFamily.heading,
     letterSpacing: -0.3,
   },
-
-  /* Sections */
-  section: {
-    paddingHorizontal: HORIZONTAL,
-    gap: 12,
-  },
-
-  /* Status card */
-  statusCard: {
-    flexDirection: "row",
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-  },
-  statusRule: {
-    width: 4,
-  },
-  statusBody: {
-    flex: 1,
-    padding: 14,
-    gap: 6,
-  },
-  statusEyebrow: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 1.1,
-  },
-  statusTitle: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-    lineHeight: 20,
-  },
-
-  /* Buttons */
-  primaryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 16,
-    minHeight: 54,
-    borderRadius: 999,
-  },
-  primaryBtnText: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.2,
-  },
-  declineBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 14,
-    minHeight: 48,
-    borderRadius: 999,
-    borderWidth: 1.25,
-  },
-  declineBtnText: {
+  sectionMeta: {
     fontSize: 14,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.2,
-  },
-
-  /* Rhythm card */
-  rhythmCard: {
-    flexDirection: "row",
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 18,
-    alignItems: "stretch",
-  },
-  rhythmStat: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
-  },
-  rhythmValue: {
-    fontSize: 24,
-    fontFamily: FontFamily.headingBold,
-    fontVariant: ["tabular-nums"],
-    letterSpacing: -0.5,
-  },
-  rhythmLabel: {
-    fontSize: 11,
     fontFamily: FontFamily.medium,
-    letterSpacing: 0.3,
   },
-  rhythmDivider: {
-    width: StyleSheet.hairlineWidth,
-    marginVertical: 6,
+  emptyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: FontFamily.regular,
   },
 
-  /* Feature card */
-  featureCard: {
-    flexDirection: "row",
+  /* ── Grouped rows ── */
+  group: {
     borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
-  featureRule: {
-    width: 4,
+  groupRule: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 72,
   },
-  featureBody: {
-    flex: 1,
-    padding: 16,
-    gap: 10,
-  },
-  featureEyebrow: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 1.1,
-  },
-  featureRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  featureEmoji: {
-    fontSize: 32,
+  rowBody: { flex: 1, gap: 2 },
+  rowTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.semiBold,
   },
-  featureTitle: {
-    fontSize: 17,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.2,
-  },
-  featureMeta: {
-    fontSize: 13,
+  rowMeta: {
+    fontSize: 14,
+    lineHeight: 19,
     fontFamily: FontFamily.regular,
-    marginTop: 2,
   },
-
-  /* Timeline */
-  timelineRow: {
-    flexDirection: "row",
-    gap: 14,
-    paddingBottom: 18,
-  },
-  timelineDateCol: {
+  dateTile: {
     width: 44,
-    alignItems: "flex-end",
-    paddingTop: 2,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  timelineDay: {
-    fontSize: 26,
-    lineHeight: 28,
+  dateTileDay: {
+    fontSize: 17,
+    lineHeight: 19,
     fontFamily: FontFamily.headingBold,
-    letterSpacing: -1,
     fontVariant: ["tabular-nums"],
   },
-  timelineMonth: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 1.2,
-    marginTop: 2,
-  },
-  timelineRail: {
-    width: 14,
-    alignItems: "center",
-    paddingTop: 8,
-  },
-  timelineNode: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-  },
-  timelineLine: {
-    width: StyleSheet.hairlineWidth,
-    flex: 1,
-    marginTop: 4,
-  },
-  timelineContent: {
-    flex: 1,
-    gap: 3,
-    paddingTop: 4,
-  },
-  timelineTitle: {
-    fontSize: 15,
+  dateTileMonth: {
+    fontSize: 11,
+    lineHeight: 13,
     fontFamily: FontFamily.semiBold,
   },
-  timelineMeta: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-  },
-  upcomingTag: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
+  achievementIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    justifyContent: "center",
+  },
+  achievementEmoji: { fontSize: 22 },
+  lockedEmoji: { opacity: 0.45 },
+  progressTrack: {
+    height: 6,
     marginTop: 6,
+    borderRadius: 3,
+    overflow: "hidden",
   },
-  upcomingDot: {
-    width: 5,
-    height: 5,
+  progressFill: {
+    height: "100%",
     borderRadius: 3,
   },
-  upcomingTagText: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.4,
-  },
-  moreText: {
-    fontSize: 13,
-    fontFamily: FontFamily.medium,
-    textAlign: "center",
-    paddingTop: 4,
-    fontStyle: "italic",
-  },
-
-  /* Upcoming list */
-  upcomingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 12,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  upcomingIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  upcomingBody: {
+  moreSpacer: { width: 44 },
+  toggleRow: { minHeight: 52 },
+  toggleLabel: {
     flex: 1,
-    gap: 3,
-  },
-  upcomingType: {
-    fontSize: 14,
-    fontFamily: FontFamily.semiBold,
-  },
-  upcomingMeta: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-  },
-  upcomingTrailing: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  upcomingDate: {
-    fontSize: 13,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -0.2,
+  toggleText: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
   },
-  sectionHint: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    marginBottom: 4,
-    marginTop: -4,
+  moreText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FontFamily.medium,
   },
 
-  /* Trophy shelf */
-  shelfSummary: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    letterSpacing: 0.2,
-    marginTop: -4,
-  },
-  featuredUnlock: {
+  /* ── Manage ── */
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
+    minHeight: 52,
+    paddingHorizontal: 16,
   },
-  featuredUnlockName: {
-    fontSize: 17,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.2,
+  actionRule: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 49,
   },
-  featuredUnlockMeta: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    lineHeight: 17,
-  },
-  featuredUnlockDate: {
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-    marginTop: 2,
-  },
-  plate: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  plateLarge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  shelfScroll: {
-    gap: 10,
-    paddingRight: HORIZONTAL,
-  },
-  shelfItem: {
-    width: 104,
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  shelfItemName: {
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-    textAlign: "center",
-    lineHeight: 16,
-  },
-  shelfItemPoints: {
-    fontSize: 10,
-    fontFamily: FontFamily.medium,
-    letterSpacing: 0.3,
-  },
-  shelfOverflow: {
-    justifyContent: "center",
-    borderStyle: "dashed",
-    borderWidth: 1,
-  },
-  shelfOverflowCount: {
-    fontSize: 22,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -0.5,
-  },
-
-  /* Empty canvas */
-  emptyCanvas: {
-    alignItems: "center",
-    paddingVertical: 28,
-    paddingHorizontal: 24,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderStyle: "dashed",
-    gap: 6,
-  },
-  emptyTitle: {
+  actionText: {
     fontSize: 16,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.2,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    textAlign: "center",
-    lineHeight: 19,
-    maxWidth: 280,
-  },
-
-  /* Remove friend */
-  removeFriendBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 13,
-    minHeight: 44,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  removeFriendText: {
-    fontSize: 14,
     fontFamily: FontFamily.medium,
-  },
-
-  /* Safety */
-  safetyRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
-  },
-  safetyBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 11,
-    minHeight: 44,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  safetyBtnText: {
-    fontSize: 13,
-    fontFamily: FontFamily.medium,
-  },
-
-  /* Footer */
-  footerNote: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    textAlign: "center",
-    marginTop: 18,
-    paddingHorizontal: 32,
-    fontStyle: "italic",
-    lineHeight: 17,
   },
 });

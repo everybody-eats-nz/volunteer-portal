@@ -3,6 +3,46 @@ import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { DAY_EVENING_CUTOFF_HOUR, shiftStartNZ } from "@/lib/concurrent-shifts";
 import { formatInNZT } from "@/lib/timezone";
+import {
+  calculateUserProgress,
+  checkAndUnlockAchievements,
+} from "@/lib/achievements";
+import {
+  achievementCurrentValue,
+  achievementTargetLabel,
+  parseAchievementCriteria,
+} from "@/lib/achievement-utils";
+
+type AchievementItem = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  points: number;
+  unlockedAt: string;
+};
+
+const unlockedAchievementSelect = {
+  unlockedAt: true,
+  achievement: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      icon: true,
+      category: true,
+      points: true,
+    },
+  },
+} as const;
+
+function toAchievementItem(ua: {
+  unlockedAt: Date;
+  achievement: Omit<AchievementItem, "unlockedAt">;
+}): AchievementItem {
+  return { ...ua.achievement, unlockedAt: ua.unlockedAt.toISOString() };
+}
 
 type FriendshipStatus =
   | "SELF"
@@ -219,19 +259,27 @@ export async function GET(
       unlockedCount: number;
       totalCount: number;
       totalPoints: number;
-      items: Array<{
-        id: string;
-        name: string;
-        description: string;
-        icon: string;
-        category: string;
-        points: number;
-        unlockedAt: string;
-      }>;
+      items: AchievementItem[];
+      /** Achievements still to unlock, closest to done first. */
+      inProgress: Array<
+        Omit<AchievementItem, "unlockedAt"> & {
+          current: number;
+          target: number;
+          /** The goal in plain units, e.g. "10 shifts". */
+          targetLabel: string;
+        }
+      >;
     };
   } | null = null;
 
   if (friendshipStatus === "FRIENDS" && acceptedFriendship) {
+    // Achievements are only evaluated when a volunteer loads their own
+    // dashboard or profile, so a friend who hasn't opened the app since their
+    // last shifts would show none (or too few). Bring theirs up to date before
+    // reading them. The same progress drives the locked ones' progress bars.
+    const targetProgress = await calculateUserProgress(targetId);
+    await checkAndUnlockAchievements(targetId, targetProgress);
+
     const [
       shiftsThisMonthResult,
       shiftsLast6MonthsResult,
@@ -240,7 +288,7 @@ export async function GET(
       favoriteRoleResult,
       upcomingShiftsRaw,
       unlockedAchievements,
-      activeAchievementCount,
+      lockedAchievements,
     ] = await Promise.all([
       prisma.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*)::bigint as count
@@ -357,28 +405,66 @@ export async function GET(
         ORDER BY sh.start ASC
         LIMIT 5
       `,
-      // Intentionally un-capped: unlockedCount and totalPoints are computed
-      // from the full set below; only `items` is sliced to 12 for the shelf.
-      // The achievement catalogue is small (<20 active), so this stays cheap.
+      // Un-capped: the profile can list every unlock. Active achievements
+      // only, matching the "of N" total. The catalogue is small (~20 active),
+      // so this stays cheap.
       prisma.userAchievement.findMany({
-        where: { userId: targetId },
+        where: { userId: targetId, achievement: { isActive: true } },
         orderBy: { unlockedAt: "desc" },
+        select: unlockedAchievementSelect,
+      }),
+      prisma.achievement.findMany({
+        where: { isActive: true, users: { none: { userId: targetId } } },
         select: {
-          unlockedAt: true,
-          achievement: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              icon: true,
-              category: true,
-              points: true,
-            },
-          },
+          id: true,
+          name: true,
+          description: true,
+          icon: true,
+          category: true,
+          points: true,
+          criteria: true,
         },
       }),
-      prisma.achievement.count({ where: { isActive: true } }),
     ]);
+    const activeAchievementCount =
+      unlockedAchievements.length + lockedAchievements.length;
+
+    // Shift-type goals name their shift type ("3 Kitchen shifts").
+    const criteriaShiftTypeIds = new Set(
+      lockedAchievements
+        .map((a) => parseAchievementCriteria(a.criteria)?.shiftType)
+        .filter((id): id is string => Boolean(id))
+    );
+    const shiftTypeNameById = new Map(
+      criteriaShiftTypeIds.size > 0
+        ? (
+            await prisma.shiftType.findMany({
+              where: { id: { in: Array.from(criteriaShiftTypeIds) } },
+              select: { id: true, name: true },
+            })
+          ).map((st) => [st.id, st.name])
+        : []
+    );
+    const inProgress = lockedAchievements
+      .flatMap(({ criteria, ...achievement }) => {
+        const parsed = parseAchievementCriteria(criteria);
+        if (!parsed || parsed.value <= 0) return [];
+        const current = achievementCurrentValue(parsed, targetProgress);
+        const targetLabel = achievementTargetLabel(
+          parsed,
+          parsed.shiftType ? shiftTypeNameById.get(parsed.shiftType) : undefined
+        );
+        if (current === undefined || !targetLabel) return [];
+        return [
+          {
+            ...achievement,
+            current: Math.min(Math.floor(current), parsed.value),
+            target: parsed.value,
+            targetLabel,
+          },
+        ];
+      })
+      .sort((a, b) => b.current / b.target - a.current / a.target);
 
     const shiftsThisMonth = Number(shiftsThisMonthResult[0].count);
     const shiftsLast6Months = Number(shiftsLast6MonthsResult[0].count);
@@ -420,15 +506,8 @@ export async function GET(
           (sum, ua) => sum + ua.achievement.points,
           0
         ),
-        items: unlockedAchievements.slice(0, 12).map((ua) => ({
-          id: ua.achievement.id,
-          name: ua.achievement.name,
-          description: ua.achievement.description,
-          icon: ua.achievement.icon,
-          category: ua.achievement.category,
-          points: ua.achievement.points,
-          unlockedAt: ua.unlockedAt.toISOString(),
-        })),
+        items: unlockedAchievements.map(toAchievementItem),
+        inProgress,
       },
     };
   }
