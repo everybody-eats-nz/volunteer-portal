@@ -137,10 +137,10 @@ test.describe("Admin Users Management", () => {
       const adminsText = await adminsCount.textContent();
       const newUsersText = await newUsersCount.textContent();
 
-      expect(totalText).toMatch(/^\d+$/);
-      expect(volunteersText).toMatch(/^\d+$/);
-      expect(adminsText).toMatch(/^\d+$/);
-      expect(newUsersText).toMatch(/^\d+$/);
+      expect(totalText).toMatch(/^[\d,]+$/);
+      expect(volunteersText).toMatch(/^[\d,]+$/);
+      expect(adminsText).toMatch(/^[\d,]+$/);
+      expect(newUsersText).toMatch(/^[\d,]+$/);
     });
 
     test("should display users table with proper structure", async ({

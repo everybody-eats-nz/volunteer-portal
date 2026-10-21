@@ -1,9 +1,8 @@
 "use client";
 
-import { motion } from "motion/react";
-import { slideUpVariants } from "@/lib/motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { STATUS_ICON, type StatusTone } from "@/lib/status-styles";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -25,6 +24,21 @@ export interface UpcomingShiftDay {
   shifts: UpcomingShiftData[];
 }
 
+/** 75%+ filled is healthy, 50-75% wants a nudge, under 50% is short. */
+function fillTone(fillRate: number): StatusTone {
+  if (fillRate >= 75) return "confirmed";
+  if (fillRate >= 50) return "pending";
+  return "danger";
+}
+
+const FILL_BAR: Record<StatusTone, string> = {
+  confirmed: "bg-forest-400 dark:bg-forest-300",
+  pending: "bg-amber-500",
+  waitlisted: "bg-sky-500",
+  danger: "bg-red-600 dark:bg-red-500",
+  neutral: "bg-stone-400",
+};
+
 interface AdminDashboardUpcomingShiftsProps {
   days: UpcomingShiftDay[];
 }
@@ -33,11 +47,11 @@ export function AdminDashboardUpcomingShifts({
   days,
 }: AdminDashboardUpcomingShiftsProps) {
   return (
-    <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
+    <div>
       <Card className="h-full">
         <CardHeader>
           <CardTitle data-testid="next-shift-heading">
-            Upcoming Shifts
+            Upcoming shifts
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -73,8 +87,9 @@ export function AdminDashboardUpcomingShifts({
                       >
                         {day.label}
                       </Link>
-                      <Badge
-                        variant={dayFillRate >= 50 ? "secondary" : "destructive"}
+                      <StatusBadge
+                        tone={fillTone(dayFillRate)}
+                        className="tabular-nums"
                         data-testid={
                           dayIndex === 0
                             ? "shift-volunteers-badge"
@@ -82,7 +97,7 @@ export function AdminDashboardUpcomingShifts({
                         }
                       >
                         {totalConfirmed} / {totalCapacity}
-                      </Badge>
+                      </StatusBadge>
                     </div>
 
                     {/* Day fill bar */}
@@ -90,11 +105,7 @@ export function AdminDashboardUpcomingShifts({
                       <div
                         className={cn(
                           "h-full rounded-full transition-all",
-                          dayFillRate >= 75
-                            ? "bg-green-500"
-                            : dayFillRate >= 50
-                              ? "bg-amber-500"
-                              : "bg-red-500"
+                          FILL_BAR[fillTone(dayFillRate)]
                         )}
                         style={{ width: `${Math.min(dayFillRate, 100)}%` }}
                       />
@@ -134,11 +145,7 @@ export function AdminDashboardUpcomingShifts({
                             <span
                               className={cn(
                                 "shrink-0 tabular-nums font-medium",
-                                fillRate >= 75
-                                  ? "text-green-600 dark:text-green-400"
-                                  : fillRate >= 50
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-red-600 dark:text-red-400"
+                                STATUS_ICON[fillTone(fillRate)]
                               )}
                             >
                               {shift.confirmedCount}/{shift.capacity}
@@ -170,6 +177,6 @@ export function AdminDashboardUpcomingShifts({
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }

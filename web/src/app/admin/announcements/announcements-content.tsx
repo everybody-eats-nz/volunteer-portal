@@ -26,6 +26,7 @@ import {
   type Announcement,
   type LabelOption,
 } from "./types";
+import { SectionHeading } from "@/components/admin/section-heading";
 
 interface AnnouncementsContentProps {
   initialAnnouncements: Announcement[];
@@ -161,7 +162,7 @@ export function AnnouncementsContent({
       {/* Page header row */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-accent text-xl font-semibold leading-tight">
+          <SectionHeading>
             {composerOpen ? (
               <>
                 New <em>announcement</em>
@@ -171,7 +172,7 @@ export function AnnouncementsContent({
                 What&apos;s <em>live</em> right now
               </>
             )}
-          </h2>
+          </SectionHeading>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {composerOpen
               ? "It lands in volunteers' feeds the moment you publish."

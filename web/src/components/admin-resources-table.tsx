@@ -9,6 +9,7 @@ import {
   Trash2,
   Download,
   ExternalLink,
+  FolderOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +42,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatFileSize } from "@/lib/storage-utils";
 import { EditResourceDialog } from "@/components/edit-resource-dialog";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/empty-state";
+import { formatInNZT } from "@/lib/timezone";
 
 interface ResourceWithUploader extends Resource {
   uploader: {
@@ -54,6 +58,8 @@ interface ResourceWithUploader extends Resource {
 
 interface AdminResourcesTableProps {
   resources: ResourceWithUploader[];
+  /** True when the list is narrowed by a category, type or status filter. */
+  isFiltered?: boolean;
 }
 
 const TYPE_COLORS: Record<ResourceType, string> = {
@@ -67,6 +73,14 @@ const TYPE_COLORS: Record<ResourceType, string> = {
     "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/50",
 };
 
+const TYPE_LABELS: Record<ResourceType, string> = {
+  PDF: "PDF",
+  IMAGE: "Image",
+  DOCUMENT: "Document",
+  LINK: "Link",
+  VIDEO: "Video",
+};
+
 const CATEGORY_LABELS: Record<ResourceCategory, string> = {
   TRAINING: "Training",
   POLICIES: "Policies",
@@ -77,7 +91,10 @@ const CATEGORY_LABELS: Record<ResourceCategory, string> = {
   GENERAL: "General",
 };
 
-export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
+export function AdminResourcesTable({
+  resources,
+  isFiltered = false,
+}: AdminResourcesTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editResource, setEditResource] = useState<ResourceWithUploader | null>(
@@ -132,10 +149,17 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
 
   if (resources.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-12 text-center">
-        <p className="text-muted-foreground">
-          No resources found. Upload your first resource to get started.
-        </p>
+      <div className="rounded-xl border bg-card shadow-sm">
+        <EmptyState
+          icon={FolderOpen}
+          title={isFiltered ? "No resources match these filters" : "No resources yet"}
+          description={
+            isFiltered
+              ? "Clear the filters to see every resource."
+              : "Upload your first resource to share it with volunteers."
+          }
+          data-testid="admin-resources-empty-state"
+        />
       </div>
     );
   }
@@ -145,125 +169,144 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead>Size</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-4">Title</TableHead>
+              <TableHead className="hidden md:table-cell">Type</TableHead>
+              <TableHead className="hidden md:table-cell">Category</TableHead>
+              <TableHead className="hidden xl:table-cell">Tags</TableHead>
+              <TableHead className="hidden xl:table-cell">Size</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Uploaded By</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="hidden lg:table-cell">Uploaded by</TableHead>
+              <TableHead className="hidden lg:table-cell">Created</TableHead>
+              <TableHead className="pr-4 text-right">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {resources.map((resource) => (
-              <TableRow key={resource.id}>
-                <TableCell className="font-medium max-w-[200px] truncate">
-                  {resource.title}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={TYPE_COLORS[resource.type]}
-                  >
-                    {resource.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>{CATEGORY_LABELS[resource.category]}</TableCell>
-                <TableCell>
-                  <div className="flex gap-1 flex-wrap max-w-[150px]">
-                    {resource.tags.slice(0, 2).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {resource.tags.length > 2 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{resource.tags.length - 2}
-                      </Badge>
+            {resources.map((resource) => {
+              const uploaderName =
+                [resource.uploader.firstName, resource.uploader.lastName]
+                  .filter(Boolean)
+                  .join(" ") ||
+                resource.uploader.name ||
+                resource.uploader.email;
+              const created = formatInNZT(resource.createdAt, "d MMM yyyy");
+
+              return (
+                <TableRow key={resource.id}>
+                  <TableCell className="py-3 pl-4 whitespace-normal md:max-w-[260px]">
+                    <div className="font-medium break-words">
+                      {resource.title}
+                    </div>
+                    {/* On a phone the type, category, uploader and date
+                        columns are gone, so they fold in under the title. */}
+                    <div className="mt-0.5 text-[13px] leading-snug text-muted-foreground md:hidden">
+                      {TYPE_LABELS[resource.type]} in{" "}
+                      {CATEGORY_LABELS[resource.category]}
+                    </div>
+                    <div className="text-[13px] leading-snug text-muted-foreground lg:hidden">
+                      Added {created} by {uploaderName}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <Badge
+                      variant="outline"
+                      className={TYPE_COLORS[resource.type]}
+                    >
+                      {TYPE_LABELS[resource.type]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {CATEGORY_LABELS[resource.category]}
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell">
+                    <div className="flex gap-1 flex-wrap max-w-[150px]">
+                      {resource.tags.slice(0, 2).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {resource.tags.length > 2 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{resource.tags.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden tabular-nums xl:table-cell">
+                    {resource.fileSize ? formatFileSize(resource.fileSize) : "-"}
+                  </TableCell>
+                  <TableCell className="py-3 align-top md:align-middle">
+                    {resource.isPublished ? (
+                      <StatusBadge tone="confirmed">Published</StatusBadge>
+                    ) : (
+                      <StatusBadge tone="neutral">Draft</StatusBadge>
                     )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {resource.fileSize ? formatFileSize(resource.fileSize) : "-"}
-                </TableCell>
-                <TableCell>
-                  {resource.isPublished ? (
-                    <Badge
-                      variant="outline"
-                      className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/50"
-                    >
-                      Published
-                    </Badge>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/50"
-                    >
-                      Draft
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {resource.uploader.firstName} {resource.uploader.lastName}
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {new Date(resource.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {resource.type === "LINK" || resource.type === "VIDEO" ? (
-                        <DropdownMenuItem
-                          onClick={() => window.open(resource.url!, "_blank")}
+                  </TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+                    {uploaderName}
+                  </TableCell>
+                  <TableCell className="hidden text-sm tabular-nums text-muted-foreground lg:table-cell">
+                    {created}
+                  </TableCell>
+                  <TableCell className="py-3 pr-4 text-right align-top md:align-middle">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Actions for ${resource.title}`}
                         >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Open Link
+                          <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {resource.type === "LINK" || resource.type === "VIDEO" ? (
+                          <DropdownMenuItem
+                            onClick={() => window.open(resource.url!, "_blank")}
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
+                            Open link
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              window.open(resource.fileUrl!, "_blank")
+                            }
+                          >
+                            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                            Download
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => setEditResource(resource)}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
+                          Edit
                         </DropdownMenuItem>
-                      ) : (
                         <DropdownMenuItem
                           onClick={() =>
-                            window.open(resource.fileUrl!, "_blank")
+                            togglePublished(resource.id, resource.isPublished)
                           }
                         >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download
+                          <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
+                          {resource.isPublished ? "Unpublish" : "Publish"}
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        onClick={() => setEditResource(resource)}
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          togglePublished(resource.id, resource.isPublished)
-                        }
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        {resource.isPublished ? "Unpublish" : "Publish"}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setDeleteId(resource.id)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setDeleteId(resource.id)}
+                          variant="destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

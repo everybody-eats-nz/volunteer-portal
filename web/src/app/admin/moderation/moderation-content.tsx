@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import useSWR from "swr";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 import { Ban, Flag, RefreshCw, User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/empty-state";
+import {
+  STATUS_ICON,
+  STATUS_SOLID,
+  formatStatusLabel,
+  reportStatusTone,
+} from "@/lib/status-styles";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   Table,
@@ -27,6 +37,16 @@ interface Reporter {
   email: string;
 }
 
+/** Resolved by the API from targetType + targetId (see resolve-targets.ts). */
+interface ReportTarget {
+  kind: string;
+  snippet: string | null;
+  author: { id: string; name: string; email: string } | null;
+  href: string | null;
+  exists: boolean;
+  note?: string;
+}
+
 interface Report {
   id: string;
   reporterId: string;
@@ -36,6 +56,7 @@ interface Report {
   status: string;
   createdAt: string;
   reporter: Reporter;
+  target: ReportTarget | null;
 }
 
 interface Block {
@@ -51,38 +72,143 @@ function displayName(user: Reporter) {
   return user.firstName ?? user.name ?? user.email;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "PENDING")
-    return (
-      <Badge variant="outline" className="border-orange-400 text-orange-600">
-        Pending
-      </Badge>
-    );
-  if (status === "REVIEWED")
-    return (
-      <Badge variant="outline" className="border-blue-400 text-blue-600">
-        Reviewed
-      </Badge>
-    );
+const MODERATION_PATH = "/admin/moderation";
+
+/** Snippets longer than this start collapsed to two lines. */
+const COLLAPSE_AFTER = 140;
+
+function ReportActions({
+  status,
+  busy,
+  onUpdate,
+  className,
+}: {
+  status: string;
+  busy: boolean;
+  onUpdate: (status: "REVIEWED" | "RESOLVED") => void;
+  className?: string;
+}) {
+  if (status === "RESOLVED") {
+    return <span className="text-xs text-muted-foreground">Done</span>;
+  }
   return (
-    <Badge variant="outline" className="border-green-500 text-green-600">
-      Resolved
-    </Badge>
+    <div className={cn("flex gap-2", className)}>
+      {status === "PENDING" && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => onUpdate("REVIEWED")}
+        >
+          Mark reviewed
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant={status === "PENDING" ? "default" : "outline"}
+        disabled={busy}
+        onClick={() => onUpdate("RESOLVED")}
+      >
+        Resolve
+      </Button>
+    </div>
   );
 }
 
-function TargetTypeBadge({ type }: { type: string }) {
-  const map: Record<string, string> = {
-    post: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    comment: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    user: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  };
+function ReportedContent({
+  report,
+  actions,
+}: {
+  report: Report;
+  /** Shown inside the cell below md, where the actions column is hidden. */
+  actions: ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const target = report.target;
+  const kind = target?.kind ?? report.targetType;
+  const canExpand = (target?.snippet?.length ?? 0) > COLLAPSE_AFTER;
+  // A user report is about the person, so their name is the content.
+  const isPerson = report.targetType === "user";
+
   return (
-    <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${map[type] ?? "bg-muted text-muted-foreground"}`}
-    >
-      {type}
-    </span>
+    <div className="min-w-0 space-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusBadge tone="neutral">{kind}</StatusBadge>
+        {target?.author && isPerson && (
+          <Link
+            href={volunteerProfileHref(target.author.id, MODERATION_PATH)}
+            className="text-sm font-medium underline-offset-2 hover:underline"
+          >
+            {target.author.name}
+          </Link>
+        )}
+        {target?.author && !isPerson && (
+          <span className="text-xs text-muted-foreground">
+            by{" "}
+            <Link
+              href={volunteerProfileHref(target.author.id, MODERATION_PATH)}
+              className="font-medium text-foreground underline-offset-2 hover:underline"
+            >
+              {target.author.name}
+            </Link>
+          </span>
+        )}
+      </div>
+
+      {target?.snippet ? (
+        <div>
+          <p
+            className={cn(
+              "text-sm whitespace-pre-line break-words",
+              canExpand && !expanded && "line-clamp-2",
+            )}
+            data-testid="report-snippet"
+          >
+            {target.snippet}
+          </p>
+          {canExpand && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              className="mt-0.5 text-xs font-medium text-primary-text underline-offset-2 hover:underline"
+            >
+              {expanded ? "Show less" : "Show more"}
+            </button>
+          )}
+        </div>
+      ) : !isPerson || !target?.exists ? (
+        <p className="text-sm text-muted-foreground">
+          {target && !target.exists
+            ? "This item has since been deleted."
+            : (target?.note ?? "No text to show for this item.")}
+        </p>
+      ) : null}
+
+      {target?.href && !isPerson && (
+        <Link
+          href={target.href}
+          className="inline-flex text-xs font-medium text-primary-text underline-offset-2 hover:underline"
+        >
+          View source
+        </Link>
+      )}
+
+      {/* Columns hidden on narrower screens fold in here. */}
+      <p className="text-xs text-muted-foreground xl:hidden">
+        <span className="lg:hidden">
+          Reported by {displayName(report.reporter)},{" "}
+        </span>
+        {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
+      </p>
+      <div className="flex flex-wrap items-center gap-2 pt-1 md:hidden">
+        <StatusBadge tone={reportStatusTone(report.status)}>
+          {formatStatusLabel(report.status)}
+        </StatusBadge>
+        <span className="text-xs text-muted-foreground">{report.reason}</span>
+      </div>
+      <div className="pt-1 md:hidden">{actions}</div>
+    </div>
   );
 }
 
@@ -96,7 +222,11 @@ export function ModerationContent() {
     mutate: mutateReports,
   } = useSWR<{ reports: Report[] }>("/api/admin/moderation/reports", {
     onError: () =>
-      toast({ title: "Error", description: "Failed to load reports", variant: "destructive" }),
+      toast({
+        title: "Error",
+        description: "Failed to load reports",
+        variant: "destructive",
+      }),
   });
   const reports = reportsData?.reports ?? [];
 
@@ -106,7 +236,11 @@ export function ModerationContent() {
     mutate: refreshBlocks,
   } = useSWR<{ blocks: Block[] }>("/api/admin/moderation/blocks", {
     onError: () =>
-      toast({ title: "Error", description: "Failed to load blocks", variant: "destructive" }),
+      toast({
+        title: "Error",
+        description: "Failed to load blocks",
+        variant: "destructive",
+      }),
   });
   const blocks = blocksData?.blocks ?? [];
 
@@ -125,19 +259,26 @@ export function ModerationContent() {
             current && {
               ...current,
               reports: current.reports.map((r) =>
-                r.id === id ? { ...r, status } : r
+                r.id === id ? { ...r, status } : r,
               ),
             },
-          { revalidate: false }
+          { revalidate: false },
         );
-        toast({ title: "Updated", description: `Report marked as ${status.toLowerCase()}.` });
+        toast({
+          title: "Updated",
+          description: `Report marked as ${status.toLowerCase()}.`,
+        });
       } catch {
-        toast({ title: "Error", description: "Failed to update report", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to update report",
+          variant: "destructive",
+        });
       } finally {
         setUpdatingId(null);
       }
     },
-    [mutateReports, toast]
+    [mutateReports, toast],
   );
 
   const pendingCount = reports.filter((r) => r.status === "PENDING").length;
@@ -149,7 +290,12 @@ export function ModerationContent() {
           <Flag className="h-4 w-4" />
           Reports
           {pendingCount > 0 && (
-            <span className="ml-1 rounded-full bg-orange-500 text-white text-xs px-1.5 py-0.5 leading-none">
+            <span
+              className={cn(
+                "ml-1 rounded-full text-xs px-1.5 py-0.5 leading-none",
+                STATUS_SOLID.pending,
+              )}
+            >
               {pendingCount}
             </span>
           )}
@@ -158,7 +304,7 @@ export function ModerationContent() {
           <Ban className="h-4 w-4" />
           Blocks
           {blocks.length > 0 && (
-            <span className="ml-1 rounded-full bg-muted text-muted-foreground text-xs px-1.5 py-0.5 leading-none">
+            <span className="ml-1 rounded-full bg-stone-100 text-stone-700 dark:bg-white/10 dark:text-stone-200 text-xs px-1.5 py-0.5 leading-none">
               {blocks.length}
             </span>
           )}
@@ -183,7 +329,9 @@ export function ModerationContent() {
               disabled={loadingReports}
               className="gap-2"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${loadingReports ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${loadingReports ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
@@ -196,100 +344,91 @@ export function ModerationContent() {
               <TableSkeleton
                 card={false}
                 rows={6}
-                columns={["w-32", "w-16", "w-24", "w-32", "w-16", "w-20"]}
+                columns={["w-48", "w-24", "w-32", "w-16", "w-20"]}
                 actions
               />
             </div>
           ) : reports.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <Flag className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No reports yet</p>
-            </div>
+            <EmptyState
+              icon={Flag}
+              title="No reports yet"
+              description="When a volunteer flags a post, comment or person in the app, it shows up here."
+            />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Reporter</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Target ID</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Received</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[40%]">Reported content</TableHead>
+                  <TableHead className="hidden md:table-cell">Reason</TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    Reporter
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">Status</TableHead>
+                  <TableHead className="hidden xl:table-cell">
+                    Received
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {reports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium leading-none">
+                  <TableRow key={report.id} className="align-top">
+                    <TableCell className="whitespace-normal md:min-w-64">
+                      <ReportedContent
+                        report={report}
+                        actions={
+                          <ReportActions
+                            status={report.status}
+                            busy={updatingId === report.id}
+                            onUpdate={(status) =>
+                              updateStatus(report.id, status)
+                            }
+                          />
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell min-w-28 whitespace-normal text-sm">
+                      {report.reason}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <div className="flex items-start gap-2">
+                        <User
+                          className="mt-0.5 h-3.5 w-3.5 text-muted-foreground shrink-0"
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0">
+                          <Link
+                            href={volunteerProfileHref(
+                              report.reporter.id,
+                              MODERATION_PATH,
+                            )}
+                            className="text-sm font-medium leading-none underline-offset-2 hover:underline"
+                          >
                             {displayName(report.reporter)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          </Link>
+                          <p className="text-xs text-muted-foreground mt-0.5 break-all">
                             {report.reporter.email}
                           </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <TargetTypeBadge type={report.targetType} />
+                    <TableCell className="hidden md:table-cell">
+                      <StatusBadge tone={reportStatusTone(report.status)}>
+                        {formatStatusLabel(report.status)}
+                      </StatusBadge>
                     </TableCell>
-                    <TableCell>
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                        {report.targetId.length > 24
-                          ? `${report.targetId.slice(0, 24)}…`
-                          : report.targetId}
-                      </code>
-                    </TableCell>
-                    <TableCell className="max-w-[180px]">
-                      <p className="text-sm truncate" title={report.reason}>
-                        {report.reason}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={report.status} />
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground whitespace-nowrap">
                       {formatDistanceToNow(new Date(report.createdAt), {
                         addSuffix: true,
                       })}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {report.status === "PENDING" && (
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={updatingId === report.id}
-                            onClick={() => updateStatus(report.id, "REVIEWED")}
-                          >
-                            Mark Reviewed
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={updatingId === report.id}
-                            onClick={() => updateStatus(report.id, "RESOLVED")}
-                          >
-                            Resolve
-                          </Button>
-                        </div>
-                      )}
-                      {report.status === "REVIEWED" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={updatingId === report.id}
-                          onClick={() => updateStatus(report.id, "RESOLVED")}
-                        >
-                          Resolve
-                        </Button>
-                      )}
-                      {report.status === "RESOLVED" && (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                    <TableCell className="hidden md:table-cell text-right">
+                      <ReportActions
+                        status={report.status}
+                        busy={updatingId === report.id}
+                        onUpdate={(status) => updateStatus(report.id, status)}
+                        className="flex-col items-end"
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -317,7 +456,9 @@ export function ModerationContent() {
               disabled={loadingBlocks}
               className="gap-2"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${loadingBlocks ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${loadingBlocks ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
@@ -334,17 +475,18 @@ export function ModerationContent() {
               />
             </div>
           ) : blocks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <Ban className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No blocks yet</p>
-            </div>
+            <EmptyState
+              icon={Ban}
+              title="No blocks yet"
+              description="Volunteers who block each other in the app are listed here."
+            />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Blocked by</TableHead>
                   <TableHead>Blocked user</TableHead>
-                  <TableHead>When</TableHead>
+                  <TableHead className="hidden sm:table-cell">When</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -352,7 +494,10 @@ export function ModerationContent() {
                   <TableRow key={block.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <User
+                          className="h-3.5 w-3.5 text-muted-foreground shrink-0"
+                          aria-hidden="true"
+                        />
                         <div>
                           <p className="text-sm font-medium leading-none">
                             {displayName(block.blocker)}
@@ -365,7 +510,13 @@ export function ModerationContent() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Ban className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                        <Ban
+                          className={cn(
+                            "h-3.5 w-3.5 shrink-0",
+                            STATUS_ICON.danger,
+                          )}
+                          aria-hidden="true"
+                        />
                         <div>
                           <p className="text-sm font-medium leading-none">
                             {displayName(block.blocked)}
@@ -376,7 +527,7 @@ export function ModerationContent() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                    <TableCell className="hidden sm:table-cell text-sm text-muted-foreground whitespace-nowrap">
                       {formatDistanceToNow(new Date(block.createdAt), {
                         addSuffix: true,
                       })}

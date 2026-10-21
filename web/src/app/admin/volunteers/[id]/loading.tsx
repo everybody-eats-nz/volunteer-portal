@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ChevronLeft, Megaphone } from "lucide-react";
+import { Megaphone } from "lucide-react";
 
 import {
   AdminPageSkeleton,
@@ -55,17 +55,13 @@ function Field({
 export default function VolunteerProfileLoading() {
   return (
     <AdminPageSkeleton
-      title="Volunteer Profile"
+      title="Volunteer profile"
       description="Comprehensive view of volunteer information and activity"
       actions={
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="gap-2" disabled>
             <Megaphone className="h-4 w-4" />
             Announce
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2" disabled>
-            <ChevronLeft className="h-4 w-4" />
-            Back to shifts
           </Button>
         </div>
       }

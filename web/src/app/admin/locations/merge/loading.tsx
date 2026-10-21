@@ -20,6 +20,7 @@ export default function MergeLocationsLoading() {
   return (
     <AdminPageSkeleton
       title="Merge duplicate locations"
+      breadcrumbs={[{ label: "Restaurant Locations", href: "/admin/locations" }]}
       description={
         "Fold a duplicate venue name into the real one \u2014 its history moves across, then the duplicate is removed"
       }

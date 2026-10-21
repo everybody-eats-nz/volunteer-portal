@@ -7,7 +7,6 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   BellRing,
   CalendarDays,
@@ -48,6 +47,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { LocationMergePlan } from "@/lib/location-merge";
+import { SectionHeading } from "@/components/admin/section-heading";
 
 export interface MergeLocationOption {
   id: string;
@@ -165,14 +165,6 @@ export function MergeContent({
       className="max-w-4xl space-y-6"
       data-testid="admin-merge-locations-page"
     >
-      <Link
-        href="/admin/locations"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        All locations
-      </Link>
-
       {/* Success — the outcome replaces the plan, selections reset */}
       {result && (
         <motion.div
@@ -233,7 +225,7 @@ export function MergeContent({
           </div>
 
           <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               What moved
             </p>
             <div className="mt-3">
@@ -257,11 +249,11 @@ export function MergeContent({
               <Sparkles className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="font-accent text-base font-semibold leading-tight">
+              <SectionHeading>
                 {suggestions.length === 1
                   ? "These names look like the same venue"
                   : `${suggestions.length} name pairs look like the same venue`}
-              </h2>
+              </SectionHeading>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 The names below differ only in spacing, casing or punctuation.
                 Pick one to prefill the merge and preview it.
@@ -298,7 +290,7 @@ export function MergeContent({
         transition={{ duration: 0.3 }}
         className="rounded-xl border bg-card p-5 shadow-sm sm:p-6"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Step 1 · Choose the pair
         </p>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -430,14 +422,14 @@ export function MergeContent({
           data-testid="merge-plan"
         >
           <div className="border-b border-border/60 p-5 sm:p-6 sm:pb-5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Step 2 · Review what moves
             </p>
-            <h2 className="mt-1 font-accent text-lg font-semibold leading-tight">
+            <SectionHeading className="mt-1">
               &quot;{plan.from}&quot;{" "}
               <ArrowRight className="inline h-4 w-4 text-muted-foreground" />{" "}
               &quot;{plan.into}&quot;
-            </h2>
+            </SectionHeading>
             <p className="mt-0.5 text-sm text-muted-foreground">
               Nothing has been changed yet.
             </p>
@@ -551,7 +543,7 @@ export function MergeContent({
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleApply}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-destructive text-white hover:bg-destructive/90"
                       data-testid="merge-confirm-button"
                     >
                       Merge locations
@@ -592,7 +584,7 @@ function SlotMeta({
         {shiftCount === 1 ? "shift references" : "shifts reference"} this name
       </span>
       {badge && (
-        <span className="inline-flex items-center rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+        <span className="inline-flex items-center rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
           {badge}
         </span>
       )}

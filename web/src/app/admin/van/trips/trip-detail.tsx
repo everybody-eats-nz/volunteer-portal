@@ -108,7 +108,7 @@ export function TripDetail({
               </h3>
               <Link
                 href="/admin/van/exceptions"
-                className="inline-flex items-center gap-0.5 text-[13px] font-medium text-primary underline-offset-4 hover:underline dark:text-forest-200"
+                className="inline-flex items-center gap-0.5 text-[13px] font-medium text-primary-text underline-offset-4 hover:underline dark:text-forest-200"
               >
                 All exceptions
                 <ArrowUpRight className="size-3.5" aria-hidden />

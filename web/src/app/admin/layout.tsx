@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -15,6 +16,16 @@ import {
 
 import { AdminHeaderProvider } from "@/contexts/admin-header-context";
 import { ScrollToTop } from "@/components/scroll-to-top";
+
+// Admin pages set a short title ("Users"); the template brands it, and the
+// default covers any page that sets none.
+export const metadata: Metadata = {
+  title: {
+    template: "%s | Admin | Everybody Eats",
+    default: "Admin",
+  },
+  robots: { index: false, follow: false },
+};
 
 export default function AdminLayout({
   children,

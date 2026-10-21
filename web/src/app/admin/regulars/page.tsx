@@ -1,21 +1,24 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { PageContainer } from "@/components/page-container";
-import { Button } from "@/components/ui/button";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
-import Link from "next/link";
+import { KpiTile } from "@/components/admin/kpi-tile";
 import {
   StarIcon,
   PauseIcon,
   CalendarIcon,
   CircleSlashIcon,
-  ChevronLeft,
 } from "lucide-react";
 import { RegularsTable } from "./regulars-table";
 import { RegularVolunteerForm } from "./regular-volunteer-form";
 import { getActiveLocationNames, LocationOption } from "@/lib/locations";
+
+export const metadata: Metadata = {
+  title: "Regular Volunteers",
+};
 
 interface RegularVolunteersPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -107,76 +110,46 @@ export default async function RegularVolunteersPage({
     inactive: regulars.filter((r) => !r.isActive).length,
   };
 
-  const statCards = [
-    {
-      label: "Total Regulars",
-      value: stats.total,
-      icon: StarIcon,
-      iconClass:
-        "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-400",
-    },
-    {
-      label: "Active",
-      value: stats.active,
-      icon: CalendarIcon,
-      iconClass:
-        "bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400",
-    },
-    {
-      label: "Paused",
-      value: stats.paused,
-      icon: PauseIcon,
-      iconClass:
-        "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
-    },
-    {
-      label: "Inactive",
-      value: stats.inactive,
-      icon: CircleSlashIcon,
-      iconClass:
-        "bg-zinc-100 text-zinc-500 dark:bg-zinc-500/15 dark:text-zinc-400",
-    },
-  ];
-
   return (
     <AdminPageWrapper
       title="Regular Volunteers"
       description="Manage volunteers with recurring shift assignments"
-      actions={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/admin">
-            <ChevronLeft className="h-4 w-4" />
-            Back to admin
-          </Link>
-        </Button>
-      }
     >
       <PageContainer testid="regular-volunteers-page">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {statCards.map(({ label, value, icon: Icon, iconClass }) => (
-            <div
-              key={label}
-              className="rounded-xl border bg-card p-5 shadow-sm"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-muted-foreground truncate">
-                    {label}
-                  </p>
-                  <p className="text-2xl font-bold text-foreground tabular-nums">
-                    {value}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full p-2 ${iconClass}`}
-                  aria-hidden="true"
-                >
-                  <Icon className="h-5 w-5" />
-                </span>
-              </div>
-            </div>
-          ))}
+          <KpiTile
+            icon={<StarIcon />}
+            label="Total regulars"
+            value={stats.total}
+            tone="forest"
+            data-testid="regulars-total-card"
+            valueTestId="regulars-total-count"
+          />
+          <KpiTile
+            icon={<CalendarIcon />}
+            label="Active"
+            value={stats.active}
+            tone="sun"
+            data-testid="regulars-active-card"
+            valueTestId="regulars-active-count"
+          />
+          <KpiTile
+            icon={<PauseIcon />}
+            label="Paused"
+            value={stats.paused}
+            tone="neutral"
+            data-testid="regulars-paused-card"
+            valueTestId="regulars-paused-count"
+          />
+          <KpiTile
+            icon={<CircleSlashIcon />}
+            label="Inactive"
+            value={stats.inactive}
+            tone="neutral"
+            data-testid="regulars-inactive-card"
+            valueTestId="regulars-inactive-count"
+          />
         </div>
 
         {/* Add Regular Form */}

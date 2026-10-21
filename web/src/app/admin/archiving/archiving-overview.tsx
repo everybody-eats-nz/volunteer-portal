@@ -10,8 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { StatsCard } from "@/components/ui/stats-card";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { KpiTile } from "@/components/admin/kpi-tile";
 import { toast } from "sonner";
 import {
   Archive,
@@ -49,6 +59,7 @@ export const ARCHIVE_STATS_KEY = "/api/admin/archiving/stats";
 
 export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
   const [running, setRunning] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastReport, setLastReport] = useState<RunReport | null>(null);
 
   // The server renders the first stats; only refetch after a mutation.
@@ -64,13 +75,7 @@ export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
   });
 
   const runAll = useCallback(async () => {
-    if (
-      !confirm(
-        "Run all archiving passes now? This sends emails and archives users based on the current rules."
-      )
-    ) {
-      return;
-    }
+    setConfirmOpen(false);
     setRunning(true);
     try {
       const res = await fetch("/api/admin/archiving/run", {
@@ -103,7 +108,7 @@ export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
         <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <PlayCircle className="h-5 w-5 text-primary" />
+              <PlayCircle className="h-5 w-5 text-primary-text" aria-hidden="true" />
               Run the archive pass
             </CardTitle>
             <CardDescription>
@@ -122,16 +127,18 @@ export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
             >
               <RefreshCw
                 className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                aria-hidden="true"
               />
               Refresh
             </Button>
             <Button
-              onClick={runAll}
+              onClick={() => setConfirmOpen(true)}
               disabled={running || loading}
               data-testid="archiving-run-all-button"
             >
               <PlayCircle
                 className={`h-4 w-4 ${running ? "animate-pulse" : ""}`}
+                aria-hidden="true"
               />
               {running ? "Running…" : "Run all passes"}
             </Button>
@@ -141,7 +148,7 @@ export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
           <CardContent data-testid="archiving-last-report">
             <div className="rounded-lg border bg-muted/40 p-4 text-sm">
               <div className="mb-2 flex items-center gap-2 font-medium">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />
                 Last run summary
               </div>
               <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -211,47 +218,53 @@ export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
           data-testid="archiving-pending-stats"
         >
-          <StatsCard
-            title="Total pending"
-            value={stats ? totalPending : "—"}
-            icon={Users}
-            variant="primary"
-            testId="stat-total-pending"
+          <KpiTile
+            data-testid="stat-total-pending"
+            valueTestId="stat-total-pending-count"
+            tone="forest"
+            icon={<Users />}
+            label="Total pending"
+            value={stats ? totalPending : "-"}
           />
-          <StatsCard
-            title="Never migrated"
-            value={stats?.pending["never-migrated"] ?? "—"}
-            icon={Database}
-            variant="amber"
-            testId="stat-pending-never-migrated"
+          <KpiTile
+            data-testid="stat-pending-never-migrated"
+            valueTestId="stat-pending-never-migrated-count"
+            tone="sun"
+            icon={<Database />}
+            label="Never migrated"
+            value={stats?.pending["never-migrated"] ?? "-"}
           />
-          <StatsCard
-            title="Nudge new sign-ups"
-            value={stats?.pending["never-activated-nudge"] ?? "—"}
-            icon={BellRing}
-            variant="blue"
-            testId="stat-pending-never-activated-nudge"
+          <KpiTile
+            data-testid="stat-pending-never-activated-nudge"
+            valueTestId="stat-pending-never-activated-nudge-count"
+            tone="neutral"
+            icon={<BellRing />}
+            label="Nudge new sign-ups"
+            value={stats?.pending["never-activated-nudge"] ?? "-"}
           />
-          <StatsCard
-            title="Never activated — archive"
-            value={stats?.pending["never-activated-archive"] ?? "—"}
-            icon={UserX}
-            variant="red"
-            testId="stat-pending-never-activated-archive"
+          <KpiTile
+            data-testid="stat-pending-never-activated-archive"
+            valueTestId="stat-pending-never-activated-archive-count"
+            tone="danger"
+            icon={<UserX />}
+            label="Never activated: archive"
+            value={stats?.pending["never-activated-archive"] ?? "-"}
           />
-          <StatsCard
-            title="Warning emails due"
-            value={stats?.pending["inactive-warning"] ?? "—"}
-            icon={Send}
-            variant="purple"
-            testId="stat-pending-inactive-warning"
+          <KpiTile
+            data-testid="stat-pending-inactive-warning"
+            valueTestId="stat-pending-inactive-warning-count"
+            tone="neutral"
+            icon={<Send />}
+            label="Warning emails due"
+            value={stats?.pending["inactive-warning"] ?? "-"}
           />
-          <StatsCard
-            title="Inactive — archive"
-            value={stats?.pending["inactive-archive"] ?? "—"}
-            icon={AlertTriangle}
-            variant="red"
-            testId="stat-pending-inactive-archive"
+          <KpiTile
+            data-testid="stat-pending-inactive-archive"
+            valueTestId="stat-pending-inactive-archive-count"
+            tone="danger"
+            icon={<AlertTriangle />}
+            label="Inactive: archive"
+            value={stats?.pending["inactive-archive"] ?? "-"}
           />
         </div>
       </div>
@@ -262,36 +275,61 @@ export function ArchivingOverview({ initialStats }: { initialStats: Stats }) {
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
           data-testid="archiving-archived-stats"
         >
-          <StatsCard
-            title="Total archived"
-            value={stats?.archivedTotal ?? "—"}
-            icon={Archive}
-            variant="primary"
-            testId="stat-archived-total"
+          <KpiTile
+            data-testid="stat-archived-total"
+            valueTestId="stat-archived-total-count"
+            tone="forest"
+            icon={<Archive />}
+            label="Total archived"
+            value={stats?.archivedTotal ?? "-"}
           />
-          <StatsCard
-            title="Inactive 12mo"
-            value={stats?.archivedByReason.INACTIVE_12_MONTHS ?? "—"}
-            icon={AlertTriangle}
-            variant="red"
-            testId="stat-archived-inactive"
+          <KpiTile
+            data-testid="stat-archived-inactive"
+            valueTestId="stat-archived-inactive-count"
+            tone="danger"
+            icon={<AlertTriangle />}
+            label="Inactive 12mo"
+            value={stats?.archivedByReason.INACTIVE_12_MONTHS ?? "-"}
           />
-          <StatsCard
-            title="Never activated"
-            value={stats?.archivedByReason.NEVER_ACTIVATED ?? "—"}
-            icon={UserX}
-            variant="amber"
-            testId="stat-archived-never-activated"
+          <KpiTile
+            data-testid="stat-archived-never-activated"
+            valueTestId="stat-archived-never-activated-count"
+            tone="sun"
+            icon={<UserX />}
+            label="Never activated"
+            value={stats?.archivedByReason.NEVER_ACTIVATED ?? "-"}
           />
-          <StatsCard
-            title="Never migrated"
-            value={stats?.archivedByReason.NEVER_MIGRATED ?? "—"}
-            icon={Database}
-            variant="blue"
-            testId="stat-archived-never-migrated"
+          <KpiTile
+            data-testid="stat-archived-never-migrated"
+            valueTestId="stat-archived-never-migrated-count"
+            tone="neutral"
+            icon={<Database />}
+            label="Never migrated"
+            value={stats?.archivedByReason.NEVER_MIGRATED ?? "-"}
           />
         </div>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent data-testid="archiving-run-all-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Run all archiving passes now?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This sends emails and archives users based on the current rules.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={runAll}
+              className={buttonVariants({ variant: "destructive" })}
+              data-testid="archiving-run-all-confirm-button"
+            >
+              Run all passes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

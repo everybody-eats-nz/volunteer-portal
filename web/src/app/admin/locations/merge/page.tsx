@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -7,6 +8,10 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 
 import { MergeContent } from "./merge-content";
 import type { MergeLocationOption, MergeSuggestion } from "./merge-content";
+
+export const metadata: Metadata = {
+  title: "Merge duplicate locations",
+};
 
 /** Case/punctuation-insensitive key: "GlenInnes" and "Glen Innes" collide. */
 function normalizeName(name: string): string {
@@ -99,6 +104,7 @@ export default async function MergeLocationsPage() {
   return (
     <AdminPageWrapper
       title="Merge duplicate locations"
+      breadcrumbs={[{ label: "Restaurant Locations", href: "/admin/locations" }]}
       description="Fold a duplicate venue name into the real one — its history moves across, then the duplicate is removed"
     >
       <MergeContent

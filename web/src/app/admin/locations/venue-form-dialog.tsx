@@ -161,7 +161,7 @@ export function VenueFormDialog({
           <Separator />
 
           <div className="space-y-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Per-service settings
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -138,7 +138,7 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "cash-reconciliation",
       },
       {
-        title: "Shortage Notifications",
+        title: "Shortage Analytics",
         href: "/admin/analytics/shortage-notifications",
         icon: Bell,
         description:
@@ -311,7 +311,7 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "announcements",
       },
       {
-        title: "Shortage Notifications",
+        title: "Shortage Alerts",
         href: "/admin/notifications",
         icon: Bell,
         description: "Send shift shortage alerts",
@@ -387,6 +387,73 @@ export const publicNavItems: AdminNavItem[] = [
   },
 ];
 
+const allAdminNavItems = adminNavCategories.flatMap((c) => c.items);
+
+/**
+ * The nav item a pathname belongs to: the item whose href is the longest
+ * prefix of the path, on a segment boundary. `/admin/volunteers/abc` has no
+ * nav item of its own, so callers pass a `fallbackPath` (e.g. "/admin/users")
+ * to light up its parent list instead.
+ *
+ * Longest-prefix (rather than exact) matching is what keeps the sidebar lit on
+ * detail routes such as `/admin/shifts/123/edit`, while `/admin/analytics/budget`
+ * still picks "Budget Tracking" over "Restaurant Analytics".
+ */
+export function findActiveNavItem(
+  pathname: string,
+  fallbackPath?: string
+): AdminNavItem | undefined {
+  const match = (path: string) => {
+    let best: AdminNavItem | undefined;
+    for (const item of allAdminNavItems) {
+      const isMatch = item.exact
+        ? path === item.href
+        : path === item.href || path.startsWith(`${item.href}/`);
+      if (isMatch && (!best || item.href.length > best.href.length)) {
+        best = item;
+      }
+    }
+    return best;
+  };
+  return match(pathname) ?? (fallbackPath ? match(fallbackPath) : undefined);
+}
+
+export interface AdminBreadcrumb {
+  label: string;
+  href: string;
+}
+
+/**
+ * The page an admin came from, for the "back" breadcrumb on detail pages that
+ * are reachable from many lists (a volunteer profile opens from Users, Shifts,
+ * Moderation...). Links pass `?from=<path>`; anything that isn't an internal
+ * admin path is ignored, so the param can't be used as an open redirect.
+ */
+export function resolveAdminBackLink(
+  from: string | string[] | undefined,
+  fallback: AdminBreadcrumb
+): AdminBreadcrumb {
+  const value = Array.isArray(from) ? from[0] : from;
+  if (
+    !value ||
+    !value.startsWith("/admin") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
+    return fallback;
+  }
+  const pathname = value.split(/[?#]/)[0];
+  const item = findActiveNavItem(pathname);
+  if (!item) return fallback;
+  return { label: item.title, href: value };
+}
+
+/** A volunteer profile link that remembers which admin page it came from. */
+export function volunteerProfileHref(userId: string, from?: string): string {
+  const base = `/admin/volunteers/${userId}`;
+  return from ? `${base}?from=${encodeURIComponent(from)}` : base;
+}
+
 // Helper function to get icon color for command palette
 export const getIconColor = (
   categoryLabel: string,
@@ -433,7 +500,7 @@ export const getIconColor = (
     // Communications
     Messages: "text-emerald-600",
     Announcements: "text-orange-500",
-    "Shortage Notifications": "text-amber-600",
+    "Shortage Alerts": "text-amber-600",
     "Newsletter Lists": "text-cyan-600",
     Surveys: "text-violet-600",
 

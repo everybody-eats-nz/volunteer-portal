@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -5,6 +6,10 @@ import { redirect } from "next/navigation";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { AchievementsContent } from "./achievements-content";
+
+export const metadata: Metadata = {
+  title: "Achievements",
+};
 
 export default async function AchievementsPage() {
   const session = await getServerSession(authOptions);

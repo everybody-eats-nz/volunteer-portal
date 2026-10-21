@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -10,6 +11,10 @@ import {
 
 import { LocationsContent } from "./locations-content";
 import type { Venue, VenueManager } from "./types";
+
+export const metadata: Metadata = {
+  title: "Restaurant Locations",
+};
 
 function managerDisplayName(user: {
   firstName: string | null;

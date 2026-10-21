@@ -9,13 +9,18 @@ import {
   ExternalLink,
   Info,
   Loader2,
+  MessageSquare,
   Send,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/admin/empty-state";
+import { StatusBadge } from "@/components/admin/status-badge";
+import type { StatusTone } from "@/lib/status-styles";
 import { useNotificationStream } from "@/hooks/use-notification-stream";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +30,7 @@ import type {
   SerializedMessage,
   ThreadDetail,
 } from "./types";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 interface ThreadResponse {
   thread: ThreadDetail & {
@@ -132,7 +138,7 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
       );
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
-        alert(err.error ?? "Failed to send");
+        toast.error(err.error ?? "Failed to send");
         return;
       }
       const data = (await res.json()) as { message: SerializedMessage };
@@ -158,8 +164,12 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
 
   if (!thread) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      <div className="flex-1 flex items-center justify-center" role="status">
+        <Loader2
+          className="w-5 h-5 animate-spin text-muted-foreground"
+          aria-hidden="true"
+        />
+        <span className="sr-only">Loading conversation</span>
       </div>
     );
   }
@@ -190,9 +200,7 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
               <div className="flex items-center gap-2">
                 <span className="font-semibold truncate">{volunteerName}</span>
                 {thread.status === "RESOLVED" && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    Resolved
-                  </Badge>
+                  <StatusBadge tone="confirmed">Resolved</StatusBadge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground truncate">
@@ -213,12 +221,12 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
           >
             {thread.status === "OPEN" ? (
               <>
-                <Archive className="w-4 h-4 mr-1.5" />
+                <Archive className="w-4 h-4 mr-1.5" aria-hidden="true" />
                 Resolve
               </>
             ) : (
               <>
-                <ArchiveRestore className="w-4 h-4 mr-1.5" />
+                <ArchiveRestore className="w-4 h-4 mr-1.5" aria-hidden="true" />
                 Reopen
               </>
             )}
@@ -229,7 +237,7 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
             push, so flag it to admins before they compose. */}
         {!thread.volunteer.hasMobileApp && (
           <div className="flex items-start gap-2 border-b bg-amber-50 dark:bg-amber-950/30 px-4 py-2.5 text-xs text-amber-900 dark:text-amber-200">
-            <Info className="w-4 h-4 shrink-0 mt-px" />
+            <Info className="w-4 h-4 shrink-0 mt-px" aria-hidden="true" />
             <p>
               {volunteerName.split(" ")[0]} hasn&apos;t signed in on the mobile
               app, so replies won&apos;t send a push notification — they&apos;ll
@@ -241,9 +249,11 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {messages.length === 0 ? (
-            <div className="text-center text-sm text-muted-foreground py-12">
-              No messages yet — say kia ora to {volunteerName.split(" ")[0]}.
-            </div>
+            <EmptyState
+              icon={MessageSquare}
+              title="No messages yet"
+              description={`Say kia ora to ${volunteerName.split(" ")[0]}.`}
+            />
           ) : (
             messages.map((m, i) => (
               <MessageBubble
@@ -261,6 +271,7 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={`Reply to ${volunteerName.split(" ")[0]}…`}
+            aria-label={`Reply to ${volunteerName}`}
             rows={2}
             className="resize-none flex-1"
             onKeyDown={(e) => {
@@ -270,11 +281,15 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
               }
             }}
           />
-          <Button onClick={send} disabled={!body.trim() || sending}>
+          <Button
+            onClick={send}
+            disabled={!body.trim() || sending}
+            aria-label={sending ? "Sending reply" : `Send reply to ${volunteerName}`}
+          >
             {sending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
             ) : (
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4" aria-hidden="true" />
             )}
           </Button>
         </div>
@@ -282,7 +297,7 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
 
       {/* Sidebar context */}
       <aside className="hidden xl:block border-l p-4 overflow-y-auto bg-muted/20">
-        <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-3">
+        <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
           Volunteer context
         </p>
         <dl className="space-y-2.5 text-sm">
@@ -295,7 +310,7 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
           <ContextRow
             label="Grade"
             value={
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-xs">
                 {thread.volunteer.volunteerGrade}
               </Badge>
             }
@@ -306,16 +321,17 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
           />
         </dl>
 
-        <p className="mt-6 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+        <p className="mt-6 text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
           Next shift
         </p>
         <NextShiftCard nextShift={thread.nextShift} />
 
         <Link
-          href={`/admin/volunteers/${thread.volunteer.id}`}
+          href={volunteerProfileHref(thread.volunteer.id, "/admin/messages")}
           className="mt-4 inline-flex items-center text-xs font-medium text-emerald-700 hover:underline"
         >
-          Open full profile <ExternalLink className="w-3 h-3 ml-1" />
+          Open full profile{" "}
+          <ExternalLink className="w-3 h-3 ml-1" aria-hidden="true" />
         </Link>
       </aside>
     </div>
@@ -331,7 +347,7 @@ function ContextRow({
 }) {
   return (
     <div className="flex flex-col">
-      <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+      <dt className="text-xs uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
       <dd className="text-sm">{value}</dd>
@@ -373,7 +389,7 @@ function MessageBubble({
               {fallbackInitials}
             </AvatarFallback>
           </Avatar>
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">
             {senderName || (isAdmin ? "Admin" : "Volunteer")} ·{" "}
             {formatTime(message.createdAt)}
           </span>
@@ -440,25 +456,16 @@ function NextShiftCard({ nextShift }: { nextShift: NextShiftSummary | null }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="font-medium leading-tight">{nextShift.shiftTypeName}</div>
-        <Badge
-          variant={
-            nextShift.signupStatus === "CONFIRMED"
-              ? "default"
-              : nextShift.signupStatus === "WAITLISTED"
-              ? "secondary"
-              : "outline"
-          }
-          className="text-[10px] shrink-0"
-        >
-          {nextShift.signupStatus.toLowerCase()}
-        </Badge>
+        <StatusBadge tone={signupTone(nextShift.signupStatus)}>
+          {signupLabel(nextShift.signupStatus)}
+        </StatusBadge>
       </div>
       <div className="mt-1 text-xs text-muted-foreground">{dateLabel}</div>
       <div className="text-xs text-muted-foreground">{timeRange}</div>
       {nextShift.location && (
         <div className="mt-1 text-xs">📍 {nextShift.location}</div>
       )}
-      <div className="mt-2 text-[11px] text-muted-foreground">
+      <div className="mt-2 text-xs text-muted-foreground">
         {nextShift.confirmedCount}/{nextShift.capacity} confirmed
       </div>
       {nextShift.notes && (
@@ -468,4 +475,24 @@ function NextShiftCard({ nextShift }: { nextShift: NextShiftSummary | null }) {
       )}
     </Link>
   );
+}
+
+function signupTone(status: string): StatusTone {
+  switch (status) {
+    case "CONFIRMED":
+      return "confirmed";
+    case "PENDING":
+    case "REGULAR_PENDING":
+      return "pending";
+    case "WAITLISTED":
+      return "waitlisted";
+    default:
+      return "neutral";
+  }
+}
+
+/** "REGULAR_PENDING" -> "Regular pending" */
+function signupLabel(status: string): string {
+  const words = status.toLowerCase().replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

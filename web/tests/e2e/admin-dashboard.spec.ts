@@ -77,38 +77,30 @@ test.describe("Admin Dashboard Page", () => {
       const totalUsersCard = page.getByTestId("total-users-card");
       await expect(totalUsersCard).toBeVisible();
 
-      const totalUsersNumber = totalUsersCard.locator(
-        '[class*="text-2xl"][class*="font-bold"]'
-      );
+      const totalUsersNumber = totalUsersCard.getByTestId("kpi-tile-value");
       await expect(totalUsersNumber).toBeVisible();
       const totalUsersText = await totalUsersNumber.textContent();
-      expect(totalUsersText).toMatch(/^\d+$/);
+      expect(totalUsersText).toMatch(/^[\d,]+$/);
 
       // Check Upcoming Shifts card
       const totalShiftsCard = page.getByTestId("total-shifts-card");
       await expect(totalShiftsCard).toBeVisible();
 
-      const totalShiftsNumber = totalShiftsCard.locator(
-        '[class*="text-2xl"][class*="font-bold"]'
-      );
+      const totalShiftsNumber = totalShiftsCard.getByTestId("kpi-tile-value");
       await expect(totalShiftsNumber).toBeVisible();
 
       // Check Recent Signups card
       const recentSignupsCard = page.getByTestId("recent-signups-card");
       await expect(recentSignupsCard).toBeVisible();
 
-      const recentSignupsNumber = recentSignupsCard.locator(
-        '[class*="text-2xl"][class*="font-bold"]'
-      );
+      const recentSignupsNumber = recentSignupsCard.getByTestId("kpi-tile-value");
       await expect(recentSignupsNumber).toBeVisible();
 
       // Check This Month card
       const thisMonthCard = page.getByTestId("this-month-card");
       await expect(thisMonthCard).toBeVisible();
 
-      const thisMonthNumber = thisMonthCard.locator(
-        '[class*="text-2xl"][class*="font-bold"]'
-      );
+      const thisMonthNumber = thisMonthCard.getByTestId("kpi-tile-value");
       await expect(thisMonthNumber).toBeVisible();
     });
 
@@ -367,7 +359,7 @@ test.describe("Admin Dashboard Page", () => {
 
     test("should filter data when selecting a location", async ({ page }) => {
       await page
-        .locator('[class*="text-2xl"][class*="font-bold"]')
+        .getByTestId("kpi-tile-value")
         .nth(1)
         .textContent();
 
@@ -379,7 +371,7 @@ test.describe("Admin Dashboard Page", () => {
       await expect(page).toHaveURL(/location=Wellington/);
 
       const filteredTotalShifts = await page
-        .locator('[class*="text-2xl"][class*="font-bold"]')
+        .getByTestId("kpi-tile-value")
         .nth(1)
         .textContent();
       expect(filteredTotalShifts).toBeTruthy();
@@ -425,9 +417,7 @@ test.describe("Admin Dashboard Page", () => {
       await page.goto("/admin");
       await page.waitForLoadState("load");
 
-      const statNumbers = page.locator(
-        '[class*="text-2xl"][class*="font-bold"]'
-      );
+      const statNumbers = page.getByTestId("kpi-tile-value");
 
       // Should have exactly 4 stat cards (they stream in after the skeleton)
       await expect(statNumbers).toHaveCount(4, { timeout: 15000 });
@@ -437,7 +427,7 @@ test.describe("Admin Dashboard Page", () => {
         const statNumber = statNumbers.nth(i);
         const text = await statNumber.textContent();
 
-        expect(text).toMatch(/^\d+$/);
+        expect(text).toMatch(/^[\d,]+$/);
         expect(text).not.toBe("NaN");
         expect(text).not.toBe("undefined");
       }

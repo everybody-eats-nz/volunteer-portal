@@ -3,6 +3,7 @@
 import { ReactNode, useCallback, useState } from "react";
 import useSWR from "swr";
 import { Loader2, Search } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -68,7 +69,7 @@ export function ComposeButton({ children, onCreated }: ComposeButtonProps) {
           const err = (await res.json().catch(() => ({}))) as {
             error?: string;
           };
-          alert(err.error ?? "Failed to start conversation");
+          toast.error(err.error ?? "Failed to start conversation");
           return;
         }
         const data = (await res.json()) as { thread: { id: string } };
@@ -92,19 +93,27 @@ export function ComposeButton({ children, onCreated }: ComposeButtonProps) {
           <DialogTitle>Start a conversation</DialogTitle>
         </DialogHeader>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search volunteers by name or email…"
+            aria-label="Search volunteers by name or email"
             className="pl-9"
           />
         </div>
         <div className="mt-3 max-h-72 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-8" role="status">
+              <Loader2
+                className="w-4 h-4 animate-spin text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="sr-only">Searching volunteers</span>
             </div>
           ) : results.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">

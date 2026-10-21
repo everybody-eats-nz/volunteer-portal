@@ -12,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -21,10 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, History, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/admin/admin-skeletons";
+import { EmptyState } from "@/components/admin/empty-state";
+import { StatusBadge } from "@/components/admin/status-badge";
+import type { StatusTone } from "@/lib/status-styles";
 import { format } from "date-fns";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 type LogEntry = {
   id: string;
@@ -48,18 +51,15 @@ type LogEntry = {
   actor: { id: string; email: string; name: string | null } | null;
 };
 
-const EVENT_VARIANT: Record<
+const EVENT_META: Record<
   LogEntry["eventType"],
-  {
-    label: string;
-    variant: "default" | "destructive" | "secondary" | "outline";
-  }
+  { label: string; tone: StatusTone }
 > = {
-  ARCHIVED: { label: "Archived", variant: "destructive" },
-  UNARCHIVED: { label: "Reactivated", variant: "default" },
-  WARNING_SENT: { label: "Warning sent", variant: "secondary" },
-  FIRST_SHIFT_NUDGE_SENT: { label: "Nudge sent", variant: "secondary" },
-  EXTENDED: { label: "Extended", variant: "outline" },
+  ARCHIVED: { label: "Archived", tone: "danger" },
+  UNARCHIVED: { label: "Reactivated", tone: "confirmed" },
+  WARNING_SENT: { label: "Warning sent", tone: "pending" },
+  FIRST_SHIFT_NUDGE_SENT: { label: "Nudge sent", tone: "waitlisted" },
+  EXTENDED: { label: "Extended", tone: "neutral" },
 };
 
 const TRIGGER_LABEL: Record<LogEntry["triggerSource"], string> = {
@@ -111,7 +111,10 @@ export function ArchivingLog() {
           disabled={loading}
           data-testid="archiving-log-refresh"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            aria-hidden="true"
+          />
           Refresh
         </Button>
       </CardHeader>
@@ -128,12 +131,13 @@ export function ArchivingLog() {
             />
           </div>
         ) : logs.length === 0 ? (
-          <div
-            className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground"
+          <EmptyState
+            icon={History}
+            title="No archive events yet"
+            description="Archives, reactivations and emails sent by the archive pass show up here."
+            className="rounded-lg border border-dashed py-10"
             data-testid="archiving-log-empty"
-          >
-            No archive events yet.
-          </div>
+          />
         ) : (
           <div className="overflow-hidden rounded-lg border">
             <Table data-testid="archiving-log-table">
@@ -149,7 +153,7 @@ export function ArchivingLog() {
               </TableHeader>
               <TableBody>
                 {logs.map((log) => {
-                  const eventMeta = EVENT_VARIANT[log.eventType];
+                  const eventMeta = EVENT_META[log.eventType];
                   return (
                     <TableRow
                       key={log.id}
@@ -159,13 +163,13 @@ export function ArchivingLog() {
                         {format(new Date(log.createdAt), "dd MMM HH:mm")}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={eventMeta.variant}>
+                        <StatusBadge tone={eventMeta.tone}>
                           {eventMeta.label}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell>
                         <Link
-                          href={`/admin/volunteers/${log.user.id}`}
+                          href={volunteerProfileHref(log.user.id, "/admin/archiving")}
                           className="hover:underline"
                         >
                           <span className="font-medium">
@@ -213,7 +217,7 @@ export function ArchivingLog() {
                 disabled={loading || page <= 1}
                 data-testid="archiving-log-prev"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                 Previous
               </Button>
               <span className="tabular-nums">
@@ -227,7 +231,7 @@ export function ArchivingLog() {
                 data-testid="archiving-log-next"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>

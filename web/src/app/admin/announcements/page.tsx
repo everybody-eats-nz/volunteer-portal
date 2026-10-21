@@ -7,7 +7,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { AnnouncementsContent } from "./announcements-content";
 
 export const metadata: Metadata = {
-  title: "Announcements | Admin",
+  title: "Announcements",
   description: "Send targeted announcements to volunteers",
 };
 

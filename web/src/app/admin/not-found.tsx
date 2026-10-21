@@ -39,7 +39,7 @@ export default function AdminNotFound() {
           data-testid="admin-not-found"
           className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center"
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary-text">
             <Compass className="h-8 w-8" aria-hidden="true" />
           </div>
 

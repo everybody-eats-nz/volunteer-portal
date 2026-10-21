@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, MapPin, Save } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/admin/empty-state";
 
 interface DayHours {
   dayOfWeek: number;
@@ -78,7 +80,7 @@ export function MessagingHoursEditor({
           const err = (await res.json().catch(() => ({}))) as {
             error?: string;
           };
-          alert(err.error ?? "Failed to save");
+          toast.error(err.error ?? "Failed to save");
           return;
         }
         setSaved(location);
@@ -92,10 +94,13 @@ export function MessagingHoursEditor({
 
   if (locations.length === 0) {
     return (
-      <Card className="py-12">
-        <CardContent className="text-center text-sm text-muted-foreground">
-          No active locations. Configure locations under Restaurants →
-          Restaurant Locations first.
+      <Card>
+        <CardContent>
+          <EmptyState
+            icon={MapPin}
+            title="No active locations"
+            description="Configure locations under Restaurants → Restaurant Locations first."
+          />
         </CardContent>
       </Card>
     );
@@ -117,9 +122,12 @@ export function MessagingHoursEditor({
                 disabled={savingFor === loc.location}
               >
                 {savingFor === loc.location ? (
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  <Loader2
+                    className="w-4 h-4 mr-1.5 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Save className="w-4 h-4 mr-1.5" />
+                  <Save className="w-4 h-4 mr-1.5" aria-hidden="true" />
                 )}
                 Save
               </Button>
@@ -141,7 +149,7 @@ export function MessagingHoursEditor({
                         onCheckedChange={(checked) =>
                           updateDay(loc.location, idx, { isOpen: checked })
                         }
-                        aria-label={`${label} open`}
+                        aria-label={`${loc.location} open on ${label}`}
                       />
                       <span
                         className={cn(
@@ -166,8 +174,14 @@ export function MessagingHoursEditor({
                         }
                         disabled={!day.isOpen}
                         className="min-w-0 flex-1 sm:w-32 sm:flex-none"
+                        aria-label={`${loc.location} ${label} opening time`}
                       />
-                      <span className="text-xs text-muted-foreground">to</span>
+                      <span
+                        className="text-xs text-muted-foreground"
+                        aria-hidden="true"
+                      >
+                        to
+                      </span>
                       <Input
                         type="time"
                         value={day.closeTime}
@@ -178,6 +192,7 @@ export function MessagingHoursEditor({
                         }
                         disabled={!day.isOpen}
                         className="min-w-0 flex-1 sm:w-32 sm:flex-none"
+                        aria-label={`${loc.location} ${label} closing time`}
                       />
                     </div>
                   </li>

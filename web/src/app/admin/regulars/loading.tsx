@@ -1,11 +1,10 @@
-import { ChevronLeft } from "lucide-react";
 import {
   AdminPageSkeleton,
+  KpiTileSkeleton,
   SkeletonCard,
   SkeletonCardHeader,
   TableSkeleton,
 } from "@/components/admin/admin-skeletons";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RegularsLoading() {
@@ -13,26 +12,12 @@ export default function RegularsLoading() {
     <AdminPageSkeleton
       title="Regular Volunteers"
       description="Manage volunteers with recurring shift assignments"
-      actions={
-        <Button variant="outline" size="sm" disabled>
-          <ChevronLeft className="h-4 w-4" />
-          Back to admin
-        </Button>
-      }
       className="space-y-8"
     >
       {/* Stat tiles */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-hidden="true">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-xl border p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-7 w-12" />
-              </div>
-              <Skeleton className="size-9 shrink-0 rounded-full" />
-            </div>
-          </div>
+          <KpiTileSkeleton key={i} />
         ))}
       </div>
 

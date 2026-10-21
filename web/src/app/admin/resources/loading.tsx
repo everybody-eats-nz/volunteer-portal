@@ -2,10 +2,10 @@ import { Upload } from "lucide-react";
 
 import {
   AdminPageSkeleton,
+  KpiTileSkeleton,
   TableSkeleton,
 } from "@/components/admin/admin-skeletons";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminResourcesLoading() {
   return (
@@ -14,17 +14,14 @@ export default function AdminResourcesLoading() {
       description="Upload and manage resources for volunteers including training materials, policies, forms, and guides."
       actions={
         <Button disabled>
-          <Upload className="mr-2 h-4 w-4" />
+          <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
           Upload Resource
         </Button>
       }
     >
-      <div aria-hidden="true" className="grid gap-4 md:grid-cols-3">
-        {["w-28", "w-20", "w-14"].map((width, i) => (
-          <div key={i} className="bg-card rounded-xl border p-6 shadow-sm">
-            <Skeleton className={`h-4 ${width}`} />
-            <Skeleton className="mt-3 h-8 w-12" />
-          </div>
+      <div aria-hidden="true" className="grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <KpiTileSkeleton key={i} />
         ))}
       </div>
 

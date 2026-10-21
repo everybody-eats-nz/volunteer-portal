@@ -7,13 +7,21 @@ import {
   CheckCircle,
   Clock,
   Phone,
-  Mail,
-  User,
-  AlertCircle
+  User as UserIcon,
+  AlertCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { EmptyState } from "@/components/admin/empty-state";
+import { STATUS_ICON } from "@/lib/status-styles";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -28,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 import type { ParentalConsentUser } from "@/lib/parental-consent";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 type User = ParentalConsentUser;
 
@@ -111,6 +120,9 @@ export function ParentalConsentTable({
     }
   };
 
+  const formatName = (user: User) =>
+    [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+
   const formatAge = (dateOfBirth: string | null) =>
     dateOfBirth ? `${calculateAge(new Date(dateOfBirth))} years` : "Age unknown";
 
@@ -124,59 +136,47 @@ export function ParentalConsentTable({
         {pendingUsers.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Clock className="h-5 w-5 text-orange-600" />
-              Pending Approval ({pendingUsers.length})
+              <Clock
+                className={`h-5 w-5 ${STATUS_ICON.pending}`}
+                aria-hidden="true"
+              />
+              Pending approval ({pendingUsers.length})
             </h3>
             <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Volunteer</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Age</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Contact</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Emergency Contact</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Registered</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingUsers.map((user) => (
-                      <tr key={user.id} className="border-t hover:bg-muted/30">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div>
-                              <div className="font-medium">
-                                <Link
-                                  href={`/admin/volunteers/${user.id}`}
-                                  className="hover:underline font-medium"
-                                >
-                                  {user.firstName} {user.lastName}
-                                </Link>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                <a
-                                  href={`mailto:${user.email}`}
-                                  className="hover:text-foreground hover:underline transition-colors"
-                                >
-                                  {user.email}
-                                </a>
-                              </div>
-                            </div>
-                            {!user.profileCompleted && (
-                              <AlertCircle className="h-4 w-4 text-amber-500" />
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className="text-orange-600 border-orange-300">
-                            {formatAge(user.dateOfBirth)}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-sm">
-                              <Mail className="h-3 w-3" />
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="px-4">Volunteer</TableHead>
+                    <TableHead className="hidden px-4 md:table-cell">
+                      Phone
+                    </TableHead>
+                    <TableHead className="hidden px-4 lg:table-cell">
+                      Emergency contact
+                    </TableHead>
+                    <TableHead className="hidden px-4 md:table-cell">
+                      Registered
+                    </TableHead>
+                    <TableHead className="px-4 text-right">
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="px-4 py-3 align-top whitespace-normal">
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0">
+                            <Link
+                              href={volunteerProfileHref(user.id, "/admin/parental-consent")}
+                              className="font-medium hover:underline"
+                            >
+                              {formatName(user)}
+                            </Link>
+                            <span className="ml-2 text-sm text-muted-foreground tabular-nums whitespace-nowrap">
+                              {formatAge(user.dateOfBirth)}
+                            </span>
+                            <div className="text-sm text-muted-foreground wrap-anywhere">
                               <a
                                 href={`mailto:${user.email}`}
                                 className="hover:text-foreground hover:underline transition-colors"
@@ -184,62 +184,101 @@ export function ParentalConsentTable({
                                 {user.email}
                               </a>
                             </div>
-                            {user.phone && (
+                            {/* On a phone the contact and registered columns
+                                are gone, so the phone number and sign-up date
+                                fold in under the name. */}
+                            <div className="mt-1 space-y-0.5 text-[13px] leading-snug text-muted-foreground md:hidden">
+                              {user.phone && (
+                                <div className="flex items-center gap-1">
+                                  <Phone className="h-3 w-3" aria-hidden="true" />
+                                  <a
+                                    href={`tel:${user.phone}`}
+                                    className="hover:text-foreground hover:underline transition-colors"
+                                  >
+                                    {user.phone}
+                                  </a>
+                                </div>
+                              )}
+                              <div>
+                                Registered{" "}
+                                {formatDistanceToNow(new Date(user.createdAt), {
+                                  addSuffix: true,
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                          {!user.profileCompleted && (
+                            <span
+                              className={`mt-0.5 shrink-0 ${STATUS_ICON.pending}`}
+                              title="Profile incomplete"
+                            >
+                              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                              <span className="sr-only">Profile incomplete</span>
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden px-4 py-3 md:table-cell">
+                        {user.phone ? (
+                          <a
+                            href={`tel:${user.phone}`}
+                            className="inline-flex items-center gap-1 text-sm hover:underline"
+                          >
+                            <Phone className="h-3 w-3" aria-hidden="true" />
+                            {user.phone}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            Not provided
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden px-4 py-3 lg:table-cell">
+                        {user.emergencyContactName ? (
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">
+                              {user.emergencyContactName}
+                            </div>
+                            {user.emergencyContactPhone && (
                               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Phone className="h-3 w-3" />
+                                <Phone className="h-3 w-3" aria-hidden="true" />
                                 <a
-                                  href={`tel:${user.phone}`}
+                                  href={`tel:${user.emergencyContactPhone}`}
                                   className="hover:text-foreground hover:underline transition-colors"
                                 >
-                                  {user.phone}
+                                  {user.emergencyContactPhone}
                                 </a>
                               </div>
                             )}
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          {user.emergencyContactName ? (
-                            <div className="space-y-1">
-                              <div className="text-sm font-medium">
-                                {user.emergencyContactName}
-                              </div>
-                              {user.emergencyContactPhone && (
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                  <Phone className="h-3 w-3" />
-                                  <a
-                                    href={`tel:${user.emergencyContactPhone}`}
-                                    className="hover:text-foreground hover:underline transition-colors"
-                                  >
-                                    {user.emergencyContactPhone}
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Not provided</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm">
-                            {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Button
-                            size="sm"
-                            onClick={() => handleApprove(user)}
-                            disabled={approving === user.id}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">
+                            Not provided
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden px-4 py-3 text-sm md:table-cell">
+                        {formatDistanceToNow(new Date(user.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-right align-top md:align-middle">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(user)}
+                          disabled={approving === user.id}
+                        >
+                          <CheckCircle
+                            className="hidden h-4 w-4 sm:block"
+                            aria-hidden="true"
+                          />
+                          Approve
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </div>
         )}
@@ -248,66 +287,72 @@ export function ParentalConsentTable({
         {approvedUsers.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle
+                className={`h-5 w-5 ${STATUS_ICON.confirmed}`}
+                aria-hidden="true"
+              />
               Approved ({approvedUsers.length})
             </h3>
             <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Volunteer</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Age</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium">Approved</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {approvedUsers.map((user) => (
-                      <tr key={user.id} className="border-t hover:bg-muted/30">
-                        <td className="px-4 py-3">
-                          <div>
-                            <div className="font-medium">
-                              <Link
-                                href={`/admin/volunteers/${user.id}`}
-                                className="hover:underline font-medium"
-                              >
-                                {user.firstName} {user.lastName}
-                              </Link>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {user.email}
-                            </div>
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="px-4">Volunteer</TableHead>
+                    <TableHead className="px-4">Age</TableHead>
+                    <TableHead className="hidden px-4 md:table-cell">
+                      Approved
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {approvedUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="px-4 py-3 align-top whitespace-normal">
+                        <Link
+                          href={volunteerProfileHref(user.id, "/admin/parental-consent")}
+                          className="font-medium hover:underline"
+                        >
+                          {formatName(user)}
+                        </Link>
+                        <div className="text-sm text-muted-foreground wrap-anywhere">
+                          {user.email}
+                        </div>
+                        {user.parentalConsentReceivedAt && (
+                          <div className="mt-1 text-[13px] leading-snug text-muted-foreground md:hidden">
+                            Approved{" "}
+                            {formatDistanceToNow(
+                              new Date(user.parentalConsentReceivedAt),
+                              { addSuffix: true }
+                            )}
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className="text-green-600 border-green-300">
-                            {formatAge(user.dateOfBirth)}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm">
-                            {user.parentalConsentReceivedAt && 
-                              formatDistanceToNow(new Date(user.parentalConsentReceivedAt), { addSuffix: true })}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 align-top text-sm tabular-nums md:align-middle">
+                        {formatAge(user.dateOfBirth)}
+                      </TableCell>
+                      <TableCell className="hidden px-4 py-3 text-sm md:table-cell">
+                        {user.parentalConsentReceivedAt &&
+                          formatDistanceToNow(
+                            new Date(user.parentalConsentReceivedAt),
+                            { addSuffix: true }
+                          )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </div>
         )}
 
         {users.length === 0 && (
-          <div className="text-center py-8">
-            <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground">
-              No volunteers under 16 found
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              All current volunteers are 16 or older
-            </p>
+          <div className="rounded-xl border bg-card shadow-sm">
+            <EmptyState
+              icon={UserIcon}
+              title="No volunteers under 16"
+              description="All current volunteers are 16 or older."
+              data-testid="parental-consent-empty-state"
+            />
           </div>
         )}
       </div>
@@ -360,11 +405,7 @@ export function ParentalConsentTable({
               >
                 Cancel
               </Button>
-              <Button
-                onClick={confirmApproval}
-                disabled={!!approving}
-                className="bg-green-600 hover:bg-green-700"
-              >
+              <Button onClick={confirmApproval} disabled={!!approving}>
                 {approving ? "Approving..." : "Approve Consent"}
               </Button>
             </div>

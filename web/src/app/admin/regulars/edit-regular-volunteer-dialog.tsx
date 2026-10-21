@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/admin/status-badge";
 import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
@@ -296,20 +296,10 @@ export function EditRegularVolunteerDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="success" className="text-xs">
-                          Active
-                        </Badge>
-                        <span>Active</span>
-                      </div>
+                      <StatusBadge tone="confirmed">Active</StatusBadge>
                     </SelectItem>
                     <SelectItem value="inactive">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          Inactive
-                        </Badge>
-                        <span>Inactive</span>
-                      </div>
+                      <StatusBadge tone="neutral">Inactive</StatusBadge>
                     </SelectItem>
                   </SelectContent>
                 </Select>

@@ -175,7 +175,7 @@ export function CompletionRing({
           {label ?? `${Math.round(clamped)}%`}
         </span>
         {sublabel && (
-          <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="mt-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {sublabel}
           </span>
         )}
@@ -244,55 +244,3 @@ export function CountChip({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  KPI stat tile (overview strips)                                             */
-/* -------------------------------------------------------------------------- */
-
-export function StatTile({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  accent = "text-foreground",
-  iconWrap = "bg-muted/60 text-muted-foreground",
-  className,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: React.ReactNode;
-  hint?: React.ReactNode;
-  accent?: string;
-  iconWrap?: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "relative flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md",
-        className
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </span>
-        <span
-          className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg",
-            iconWrap
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-      </div>
-      <div className="flex items-end gap-2">
-        <span className={cn("text-2xl font-bold tabular-nums leading-none", accent)}>
-          {value}
-        </span>
-      </div>
-      {hint && (
-        <span className="text-xs text-muted-foreground">{hint}</span>
-      )}
-    </div>
-  );
-}

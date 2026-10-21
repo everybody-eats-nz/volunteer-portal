@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -12,6 +13,10 @@ import { formatDate, formatSince } from "@/lib/van/format";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { VanVehiclesContent, type AdminVehicle } from "./vehicles-content";
+
+export const metadata: Metadata = {
+  title: "Vans",
+};
 
 export default async function VanVehiclesPage() {
   const session = await getServerSession(authOptions);

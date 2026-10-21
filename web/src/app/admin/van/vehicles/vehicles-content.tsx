@@ -70,6 +70,7 @@ import {
   STICKER_QR_SIZE,
 } from "@/lib/van/sticker-png";
 import { cn } from "@/lib/utils";
+import { SectionHeading } from "@/components/admin/section-heading";
 
 export type VehicleStatus = "in" | "out" | "overdue" | "retired";
 
@@ -126,7 +127,7 @@ function OverlayStatus({ status }: { status: VehicleStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] shadow-sm ring-1 ring-inset backdrop-blur-sm",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] shadow-sm ring-1 ring-inset backdrop-blur-sm",
         OVERLAY_TONES[status]
       )}
     >
@@ -368,7 +369,7 @@ export function VanVehiclesContent({
               <button
                 type="button"
                 onClick={clearFilters}
-                className="font-semibold text-primary hover:underline dark:text-forest-200"
+                className="font-semibold text-primary-text hover:underline dark:text-forest-200"
               >
                 Clear filters
               </button>
@@ -400,9 +401,9 @@ export function VanVehiclesContent({
       {showRetired && retired.length > 0 && (
         <section className="space-y-3 pt-2" data-testid="van-retired-list">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            <SectionHeading className="text-muted-foreground">
               Retired
-            </h2>
+            </SectionHeading>
             <span className="h-px flex-1 bg-border" aria-hidden />
           </div>
           <p className="text-sm text-muted-foreground">
@@ -580,7 +581,7 @@ function FleetBoard({
             data-testid={`van-fleet-${tile.key}`}
             className={cn(
               "grain relative px-5 py-5 text-left transition-colors sm:px-7 sm:py-6",
-              "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
+              "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/70",
               selected
                 ? "bg-forest-500 text-cream-50 dark:bg-forest-300 dark:text-forest-800"
                 : "bg-background hover:bg-forest-500/[0.06] dark:hover:bg-cream-50/[0.06]"
@@ -606,7 +607,7 @@ function FleetBoard({
             </span>
             <span
               className={cn(
-                "mt-2 block text-[0.65rem] uppercase tracking-[0.15em] sm:text-xs",
+                "mt-2 block text-xs uppercase tracking-[0.15em]",
                 selected
                   ? "text-current/80"
                   : "text-forest-500/70 dark:text-cream-50/55"
@@ -811,7 +812,7 @@ function Metric({
 }) {
   return (
     <div className="bg-card px-2.5 py-2.5 sm:px-3">
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </dt>
       {/* Three figures across a phone-width card: a hair smaller than the body
@@ -820,7 +821,7 @@ function Metric({
         {href ? (
           <Link
             href={href}
-            className="text-primary hover:underline dark:text-forest-200"
+            className="text-primary-text hover:underline dark:text-forest-200"
           >
             {value}
           </Link>
@@ -942,7 +943,7 @@ function StickerDialog({
           ref={cardRef}
           className="rounded-xl bg-white px-5 py-6 text-center ring-1 ring-forest-500/15"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-forest-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-forest-500">
             Everybody Eats · Van Log
           </p>
           <h3
@@ -973,7 +974,7 @@ function StickerDialog({
           </p>
         </div>
 
-        <p className="break-all text-center text-[11px] text-muted-foreground">
+        <p className="break-all text-center text-xs text-muted-foreground">
           {url}
         </p>
         <DialogFooter>
@@ -1124,7 +1125,7 @@ function VehicleDialog({
                   id="van-owner"
                   value={ownerOrgId}
                   onChange={(e) => setOwnerOrgId(e.target.value)}
-                  className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="mt-1.5 h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/70"
                   data-testid="van-vehicle-owner"
                 >
                   {organisations.map((org) => (

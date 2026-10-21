@@ -6,9 +6,11 @@ import { ArrowUpRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { getVolunteerGradeInfo } from "@/lib/volunteer-grades";
 import { formatInNZT } from "@/lib/timezone";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
+import { EmptyState as AdminEmptyState } from "@/components/admin/empty-state";
+import type { LucideIcon } from "lucide-react";
 
 export interface AdminOptions {
   shiftTypes: { id: string; name: string }[];
@@ -110,7 +112,7 @@ export function VolunteerCell({
 
   return (
     <Link
-      href={`/admin/volunteers/${id}`}
+      href={volunteerProfileHref(id, "/admin/auto-approval")}
       className="flex items-center gap-2.5 rounded-md hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       {body}
@@ -184,8 +186,8 @@ export function VolunteerProfileLink({
 }) {
   return (
     <Link
-      href={`/admin/volunteers/${userId}`}
-      className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      href={volunteerProfileHref(userId, "/admin/auto-approval")}
+      className="inline-flex items-center gap-1 text-sm font-medium text-primary-text hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       {children}
       <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
@@ -194,28 +196,22 @@ export function VolunteerProfileLink({
 }
 
 export function EmptyState({
-  icon: Icon,
+  icon,
   title,
   children,
   className,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   title: string;
   children?: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center gap-2 px-6 py-14 text-center",
-        className
-      )}
-    >
-      <Icon className="h-8 w-8 text-muted-foreground/50" aria-hidden />
-      <p className="font-medium">{title}</p>
-      {children && (
-        <div className="max-w-md text-sm text-muted-foreground">{children}</div>
-      )}
-    </div>
+    <AdminEmptyState
+      icon={icon}
+      title={title}
+      description={children}
+      className={className}
+    />
   );
 }

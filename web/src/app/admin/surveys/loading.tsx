@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 
 import {
   AdminPageSkeleton,
+  KpiTileSkeleton,
   SkeletonCard,
 } from "@/components/admin/admin-skeletons";
 import { Button } from "@/components/ui/button";
@@ -24,17 +25,7 @@ export default function SurveysLoading() {
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <SkeletonCard
-            key={i}
-            className="flex flex-col gap-3 rounded-xl p-4"
-          >
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="size-7 rounded-lg" />
-            </div>
-            <Skeleton className="h-6 w-12" />
-            <Skeleton className="h-3 w-28" />
-          </SkeletonCard>
+          <KpiTileSkeleton key={i} hint />
         ))}
       </div>
 

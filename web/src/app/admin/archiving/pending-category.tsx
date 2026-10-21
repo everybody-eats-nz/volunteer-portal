@@ -11,7 +11,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -23,9 +33,11 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/admin/admin-skeletons";
-import { RefreshCw, ExternalLink } from "lucide-react";
+import { EmptyState } from "@/components/admin/empty-state";
+import { RefreshCw, ExternalLink, CheckCircle2 } from "lucide-react";
 import type { ArchiveCategory } from "@/lib/archive-service";
 import { format, formatDistanceToNowStrict } from "date-fns";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
 
 type PendingUser = {
   id: string;
@@ -56,6 +68,7 @@ export function PendingCategory({
   onMutation: () => void;
 }) {
   const [workingUserId, setWorkingUserId] = useState<string | null>(null);
+  const [confirmUser, setConfirmUser] = useState<PendingUser | null>(null);
 
   const {
     data,
@@ -72,14 +85,7 @@ export function PendingCategory({
 
   const runAction = useCallback(
     async (user: PendingUser) => {
-      const confirmMsg =
-        action.kind === "archive"
-          ? `Archive ${user.email}? They'll be soft-archived and asked to reactivate on next login.`
-          : action.kind === "warn"
-          ? `Send the 11-month warning email to ${user.email}?`
-          : `Send the first-shift nudge email to ${user.email}?`;
-      if (!confirm(confirmMsg)) return;
-
+      setConfirmUser(null);
       setWorkingUserId(user.id);
       try {
         const body: Record<string, string> = {
@@ -134,7 +140,10 @@ export function PendingCategory({
           disabled={loading}
           data-testid={`pending-${category}-refresh`}
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            aria-hidden="true"
+          />
           Refresh
         </Button>
       </CardHeader>
@@ -153,12 +162,13 @@ export function PendingCategory({
             />
           </div>
         ) : users.length === 0 ? (
-          <div
-            className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground"
+          <EmptyState
+            icon={CheckCircle2}
+            title="Nothing pending here"
+            description="Ka pai! Every volunteer in this group is up to date."
+            className="rounded-lg border border-dashed py-10"
             data-testid={`pending-${category}-empty`}
-          >
-            Nothing pending here — nau mai, ka pai! 🎉
-          </div>
+          />
         ) : (
           <div className="overflow-hidden rounded-lg border">
             <Table data-testid={`pending-${category}-table`}>
@@ -188,11 +198,14 @@ export function PendingCategory({
                     <TableCell>
                       <div className="flex flex-col">
                         <Link
-                          href={`/admin/volunteers/${u.id}`}
+                          href={volunteerProfileHref(u.id, "/admin/archiving")}
                           className="font-medium hover:underline inline-flex items-center gap-1"
                         >
                           {displayName(u)}
-                          <ExternalLink className="h-3 w-3 opacity-60" />
+                          <ExternalLink
+                            className="h-3 w-3 opacity-60"
+                            aria-hidden="true"
+                          />
                         </Link>
                         <span className="text-xs text-muted-foreground">
                           {u.email}
@@ -266,7 +279,7 @@ export function PendingCategory({
                           action.kind === "archive" ? "destructive" : "default"
                         }
                         disabled={workingUserId === u.id}
-                        onClick={() => runAction(u)}
+                        onClick={() => setConfirmUser(u)}
                         data-testid={`pending-${category}-action-${u.id}`}
                       >
                         {workingUserId === u.id ? "Working…" : action.label}
@@ -279,6 +292,44 @@ export function PendingCategory({
           </div>
         )}
       </CardContent>
+
+      <AlertDialog
+        open={confirmUser !== null}
+        onOpenChange={(open) => !open && setConfirmUser(null)}
+      >
+        <AlertDialogContent data-testid={`pending-${category}-confirm-dialog`}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {action.kind === "archive"
+                ? "Archive this volunteer?"
+                : action.kind === "warn"
+                ? "Send the warning email?"
+                : "Send the nudge email?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {action.kind === "archive"
+                ? `Archive ${confirmUser?.email}? They'll be soft-archived and asked to reactivate on next login.`
+                : action.kind === "warn"
+                ? `Send the 11-month warning email to ${confirmUser?.email}?`
+                : `Send the first-shift nudge email to ${confirmUser?.email}?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmUser && runAction(confirmUser)}
+              className={
+                action.kind === "archive"
+                  ? buttonVariants({ variant: "destructive" })
+                  : undefined
+              }
+              data-testid={`pending-${category}-confirm-button`}
+            >
+              {action.label}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

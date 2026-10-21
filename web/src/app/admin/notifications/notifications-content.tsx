@@ -696,7 +696,7 @@ export function NotificationsContent({
                           </div>
                         </div>
                         {isSelected && (
-                          <Check className="h-4 w-4 text-primary shrink-0" />
+                          <Check className="h-4 w-4 text-primary-text shrink-0" />
                         )}
                       </div>
                     );

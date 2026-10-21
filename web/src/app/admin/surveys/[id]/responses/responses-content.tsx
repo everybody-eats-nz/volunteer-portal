@@ -12,7 +12,6 @@ import {
 import {
   BarChart3,
   ChevronDown,
-  ArrowLeft,
   MapPin,
   Users,
   CheckCircle2,
@@ -43,6 +42,9 @@ import {
   STATUS_ORDER,
   type AssignmentStatusKey,
 } from "../../_components/survey-ui";
+import { SectionHeading } from "@/components/admin/section-heading";
+import { volunteerProfileHref } from "@/lib/admin-navigation";
+import { EmptyState } from "@/components/admin/empty-state";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                       */
@@ -319,18 +321,6 @@ export function ResponsesContent({
 
   return (
     <div className="space-y-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        asChild
-        className="-ml-2 h-8 text-muted-foreground hover:text-foreground"
-      >
-        <Link href="/admin/surveys">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Back to surveys
-        </Link>
-      </Button>
-
       {/* Hero */}
       <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between">
@@ -342,9 +332,9 @@ export function ResponsesContent({
               sublabel="complete"
             />
             <div className="min-w-0">
-              <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+              <SectionHeading className="sm:text-2xl">
                 {survey.title}
-              </h2>
+              </SectionHeading>
               {survey.description && (
                 <p className="mt-1 line-clamp-2 max-w-xl text-sm text-muted-foreground">
                   {survey.description}
@@ -657,14 +647,26 @@ function RespondentRow({
           canExpand && "cursor-pointer hover:bg-muted/40"
         )}
         onClick={canExpand ? onToggle : undefined}
+        onKeyDown={
+          canExpand
+            ? (e) => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onToggle();
+                }
+              }
+            : undefined
+        }
         role={canExpand ? "button" : undefined}
+        tabIndex={canExpand ? 0 : undefined}
         aria-expanded={canExpand ? expanded : undefined}
       >
         <Avatar name={r.user.name} />
 
         <div className="min-w-0 flex-1">
           <Link
-            href={`/admin/volunteers/${r.user.id}`}
+            href={volunteerProfileHref(r.user.id, "/admin/surveys")}
             className="font-medium hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
@@ -699,7 +701,7 @@ function RespondentRow({
             <span className={cn("h-1.5 w-1.5 rounded-full", meta.swatch)} />
             {r.status.toLowerCase()}
           </span>
-          <span className="text-right text-[11px] text-muted-foreground">
+          <span className="text-right text-xs text-muted-foreground">
             {updateLabel}
           </span>
         </div>
@@ -1088,7 +1090,7 @@ function Avatar({ name }: { name: string | null }) {
 }
 
 function EmptyPanel({
-  icon: Icon,
+  icon,
   title,
   body,
 }: {
@@ -1097,15 +1099,12 @@ function EmptyPanel({
   body: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card/50 py-16 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-        <Icon className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm font-semibold">{title}</p>
-        <p className="mx-auto max-w-sm text-sm text-muted-foreground">{body}</p>
-      </div>
-    </div>
+    <EmptyState
+      icon={icon}
+      title={title}
+      description={body}
+      className="rounded-xl border border-dashed bg-card/50 py-16"
+    />
   );
 }
 

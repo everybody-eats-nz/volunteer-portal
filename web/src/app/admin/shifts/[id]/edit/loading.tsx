@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Trash2Icon, ChevronLeft } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 
 import {
   AdminPageSkeleton,
@@ -39,6 +39,7 @@ export default function EditShiftLoading() {
     <AdminPageSkeleton
       title="Edit shift"
       description="Modify details for this shift"
+      breadcrumbs={[{ label: "Manage Shifts", href: "/admin/shifts" }]}
       className="space-y-2"
       actions={
         <>
@@ -50,10 +51,6 @@ export default function EditShiftLoading() {
           >
             <Trash2Icon className="h-4 w-4 mr-2" />
             Delete Shift
-          </Button>
-          <Button variant="outline" size="sm" disabled>
-            <ChevronLeft className="h-4 w-4" />
-            Back to shifts
           </Button>
         </>
       }

@@ -1,12 +1,13 @@
 import {
   AdminPageSkeleton,
+  KpiTileSkeleton,
   SkeletonCard,
   TabsSkeleton,
 } from "@/components/admin/admin-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-/** Section heading plus a grid of `StatsCard`s (value, title, icon tile). */
+/** Section heading plus a grid of `KpiTile`s. */
 function StatsGridSkeleton({
   count,
   className,
@@ -19,15 +20,7 @@ function StatsGridSkeleton({
       <Skeleton className="mb-3 h-6 w-44" />
       <div className={cn("grid grid-cols-1 gap-4", className)}>
         {Array.from({ length: count }).map((_, i) => (
-          <SkeletonCard key={i} className="p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 space-y-2">
-                <Skeleton className="h-8 w-12" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <Skeleton className="size-11 shrink-0 rounded-xl" />
-            </div>
-          </SkeletonCard>
+          <KpiTileSkeleton key={i} />
         ))}
       </div>
     </div>

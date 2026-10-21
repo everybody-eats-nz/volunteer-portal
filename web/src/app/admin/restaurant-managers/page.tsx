@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
@@ -5,6 +6,10 @@ import { RestaurantManagersContent } from "./restaurant-managers-content";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { prisma } from "@/lib/prisma";
 import { getActiveLocationNames } from "@/lib/locations";
+
+export const metadata: Metadata = {
+  title: "Restaurant Managers",
+};
 
 export default async function RestaurantManagersPage() {
   const session = await getServerSession(authOptions);

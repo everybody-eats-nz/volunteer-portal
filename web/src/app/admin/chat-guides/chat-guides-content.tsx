@@ -22,6 +22,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/admin/empty-state";
 import {
   Card,
   CardContent,
@@ -905,20 +906,27 @@ export function ChatGuidesContent({
                     onChange={(e) => handleUpdateQuestion(i, "emoji", e.target.value)}
                     className="w-16 text-center text-lg"
                     maxLength={4}
+                    aria-label={`Emoji for suggested question ${i + 1}`}
                   />
                   <Input
                     value={q.label}
                     onChange={(e) => handleUpdateQuestion(i, "label", e.target.value)}
                     placeholder="Question text..."
                     className="flex-1"
+                    aria-label={`Suggested question ${i + 1}`}
                   />
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemoveQuestion(i)}
                     className="shrink-0"
+                    aria-label={
+                      q.label
+                        ? `Remove suggested question "${q.label}"`
+                        : `Remove suggested question ${i + 1}`
+                    }
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 </div>
               ))}
@@ -959,17 +967,19 @@ export function ChatGuidesContent({
         </div>
 
         {chatResources.length === 0 ? (
-          <Card className="py-12">
-            <CardContent className="flex flex-col items-center justify-center">
-              <MessageSquare className="h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 text-lg font-medium">No resources in chat context</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Add resources from the Resource Hub to give the AI assistant knowledge
-              </p>
-              <Button className="mt-4" onClick={() => setAddDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add First Resource
-              </Button>
+          <Card>
+            <CardContent>
+              <EmptyState
+                icon={MessageSquare}
+                title="No resources in chat context"
+                description="Add resources from the Resource Hub to give the AI assistant knowledge"
+                action={
+                  <Button onClick={() => setAddDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Add first resource
+                  </Button>
+                }
+              />
             </CardContent>
           </Card>
         ) : (
@@ -1017,8 +1027,12 @@ export function ChatGuidesContent({
                         onClick={() => handleRefreshUrlContent(resource)}
                         disabled={refreshingId === resource.id}
                         title="Re-scrape content from URL"
+                        aria-label={`Refresh content for ${resource.title}`}
                       >
-                        <RefreshCw className={`h-4 w-4 ${refreshingId === resource.id ? "animate-spin" : ""}`} />
+                        <RefreshCw
+                          className={`h-4 w-4 ${refreshingId === resource.id ? "animate-spin" : ""}`}
+                          aria-hidden="true"
+                        />
                       </Button>
                     )}
                     <Button
@@ -1029,8 +1043,9 @@ export function ChatGuidesContent({
                         setEditContent(resource.chatContent ?? "");
                         setEditDialogOpen(true);
                       }}
+                      aria-label={`Edit chat content for ${resource.title}`}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -1039,8 +1054,9 @@ export function ChatGuidesContent({
                         setRemovingResource(resource);
                         setRemoveDialogOpen(true);
                       }}
+                      aria-label={`Remove ${resource.title} from chat context`}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
                     </Button>
                   </div>
                 </CardContent>
@@ -1137,7 +1153,7 @@ export function ChatGuidesContent({
                               ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-0.5">{children}</ol>,
                               li: ({ children }) => <li className="text-sm">{children}</li>,
                               strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                              a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">{children}</a>,
+                              a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary-text underline">{children}</a>,
                               h1: ({ children }) => <h1 className="text-base font-semibold mb-1 mt-2 first:mt-0">{children}</h1>,
                               h2: ({ children }) => <h2 className="text-sm font-semibold mb-1 mt-2 first:mt-0">{children}</h2>,
                               h3: ({ children }) => <h3 className="text-sm font-medium mb-1 mt-1">{children}</h3>,
@@ -1151,7 +1167,7 @@ export function ChatGuidesContent({
                       </div>
                       {msg.role === "user" && (
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                          <User className="h-4 w-4 text-primary" />
+                          <User className="h-4 w-4 text-primary-text" />
                         </div>
                       )}
                     </div>
@@ -1174,6 +1190,7 @@ export function ChatGuidesContent({
                   }
                 }}
                 placeholder="Ask the assistant something..."
+                aria-label="Message the assistant"
                 disabled={previewLoading}
                 className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
@@ -1181,8 +1198,9 @@ export function ChatGuidesContent({
                 size="icon"
                 onClick={() => handlePreviewSend()}
                 disabled={!previewInput.trim() || previewLoading}
+                aria-label="Send message"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>

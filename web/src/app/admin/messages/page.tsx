@@ -6,7 +6,7 @@ import { listThreadsForAdmin } from "@/lib/services/messaging";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "Messages | Admin",
+  title: "Messages",
   description: "Direct messages with volunteers",
 };
 

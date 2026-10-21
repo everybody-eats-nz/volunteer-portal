@@ -1,5 +1,6 @@
 import {
   AdminPageSkeleton,
+  KpiTileSkeleton,
   SkeletonCard,
 } from "@/components/admin/admin-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,30 +28,9 @@ export function AdminDashboardContentSkeleton() {
   return (
     <div className="space-y-6">
       {/* Stats grid - mirrors AdminDashboardStats */}
-      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <SkeletonCard key={i} className="self-start p-4">
-            <div className="flex items-center justify-between">
-              {/* Line boxes match text-2xl / text-sm / text-xs rows */}
-              <div>
-                <div className="flex h-8 items-center">
-                  <Skeleton className="h-6 w-14" />
-                </div>
-                <div className="flex h-5 items-center">
-                  <Skeleton className="h-3.5 w-28" />
-                </div>
-                <div className="mt-1 flex h-4 items-center">
-                  <Skeleton className="h-3 w-32" />
-                </div>
-                {i === 3 && (
-                  <div className="flex h-4 items-center">
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                )}
-              </div>
-              <Skeleton className="size-9 rounded-lg" />
-            </div>
-          </SkeletonCard>
+          <KpiTileSkeleton key={i} hint />
         ))}
       </div>
 

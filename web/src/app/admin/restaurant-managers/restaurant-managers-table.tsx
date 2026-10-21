@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 import type { RestaurantManager } from "./types";
 import { getInitials, getUserDisplayName } from "./types";
+import { EmptyState } from "@/components/admin/empty-state";
 
 interface RestaurantManagersTableProps {
   managers: RestaurantManager[];
@@ -35,16 +36,14 @@ export default function RestaurantManagersTable({
   if (managers.length === 0) {
     return (
       <div
-        className="flex flex-col items-center gap-2 rounded-xl border border-dashed bg-background px-6 py-12 text-center"
+        className="rounded-xl border border-dashed bg-background"
         data-testid="empty-managers-state"
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-light text-primary-text">
-          <Users className="h-5 w-5" />
-        </span>
-        <p className="font-medium">No recipients yet</p>
-        <p className="text-sm text-muted-foreground">
-          Use the panel to assign your first manager.
-        </p>
+        <EmptyState
+          icon={Users}
+          title="No recipients yet"
+          description="Use the panel to assign your first manager."
+        />
       </div>
     );
   }
@@ -52,7 +51,7 @@ export default function RestaurantManagersTable({
   return (
     <div data-testid="managers-table" className="overflow-hidden">
       {/* Column header row — carries the e2e testids in a clean list header */}
-      <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_auto_auto] items-center gap-4 border-b px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
+      <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.6fr)_auto_auto] items-center gap-4 border-b px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
         <span data-testid="manager-column-header">Recipient</span>
         <span data-testid="locations-column-header">Locations</span>
         <span data-testid="notifications-column-header" className="text-center">
@@ -169,7 +168,7 @@ export default function RestaurantManagersTable({
                       </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => onDelete(manager.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        className="bg-destructive text-white hover:bg-destructive/90"
                       >
                         Remove Assignment
                       </AlertDialogAction>

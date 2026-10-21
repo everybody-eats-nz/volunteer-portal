@@ -6,6 +6,7 @@ import { TriangleAlert } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { ShareSegment } from "@/lib/van/share";
+import { SectionHeading } from "@/components/admin/section-heading";
 
 const nf = new Intl.NumberFormat("en-NZ");
 
@@ -176,9 +177,9 @@ function SharePanel({
   return (
     <div data-testid="van-trips-share">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-        <h2 className="font-accent text-lg font-semibold">
+        <SectionHeading>
           {SPLIT_HEADINGS[split]}
-        </h2>
+        </SectionHeading>
         <div
           role="tablist"
           aria-label="Split the kilometres by"

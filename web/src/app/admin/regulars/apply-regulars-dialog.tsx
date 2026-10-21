@@ -29,6 +29,7 @@ import {
   UserIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { STATUS_ICON, STATUS_TINTED } from "@/lib/status-styles";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -364,10 +365,10 @@ export function ApplyRegularsDialog({
                   <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
                     <UserIcon className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">
-                      {preview.preview.volunteers[0].name}
+                      {preview.preview.volunteers[0].name}:
                     </span>
                     <span className="text-muted-foreground">
-                      — {preview.preview.volunteers[0].signups} shift
+                      {preview.preview.volunteers[0].signups} shift
                       {preview.preview.volunteers[0].signups === 1 ? "" : "s"}
                     </span>
                   </div>
@@ -391,7 +392,7 @@ export function ApplyRegularsDialog({
               className={cn(
                 "p-4 rounded-lg border text-sm",
                 result.signupsCreated > 0
-                  ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                  ? STATUS_TINTED.confirmed
                   : "bg-muted/50 border-border"
               )}
             >
@@ -400,7 +401,7 @@ export function ApplyRegularsDialog({
                   className={cn(
                     "h-4 w-4 mt-0.5 shrink-0",
                     result.signupsCreated > 0
-                      ? "text-green-600 dark:text-green-400"
+                      ? STATUS_ICON.confirmed
                       : "text-muted-foreground"
                   )}
                 />

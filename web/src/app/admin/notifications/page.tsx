@@ -6,7 +6,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { getActiveLocationNames } from "@/lib/locations";
 
 export const metadata: Metadata = {
-  title: "Shift Shortage Notifications | Admin",
+  title: "Shortage Alerts",
   description: "Send shift shortage notifications to volunteers",
 };
 

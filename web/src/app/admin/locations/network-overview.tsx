@@ -126,7 +126,7 @@ export function NetworkOverview({ venues }: NetworkOverviewProps) {
           icon={<CalendarClock className="h-4 w-4" />}
           label="Awaiting shifts"
           value={hidden.length}
-          tone={hidden.length > 0 ? "amber" : "neutral"}
+          tone={hidden.length > 0 ? "pending" : "neutral"}
         />
         <KpiTile
           icon={<Tent className="h-4 w-4" />}

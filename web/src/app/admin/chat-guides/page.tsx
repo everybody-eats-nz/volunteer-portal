@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
@@ -9,6 +10,10 @@ import { prisma } from "@/lib/prisma";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Button } from "@/components/ui/button";
 import { ChatGuidesContent } from "./chat-guides-content";
+
+export const metadata: Metadata = {
+  title: "Chat Guides",
+};
 
 export default async function ChatGuidesPage() {
   const session = await getServerSession(authOptions);

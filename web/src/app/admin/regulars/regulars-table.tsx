@@ -46,6 +46,9 @@ import { EditRegularVolunteerDialog } from "./edit-regular-volunteer-dialog";
 import { ApplyRegularsDialog } from "./apply-regulars-dialog";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { LocationOption } from "@/lib/locations";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/empty-state";
+import { STATUS_ICON } from "@/lib/status-styles";
 
 type RegularVolunteer = {
   id: string;
@@ -165,12 +168,12 @@ export function RegularsTable({
 
   const getStatusBadge = (regular: RegularVolunteer) => {
     if (!regular.isActive) {
-      return <Badge variant="secondary">Inactive</Badge>;
+      return <StatusBadge tone="neutral">Inactive</StatusBadge>;
     }
     if (regular.isPausedByUser) {
-      return <Badge variant="warning">Paused</Badge>;
+      return <StatusBadge tone="pending">Paused</StatusBadge>;
     }
-    return <Badge variant="success">Active</Badge>;
+    return <StatusBadge tone="confirmed">Active</StatusBadge>;
   };
 
   const getFrequencyLabel = (frequency: string) => {
@@ -215,9 +218,9 @@ export function RegularsTable({
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* The location filter sits alongside, so it names the location —
                 no need to repeat it here. */}
-            <h2 className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+            <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
               {regulars.length} {regulars.length === 1 ? "regular" : "regulars"}
-            </h2>
+            </p>
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 variant="outline"
@@ -225,8 +228,8 @@ export function RegularsTable({
                 className="gap-2"
                 onClick={() => setBulkApplyOpen(true)}
               >
-                <PlayIcon className="h-4 w-4" />
-                Apply Regulars to Shifts
+                <PlayIcon className="h-4 w-4" aria-hidden="true" />
+                Apply regulars to shifts
               </Button>
               <LocationFilterTabs
                 locations={locations}
@@ -240,47 +243,57 @@ export function RegularsTable({
         {/* Rendered outside the table: inside it the cell inherits the table's
             min-width, so centred empty-state text scrolls out of view. */}
         {regulars.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-            <StarIcon
-              className="h-8 w-8 text-muted-foreground/40"
-              aria-hidden="true"
-            />
-            <p className="font-medium">
-              {selectedLocation
+          <EmptyState
+            icon={StarIcon}
+            title={
+              selectedLocation
                 ? `No regulars in ${selectedLocation} yet`
-                : "No regular volunteers yet"}
-            </p>
-            <p className="text-sm text-muted-foreground max-w-sm text-balance">
-              Use “Add Regular” above to give someone a recurring shift.
-              They&apos;ll be signed up automatically each time it comes around.
-            </p>
-          </div>
+                : "No regular volunteers yet"
+            }
+            description="Use “Add Regular” above to give someone a recurring shift. They'll be signed up automatically each time it comes around."
+            data-testid="regulars-empty-state"
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Volunteer</TableHead>
-                  <TableHead>Shift Type</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Schedule</TableHead>
-                  <TableHead>Days</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Auto-Signups</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {regulars.map((regular) => (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4 sm:pl-6">Volunteer</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Shift type
+                </TableHead>
+                <TableHead className="hidden md:table-cell">Location</TableHead>
+                <TableHead className="hidden xl:table-cell">Schedule</TableHead>
+                <TableHead className="hidden xl:table-cell">Days</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  Auto-signups
+                </TableHead>
+                <TableHead className="pr-4 text-right sm:pr-6">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {regulars.map((regular) => {
+                const name =
+                  [regular.user.firstName, regular.user.lastName]
+                    .filter(Boolean)
+                    .join(" ") ||
+                  regular.user.name ||
+                  regular.user.email;
+                const schedule = `${getFrequencyLabel(regular.frequency)}, ${formatDays(regular.availableDays)}`;
+
+                return (
                   <TableRow key={regular.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <UserIcon className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">
-                            {regular.user.firstName} {regular.user.lastName}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
+                    <TableCell className="py-3 pl-4 whitespace-normal sm:pl-6">
+                      <div className="flex items-start gap-2">
+                        <UserIcon
+                          className="mt-0.5 hidden h-4 w-4 shrink-0 text-muted-foreground sm:block"
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0">
+                          <div className="font-medium">{name}</div>
+                          <div className="text-sm text-muted-foreground break-all">
                             <a
                               href={`mailto:${regular.user.email}`}
                               className="hover:text-foreground hover:underline transition-colors"
@@ -288,41 +301,60 @@ export function RegularsTable({
                               {regular.user.email}
                             </a>
                           </div>
+                          {/* On a phone the shift, location and schedule
+                              columns are gone, so they fold in under the
+                              name rather than scrolling off the edge. */}
+                          <div className="mt-1 text-[13px] leading-snug md:hidden">
+                            <span className="font-medium">
+                              {regular.shiftType.name}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              at {regular.location}
+                            </span>
+                          </div>
+                          <div className="text-[13px] leading-snug text-muted-foreground xl:hidden">
+                            {schedule}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <Badge variant="outline">{regular.shiftType.name}</Badge>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-1">
-                        <MapPinIcon className="h-4 w-4 text-muted-foreground" />
+                        <MapPinIcon
+                          className="h-4 w-4 text-muted-foreground"
+                          aria-hidden="true"
+                        />
                         {regular.location}
                       </div>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       {getFrequencyLabel(regular.frequency)}
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       <div className="flex items-center gap-1">
-                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                        <CalendarIcon
+                          className="h-4 w-4 text-muted-foreground"
+                          aria-hidden="true"
+                        />
                         <span className="text-sm">
                           {formatDays(regular.availableDays)}
                         </span>
                       </div>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-3 align-top md:align-middle">
                       <div className="flex flex-col gap-1">
                         {getStatusBadge(regular)}
                         {regular.autoApprove && (
-                          <Badge variant="outline" className="text-xs w-fit">
-                            Auto-approve
-                          </Badge>
+                          <StatusBadge tone="neutral">Auto-approve</StatusBadge>
                         )}
                         {regular.pausedUntil && (
                           <div className="text-xs text-muted-foreground">
@@ -333,32 +365,42 @@ export function RegularsTable({
                       </div>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="hidden tabular-nums lg:table-cell">
                       <Badge variant="secondary">
                         {regular._count.autoSignups}
                       </Badge>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-3 pr-4 text-right align-top sm:pr-6 md:align-middle">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontalIcon className="h-4 w-4" />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Actions for ${name}, ${regular.shiftType.name}`}
+                          >
+                            <MoreHorizontalIcon
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                            />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => setEditRegular(regular)}
                           >
-                            <EditIcon className="h-4 w-4 mr-2" />
+                            <EditIcon className="h-4 w-4 mr-2" aria-hidden="true" />
                             Edit
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
                             onClick={() => setApplyRegular(regular)}
                           >
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            Apply to Shifts
+                            <CalendarIcon
+                              className="h-4 w-4 mr-2"
+                              aria-hidden="true"
+                            />
+                            Apply to shifts
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
@@ -366,12 +408,18 @@ export function RegularsTable({
                           >
                             {regular.isActive ? (
                               <>
-                                <PauseIcon className="h-4 w-4 mr-2" />
+                                <PauseIcon
+                                  className="h-4 w-4 mr-2"
+                                  aria-hidden="true"
+                                />
                                 Deactivate
                               </>
                             ) : (
                               <>
-                                <PlayIcon className="h-4 w-4 mr-2" />
+                                <PlayIcon
+                                  className="h-4 w-4 mr-2"
+                                  aria-hidden="true"
+                                />
                                 Activate
                               </>
                             )}
@@ -381,19 +429,19 @@ export function RegularsTable({
 
                           <DropdownMenuItem
                             onClick={() => setDeleteId(regular.id)}
-                            className="text-destructive"
+                            variant="destructive"
                           >
-                            <TrashIcon className="h-4 w-4 mr-2" />
-                            Remove Regular Status
+                            <TrashIcon className="h-4 w-4 mr-2" aria-hidden="true" />
+                            Remove regular status
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
 
@@ -404,12 +452,18 @@ export function RegularsTable({
             <AlertDialogTitle className="flex items-center gap-2">
               {regulars.find((r) => r.id === toggleId)?.isActive ? (
                 <>
-                  <PauseIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                  <PauseIcon
+                    className={`h-5 w-5 ${STATUS_ICON.pending}`}
+                    aria-hidden="true"
+                  />
                   Deactivate Regular Volunteer
                 </>
               ) : (
                 <>
-                  <PlayIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <PlayIcon
+                    className={`h-5 w-5 ${STATUS_ICON.confirmed}`}
+                    aria-hidden="true"
+                  />
                   Activate Regular Volunteer
                 </>
               )}
@@ -429,11 +483,6 @@ export function RegularsTable({
                   handleToggle(regular.id, regular.isActive);
                 }
               }}
-              className={
-                regulars.find((r) => r.id === toggleId)?.isActive
-                  ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                  : "bg-green-600 hover:bg-green-700 text-white"
-              }
             >
               {regulars.find((r) => r.id === toggleId)?.isActive ? (
                 <>
@@ -473,7 +522,7 @@ export function RegularsTable({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && handleDelete(deleteId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               <TrashIcon className="h-4 w-4 mr-2" />
               Remove Regular Status

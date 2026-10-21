@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
@@ -22,6 +23,10 @@ import { monthOf } from "@/lib/van/period";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { VanTripsContent, type AdminTripRow } from "./trips-content";
+
+export const metadata: Metadata = {
+  title: "Van Trips",
+};
 
 /**
  * The trips ledger.

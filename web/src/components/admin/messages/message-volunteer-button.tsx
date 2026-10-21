@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +27,7 @@ export function MessageVolunteerButton({
       });
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string };
-        alert(err.error ?? "Failed to start conversation");
+        toast.error(err.error ?? "Failed to start conversation");
         return;
       }
       const data = (await res.json()) as { thread: { id: string } };
@@ -39,9 +40,9 @@ export function MessageVolunteerButton({
   return (
     <Button onClick={handleClick} disabled={loading} variant="outline" size="sm">
       {loading ? (
-        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+        <Loader2 className="w-4 h-4 mr-1.5 animate-spin" aria-hidden="true" />
       ) : (
-        <MessageSquare className="w-4 h-4 mr-1.5" />
+        <MessageSquare className="w-4 h-4 mr-1.5" aria-hidden="true" />
       )}
       Message
     </Button>

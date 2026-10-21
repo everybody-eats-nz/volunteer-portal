@@ -39,6 +39,8 @@ import {
   type Announcement,
   type LabelOption,
 } from "./types";
+import { SectionHeading as AdminSectionHeading } from "@/components/admin/section-heading";
+import { StatusBadge } from "@/components/admin/status-badge";
 
 interface AnnouncementListProps {
   announcements: Announcement[];
@@ -289,7 +291,7 @@ function PulseStat({
 }) {
   return (
     <div className="px-5 py-4">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-text/70">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary-text/70">
         {live && (
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-text opacity-40 motion-reduce:animate-none" />
@@ -314,12 +316,12 @@ function SectionHeading({
   live?: boolean;
 }) {
   return (
-    <h2 className="mb-2.5 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+    <AdminSectionHeading className="mb-2.5 flex items-center gap-2 px-1">
       {live && (
         <span className="h-2 w-2 rounded-full bg-primary-text" />
       )}
       {children}
-    </h2>
+    </AdminSectionHeading>
   );
 }
 
@@ -420,7 +422,7 @@ function AnnouncementRow({
           <span className="font-accent text-lg font-semibold leading-none tabular-nums">
             {format(created, "d")}
           </span>
-          <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide">
+          <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide">
             {format(created, "MMM")}
           </span>
         </div>
@@ -509,28 +511,24 @@ function AnnouncementRow({
               </StatusChip>
             )}
             {expired ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                <Clock className="h-3 w-3" />
+              <StatusBadge tone="neutral" className="rounded-full">
+                <Clock aria-hidden="true" />
                 Expired{" "}
                 {formatDistanceToNow(new Date(ann.expiresAt!), {
                   addSuffix: true,
                 })}
-              </span>
+              </StatusBadge>
             ) : ann.expiresAt ? (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                  expiresSoon
-                    ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                    : "border-border text-muted-foreground"
-                )}
+              <StatusBadge
+                tone={expiresSoon ? "pending" : "neutral"}
+                className="rounded-full"
               >
-                <Clock className="h-3 w-3" />
+                <Clock aria-hidden="true" />
                 Expires{" "}
                 {formatDistanceToNow(new Date(ann.expiresAt), {
                   addSuffix: true,
                 })}
-              </span>
+              </StatusBadge>
             ) : null}
           </div>
 
@@ -573,17 +571,10 @@ function StatusChip({
   children: React.ReactNode;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
-        sent
-          ? "border-primary-text/25 bg-primary-text/[0.07] text-primary-text"
-          : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-      )}
-    >
+    <StatusBadge tone={sent ? "confirmed" : "pending"} className="rounded-full">
       {icon}
       {children}
-    </span>
+    </StatusBadge>
   );
 }
 
