@@ -446,25 +446,16 @@ test.describe("Public Resource Hub", () => {
       await page.goto("/resources");
       await page.waitForLoadState("load");
 
-      // Find an action button on a card (e.g., Open Link)
-      const openButton = page.getByRole("button", { name: /open/i }).first();
+      // Each card is a link that opens the resource in a new tab
+      const card = page.getByTestId("resource-card").first();
+      await expect(card).toHaveAttribute("target", "_blank");
+      await expect(card).toHaveAttribute("href", /.+/);
 
-      if ((await openButton.count()) > 0) {
-        // Set up listener for new page
-        const pagePromise = context.waitForEvent("page");
-        await openButton.click();
-
-        const newPage = await pagePromise;
-        expect(newPage.url()).toBeTruthy();
-        await newPage.close();
-      } else {
-        // Cards might use links instead of buttons
-        const link = page.getByRole("link", { name: /open|view/i }).first();
-        if ((await link.count()) > 0) {
-          const href = await link.getAttribute("href");
-          expect(href).toBeTruthy();
-        }
-      }
+      const pagePromise = context.waitForEvent("page");
+      await card.click();
+      const newPage = await pagePromise;
+      expect(newPage.url()).toBeTruthy();
+      await newPage.close();
     });
   });
 

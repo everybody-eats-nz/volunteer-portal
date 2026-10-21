@@ -121,8 +121,8 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       <Button
         ref={buttonRef}
         variant="ghost"
-        size="icon"
-        className="relative size-10 text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-colors duration-200 rounded-full"
+        size="sm"
+        className="relative text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-colors duration-200 rounded-full p-2"
         data-testid="notification-bell-button"
         aria-expanded={isOpen}
         aria-controls={isOpen ? "notification-panel" : undefined}
