@@ -568,7 +568,8 @@ export default function ShiftDetailScreen() {
                 hitSlop={{ top: 10, bottom: 10 }}
                 style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
                 accessibilityRole="link"
-                accessibilityLabel={`${shift.location}, open in Maps`}
+                accessibilityLabel={shift.location}
+                accessibilityHint="Opens in Maps"
               >
                 <FactRow icon="location-outline" colors={colors}>
                   <Text
