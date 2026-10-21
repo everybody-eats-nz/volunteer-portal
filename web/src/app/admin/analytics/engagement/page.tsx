@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -7,6 +8,11 @@ import { EngagementAnalyticsClient } from "./engagement-analytics-client";
 import { getActiveLocationNames } from "@/lib/locations";
 import { getEngagementSummary, getEngagementVolunteers, getEngagementByShiftType, getRetentionHeatmap } from "@/lib/engagement";
 import { parseDaysParam } from "@/lib/parse-days-param";
+
+export const metadata: Metadata = {
+  title: "Volunteer Engagement",
+  description: "Track volunteer activity levels, engagement trends, and retention metrics",
+};
 
 export default async function EngagementAnalyticsPage({
   searchParams,

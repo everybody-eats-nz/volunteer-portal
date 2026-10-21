@@ -240,7 +240,7 @@ export function EngagementVolunteerTable({
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 shadow-sm">
               <AvatarImage src={v.profilePhotoUrl || ""} alt={displayName} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-xs">
+              <AvatarFallback className="bg-primary-light text-primary-text font-semibold text-xs">
                 {getUserInitials(v)}
               </AvatarFallback>
             </Avatar>

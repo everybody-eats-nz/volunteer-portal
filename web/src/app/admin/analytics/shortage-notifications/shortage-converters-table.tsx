@@ -158,7 +158,7 @@ export function ShortageConvertersTable({
                               src={c.profilePhotoUrl ?? ""}
                               alt={c.name}
                             />
-                            <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-semibold">
+                            <AvatarFallback className="bg-primary-light text-primary-text text-xs font-semibold">
                               {getInitials(c.name, c.email)}
                             </AvatarFallback>
                           </Avatar>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -11,6 +12,11 @@ import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
 import { getRestaurantReports } from "@/lib/restaurant-reports";
 import { parseDaysParam } from "@/lib/parse-days-param";
 import { nowInNZT } from "@/lib/timezone";
+
+export const metadata: Metadata = {
+  title: "Restaurant Analytics",
+  description: "Guests served, koha, volunteers and service-night insights across all locations",
+};
 
 export default async function AnalyticsPage({
   searchParams,

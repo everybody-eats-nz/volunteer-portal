@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -6,6 +7,11 @@ import { PageContainer } from "@/components/page-container";
 import { getBudgetTracking } from "@/lib/budget-tracking";
 import { currentBudgetYear } from "@/lib/budget-calculations";
 import { BudgetTrackingClient } from "./budget-tracking-client";
+
+export const metadata: Metadata = {
+  title: "Budget Tracking",
+  description: "Koha against each restaurant's annual budget, night by night",
+};
 
 export default async function BudgetTrackingPage({
   searchParams,

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -9,6 +10,11 @@ import { formatInNZT } from "@/lib/timezone";
 import { parseCashRangeParams } from "@/lib/cash-reconciliation";
 import { getCashReconciliation } from "@/lib/cash-reconciliation.server";
 import { CashReconciliationClient } from "./cash-reconciliation-client";
+
+export const metadata: Metadata = {
+  title: "Cash Reconciliation",
+  description: "Cash per day for one restaurant, service nights, events and cafe days alike, totalled to check against a bank deposit",
+};
 
 export default async function CashReconciliationPage({
   searchParams,

@@ -39,7 +39,7 @@ function ChartCardSkeleton({
 export default function ShortageNotificationsLoading() {
   return (
     <AdminPageSkeleton
-      title="Shortage Notifications"
+      title="Shortage Analytics"
       description="Shift-shortage alerts sent to volunteers and the signups they drove, org-wide and by restaurant"
       className="space-y-4"
     >

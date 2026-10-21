@@ -24,50 +24,40 @@ import type {
 export interface SegmentMeta {
   title: string;
   subtitle: string;
-  /** Tailwind gradient classes for the avatar fallback. */
-  gradient: string;
 }
 
 export const SEGMENT_META: Record<EngagementSegment, SegmentMeta> = {
   total: {
     title: "All volunteers",
     subtitle: "Every registered volunteer in scope for this period",
-    gradient: "from-slate-500 to-slate-700",
   },
   highly_active: {
     title: "Highly active volunteers",
     subtitle: "Averaging 2+ completed shifts per month in the period",
-    gradient: "from-emerald-500 to-green-600",
   },
   active: {
     title: "Active volunteers",
     subtitle: "At least one completed shift in the period",
-    gradient: "from-blue-500 to-indigo-600",
   },
   inactive: {
     title: "Inactive volunteers",
     subtitle: "Have volunteered before, but not during this period",
-    gradient: "from-amber-500 to-orange-600",
   },
   never: {
     title: "Never volunteered",
     subtitle: "Registered but have never completed a shift",
-    gradient: "from-red-500 to-rose-600",
   },
   new: {
     title: "New volunteers",
     subtitle: "Completed their first ever shift during the period",
-    gradient: "from-violet-500 to-purple-600",
   },
   retention: {
     title: "Retained volunteers",
     subtitle: "Active in the prior period and again in this period",
-    gradient: "from-cyan-500 to-sky-600",
   },
   reactivated: {
     title: "Reactivated volunteers",
     subtitle: "Returned after 6+ months away (excludes first-timers)",
-    gradient: "from-emerald-500 to-teal-600",
   },
 };
 
@@ -210,7 +200,7 @@ function DialogBody({
           <ScrollArea className="h-[60vh]">
             <ul className="px-4 py-3">
               {data.users.map((u) => (
-                <UserRow key={u.id} user={u} segment={segment} meta={meta} />
+                <UserRow key={u.id} user={u} segment={segment} />
               ))}
             </ul>
           </ScrollArea>
@@ -223,11 +213,9 @@ function DialogBody({
 function UserRow({
   user,
   segment,
-  meta,
 }: {
   user: EngagementSegmentVolunteer;
   segment: EngagementSegment;
-  meta: SegmentMeta;
 }) {
   const displayName = getDisplayName(user);
   const isReactivated = segment === "reactivated";
@@ -240,9 +228,7 @@ function UserRow({
       >
         <Avatar className="h-8 w-8 shadow-sm">
           <AvatarImage src={user.profilePhotoUrl ?? ""} alt={displayName} />
-          <AvatarFallback
-            className={`bg-gradient-to-br ${meta.gradient} text-white text-xs font-semibold`}
-          >
+          <AvatarFallback className="bg-primary-light text-primary-text text-xs font-semibold">
             {getInitials(user)}
           </AvatarFallback>
         </Avatar>
