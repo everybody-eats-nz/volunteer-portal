@@ -24,7 +24,20 @@ env:
   TZ: Pacific/Auckland
 
 jobs:
+  # Dependabot PRs pause here until a reviewer approves the run in the
+  # dependabot-approval environment. Skipped (and so a no-op) for everyone else.
+  approve:
+    name: Approve Dependabot run
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    environment: dependabot-approval
+    steps:
+      - run: echo "Approved"
+
   lint:
+    needs: approve
+    # Run when the approval gate passed or was skipped, not when it was rejected.
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
 
     services:
