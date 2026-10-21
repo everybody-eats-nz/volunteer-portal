@@ -6,6 +6,7 @@ import { sendSurveyNotification } from "./email-service";
 import { Prisma, type SurveyTriggerType } from "@/generated/client";
 import { differenceInDays } from "date-fns";
 import { inVolunteerProgramme } from "@/lib/volunteer-programme";
+import { displayHours } from "@/lib/volunteer-hours";
 
 export interface EvaluateTriggerResult {
   triggered: boolean;
@@ -51,7 +52,7 @@ export function evaluateTrigger(
           : `${triggerValue}+`;
         return {
           triggered: true,
-          reason: `Volunteered ${value} hours (target: ${rangeStr})`,
+          reason: `Volunteered ${displayHours(value)} hours (target: ${rangeStr})`,
         };
       }
       return { triggered: false };
@@ -384,7 +385,7 @@ export async function findEligibleUsersForSurvey(
     case "HOURS_VOLUNTEERED": {
       // Users with total hours in range [triggerValue, triggerMaxValue]
       const maxCondition = survey.triggerMaxValue !== null
-        ? Prisma.sql`AND SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start)) / 3600) <= ${survey.triggerMaxValue}`
+        ? Prisma.sql`AND SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start))) / 3600 <= ${survey.triggerMaxValue}`
         : Prisma.empty;
 
       const rows = await prisma.$queryRaw<Array<{ userId: string }>>`
@@ -396,7 +397,7 @@ export async function findEligibleUsersForSurvey(
           AND sh."end" < NOW()
           AND u."archivedAt" IS NULL
         GROUP BY s."userId"
-        HAVING SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start)) / 3600) >= ${survey.triggerValue}
+        HAVING SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start))) / 3600 >= ${survey.triggerValue}
           ${maxCondition}
       `;
       candidateUserIds = rows.map((r) => r.userId);

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { SPOT_TAKING_STATUSES } from "@/lib/placeholder-utils";
-import { format, startOfMonth, endOfMonth, differenceInHours } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { displayHours, totalShiftHours } from "@/lib/volunteer-hours";
 import { formatInNZT, isSameDayInNZT } from "@/lib/timezone";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import Link from "next/link";
@@ -269,13 +270,12 @@ export async function MyShiftsContent({
 
   const [completedShifts, upcomingShifts] = totalStats;
 
-  const totalHours = Math.round(
-    allShifts
-      .filter((s) => s.shift.end < now && s.status === "CONFIRMED")
-      .reduce(
-        (total, s) => total + differenceInHours(s.shift.end, s.shift.start),
-        0
-      )
+  const totalHours = displayHours(
+    totalShiftHours(
+      allShifts
+        .filter((s) => s.shift.end < now && s.status === "CONFIRMED")
+        .map((s) => s.shift)
+    )
   );
 
   // Split the month's shifts into upcoming and past

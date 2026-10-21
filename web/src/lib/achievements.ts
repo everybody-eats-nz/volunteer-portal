@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import {
-  differenceInHours,
   differenceInMonths,
   differenceInYears,
   startOfDay,
 } from "date-fns";
 import { formatInNZT, toUTC } from "@/lib/timezone";
+import { totalShiftHours } from "@/lib/volunteer-hours";
 
 export interface AchievementCriteria {
   type:
@@ -341,10 +341,8 @@ export async function calculateUserProgress(
   // Calculate metrics
   const totalShifts =
     completedShifts.length + (user.completedShiftAdjustment || 0);
-  const totalHours = completedShifts.reduce(
-    (total: number, signup: (typeof completedShifts)[0]) =>
-      total + differenceInHours(signup.shift.end, signup.shift.start),
-    0
+  const totalHours = totalShiftHours(
+    completedShifts.map((signup: (typeof completedShifts)[0]) => signup.shift)
   );
   const yearsVolunteering = differenceInYears(new Date(), user.createdAt);
 
@@ -459,7 +457,7 @@ export async function calculateUserProgress(
   });
 
   // Fall back to old estimation only if no location data exists
-  const estimatedMeals = totalHours * 15; // ~15 meals per hour
+  const estimatedMeals = Math.floor(totalHours * 15); // ~15 meals per hour
   const communityImpact = hasAnyData ? totalMealsServed : estimatedMeals;
 
   // Calculate shift type counts
@@ -596,7 +594,10 @@ export async function checkAndUnlockAchievements(userId: string) {
           progressValue = progress.shift_type_counts[criteria.shiftType] || 0;
         } else {
           const progressField = progress[criteria.type as keyof UserProgress];
-          progressValue = typeof progressField === "number" ? progressField : 0;
+          // progress is an Int column and hours are fractional (32.5), so
+          // store the whole part or Prisma rejects the insert.
+          progressValue =
+            typeof progressField === "number" ? Math.floor(progressField) : 0;
         }
 
         // Use createMany + skipDuplicates so concurrent unlock checks (e.g.

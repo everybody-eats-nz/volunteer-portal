@@ -16,6 +16,7 @@ import { slideUpVariants, staggerContainer, staggerItem } from "@/lib/motion";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import Link from "next/link";
 import { ArrowRight, Trophy, Target } from "lucide-react";
+import { displayHours } from "@/lib/volunteer-hours";
 
 interface Achievement {
   id: string;
@@ -123,7 +124,7 @@ function calculateAchievementProgress(
         break;
       case "hours_volunteered":
         current = progress.hours_volunteered;
-        label = `${current} / ${criteria.value} hours`;
+        label = `${displayHours(current)} / ${criteria.value} hours`;
         break;
       case "consecutive_months":
         current = progress.consecutive_months;
