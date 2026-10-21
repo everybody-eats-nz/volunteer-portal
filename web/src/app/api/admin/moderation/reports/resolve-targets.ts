@@ -295,8 +295,13 @@ export async function resolveReportTargets(
           exists: true,
           note: GENERATED,
         };
-      default:
+      case null:
         return missing("Post");
+      default: {
+        // Adding a prefix to POST_PREFIXES without a case above fails here.
+        const unhandled: never = prefix;
+        return missing(unhandled);
+      }
     }
   };
 

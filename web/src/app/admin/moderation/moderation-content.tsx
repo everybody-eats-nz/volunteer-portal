@@ -220,14 +220,17 @@ export function ModerationContent() {
     data: reportsData,
     isValidating: loadingReports,
     mutate: mutateReports,
-  } = useSWR<{ reports: Report[] }>("/api/admin/moderation/reports", {
-    onError: () =>
-      toast({
-        title: "Error",
-        description: "Failed to load reports",
-        variant: "destructive",
-      }),
-  });
+  } = useSWR<{ reports: Report[]; resolvedHistoryLimit: number }>(
+    "/api/admin/moderation/reports",
+    {
+      onError: () =>
+        toast({
+          title: "Error",
+          description: "Failed to load reports",
+          variant: "destructive",
+        }),
+    }
+  );
   const reports = reportsData?.reports ?? [];
 
   const {
@@ -282,6 +285,7 @@ export function ModerationContent() {
   );
 
   const pendingCount = reports.filter((r) => r.status === "PENDING").length;
+  const resolvedCount = reports.filter((r) => r.status === "RESOLVED").length;
 
   return (
     <Tabs defaultValue="reports">
@@ -319,7 +323,10 @@ export function ModerationContent() {
               <Skeleton className="h-4 w-28" />
             ) : (
               <p className="text-sm text-muted-foreground">
-                {reports.length} total report{reports.length !== 1 ? "s" : ""}
+                {reports.length} report{reports.length !== 1 ? "s" : ""}
+                {resolvedCount >=
+                  (reportsData?.resolvedHistoryLimit ?? Infinity) &&
+                  `, with only the latest ${resolvedCount} resolved`}
               </p>
             )}
             <Button
