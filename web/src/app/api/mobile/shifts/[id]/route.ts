@@ -16,6 +16,7 @@ import { requiresGuardianName } from "@/lib/guardian-validation";
 import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
 import { getDayLeadsForShifts } from "@/lib/day-leads.server";
 import { formatInNZT } from "@/lib/timezone";
+import { isSignupVisible } from "@/lib/signup-visibility";
 
 /**
  * GET /api/mobile/shifts/[id]
@@ -61,6 +62,7 @@ export async function GET(
               firstName: true,
               lastName: true,
               profilePhotoUrl: true,
+              friendVisibility: true,
             },
           },
         },
@@ -157,17 +159,22 @@ export async function GET(
   // Each entry carries its status so the app can separate volunteers who are
   // confirmed from those still waiting on an admin. REGULAR_PENDING is folded
   // into PENDING because volunteers see no difference between the two.
+  // Anyone the viewer isn't allowed to see (signup-visibility.ts) is sent
+  // as an anonymous entry - the signup's own id, no name, photo or friend
+  // flag - so the app can count them but has nothing to look them up by.
   const signups = shift.signups.map((s) => {
+    const isSelf = s.user.id === userId;
+    const visible = isSelf || isSignupVisible(s, friendIds);
     const displayName =
       s.user.name ??
       [s.user.firstName, s.user.lastName].filter(Boolean).join(" ") ??
       "Volunteer";
 
     return {
-      id: s.user.id,
-      name: s.user.id === userId ? "You" : displayName,
-      profilePhotoUrl: s.user.profilePhotoUrl,
-      isFriend: friendIds.has(s.user.id),
+      id: visible ? s.user.id : s.id,
+      name: isSelf ? "You" : visible ? displayName : "Volunteer",
+      profilePhotoUrl: visible ? s.user.profilePhotoUrl : null,
+      isFriend: visible && friendIds.has(s.user.id),
       status: s.status === "REGULAR_PENDING" ? "PENDING" : s.status,
     };
   });
