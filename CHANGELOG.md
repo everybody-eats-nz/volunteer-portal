@@ -1,3 +1,9 @@
+## [0.194.0] - 2026-10-21
+
+### Changes
+- Web design foundations and volunteer-side fixes ([#1379](https://github.com/everybody-eats-nz/volunteer-portal/pull/1379)) by @malinmalliyawadu
+
+
 ## [0.193.4] - 2026-10-21
 
 ### Changes
