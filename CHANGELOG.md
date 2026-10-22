@@ -1,3 +1,9 @@
+## [0.196.0] - 2026-10-22
+
+### Changes
+- feat: unify admin analytics charts on one theme-aware chart system ([#1377](https://github.com/everybody-eats-nz/volunteer-portal/pull/1377)) by @malinmalliyawadu
+
+
 ## [0.195.0] - 2026-10-21
 
 ### Changes
