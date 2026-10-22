@@ -9,6 +9,7 @@ import {
   View,
   Text,
   ActivityIndicator,
+  RefreshControl,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
@@ -28,8 +29,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { differenceInMinutes } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 
-import { ThemedText } from "@/components/themed-text";
-import { Colors, Brand, FontFamily, Palette } from "@/constants/theme";
+import { EmptyState, ErrorState } from "@/components/ui/state-view";
+import {
+  Colors,
+  Brand,
+  FontFamily,
+  MaxFontScale,
+  Palette,
+  Radius,
+  StatusColors,
+  type StatusName,
+} from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useShiftDetail,
@@ -108,10 +118,8 @@ const MY_STATUS: Record<
     /** What happens next, in the volunteer's terms. */
     meta: string | null;
     icon: keyof typeof Ionicons.glyphMap;
-    badgeBg: string;
-    badgeBgDark: string;
-    iconColor: string;
-    iconColorDark: string;
+    /** Which status colour the badge wears (see StatusColors). */
+    tone: StatusName;
     cancelLabel: string;
     cancelPrompt: string;
     cancelBody: string;
@@ -121,10 +129,7 @@ const MY_STATUS: Record<
     title: "You're going",
     meta: null,
     icon: "checkmark",
-    badgeBg: Brand.accent,
-    badgeBgDark: Brand.accent,
-    iconColor: Brand.green,
-    iconColorDark: Brand.green,
+    tone: "confirmed",
     cancelLabel: "Cancel my signup",
     cancelPrompt: "Cancel signup?",
     cancelBody: "Are you sure you want to cancel your signup for this shift?",
@@ -133,10 +138,7 @@ const MY_STATUS: Record<
     title: "Waiting on approval",
     meta: "We'll let you know once it's confirmed.",
     icon: "time",
-    badgeBg: "#fef3c7",
-    badgeBgDark: "rgba(245, 158, 11, 0.18)",
-    iconColor: "#92400e",
-    iconColorDark: "#fbbf24",
+    tone: "pending",
     cancelLabel: "Withdraw my request",
     cancelPrompt: "Withdraw request?",
     cancelBody: "Are you sure you want to withdraw your request for this shift?",
@@ -145,10 +147,7 @@ const MY_STATUS: Record<
     title: "You're on the waitlist",
     meta: null,
     icon: "list",
-    badgeBg: "#f1f5f9",
-    badgeBgDark: "rgba(100, 116, 139, 0.25)",
-    iconColor: "#475569",
-    iconColorDark: "#cbd5e1",
+    tone: "waitlisted",
     cancelLabel: "Leave the waitlist",
     cancelPrompt: "Leave the waitlist?",
     cancelBody: "Are you sure you want to leave the waitlist for this shift?",
@@ -175,7 +174,7 @@ export default function ShiftDetailScreen() {
     periodFriends,
     eligibility,
     isLoading,
-    error,
+    errorKind,
     refresh,
   } = useShiftDetail(id);
   // Cached from the shifts list (react-query) — used to mirror the web's
@@ -197,6 +196,17 @@ export default function ShiftDetailScreen() {
   const [signupSheetVisible, setSignupSheetVisible] = useState(false);
   const [signupSheetWaitlist, setSignupSheetWaitlist] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  // Only a pull (or a retry) shows the spinner; refetches after signing up or
+  // cancelling stay quiet.
+  const [refreshing, setRefreshing] = useState(false);
+  const pullToRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refresh]);
   // Once the cover photo has scrolled away the header controls sit on paper,
   // so they (and the status bar) switch from light-on-photo to page colours.
   const [pastCover, setPastCover] = useState(false);
@@ -386,44 +396,37 @@ export default function ShiftDetailScreen() {
       <>
         <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       </>
     );
   }
 
   if (!shift) {
+    // A 404 (or no id at all) means the shift is gone; anything else is a
+    // failed load worth retrying, and offline gets told to check the network.
+    const missing = !errorKind || errorKind === "not-found";
     return (
       <>
         <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
-          <View
-            style={[s.notFoundIcon, { backgroundColor: colors.surfaceSoft }]}
-          >
-            <Ionicons
-              name="search-outline"
-              size={32}
-              color={colors.textSecondary}
+          {missing ? (
+            <EmptyState
+              icon="search-outline"
+              title="Shift not found"
+              body="It may have been removed."
+              action={{ label: "Go back", onPress: () => goBackOrHome() }}
+              testID="shift-detail-not-found"
             />
-          </View>
-          <ThemedText type="subtitle" style={{ marginTop: 12 }}>
-            {error ?? "Shift not found"}
-          </ThemedText>
-          <ThemedText
-            type="caption"
-            style={{ color: colors.textSecondary, marginTop: 4 }}
-          >
-            It may have been removed.
-          </ThemedText>
-          <Pressable
-            onPress={() => goBackOrHome()}
-            style={({ pressed }) => [
-              s.backButton,
-              { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <Text style={s.backButtonText}>Go back</Text>
-          </Pressable>
+          ) : (
+            <ErrorState
+              kind={errorKind}
+              onRetry={pullToRefresh}
+              retrying={refreshing}
+              secondaryAction={{ label: "Go back", onPress: () => goBackOrHome() }}
+              testID="shift-detail-error"
+            />
+          )}
         </View>
       </>
     );
@@ -498,7 +501,8 @@ export default function ShiftDetailScreen() {
           headerRight: () => (
             <Pressable
               onPress={handleShare}
-              hitSlop={10}
+              hitSlop={11}
+              android_ripple={{ color: colors.border, borderless: true, radius: 22 }}
               accessibilityRole="button"
               accessibilityLabel="Share this shift"
             >
@@ -517,6 +521,15 @@ export default function ShiftDetailScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={pullToRefresh}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
+          />
+        }
       >
         {/* ═══ Cover ═══ */}
         <View style={s.cover}>
@@ -612,8 +625,8 @@ export default function ShiftDetailScreen() {
               ) : statusUi ? (
                 <MyStatusRow
                   icon={statusUi.icon}
-                  badgeBg={isDark ? statusUi.badgeBgDark : statusUi.badgeBg}
-                  iconColor={isDark ? statusUi.iconColorDark : statusUi.iconColor}
+                  badgeBg={StatusColors[colorScheme][statusUi.tone].bg}
+                  iconColor={StatusColors[colorScheme][statusUi.tone].fg}
                   title={statusUi.title}
                   meta={
                     isPast
@@ -1123,7 +1136,7 @@ function PersonRow({
             <Ionicons
               name="heart"
               size={13}
-              color={isDark ? Brand.accent : Palette.forest400}
+              color={isDark ? Brand.accent : colors.tint}
             />
           )}
         </View>
@@ -1230,26 +1243,35 @@ function BlockedPill({
   isDark: boolean;
 }) {
   const warn = tone === "warn";
-  const textColor = warn
-    ? isDark
-      ? "#fbbf24"
-      : "#d97706"
-    : colors.textSecondary;
-  const backgroundColor = warn
-    ? isDark
-      ? "rgba(245,158,11,0.12)"
-      : "#fffbeb"
-    : colors.card;
-  const borderColor = warn
-    ? isDark
-      ? "rgba(245,158,11,0.28)"
-      : "#fde68a"
-    : colors.border;
+  // An account issue the volunteer can act on wears the pending (amber)
+  // status colour; a plain "not for you" stays neutral.
+  const pending = StatusColors[isDark ? "dark" : "light"].pending;
+  const textColor = warn ? pending.fg : colors.textSecondary;
 
   return (
-    <View style={[s.blockedPill, { backgroundColor, borderColor }]}>
+    <View
+      style={[
+        s.blockedPill,
+        {
+          // The pill floats over scrolling content: an opaque card underneath
+          // keeps the translucent dark-mode tone from showing it through.
+          backgroundColor: colors.card,
+          borderColor: warn ? "transparent" : colors.border,
+        },
+      ]}
+    >
+      {warn ? (
+        <View
+          style={[StyleSheet.absoluteFill, { backgroundColor: pending.bg }]}
+        />
+      ) : null}
       <Ionicons name={icon} size={18} color={textColor} />
-      <Text style={[s.blockedPillText, { color: textColor }]}>{label}</Text>
+      <Text
+        style={[s.blockedPillText, { color: textColor }]}
+        maxFontSizeMultiplier={MaxFontScale.compact}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -1268,25 +1290,6 @@ const s = StyleSheet.create({
     gap: 4,
     padding: 20,
   },
-  notFoundIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 999,
-  },
-  backButtonText: {
-    color: Palette.cream50,
-    fontFamily: FontFamily.semiBold,
-    fontSize: 15,
-  },
-
   /* ── Cover + sheet ── */
   cover: {
     height: COVER_HEIGHT,
@@ -1332,7 +1335,7 @@ const s = StyleSheet.create({
 
   /* ── Status panel ── */
   panel: {
-    borderRadius: 20,
+    borderRadius: Radius.card,
     padding: 16,
   },
   meter: { gap: 12 },
@@ -1428,7 +1431,7 @@ const s = StyleSheet.create({
 
   /* ── People ── */
   group: {
-    borderRadius: 18,
+    borderRadius: Radius.card,
     overflow: "hidden",
   },
   groupRule: {
@@ -1480,7 +1483,7 @@ const s = StyleSheet.create({
   /* ── Events ── */
   eventCard: {
     flexDirection: "row",
-    borderRadius: 18,
+    borderRadius: Radius.card,
     overflow: "hidden",
   },
   // Event images are portrait posters (4:5 / 9:16): a 4:5 thumbnail keeps the
@@ -1539,6 +1542,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
   blockedPillText: {
     fontFamily: FontFamily.semiBold,

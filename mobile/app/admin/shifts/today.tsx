@@ -6,6 +6,7 @@ import {
   FlatList,
   Image,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -14,14 +15,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { AttendanceSheet } from "@/components/admin/attendance-sheet";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { EmptyState, ErrorState } from "@/components/ui/state-view";
+import { Colors, FontFamily, MaxFontScale, Radius, StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAdminToday } from "@/hooks/use-admin";
 import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { formatTimeRange, initialOf } from "@/lib/admin-format";
 import type { TodayShift } from "@/lib/admin";
+import { loadErrorKind } from "@/lib/load-error";
 import { isShiftStarted } from "@/lib/shift-time";
-import { goBackOrHome } from "@/lib/navigation";
 
 /** YYYY-MM-DD for the device-local day at the given offset from today. */
 function dateParamForOffset(offset: number): string {
@@ -54,13 +57,13 @@ export default function TonightShiftsScreen() {
   const [offset, setOffset] = useState(0);
   const dateParam = useMemo(() => dateParamForOffset(offset), [offset]);
   const selectedLocation = useAdminLocationFilter((s) => s.selected);
-  const { data, isPending, isError, refetch, isRefetching } = useAdminToday(
+  const { data, isPending, isError, error, refetch, isRefetching } = useAdminToday(
     dateParam,
     selectedLocation
   );
 
   const rule = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)";
-  const eyebrow = isDark ? Brand.greenLight : Brand.green;
+  const offline = isError && loadErrorKind(error) === "offline";
 
   const step = (delta: number) => {
     Haptics.selectionAsync();
@@ -69,22 +72,33 @@ export default function TonightShiftsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: rule }]}>
-        <Pressable onPress={() => goBackOrHome()} hitSlop={12} style={styles.headerSide} accessibilityLabel="Back">
-          <Ionicons name="chevron-back" size={24} color={eyebrow} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Shifts</Text>
-        <View style={styles.headerSide} />
-      </View>
+      <ScreenHeader title="Shifts" borderColor={rule} />
 
       {/* Day stepper */}
       <View style={styles.stepper}>
-        <Pressable onPress={() => step(-1)} hitSlop={10} style={[styles.stepBtn, { borderColor: rule }]} accessibilityLabel="Previous day">
+        <Pressable
+          onPress={() => step(-1)}
+          android_ripple={{ color: rule }}
+          style={({ pressed }) => [styles.stepBtn, { borderColor: rule, opacity: pressed ? 0.6 : 1 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Previous day"
+        >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </Pressable>
-        <Text style={[styles.stepLabel, { color: colors.text }]}>{dayLabel(offset, dateParam)}</Text>
-        <Pressable onPress={() => step(1)} hitSlop={10} style={[styles.stepBtn, { borderColor: rule }]} accessibilityLabel="Next day">
+        <Text
+          style={[styles.stepLabel, { color: colors.text }]}
+          accessibilityRole="header"
+          accessibilityLiveRegion="polite"
+        >
+          {dayLabel(offset, dateParam)}
+        </Text>
+        <Pressable
+          onPress={() => step(1)}
+          android_ripple={{ color: rule }}
+          style={({ pressed }) => [styles.stepBtn, { borderColor: rule, opacity: pressed ? 0.6 : 1 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Next day"
+        >
           <Ionicons name="chevron-forward" size={18} color={colors.text} />
         </Pressable>
       </View>
@@ -95,25 +109,25 @@ export default function TonightShiftsScreen() {
 
       {isPending ? (
         <View style={styles.center}>
-          <ActivityIndicator color={eyebrow} />
+          <ActivityIndicator color={colors.tint} />
         </View>
       ) : isError ? (
-        <View style={styles.center}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Couldn&apos;t load shifts</Text>
-          <Pressable onPress={() => refetch()} style={styles.retryBtn}>
-            <Text style={[styles.retryText, { color: eyebrow }]}>Try again</Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          kind={offline ? "offline" : "error"}
+          title={offline ? undefined : "Couldn't load shifts"}
+          onRetry={() => refetch()}
+          retrying={isRefetching}
+        />
       ) : (data?.length ?? 0) === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>🌙</Text>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No shifts scheduled</Text>
-          <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-            {selectedLocation
+        <EmptyState
+          emoji="🌙"
+          title="No shifts scheduled"
+          body={
+            selectedLocation
               ? `Nothing on the roster at ${selectedLocation} for this day.`
-              : "Nothing on the roster for this day."}
-          </Text>
-        </View>
+              : "Nothing on the roster for this day."
+          }
+        />
       ) : (
         <FlatList
           data={data}
@@ -128,8 +142,14 @@ export default function TonightShiftsScreen() {
             />
           )}
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, gap: 14 }}
-          onRefresh={refetch}
-          refreshing={isRefetching}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.tint}
+              colors={[colors.tint]}
+            />
+          }
         />
       )}
     </View>
@@ -151,6 +171,7 @@ function ShiftCard({
   date: string;
   location: string | null;
 }) {
+  const status = StatusColors[useColorScheme()];
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   // Attendance is only meaningful once people were due to arrive. Before that
   // the button would be inviting a guess.
@@ -160,7 +181,8 @@ function ShiftCard({
   ).length;
   const short = shift.fillGap > 0;
   const fillRatio = shift.capacity > 0 ? Math.min(shift.confirmedCount / shift.capacity, 1) : 1;
-  const barColor = short ? colors.destructive : Brand.green;
+  const barColor = short ? colors.destructive : colors.tint;
+  const fillTone = short ? status.destructive : status.confirmed;
   const shown = shift.signups.slice(0, 6);
   const extra = shift.signups.length - shown.length;
 
@@ -177,10 +199,13 @@ function ShiftCard({
         <View
           style={[
             styles.fillBadge,
-            { backgroundColor: short ? "rgba(194,65,12,0.12)" : colors.primaryLight },
+            { backgroundColor: fillTone.bg },
           ]}
         >
-          <Text style={[styles.fillBadgeText, { color: short ? colors.destructive : Brand.green }]}>
+          <Text
+            style={[styles.fillBadgeText, { color: fillTone.fg }]}
+            maxFontSizeMultiplier={MaxFontScale.compact}
+          >
             {shift.confirmedCount}/{shift.capacity}
           </Text>
         </View>
@@ -198,11 +223,14 @@ function ShiftCard({
             {shift.fillGap} more {shift.fillGap === 1 ? "volunteer" : "volunteers"} needed
           </Text>
         ) : (
-          <Text style={[styles.statusOk, { color: Brand.green }]}>Fully staffed · ka pai</Text>
+          <Text style={[styles.statusOk, { color: colors.tint }]}>Fully staffed · ka pai</Text>
         )}
         {shift.pendingCount > 0 && (
           <View style={[styles.pendingChip, { borderColor: rule }]}>
-            <Text style={[styles.pendingChipText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.pendingChipText, { color: colors.textSecondary }]}
+              maxFontSizeMultiplier={MaxFontScale.compact}
+            >
               {shift.pendingCount} pending
             </Text>
           </View>
@@ -218,7 +246,10 @@ function ShiftCard({
                 <Image source={{ uri: s.volunteer.profilePhotoUrl }} style={styles.rosterAvatar} />
               ) : (
                 <View style={[styles.rosterAvatar, styles.rosterAvatarFallback, { backgroundColor: colors.primaryLight }]}>
-                  <Text style={[styles.rosterInitial, { color: Brand.green }]}>
+                  <Text
+                    style={[styles.rosterInitial, { color: colors.tint }]}
+                    maxFontSizeMultiplier={MaxFontScale.compact}
+                  >
                     {initialOf(s.volunteer.name)}
                   </Text>
                 </View>
@@ -244,7 +275,12 @@ function ShiftCard({
           {extra > 0 && (
             <View style={styles.rosterItem}>
               <View style={[styles.rosterAvatar, styles.rosterAvatarFallback, { backgroundColor: colors.surfaceSunk }]}>
-                <Text style={[styles.rosterInitial, { color: colors.textSecondary }]}>+{extra}</Text>
+                <Text
+                  style={[styles.rosterInitial, { color: colors.textSecondary }]}
+                  maxFontSizeMultiplier={MaxFontScale.compact}
+                >
+                  +{extra}
+                </Text>
               </View>
             </View>
           )}
@@ -258,18 +294,22 @@ function ShiftCard({
           onPress={() => setAttendanceOpen(true)}
           accessibilityRole="button"
           accessibilityLabel={`Take attendance for ${shift.shiftTypeName}`}
+          android_ripple={{ color: rule }}
           style={({ pressed }) => [
             styles.attendanceBtn,
             { borderColor: rule, backgroundColor: pressed ? colors.surfaceSunk : "transparent" },
           ]}
         >
-          <Ionicons name="clipboard-outline" size={16} color={Brand.green} />
-          <Text style={[styles.attendanceBtnText, { color: Brand.green }]}>
+          <Ionicons name="clipboard-outline" size={16} color={colors.tint} />
+          <Text style={[styles.attendanceBtnText, { color: colors.tint }]}>
             Take attendance
           </Text>
           {shift.noShowCount > 0 && (
-            <View style={[styles.noShowChip, { backgroundColor: "rgba(194,65,12,0.12)" }]}>
-              <Text style={[styles.noShowChipText, { color: colors.destructive }]}>
+            <View style={[styles.noShowChip, { backgroundColor: status.destructive.bg }]}>
+              <Text
+                style={[styles.noShowChipText, { color: status.destructive.fg }]}
+                maxFontSizeMultiplier={MaxFontScale.compact}
+              >
                 {shift.noShowCount} no {shift.noShowCount === 1 ? "show" : "shows"}
               </Text>
             </View>
@@ -290,16 +330,6 @@ function ShiftCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerSide: { width: 40, alignItems: "flex-start", justifyContent: "center" },
-  headerTitle: { fontFamily: FontFamily.heading, fontSize: 20 },
   stepper: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,10 +338,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   stepBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -323,14 +354,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
-  emptyEmoji: { fontSize: 42, marginBottom: 12 },
-  emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 21, marginBottom: 8, textAlign: "center" },
-  emptyBody: { fontFamily: FontFamily.regular, fontSize: 14.5, lineHeight: 21, textAlign: "center", maxWidth: 280 },
-  retryBtn: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 16 },
-  retryText: { fontFamily: FontFamily.semiBold, fontSize: 15 },
-  card: { borderRadius: 20, borderWidth: 1, padding: 16, gap: 12 },
+  card: { borderRadius: Radius.card, borderWidth: 1, padding: 16, gap: 12 },
   cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  cardTitle: { fontFamily: FontFamily.semiBold, fontSize: 16.5, lineHeight: 21 },
+  cardTitle: { fontFamily: FontFamily.semiBold, fontSize: 16, lineHeight: 21 },
   cardMeta: { fontFamily: FontFamily.regular, fontSize: 13, marginTop: 3 },
   fillBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   fillBadgeText: { fontFamily: FontFamily.bold, fontSize: 13 },
@@ -346,7 +372,7 @@ const styles = StyleSheet.create({
   rosterAvatar: { width: 26, height: 26, borderRadius: 13 },
   rosterAvatarFallback: { alignItems: "center", justifyContent: "center" },
   rosterInitial: { fontFamily: FontFamily.semiBold, fontSize: 11 },
-  rosterName: { fontFamily: FontFamily.medium, fontSize: 12.5 },
+  rosterName: { fontFamily: FontFamily.medium, fontSize: 13 },
   rosterNameAbsent: { textDecorationLine: "line-through" },
   attendanceBtn: {
     flexDirection: "row",
@@ -357,6 +383,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
   attendanceBtnText: { fontFamily: FontFamily.semiBold, fontSize: 14 },
   noShowChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },

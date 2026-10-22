@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { EmptyState } from "@/components/ui/state-view";
+import { Colors, FontFamily, MaxFontScale, StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useMarkAttendance } from "@/hooks/use-admin";
 import { formatTimeRange, initialOf } from "@/lib/admin-format";
@@ -44,6 +45,7 @@ export function AttendanceSheet({
 }) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+  const status = StatusColors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
@@ -118,6 +120,7 @@ export function AttendanceSheet({
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Close attendance"
+            android_ripple={{ color: rule, borderless: true, radius: 22 }}
             style={({ pressed }) => [
               styles.closeButton,
               {
@@ -153,16 +156,11 @@ export function AttendanceSheet({
           showsVerticalScrollIndicator={false}
         >
           {roster.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🍽️</Text>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                Nobody confirmed yet
-              </Text>
-              <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-                Attendance opens up once volunteers are confirmed for this
-                shift.
-              </Text>
-            </View>
+            <EmptyState
+              emoji="🍽️"
+              title="Nobody confirmed yet"
+              body="Attendance opens up once volunteers are confirmed for this shift."
+            />
           ) : (
             <>
               <Text style={[styles.hint, { color: colors.textSecondary }]}>
@@ -180,7 +178,8 @@ export function AttendanceSheet({
                       onPress={() => handleToggle(s)}
                       disabled={saving}
                       accessibilityRole="button"
-                      accessibilityState={{ selected: absent, disabled: saving }}
+                      accessibilityState={{ selected: absent, disabled: saving, busy: saving }}
+                      android_ripple={{ color: rule }}
                       accessibilityLabel={
                         absent
                           ? `${s.volunteer.name}, marked as no show. Tap to mark present.`
@@ -206,7 +205,10 @@ export function AttendanceSheet({
                             absent && styles.avatarAbsent,
                           ]}
                         >
-                          <Text style={[styles.initial, { color: Brand.green }]}>
+                          <Text
+                            style={[styles.initial, { color: colors.tint }]}
+                            maxFontSizeMultiplier={MaxFontScale.compact}
+                          >
                             {initialOf(s.volunteer.name)}
                           </Text>
                         </View>
@@ -224,7 +226,7 @@ export function AttendanceSheet({
                       </Text>
 
                       {saving ? (
-                        <ActivityIndicator size="small" color={Brand.green} />
+                        <ActivityIndicator size="small" color={colors.tint} />
                       ) : (
                         // Status is spelled out as well as coloured - a red dot
                         // alone doesn't survive colour blindness or a glance.
@@ -233,27 +235,26 @@ export function AttendanceSheet({
                             styles.statusChip,
                             {
                               backgroundColor: absent
-                                ? isDark
-                                  ? "rgba(248,113,113,0.16)"
-                                  : "rgba(194,65,12,0.12)"
-                                : colors.primaryLight,
+                                ? status.destructive.bg
+                                : status.confirmed.bg,
                             },
                           ]}
                         >
                           <Ionicons
                             name={absent ? "close-circle" : "checkmark-circle"}
                             size={14}
-                            color={absent ? colors.destructive : Brand.green}
+                            color={absent ? status.destructive.fg : status.confirmed.fg}
                           />
                           <Text
                             style={[
                               styles.statusChipText,
                               {
                                 color: absent
-                                  ? colors.destructive
-                                  : Brand.green,
+                                  ? status.destructive.fg
+                                  : status.confirmed.fg,
                               },
                             ]}
+                            maxFontSizeMultiplier={MaxFontScale.compact}
                           >
                             {absent ? "No show" : "Here"}
                           </Text>
@@ -320,7 +321,7 @@ const styles = StyleSheet.create({
   },
   errorText: { flex: 1, fontFamily: FontFamily.medium, fontSize: 13, lineHeight: 18 },
   body: { paddingHorizontal: 20, gap: 14 },
-  hint: { fontFamily: FontFamily.regular, fontSize: 13.5, lineHeight: 19 },
+  hint: { fontFamily: FontFamily.regular, fontSize: 14, lineHeight: 20 },
   list: { borderRadius: 18, borderWidth: 1, overflow: "hidden" },
   row: {
     flexDirection: "row",
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
   avatarFallback: { alignItems: "center", justifyContent: "center" },
   avatarAbsent: { opacity: 0.45 },
   initial: { fontFamily: FontFamily.semiBold, fontSize: 13 },
-  name: { flex: 1, fontFamily: FontFamily.medium, fontSize: 15.5 },
+  name: { flex: 1, fontFamily: FontFamily.medium, fontSize: 16 },
   nameAbsent: { textDecorationLine: "line-through" },
   statusChip: {
     flexDirection: "row",
@@ -347,14 +348,4 @@ const styles = StyleSheet.create({
   },
   statusChipText: { fontFamily: FontFamily.semiBold, fontSize: 12 },
   summary: { fontFamily: FontFamily.medium, fontSize: 13, textAlign: "center" },
-  empty: { alignItems: "center", paddingVertical: 48, gap: 10 },
-  emptyEmoji: { fontSize: 40 },
-  emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 19, textAlign: "center" },
-  emptyBody: {
-    fontFamily: FontFamily.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    maxWidth: 280,
-  },
 });

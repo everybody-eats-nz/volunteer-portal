@@ -13,6 +13,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
 import { AgreementGate, AgreementModal } from "@/components/agreement-modal";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -94,7 +95,7 @@ export function AgreementGateScreen() {
     <View
       style={[
         styles.container,
-        { backgroundColor: isDark ? "#0f1114" : Brand.warmWhite },
+        { backgroundColor: colors.background },
       ]}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -114,7 +115,7 @@ export function AgreementGateScreen() {
               { backgroundColor: isDark ? "rgba(248,251,105,0.14)" : Brand.greenLight },
             ]}
           >
-            <Ionicons name="shield-checkmark" size={26} color={Brand.green} />
+            <Ionicons name="shield-checkmark" size={26} color={colors.tint} />
           </View>
           <ThemedText
             type="heading"
@@ -125,7 +126,7 @@ export function AgreementGateScreen() {
             Welcome, {firstName} 👋
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: mutedText }]}>
-            One quick step before you start — please read and agree to our
+            One quick step before you start - please read and agree to our
             volunteer agreements. They keep our whānau and guests safe.
           </ThemedText>
         </Animated.View>
@@ -156,40 +157,40 @@ export function AgreementGateScreen() {
 
         <View style={{ flex: 1 }} />
 
-        <Pressable
-          onPress={handleContinue}
-          disabled={!bothAgreed || submitting}
-          style={({ pressed }) => [
-            styles.continueBtn,
-            {
-              backgroundColor: Brand.green,
-              opacity: !bothAgreed || submitting ? 0.45 : pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.985 : 1 }],
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !bothAgreed, busy: submitting }}
-        >
-          {bothAgreed && !submitting && (
-            <Ionicons name="checkmark-circle" size={20} color={Brand.accent} />
-          )}
-          <ThemedText style={styles.continueText}>
-            {submitting
+        <Button
+          label={
+            submitting
               ? "Saving…"
               : bothAgreed
                 ? "Agree & continue"
-                : "Read both to continue"}
-          </ThemedText>
-        </Pressable>
+                : "Read both to continue"
+          }
+          onPress={handleContinue}
+          size="lg"
+          fullWidth
+          icon={bothAgreed ? "checkmark-circle" : undefined}
+          iconLeading
+          loading={submitting}
+          disabled={!bothAgreed}
+          // handleContinue fires its own haptic once the guard passes.
+          haptic={false}
+          style={styles.continueBtn}
+        />
 
         <Pressable
           onPress={handleSignOut}
-          hitSlop={8}
-          style={styles.signOut}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Not now, sign out"
+          accessibilityState={{ disabled: submitting }}
+          android_ripple={{
+            color: isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.12)",
+            borderless: true,
+          }}
+          style={styles.signOut}
         >
           <ThemedText style={[styles.signOutText, { color: mutedText }]}>
-            Not now — sign out
+            Not now - sign out
           </ThemedText>
         </Pressable>
       </ScrollView>
@@ -238,25 +239,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   continueBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    minHeight: 54,
-    borderRadius: 16,
-    paddingHorizontal: 20,
     marginTop: 24,
-  },
-  continueText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 16,
-    color: "#fffdf7",
-    letterSpacing: 0.2,
   },
   signOut: {
     alignSelf: "center",
-    marginTop: 16,
-    paddingVertical: 6,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 12,
+    marginTop: 8,
   },
   signOutText: {
     fontFamily: FontFamily.medium,

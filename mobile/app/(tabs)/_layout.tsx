@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Platform } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
@@ -8,7 +7,7 @@ import { useTeamUnreadCount } from '@/hooks/use-team-unread';
 import { useAdminUnreadCount } from '@/hooks/use-admin';
 import { useDriverState } from '@/hooks/use-van';
 import { useAuth } from '@/lib/auth';
-import { Colors } from '@/constants/theme';
+import { Colors, Tones } from '@/constants/theme';
 import LoginScreen from '@/app/(auth)/login';
 
 export default function TabLayout() {
@@ -19,10 +18,13 @@ export default function TabLayout() {
   const adminUnreadCount = useAdminUnreadCount(isAuthenticated && isAdmin);
   // Driving is a capability, not a role: the tab is gated on an APPROVED
   // DriverProfile, never on user.role, so a volunteer who also drives stays a
-  // volunteer. An admin who drives gets six triggers — iOS pushes the last
-  // into "More", which is the accepted cost of not demoting either hub.
+  // volunteer. An admin who drives would get six triggers and iOS would bury
+  // Profile under "More", so for them Help moves into the Admin hub (as rows
+  // for the assistant and the team thread) and the bar stays at five.
   const { data: driver } = useDriverState(isAuthenticated);
   const canDrive = driver?.canDrive === true;
+  const showHelpTab = !(isAdmin && canDrive);
+  const colors = Colors[colorScheme];
 
   const eeLight = useMemo(() => ({
     ...DefaultTheme,
@@ -60,12 +62,13 @@ export default function TabLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
       {/* NativeTabs ignores the navigation theme's `primary`, so without an
-          explicit tint iOS paints the active tab system blue. Android keeps
-          its Material You defaults. */}
+          explicit tint iOS paints the active tab system blue and Android uses
+          its Material You wallpaper colour. Both get the brand tint; Android
+          also gets a forest active indicator and ripple. */}
       <NativeTabs
-        tintColor={
-          Platform.OS === 'ios' ? Colors[colorScheme ?? 'light'].tint : undefined
-        }
+        tintColor={colors.tint}
+        indicatorColor={Tones[colorScheme].forest.bg}
+        rippleColor={Tones[colorScheme].forest.bg}
       >
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
@@ -83,18 +86,20 @@ export default function TabLayout() {
           />
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="chat">
-          <NativeTabs.Trigger.Label>Help</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon
-            sf={{ default: 'sparkles', selected: 'sparkles' }}
-            md="chat"
-          />
-          {teamUnreadCount > 0 && (
-            <NativeTabs.Trigger.Badge>
-              {teamUnreadCount > 99 ? '99+' : String(teamUnreadCount)}
-            </NativeTabs.Trigger.Badge>
-          )}
-        </NativeTabs.Trigger>
+        {showHelpTab && (
+          <NativeTabs.Trigger name="chat">
+            <NativeTabs.Trigger.Label>Help</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Icon
+              sf={{ default: 'sparkles', selected: 'sparkles' }}
+              md="chat"
+            />
+            {teamUnreadCount > 0 && (
+              <NativeTabs.Trigger.Badge>
+                {teamUnreadCount > 99 ? '99+' : String(teamUnreadCount)}
+              </NativeTabs.Trigger.Badge>
+            )}
+          </NativeTabs.Trigger>
+        )}
 
         {canDrive && (
           <NativeTabs.Trigger name="drive">

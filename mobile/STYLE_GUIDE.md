@@ -102,6 +102,37 @@ Import `Brand`, `Colors`, `Palette` from `@/constants/theme`. Always use
 | `colors.accentGlow`    | sun/0.18     | sun/0.16     | Warm glow on dark panels       |
 | `colors.destructive`   | `#C2410C`    | `#F87171`    | Destructive actions            |
 
+### Foreground vs fill
+
+`Brand.green` (forest-500) is a **fill**: buttons, badges, avatar fallbacks. As
+text or an icon it is about 2:1 on the dark background, so foregrounds that
+should read as "brand green" use `colors.tint` (forest-500 light, `#86D99B`
+dark). The same goes for spinners and `RefreshControl` tints. The one
+exception is a foreground on a surface that stays light in both schemes.
+
+### Tones (tinted tiles and pills)
+
+`Tones[scheme][name]` gives a soft `bg` and a readable `fg` (≥4.5:1) for icon
+tiles, category pills and notification icons, in both schemes. Light is a
+pastel with an 800-weight foreground; dark is the same hue at low opacity with
+a 300-weight foreground. Names: `forest`, `sun`, `amber`, `orange`, `red`,
+`pink`, `violet`, `blue`, `sky`, `teal`, `emerald`, `slate`. Never hard-code a
+pastel hex in a screen: it will glow in dark mode.
+
+```tsx
+const tone = Tones[scheme].violet;
+<View style={{ backgroundColor: tone.bg }}><Ionicons color={tone.fg} … /></View>
+```
+
+### Status colours
+
+Every signup / shift status takes its colour from
+`StatusColors[scheme].confirmed | pending | waitlisted | completed | destructive`.
+`bg` + `fg` are the soft badge on a page or card; `solid` + `onSolid` are the
+filled pill on a dark panel such as the home hero. Confirmed is forest, pending
+is amber, waitlisted is slate, completed is paper, destructive (full,
+cancelled, declined) is red. Always pair the colour with an icon or a word.
+
 ## Te Reo Maori
 
 Weave Maori naturally — don't force it. The tone is warm and respectful.
@@ -261,6 +292,19 @@ const fieldsRef = useRef<View>(null);
 - Do not use it inside an RN `Modal`: the modal's own window still resizes for
   the keyboard.
 
+### Dynamic Type
+
+Text scales with the system setting, so layouts must grow with it:
+
+- No fixed `height` on anything holding text. Use `minHeight` and let it grow;
+  never `overflow: 'hidden'` a text container to keep a shape.
+- Compact labels inside a fixed shape (pills, badges, chips, counters, emoji
+  wells) cap their growth with `maxFontSizeMultiplier={MaxFontScale.compact}`
+  (1.4). Body text, titles and buttons scale freely.
+- Buttons never truncate: the shared `Button` wraps its label.
+- Keep font sizes on the scale (11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 28,
+  30, 40), with integer line heights. No fractional sizes.
+
 ### Spacing
 
 - Page horizontal padding: `20px`
@@ -273,12 +317,14 @@ const fieldsRef = useRef<View>(null);
 
 Round generously — the marketing brand uses soft, paper-like corners.
 
-- Large feature / statement panels: `28–32px`
-- Standard cards: `24px`
-- Pill buttons & pill badges: `999` (fully rounded)
-- Small badges/chips: `12px`
+Use the `Radius` tokens from `@/constants/theme`:
+
+- Large feature / statement panels: `Radius.panel` (28; up to 32)
+- Standard cards: `Radius.card` (24)
+- Pill buttons & pill badges: `Radius.pill` (999, fully rounded)
+- Small badges/chips: `Radius.chip` (12)
 - Avatars: fully round (`borderRadius: width/2`)
-- Feed icons: `14px` (squircle)
+- Feed icons: `Radius.tile` (14, squircle)
 
 ### Cards
 
@@ -324,9 +370,42 @@ import { Button } from '@/components/ui/button';
 ```
 
 Variants: `primary` (forest fill, cream text), `ghost` (hairline outline,
-`onPanel` for dark surfaces), `accent` (sun-200, ink text — use sparingly).
-For complex bespoke pressables that carry layout, just round corners to `999`
-and retint rather than replacing them.
+`onPanel` for dark surfaces), `accent` (sun-200, ink text — use sparingly),
+`destructive` (hairline outline, destructive text: decline, cancel, leave).
+Sizes `sm` (40pt drawn, 44pt touch target via `hitSlop`), `md`, `lg`. Pass
+`loading` while a request is in flight (it marks the button busy). Labels wrap
+instead of truncating at large text sizes.
+
+Reach for `Button` before hand-rolling a pill. For complex bespoke pressables
+that carry layout, just round corners to `999` and retint rather than
+replacing them.
+
+### Empty and error states
+
+A screen with nothing to show uses the shared state views from
+`@/components/ui/state-view`:
+
+```tsx
+<EmptyState emoji="🌙" title="No shifts scheduled" body="Nothing on the roster for this day." />
+<EmptyState icon="calendar-outline" title="Shift not found" body="It may have been removed."
+  action={{ label: "Go back", onPress: goBackOrHome }} />
+<ErrorState kind={loadErrorKind(error)} onRetry={refetch} retrying={isRefetching} />
+```
+
+- Tell a load that failed apart from a record that is gone. `loadErrorKind`
+  (`@/lib/load-error`) returns `not-found` (404: an `EmptyState` with a way
+  back), `offline` (the request never reached the server) or `error`.
+- `ErrorState` always offers "Try again". Screens that can fail also get
+  pull-to-refresh (`RefreshControl`, tinted `colors.tint`).
+
+### Screen header
+
+Screens without a native stack header (admin, help, the driver flows) use
+`ScreenHeader` from `@/components/ui/screen-header`: a 44pt back target with
+the shared 22pt chevron and a button role, a centred title, an optional
+`right` slot and a hairline. Pass `center` for custom title content and the
+screen's paper colours through `tint`, `titleColor` and `borderColor`. The
+driver flows use `HeaderBackButton bordered` for their round back button.
 
 ### Panels & the sun glow
 
@@ -351,6 +430,18 @@ content (clipped by the panel's `overflow: 'hidden'` + rounded corners):
 - Cards/buttons: `opacity: pressed ? 0.85–0.95 : 1`
 - Feed items: `opacity: pressed ? 0.7 : 1`
 - Like button: `opacity: pressed ? 0.5 : 1`
+- Android: give custom `Pressable`s an `android_ripple` (borderless for icon
+  buttons; `overflow: 'hidden'` on rounded ones so it clips). The shared
+  `Button` and `HeaderBackButton` already do.
+
+### Touch targets and labels
+
+- Every tappable element is at least 44×44pt. Extend small visuals with
+  `hitSlop` rather than growing them.
+- Icon-only buttons get `accessibilityRole="button"` and an
+  `accessibilityLabel`. Toggles say what they are: a checkbox is
+  `accessibilityRole="checkbox"` with `accessibilityState={{ checked }}`, a like
+  carries `selected`.
 
 ### Haptic Feedback
 
@@ -365,9 +456,13 @@ Use `expo-haptics` for:
 Uses `NativeTabs` from `expo-router/unstable-native-tabs` for truly native tab bars:
 
 - **iOS**: SF Symbols with filled/outline toggle (gets liquid glass on iOS 26 automatically)
-- **Android**: Material icons via `md` prop
+- **Android**: Material icons via `md` prop, brand `tintColor` plus a forest
+  active indicator and ripple (otherwise Material You picks a wallpaper colour)
 - Wrapped in `ThemeProvider` with EE brand colours for proper theming
 - No custom JS tab bar — fully native rendering
+- **Five tabs at most.** iOS moves a sixth into "More". Drive and Admin are
+  conditional; an admin who drives has Help in the Admin hub instead of a Help
+  tab.
 
 ```tsx
 import { NativeTabs } from "expo-router/unstable-native-tabs";
@@ -395,11 +490,14 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 | File                         | Purpose                                    |
 | ---------------------------- | ------------------------------------------ |
-| `constants/theme.ts`         | Palette, Brand, Colors, FontFamily tokens  |
+| `constants/theme.ts`         | Palette, Brand, Colors, Tones, StatusColors, Radius, MaxFontScale, FontFamily |
 | `components/themed-text.tsx` | Themed text + display/accent type scale    |
 | `components/ui/eyebrow.tsx`  | Section/screen eyebrow (uppercase kicker)   |
-| `components/ui/button.tsx`   | Pill Button (primary / ghost / accent)      |
-| `components/haptic-tab.tsx`  | Tab bar button with haptic feedback        |
+| `components/ui/button.tsx`   | Pill Button (primary / ghost / accent / destructive) |
+| `components/ui/state-view.tsx` | EmptyState / ErrorState                  |
+| `components/ui/screen-header.tsx` | ScreenHeader + HeaderBackButton       |
+| `components/home/*`          | Home tab sections (hero, needs, feed, sheet) |
+| `lib/load-error.ts`          | Classify a failed load (not-found / offline / error) |
 | `app/_layout.tsx`            | Font loading, theme provider               |
 | `app/(tabs)/_layout.tsx`     | Tab configuration                          |
 | `lib/dummy-data.ts`          | All dummy data types and values            |

@@ -110,6 +110,34 @@ describe('Button', () => {
       expect(style.borderWidth).toBe(1);
       expect(labelColor(tree)).toBe(Colors.light.tint);
     });
+
+    it('destructive is a hairline outline with destructive text', () => {
+      const tree = render(<Button label="Decline" variant="destructive" onPress={() => {}} />);
+      const style = pressableStyle(tree);
+      expect(style.backgroundColor).toBe('transparent');
+      expect(style.borderWidth).toBe(1);
+      expect(labelColor(tree)).toBe(Colors.light.destructive);
+    });
+  });
+
+  it('lets the label wrap instead of truncating at large text sizes', () => {
+    const tree = render(<Button label="Read both to continue" onPress={() => {}} />);
+    expect(tree.root.findByType(Text).props.numberOfLines).toBeUndefined();
+  });
+
+  it('extends the small size to a 44pt touch target', () => {
+    const tree = render(<Button label="Go" size="sm" onPress={() => {}} />);
+    const pressable = tree.root.findByType(Pressable);
+    const minH = flatten(pressable.props.style({ pressed: false })).minHeight;
+    expect(minH + pressable.props.hitSlop.top + pressable.props.hitSlop.bottom).toBeGreaterThanOrEqual(44);
+  });
+
+  it('marks a loading button busy', () => {
+    const tree = render(<Button label="Saving" onPress={() => {}} loading />);
+    expect(tree.root.findByType(Pressable).props.accessibilityState).toEqual({
+      disabled: true,
+      busy: true,
+    });
   });
 
   it('dims to ~45% opacity when disabled', () => {

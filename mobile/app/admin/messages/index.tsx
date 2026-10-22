@@ -8,6 +8,7 @@ import {
   FlatList,
   Image,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -15,7 +16,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { EmptyState, ErrorState } from "@/components/ui/state-view";
+import { Brand, Colors, FontFamily, MaxFontScale } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useAdminThreads,
@@ -26,7 +29,7 @@ import { formatRelativeTime, initialOf } from "@/lib/admin-format";
 import { syncPushTokenWithServer } from "@/lib/push-notifications";
 import { queryClient } from "@/lib/query-client";
 import type { AdminThreadListItem, ThreadStatus } from "@/lib/admin";
-import { goBackOrHome } from "@/lib/navigation";
+import { loadErrorKind } from "@/lib/load-error";
 
 type Filter = ThreadStatus | "ALL";
 const FILTERS: { key: Filter; label: string }[] = [
@@ -52,7 +55,7 @@ export default function AdminInboxScreen() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  const { data, isPending, isError, refetch, isRefetching } = useAdminThreads({
+  const { data, isPending, isError, error, refetch, isRefetching } = useAdminThreads({
     status: filter,
     search,
   });
@@ -66,7 +69,7 @@ export default function AdminInboxScreen() {
   );
 
   const rule = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)";
-  const eyebrow = isDark ? Brand.greenLight : Brand.green;
+  const offline = isError && loadErrorKind(error) === "offline";
 
   const notifyPref = useAdminMessageNotifyPref();
   const toggleNotify = useCallback(async () => {
@@ -104,38 +107,32 @@ export default function AdminInboxScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: rule }]}>
-        <Pressable
-          onPress={() => goBackOrHome()}
-          hitSlop={12}
-          style={styles.backBtn}
-          accessibilityLabel="Back"
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={24} color={eyebrow} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Messages</Text>
-        <Pressable
-          onPress={toggleNotify}
-          hitSlop={12}
-          disabled={notifyPref.isLoading || notifyPref.isSaving}
-          style={styles.notifyBtn}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: notifyPref.enabled }}
-          accessibilityLabel={
-            notifyPref.enabled
-              ? "Turn off new-message notifications"
-              : "Turn on new-message notifications"
-          }
-        >
-          <Ionicons
-            name={notifyPref.enabled ? "notifications" : "notifications-off-outline"}
-            size={22}
-            color={notifyPref.enabled ? eyebrow : colors.textSecondary}
-          />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title="Messages"
+        borderColor={rule}
+        right={
+          <Pressable
+            onPress={toggleNotify}
+            hitSlop={4}
+            disabled={notifyPref.isLoading || notifyPref.isSaving}
+            android_ripple={{ color: rule, borderless: true, radius: 22 }}
+            style={({ pressed }) => [styles.notifyBtn, { opacity: pressed ? 0.6 : 1 }]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: notifyPref.enabled }}
+            accessibilityLabel={
+              notifyPref.enabled
+                ? "Turn off new-message notifications"
+                : "Turn on new-message notifications"
+            }
+          >
+            <Ionicons
+              name={notifyPref.enabled ? "notifications" : "notifications-off-outline"}
+              size={22}
+              color={notifyPref.enabled ? colors.tint : colors.textSecondary}
+            />
+          </Pressable>
+        }
+      />
 
       {/* Search */}
       <View style={styles.controls}>
@@ -153,7 +150,13 @@ export default function AdminInboxScreen() {
             accessibilityLabel="Search conversations"
           />
           {searchInput.length > 0 && (
-            <Pressable onPress={() => setSearchInput("")} hitSlop={10}>
+            <Pressable
+              onPress={() => setSearchInput("")}
+              hitSlop={14}
+              android_ripple={{ color: rule, borderless: true, radius: 22 }}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
               <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
             </Pressable>
           )}
@@ -170,6 +173,8 @@ export default function AdminInboxScreen() {
                   Haptics.selectionAsync();
                   setFilter(f.key);
                 }}
+                hitSlop={{ top: 5, bottom: 5 }}
+                android_ripple={{ color: rule }}
                 style={[
                   styles.filterChip,
                   {
@@ -183,8 +188,9 @@ export default function AdminInboxScreen() {
                 <Text
                   style={[
                     styles.filterChipText,
-                    { color: active ? "#FDF8EF" : colors.textSecondary },
+                    { color: active ? colors.panelText : colors.textSecondary },
                   ]}
+                  maxFontSizeMultiplier={MaxFontScale.compact}
                 >
                   {f.label}
                 </Text>
@@ -197,25 +203,31 @@ export default function AdminInboxScreen() {
       {/* List */}
       {isPending ? (
         <View style={styles.center}>
-          <ActivityIndicator color={eyebrow} />
+          <ActivityIndicator color={colors.tint} />
         </View>
       ) : isError ? (
-        <View style={styles.center}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Couldn&apos;t load messages</Text>
-          <Pressable onPress={() => refetch()} style={styles.retryBtn}>
-            <Text style={[styles.retryText, { color: eyebrow }]}>Try again</Text>
-          </Pressable>
-        </View>
+        <ErrorState
+          kind={offline ? "offline" : "error"}
+          title={offline ? undefined : "Couldn't load messages"}
+          onRetry={() => refetch()}
+          retrying={isRefetching}
+        />
       ) : (data?.length ?? 0) === 0 ? (
-        <EmptyState colors={colors} filter={filter} search={search} />
+        <InboxEmpty filter={filter} search={search} />
       ) : (
         <FlatList
           data={data}
           renderItem={renderItem}
           keyExtractor={(t) => t.id}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-          onRefresh={refetch}
-          refreshing={isRefetching}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.tint}
+              colors={[colors.tint]}
+            />
+          }
           ItemSeparatorComponent={() => (
             <View style={[styles.separator, { backgroundColor: rule }]} />
           )}
@@ -246,6 +258,7 @@ const ThreadRow = React.memo(function ThreadRow({
   return (
     <Pressable
       onPress={onPress}
+      android_ripple={{ color: rule }}
       style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
       accessibilityRole="button"
       accessibilityLabel={`Conversation with ${item.volunteer.name}${item.unreadForTeam ? ", unread" : ""}`}
@@ -254,7 +267,7 @@ const ThreadRow = React.memo(function ThreadRow({
         <Image source={{ uri: item.volunteer.profilePhotoUrl }} style={styles.avatar} />
       ) : (
         <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.primaryLight }]}>
-          <Text style={[styles.avatarInitial, { color: Brand.green }]}>
+          <Text style={[styles.avatarInitial, { color: colors.tint }]}>
             {initialOf(item.volunteer.name)}
           </Text>
         </View>
@@ -293,7 +306,7 @@ const ThreadRow = React.memo(function ThreadRow({
               <Ionicons name="checkmark" size={11} color={colors.textSecondary} />
             </View>
           )}
-          {item.unreadForTeam && <View style={styles.unreadDot} />}
+          {item.unreadForTeam && <View style={[styles.unreadDot, { backgroundColor: colors.tint }]} />}
         </View>
       </View>
     </Pressable>
@@ -302,46 +315,22 @@ const ThreadRow = React.memo(function ThreadRow({
 
 /* ─── Empty state ───────────────────────────────────────────── */
 
-function EmptyState({
-  colors,
-  filter,
-  search,
-}: {
-  colors: (typeof Colors)["light"];
-  filter: Filter;
-  search: string;
-}) {
+function InboxEmpty({ filter, search }: { filter: Filter; search: string }) {
   const message = search
     ? "No conversations match your search."
     : filter === "OPEN"
-      ? "No open conversations — you're all caught up. Ka pai!"
+      ? "No open conversations. You're all caught up. Ka pai!"
       : filter === "RESOLVED"
         ? "No resolved conversations yet."
         : "No conversations yet.";
-  return (
-    <View style={styles.center}>
-      <Text style={styles.emptyEmoji}>📭</Text>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Inbox zero</Text>
-      <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>{message}</Text>
-    </View>
-  );
+  return <EmptyState emoji="📭" title="Inbox zero" body={message} />;
 }
 
 /* ─── Styles ────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backBtn: { width: 40, alignItems: "flex-start", justifyContent: "center" },
-  notifyBtn: { width: 40, alignItems: "flex-end", justifyContent: "center" },
-  headerTitle: { fontFamily: FontFamily.heading, fontSize: 20 },
+  notifyBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   controls: { paddingHorizontal: 16, paddingTop: 14, gap: 12 },
   searchField: {
     flexDirection: "row",
@@ -359,6 +348,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
+    overflow: "hidden",
   },
   filterChipText: { fontFamily: FontFamily.semiBold, fontSize: 13 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
@@ -387,10 +377,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  unreadDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: Brand.green },
-  emptyEmoji: { fontSize: 44, marginBottom: 14 },
-  emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 22, marginBottom: 8, textAlign: "center" },
-  emptyBody: { fontFamily: FontFamily.regular, fontSize: 14.5, lineHeight: 21, textAlign: "center", maxWidth: 300 },
-  retryBtn: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 16 },
-  retryText: { fontFamily: FontFamily.semiBold, fontSize: 15 },
+  unreadDot: { width: 9, height: 9, borderRadius: 4.5 },
 });

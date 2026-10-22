@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 import { api } from "@/lib/api";
+import { loadErrorKind, type LoadErrorKind } from "@/lib/load-error";
 import { queryKeys } from "@/lib/query-keys";
 
 export type UserFriendshipStatus =
@@ -92,6 +93,8 @@ type UseUserProfileReturn = {
   profile: UserProfile | null;
   isLoading: boolean;
   error: string | null;
+  /** Why the load failed (gone, offline or a server error), from the raw error. */
+  errorKind: LoadErrorKind | null;
   refresh: () => Promise<void>;
   setProfile: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
 };
@@ -129,6 +132,7 @@ export function useUserProfile(userId: string): UseUserProfileReturn {
         ? query.error.message
         : "Failed to load profile"
       : null,
+    errorKind: query.error ? loadErrorKind(query.error) : null,
     refresh: async () => {
       await query.refetch();
     },

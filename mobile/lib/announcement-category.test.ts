@@ -11,6 +11,15 @@ describe("announcementCategoryPill", () => {
     expect(announcementCategoryPill(category)?.label).toBe(label);
   });
 
+  it.each([
+    ["SHIFT_RELATED", "emerald"],
+    ["URGENT", "red"],
+    ["SHIFT_SHORTAGE", "amber"],
+    ["PROMOTIONAL", "sky"],
+  ])("colours %s with the %s tone", (category, tone) => {
+    expect(announcementCategoryPill(category)?.tone).toBe(tone);
+  });
+
   it("shows nothing for announcements from an older API", () => {
     expect(announcementCategoryPill(undefined)).toBeNull();
   });

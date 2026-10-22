@@ -37,8 +37,18 @@ import { ClosedDayCard } from "@/components/closed-day-card";
 import { ShiftMonthCalendar } from "@/components/shift-month-calendar";
 import { DayLeadsRow } from "@/components/day-leads-row";
 import { ThemedText } from "@/components/themed-text";
+import { ErrorState } from "@/components/ui/state-view";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
-import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import {
+  Brand,
+  Colors,
+  FontFamily,
+  MaxFontScale,
+  Palette,
+  StatusColors,
+  Tones,
+  type StatusName,
+} from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
@@ -133,45 +143,15 @@ const STATUS_CONFIG: Record<
   string,
   {
     icon: keyof typeof Ionicons.glyphMap;
-    bg: string;
-    bgDark: string;
-    text: string;
-    textDark: string;
+    /** Which status colour the badge wears (see StatusColors). */
+    tone: StatusName;
     label: string;
   }
 > = {
-  CONFIRMED: {
-    icon: "checkmark-circle",
-    bg: "#E3EEE5", // soft forest tint
-    bgDark: "rgba(29, 83, 55, 0.22)",
-    text: Palette.forest500,
-    textDark: "#86D99B",
-    label: "Confirmed",
-  },
-  PENDING: {
-    icon: "time",
-    bg: "#fef3c7",
-    bgDark: "rgba(245, 158, 11, 0.15)",
-    text: "#92400e",
-    textDark: "#fbbf24",
-    label: "Pending",
-  },
-  WAITLISTED: {
-    icon: "list",
-    bg: "#f1f5f9",
-    bgDark: "rgba(100, 116, 139, 0.2)",
-    text: "#475569",
-    textDark: "#94a3b8",
-    label: "Waitlisted",
-  },
-  COMPLETED: {
-    icon: "checkmark-done",
-    bg: Palette.cream200,
-    bgDark: "rgba(253,248,239,0.08)",
-    text: "#57534e",
-    textDark: "#d6d3d1",
-    label: "Completed",
-  },
+  CONFIRMED: { icon: "checkmark-circle", tone: "confirmed", label: "Confirmed" },
+  PENDING: { icon: "time", tone: "pending", label: "Pending" },
+  WAITLISTED: { icon: "list", tone: "waitlisted", label: "Waitlisted" },
+  COMPLETED: { icon: "checkmark-done", tone: "completed", label: "Completed" },
 };
 
 /* ── Main Screen ── */
@@ -188,6 +168,7 @@ export default function ShiftsScreen() {
     past,
     isLoading,
     error,
+    errorKind,
     refresh,
     loadMorePast,
     isLoadingMore,
@@ -494,12 +475,24 @@ export default function ShiftsScreen() {
     })();
   }, [isLoading, loadMorePast]);
 
-  const showInitialLoading =
-    isLoading &&
-    myShifts.length === 0 &&
-    available.length === 0 &&
-    past.length === 0 &&
-    !error;
+  const hasAnyShifts =
+    myShifts.length > 0 || available.length > 0 || past.length > 0;
+  const showInitialLoading = isLoading && !hasAnyShifts && !error;
+  // A failed refetch keeps the shifts already on screen; only a first load
+  // that failed replaces the calendar with the error state.
+  const showError = Boolean(error) && !isLoading && !hasAnyShifts;
+
+  // Only a pull (or a retry) shows the spinner; background refetches and the
+  // first load (which has its own spinner) stay quiet.
+  const [refreshing, setRefreshing] = useState(false);
+  const pullToRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refresh]);
 
   return (
     <>
@@ -517,8 +510,8 @@ export default function ShiftsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refresh}
+            refreshing={refreshing}
+            onRefresh={pullToRefresh}
             tintColor={colors.tint}
             colors={[colors.tint]}
             progressBackgroundColor={colors.card}
@@ -565,26 +558,15 @@ export default function ShiftsScreen() {
         />
 
         {/* Error */}
-        {error && !isLoading && (
-          <View style={styles.emptyState}>
-            <View
-              style={[
-                styles.emptyIconCircle,
-                { backgroundColor: "rgba(239, 68, 68, 0.1)" },
-              ]}
-            >
-              <Ionicons name="cloud-offline-outline" size={32} color="#ef4444" />
-            </View>
-            <ThemedText type="subtitle" style={{ textAlign: "center" }}>
-              {"Couldn't load shifts"}
-            </ThemedText>
-            <ThemedText
-              type="caption"
-              style={{ color: colors.textSecondary, textAlign: "center" }}
-            >
-              Pull down to try again
-            </ThemedText>
-          </View>
+        {showError && (
+          <ErrorState
+            kind={errorKind === "offline" ? "offline" : "error"}
+            title={errorKind === "offline" ? undefined : "Couldn't load shifts"}
+            onRetry={pullToRefresh}
+            retrying={refreshing}
+            style={styles.errorState}
+            testID="shifts-error"
+          />
         )}
 
         {/* Initial loading */}
@@ -600,7 +582,7 @@ export default function ShiftsScreen() {
           </View>
         )}
 
-        {!error && !showInitialLoading && (
+        {!showError && !showInitialLoading && (
           <>
             {/* Next shift pill */}
             {nextShift && (
@@ -799,6 +781,7 @@ function LocationPill({
       <Text
         style={[styles.locationPillText, { color: colors.text }]}
         numberOfLines={1}
+        maxFontSizeMultiplier={MaxFontScale.compact}
       >
         {label}
       </Text>
@@ -808,7 +791,7 @@ function LocationPill({
           style={[
             styles.locationPillDot,
             {
-              backgroundColor: isDark ? colors.tint : Brand.green,
+              backgroundColor: colors.tint,
               borderColor: colors.background,
             },
           ]}
@@ -918,6 +901,7 @@ function LocationPickerSheet({
                 opacity: pressed ? 0.6 : 1,
               },
             ]}
+            android_ripple={{ color: colors.border, borderless: true, radius: 22 }}
           >
             <Ionicons name="close" size={18} color={colors.textSecondary} />
           </Pressable>
@@ -938,9 +922,7 @@ function LocationPickerSheet({
                   styles.sheetItem,
                   {
                     backgroundColor: active
-                      ? isDark
-                        ? "rgba(29, 83, 55, 0.22)"
-                        : Brand.greenLight
+                      ? Tones[isDark ? "dark" : "light"].forest.bg
                       : pressed
                       ? isDark
                         ? "rgba(253,248,239,0.04)"
@@ -954,24 +936,14 @@ function LocationPickerSheet({
                 <Ionicons
                   name={item.icon}
                   size={18}
-                  color={
-                    active
-                      ? isDark
-                        ? colors.tint
-                        : Brand.green
-                      : colors.textSecondary
-                  }
+                  color={active ? colors.tint : colors.textSecondary}
                 />
                 <View style={styles.sheetItemLabelRow}>
                   <Text
                     style={[
                       styles.sheetItemText,
                       {
-                        color: active
-                          ? isDark
-                            ? colors.tint
-                            : Brand.green
-                          : colors.text,
+                        color: active ? colors.tint : colors.text,
                         fontFamily: active
                           ? FontFamily.semiBold
                           : FontFamily.regular,
@@ -985,18 +957,15 @@ function LocationPickerSheet({
                     <View
                       style={[
                         styles.newChip,
-                        {
-                          backgroundColor: isDark
-                            ? "rgba(29, 83, 55, 0.35)"
-                            : Brand.greenLight,
-                        },
+                        { backgroundColor: Tones[isDark ? "dark" : "light"].forest.bg },
                       ]}
                     >
                       <Text
                         style={[
                           styles.newChipText,
-                          { color: isDark ? colors.tint : Brand.green },
+                          { color: Tones[isDark ? "dark" : "light"].forest.fg },
                         ]}
+                        maxFontSizeMultiplier={MaxFontScale.compact}
                       >
                         NEW
                       </Text>
@@ -1004,11 +973,7 @@ function LocationPickerSheet({
                   )}
                 </View>
                 {active && (
-                  <Ionicons
-                    name="checkmark"
-                    size={18}
-                    color={isDark ? colors.tint : Brand.green}
-                  />
+                  <Ionicons name="checkmark" size={18} color={colors.tint} />
                 )}
               </Pressable>
             );
@@ -1134,9 +1099,7 @@ function DateNavHeader({
               styles.dateNavRelativePill,
               {
                 backgroundColor: isTodayLabel
-                  ? isDark
-                    ? "rgba(29, 83, 55, 0.22)"
-                    : Brand.greenLight
+                  ? Tones[isDark ? "dark" : "light"].forest.bg
                   : isDark
                   ? "rgba(253,248,239,0.05)"
                   : "rgba(29, 83, 55, 0.05)",
@@ -1147,13 +1110,10 @@ function DateNavHeader({
               style={[
                 styles.dateNavRelativeText,
                 {
-                  color: isTodayLabel
-                    ? isDark
-                      ? colors.tint
-                      : Brand.green
-                    : colors.textSecondary,
+                  color: isTodayLabel ? colors.tint : colors.textSecondary,
                 },
               ]}
+              maxFontSizeMultiplier={MaxFontScale.compact}
             >
               {relative}
             </Text>
@@ -1181,6 +1141,7 @@ function DateNavHeader({
               >
                 <Text
                   style={[styles.dateNavThemeText, { color: colors.text }]}
+                  maxFontSizeMultiplier={MaxFontScale.compact}
                 >
                   {showThemeLocation && (
                     <Text style={styles.dateNavThemeLocation}>
@@ -1217,6 +1178,7 @@ function DateNavHeader({
                   styles.dateNavThemeText,
                   { color: isDark ? Palette.sun100 : Palette.ink },
                 ]}
+                maxFontSizeMultiplier={MaxFontScale.compact}
               >
                 {showThemeLocation && (
                   <Text style={styles.dateNavThemeLocation}>
@@ -1273,14 +1235,15 @@ function FriendAvatarStack({
   const shown = friends.slice(0, maxShow);
   const overflow = friends.length - maxShow;
   const ring = borderColor ?? (isDark ? "#0F1114" : Brand.warmWhite);
-  const fallbackBg = isDark ? "rgba(29,83,55,0.4)" : Brand.greenLight;
-  const fallbackFg = accentColor ?? (isDark ? "#86D99B" : Brand.green);
+  const forest = Tones[isDark ? "dark" : "light"].forest;
+  const fallbackBg = forest.bg;
+  const fallbackFg = accentColor ?? forest.fg;
   const overlap = Math.max(6, Math.round(size * 0.33));
   // A volunteer still waiting on an admin wears the same amber the status
   // badge uses, so the stack never reads as more confirmed than it is.
-  const pending = STATUS_CONFIG.PENDING;
-  const pendingRing = isDark ? pending.textDark : pending.text;
-  const pendingBg = isDark ? pending.bgDark : pending.bg;
+  const pending = StatusColors[isDark ? "dark" : "light"].pending;
+  const pendingRing = pending.fg;
+  const pendingBg = pending.bg;
 
   return (
     <View style={styles.friendAvatarRow}>
@@ -1384,20 +1347,13 @@ function PeriodHeader({
   const iconName: keyof typeof Ionicons.glyphMap = isDay
     ? "sunny-outline"
     : "moon-outline";
-  const accent = isDay
-    ? isDark
-      ? Palette.sun200
-      : Palette.forest500
-    : isDark
-    ? "#c4b5fd"
-    : "#6d28d9";
+  const violet = Tones[isDark ? "dark" : "light"].violet;
+  const accent = isDay ? (isDark ? Palette.sun200 : colors.tint) : violet.fg;
   const chipBg = isDay
     ? isDark
       ? "rgba(248, 251, 105, 0.14)"
       : "rgba(248, 251, 105, 0.35)"
-    : isDark
-    ? "rgba(196, 181, 253, 0.14)"
-    : "rgba(109, 40, 217, 0.08)";
+    : violet.bg;
   const ruleColor = colors.border;
   // Only confirmed volunteers hold a place in this session; the rest have asked
   // and are still waiting on an admin.
@@ -1407,7 +1363,10 @@ function PeriodHeader({
     <View style={styles.periodHeader}>
       <View style={[styles.periodChip, { backgroundColor: chipBg }]}>
         <Ionicons name={iconName} size={12} color={accent} />
-        <Text style={[styles.periodChipText, { color: accent }]}>
+        <Text
+          style={[styles.periodChipText, { color: accent }]}
+          maxFontSizeMultiplier={MaxFontScale.compact}
+        >
           {isDay ? "Day shifts" : "Evening shifts"}
         </Text>
       </View>
@@ -1454,17 +1413,14 @@ function formatTimeRange(start: Date, end: Date): { range: string } {
 
 /** Marks the volunteers on a card who have asked but not yet been approved. */
 function WaitingChip({ count, isDark }: { count: number; isDark: boolean }) {
-  const pending = STATUS_CONFIG.PENDING;
-  const ink = isDark ? pending.textDark : pending.text;
+  const pending = StatusColors[isDark ? "dark" : "light"].pending;
   return (
-    <View
-      style={[
-        styles.waitingChip,
-        { backgroundColor: isDark ? pending.bgDark : pending.bg },
-      ]}
-    >
-      <Ionicons name="time" size={10} color={ink} />
-      <Text style={[styles.waitingChipText, { color: ink }]}>
+    <View style={[styles.waitingChip, { backgroundColor: pending.bg }]}>
+      <Ionicons name="time" size={10} color={pending.fg} />
+      <Text
+        style={[styles.waitingChipText, { color: pending.fg }]}
+        maxFontSizeMultiplier={MaxFontScale.compact}
+      >
         {count} waiting
       </Text>
     </View>
@@ -1505,6 +1461,15 @@ function ShiftCard({
   const isPast = endDate.getTime() < Date.now();
   const isCompleted = isUserSignedUp && shift.status === "CONFIRMED" && isPast;
   const displayStatus = isCompleted ? "COMPLETED" : shift.status;
+  const status = StatusColors[isDark ? "dark" : "light"];
+  // Full is a hard stop; a clash or the last couple of spots is a heads-up.
+  const capacityInk = conflicting
+    ? status.pending.fg
+    : isFull
+    ? status.destructive.fg
+    : isUrgent
+    ? status.pending.fg
+    : null;
 
   return (
     <Pressable
@@ -1614,8 +1579,9 @@ function ShiftCard({
             <Text
               style={[
                 styles.durationChipText,
-                { color: isDark ? Brand.accent : Brand.green },
+                { color: isDark ? Brand.accent : colors.tint },
               ]}
+              maxFontSizeMultiplier={MaxFontScale.compact}
             >
               {duration}
             </Text>
@@ -1632,21 +1598,7 @@ function ShiftCard({
                   ? isDark
                     ? "rgba(253,248,239,0.25)"
                     : Palette.forest200
-                  : conflicting
-                  ? isDark
-                    ? "#fbbf24"
-                    : "#d97706"
-                  : isFull
-                  ? isDark
-                    ? "#fca5a5"
-                    : "#dc2626"
-                  : isUrgent
-                  ? isDark
-                    ? "#fbbf24"
-                    : "#d97706"
-                  : isDark
-                  ? "#86D99B"
-                  : Palette.forest400,
+                  : capacityInk ?? status.confirmed.fg,
               },
             ]}
           />
@@ -1657,7 +1609,7 @@ function ShiftCard({
                 {" · "}
                 <Text
                   style={{
-                    color: isDark ? "#fbbf24" : "#d97706",
+                    color: capacityInk ?? colors.textSecondary,
                     fontFamily: FontFamily.semiBold,
                   }}
                 >
@@ -1669,15 +1621,7 @@ function ShiftCard({
                 {" · "}
                 <Text
                   style={{
-                    color: isFull
-                      ? isDark
-                        ? "#fca5a5"
-                        : "#dc2626"
-                      : isUrgent
-                      ? isDark
-                        ? "#fbbf24"
-                        : "#d97706"
-                      : colors.textSecondary,
+                    color: capacityInk ?? colors.textSecondary,
                     fontFamily: FontFamily.semiBold,
                   }}
                 >
@@ -1742,25 +1686,30 @@ function ShiftCard({
 
 function StatusBadge({ status, isDark }: { status: string; isDark: boolean }) {
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
+  const tone = StatusColors[isDark ? "dark" : "light"][config.tone];
+  return <Badge icon={config.icon} label={config.label} bg={tone.bg} fg={tone.fg} />;
+}
+
+/** The small icon-and-word badge at the top right of a shift card. */
+function Badge({
+  icon,
+  label,
+  bg,
+  fg,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  bg: string;
+  fg: string;
+}) {
   return (
-    <View
-      style={[
-        styles.badge,
-        { backgroundColor: isDark ? config.bgDark : config.bg },
-      ]}
-    >
-      <Ionicons
-        name={config.icon}
-        size={12}
-        color={isDark ? config.textDark : config.text}
-      />
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      <Ionicons name={icon} size={12} color={fg} />
       <Text
-        style={[
-          styles.badgeText,
-          { color: isDark ? config.textDark : config.text },
-        ]}
+        style={[styles.badgeText, { color: fg }]}
+        maxFontSizeMultiplier={MaxFontScale.compact}
       >
-        {config.label}
+        {label}
       </Text>
     </View>
   );
@@ -1779,47 +1728,28 @@ function SpotsBadge({
   isUrgent: boolean;
   isDark: boolean;
 }) {
-  let icon: keyof typeof Ionicons.glyphMap;
-  let bg: string;
-  let textColor: string;
-  let label: string;
+  const status = StatusColors[isDark ? "dark" : "light"];
+  // Full is red, the last couple of spots amber, plenty of room forest.
+  const tone = isFull
+    ? status.destructive
+    : isUrgent
+    ? status.pending
+    : status.confirmed;
+  const icon: keyof typeof Ionicons.glyphMap = isFull
+    ? "close-circle"
+    : isUrgent
+    ? "alert-circle"
+    : "people";
+  const label = isFull ? "Full" : `${spotsLeft} left`;
 
-  if (isFull) {
-    icon = "close-circle";
-    bg = isDark ? "rgba(239, 68, 68, 0.15)" : "#fef2f2";
-    textColor = isDark ? "#fca5a5" : "#dc2626";
-    label = "Full";
-  } else if (isUrgent) {
-    icon = "alert-circle";
-    bg = isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb";
-    textColor = isDark ? "#fbbf24" : "#d97706";
-    label = `${spotsLeft} left`;
-  } else {
-    icon = "people";
-    bg = isDark ? "rgba(29, 83, 55, 0.22)" : "#E3EEE5";
-    textColor = isDark ? "#86D99B" : Palette.forest500;
-    label = `${spotsLeft} left`;
-  }
-
-  return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <Ionicons name={icon} size={12} color={textColor} />
-      <Text style={[styles.badgeText, { color: textColor }]}>{label}</Text>
-    </View>
-  );
+  return <Badge icon={icon} label={label} bg={tone.bg} fg={tone.fg} />;
 }
 
 /* Shown on an available shift the user can't take because they already hold
    another shift in the same Day/Evening period that day. */
 function ConflictBadge({ isDark }: { isDark: boolean }) {
-  const bg = isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb";
-  const textColor = isDark ? "#fbbf24" : "#d97706";
-  return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <Ionicons name="calendar" size={12} color={textColor} />
-      <Text style={[styles.badgeText, { color: textColor }]}>Booked</Text>
-    </View>
-  );
+  const pending = StatusColors[isDark ? "dark" : "light"].pending;
+  return <Badge icon="calendar" label="Booked" bg={pending.bg} fg={pending.fg} />;
 }
 
 /* ── Styles ── */
@@ -2077,14 +2007,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     gap: 12,
   },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
+  errorState: { flex: 0, paddingVertical: 56 },
 
   // Day empty
   dayEmpty: {
@@ -2138,7 +2061,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   periodChipText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontFamily: FontFamily.bold,
     letterSpacing: 0.8,
     textTransform: "uppercase",
@@ -2307,7 +2230,7 @@ const styles = StyleSheet.create({
   },
   friendsBarText: {
     flex: 1,
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.1,
   },

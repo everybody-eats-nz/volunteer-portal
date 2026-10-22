@@ -2,6 +2,8 @@
  * Shared formatting helpers for the admin screens.
  */
 
+import { Tones, type ToneName } from "@/constants/theme";
+
 /** Compact relative timestamp: "2:45 PM" today, "Mon", or "5 Jun". */
 export function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
@@ -42,12 +44,26 @@ export function initialOf(name: string | null | undefined): string {
   return (name?.trim()?.charAt(0) || "·").toUpperCase();
 }
 
-/** Grade pill colours, matching the volunteer-grade language used elsewhere. */
-export const GRADE_COLORS: Record<
-  "GREEN" | "YELLOW" | "PINK",
-  { bg: string; fg: string; label: string }
-> = {
-  GREEN: { bg: "#D4E3D6", fg: "#163F2A", label: "Green" },
-  YELLOW: { bg: "#FBFCB8", fg: "#6B5E00", label: "Yellow" },
-  PINK: { bg: "#F8D7E3", fg: "#9B1C47", label: "Pink" },
+type Grade = "GREEN" | "YELLOW" | "PINK";
+type GradePill = { bg: string; fg: string; label: string };
+
+const GRADE_TONES: Record<Grade, { tone: ToneName; label: string }> = {
+  GREEN: { tone: "forest", label: "Green" },
+  YELLOW: { tone: "sun", label: "Yellow" },
+  PINK: { tone: "pink", label: "Pink" },
+};
+
+function gradePills(scheme: "light" | "dark"): Record<Grade, GradePill> {
+  const pills = {} as Record<Grade, GradePill>;
+  for (const grade of Object.keys(GRADE_TONES) as Grade[]) {
+    const { tone, label } = GRADE_TONES[grade];
+    pills[grade] = { ...Tones[scheme][tone], label };
+  }
+  return pills;
+}
+
+/** Grade pill colours per scheme, matching the volunteer-grade language used elsewhere. */
+export const GRADE_COLORS: Record<"light" | "dark", Record<Grade, GradePill>> = {
+  light: gradePills("light"),
+  dark: gradePills("dark"),
 };

@@ -17,7 +17,15 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
-import { Colors, Brand, FontFamily, Palette } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import {
+  Brand,
+  Colors,
+  FontFamily,
+  MaxFontScale,
+  StatusColors,
+  Tones,
+} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, ApiError } from '@/lib/api';
 import { getShiftDescription } from '@/lib/shift-description';
@@ -115,6 +123,10 @@ export function ShiftSignupSheet({
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
+  const forestTone = Tones[colorScheme].forest;
+  const orangeTone = Tones[colorScheme].orange;
+  const danger = StatusColors[colorScheme].destructive;
+  const rowRipple = isDark ? 'rgba(253,248,239,0.12)' : 'rgba(29,83,55,0.12)';
 
   const [note, setNote] = useState('');
   const [showNoteField, setShowNoteField] = useState(false);
@@ -351,12 +363,16 @@ export function ShiftSignupSheet({
           </View>
           <Pressable
             onPress={onClose}
-            hitSlop={12}
+            // 32pt circle + 6pt slop each side = a 44pt target.
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            android_ripple={{ color: rowRipple, borderless: true, radius: 22 }}
             style={({ pressed }) => [
               ss.closeButton,
               {
                 backgroundColor: isDark ? 'rgba(253,248,239,0.08)' : colors.surfaceSunk,
-                opacity: pressed ? 0.6 : 1,
+                opacity: pressed && Platform.OS === 'ios' ? 0.6 : 1,
               },
             ]}>
             <Ionicons name="close" size={18} color={colors.textSecondary} />
@@ -371,14 +387,14 @@ export function ShiftSignupSheet({
           showsVerticalScrollIndicator={false}>
           {filledWhileOpen && (
             <View
-              style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(234,88,12,0.14)' : '#fff7ed' }]}
+              style={[ss.infoBox, { backgroundColor: orangeTone.bg }]}
               accessibilityRole="alert">
               <Text style={ss.infoEmoji}>⏳</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[ss.infoTitle, { color: isDark ? '#fdba74' : '#9a3412' }]}>
+                <Text style={[ss.infoTitle, { color: orangeTone.fg }]}>
                   This shift just filled up
                 </Text>
-                <Text style={[ss.infoText, { color: isDark ? '#fed7aa' : '#9a3412' }]}>
+                <Text style={[ss.infoText, { color: orangeTone.fg }]}>
                   The last place went while you were signing up. You can join the waitlist
                   instead, or close this to look for another shift.
                 </Text>
@@ -416,7 +432,7 @@ export function ShiftSignupSheet({
                 <Text style={[ss.cardValue, { color: colors.text }]}>
                   {signedUp}/{capacity} confirmed
                   {!waitlistMode && spotsLeft > 0 && (
-                    <Text style={{ color: isDark ? colors.tint : Palette.forest400 }}> ({spotsLeft} spots left)</Text>
+                    <Text style={{ color: colors.tint }}> ({spotsLeft} spots left)</Text>
                   )}
                 </Text>
               </View>
@@ -427,8 +443,8 @@ export function ShiftSignupSheet({
           {periodFriends.length > 0 && (
             <View style={[ss.friendsSection, { backgroundColor: isDark ? 'rgba(14,42,28,0.45)' : Brand.greenLight }]}>
               <View style={ss.friendsHeader}>
-                <Ionicons name="people" size={16} color={isDark ? colors.tint : Brand.green} />
-                <Text style={[ss.friendsTitle, { color: isDark ? colors.tint : Brand.green }]}>
+                <Ionicons name="people" size={16} color={colors.tint} />
+                <Text style={[ss.friendsTitle, { color: colors.tint }]}>
                   {periodFriends.length} volunteer{periodFriends.length !== 1 ? 's' : ''} going
                 </Text>
               </View>
@@ -445,15 +461,25 @@ export function ShiftSignupSheet({
                         />
                       ) : (
                         <View style={[ss.friendAvatarFallback, { backgroundColor: isDark ? 'rgba(253,248,239,0.12)' : colors.card }]}>
-                          <Text style={[ss.friendInitial, { color: isDark ? colors.tint : Brand.green }]}>{initial}</Text>
+                          <Text
+                            style={[ss.friendInitial, { color: colors.tint }]}
+                            maxFontSizeMultiplier={MaxFontScale.compact}>
+                            {initial}
+                          </Text>
                         </View>
                       )}
                       <View style={{ flexShrink: 1 }}>
-                        <Text style={[ss.friendName, { color: isDark ? colors.text : Brand.nearBlack }]} numberOfLines={1}>
+                        <Text
+                          style={[ss.friendName, { color: isDark ? colors.text : Brand.nearBlack }]}
+                          numberOfLines={1}
+                          maxFontSizeMultiplier={MaxFontScale.compact}>
                           {friend.name}
                         </Text>
                         {onDifferentRole && (
-                          <Text style={[ss.friendRole, { color: isDark ? 'rgba(253,248,239,0.5)' : colors.textSecondary }]} numberOfLines={1}>
+                          <Text
+                            style={[ss.friendRole, { color: colors.textSecondary }]}
+                            numberOfLines={1}
+                            maxFontSizeMultiplier={MaxFontScale.compact}>
                             {friend.shiftTypeName}
                           </Text>
                         )}
@@ -474,13 +500,13 @@ export function ShiftSignupSheet({
               </Text>
             </View>
           ) : autoApproval.eligible && !waitlistMode ? (
-            <View style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(29,83,55,0.18)' : colors.primaryLight }]}>
+            <View style={[ss.infoBox, { backgroundColor: forestTone.bg }]}>
               <Text style={ss.infoEmoji}>🎉</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[ss.infoTitle, { color: isDark ? colors.tint : Palette.forest500 }]}>
+                <Text style={[ss.infoTitle, { color: forestTone.fg }]}>
                   Instant Approval Available!
                 </Text>
-                <Text style={[ss.infoText, { color: isDark ? colors.tint : Palette.forest400 }]}>
+                <Text style={[ss.infoText, { color: forestTone.fg }]}>
                   You’ll be automatically confirmed based on your volunteer history.
                 </Text>
               </View>
@@ -508,22 +534,19 @@ export function ShiftSignupSheet({
               accessibilityLabel={WAITLIST_IF_FULL_LABEL}
               accessibilityHint={WAITLIST_IF_FULL_HINT}
               testID="waitlist-if-full-toggle"
+              android_ripple={{ color: rowRipple }}
               style={({ pressed }) => [
                 ss.backupRow,
                 ss.optInRow,
                 {
-                  borderColor: waitlistIfFull
-                    ? isDark ? colors.tint : Brand.green
-                    : colors.border,
-                  backgroundColor: waitlistIfFull
-                    ? isDark ? 'rgba(29,83,55,0.22)' : Brand.greenLight
-                    : 'transparent',
-                  opacity: pressed ? 0.7 : 1,
+                  borderColor: waitlistIfFull ? colors.tint : colors.border,
+                  backgroundColor: waitlistIfFull ? forestTone.bg : 'transparent',
+                  opacity: pressed && Platform.OS === 'ios' ? 0.7 : 1,
                 },
               ]}>
               <View style={ss.backupCheck}>
                 {waitlistIfFull ? (
-                  <Ionicons name="checkbox" size={22} color={isDark ? colors.tint : Brand.green} />
+                  <Ionicons name="checkbox" size={22} color={colors.tint} />
                 ) : (
                   <Ionicons name="square-outline" size={22} color={colors.textSecondary} />
                 )}
@@ -546,12 +569,15 @@ export function ShiftSignupSheet({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setShowNoteField(true);
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Add a note"
+              android_ripple={{ color: rowRipple }}
               style={({ pressed }) => [
                 ss.addNoteButton,
                 {
                   borderColor: colors.border,
                   backgroundColor: isDark ? 'rgba(253,248,239,0.03)' : colors.surfaceSunk,
-                  opacity: pressed ? 0.7 : 1,
+                  opacity: pressed && Platform.OS === 'ios' ? 0.7 : 1,
                 },
               ]}>
               <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
@@ -590,7 +616,7 @@ export function ShiftSignupSheet({
             <View style={ss.noteSection}>
               <Text style={[ss.fieldLabel, { color: colors.text }]}>
                 Guardian name{' '}
-                <Text style={{ color: isDark ? '#fca5a5' : '#dc2626' }}>*</Text>
+                <Text style={{ color: danger.fg }}>*</Text>
               </Text>
               <Text style={[ss.fieldHint, { color: colors.textSecondary }]}>
                 Required for volunteers aged 14 and under.
@@ -627,25 +653,30 @@ export function ShiftSignupSheet({
               </Text>
               {concurrentShifts.map((cs) => {
                 const selected = backupShiftIds.includes(cs.id);
+                const spotsText =
+                  cs.spotsRemaining > 0
+                    ? `${cs.spotsRemaining} spot${cs.spotsRemaining !== 1 ? 's' : ''} available`
+                    : 'Full – waitlist available';
                 return (
                   <Pressable
                     key={cs.id}
                     onPress={() => toggleBackupShift(cs.id)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityLabel={`${cs.shiftTypeName}, ${spotsText}`}
+                    accessibilityHint="Also OK to be moved to this shift"
+                    android_ripple={{ color: rowRipple }}
                     style={({ pressed }) => [
                       ss.backupRow,
                       {
-                        borderColor: selected
-                          ? isDark ? colors.tint : Brand.green
-                          : colors.border,
-                        backgroundColor: selected
-                          ? isDark ? 'rgba(29,83,55,0.22)' : Brand.greenLight
-                          : 'transparent',
-                        opacity: pressed ? 0.7 : 1,
+                        borderColor: selected ? colors.tint : colors.border,
+                        backgroundColor: selected ? forestTone.bg : 'transparent',
+                        opacity: pressed && Platform.OS === 'ios' ? 0.7 : 1,
                       },
                     ]}>
                     <View style={ss.backupCheck}>
                       {selected ? (
-                        <Ionicons name="checkbox" size={22} color={isDark ? colors.tint : Brand.green} />
+                        <Ionicons name="checkbox" size={22} color={colors.tint} />
                       ) : (
                         <Ionicons name="square-outline" size={22} color={colors.textSecondary} />
                       )}
@@ -662,11 +693,9 @@ export function ShiftSignupSheet({
                       <Text
                         style={[
                           ss.backupSpots,
-                          { color: cs.spotsRemaining > 0 ? (isDark ? colors.tint : Palette.forest400) : '#ea580c' },
+                          { color: cs.spotsRemaining > 0 ? colors.tint : orangeTone.fg },
                         ]}>
-                        {cs.spotsRemaining > 0
-                          ? `${cs.spotsRemaining} spot${cs.spotsRemaining !== 1 ? 's' : ''} available`
-                          : 'Full – waitlist available'}
+                        {spotsText}
                       </Text>
                     </View>
                   </Pressable>
@@ -680,18 +709,18 @@ export function ShiftSignupSheet({
             <View
               style={[
                 ss.profileIncompleteBox,
-                { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2' },
+                { backgroundColor: danger.bg },
               ]}>
               <View style={ss.profileIncompleteHeader}>
                 <Ionicons
                   name="alert-circle"
                   size={18}
-                  color={isDark ? '#fca5a5' : '#dc2626'}
+                  color={danger.fg}
                 />
                 <Text
                   style={[
                     ss.profileIncompleteTitle,
-                    { color: isDark ? '#fca5a5' : '#dc2626' },
+                    { color: danger.fg },
                   ]}>
                   Complete your profile to sign up
                 </Text>
@@ -699,7 +728,7 @@ export function ShiftSignupSheet({
               <Text
                 style={[
                   ss.profileIncompleteBody,
-                  { color: isDark ? '#fca5a5' : '#dc2626' },
+                  { color: danger.fg },
                 ]}>
                 {missingFields.length > 0
                   ? 'Your profile still needs:'
@@ -712,12 +741,12 @@ export function ShiftSignupSheet({
                       <Ionicons
                         name="ellipse"
                         size={5}
-                        color={isDark ? '#fca5a5' : '#dc2626'}
+                        color={danger.fg}
                       />
                       <Text
                         style={[
                           ss.missingFieldText,
-                          { color: isDark ? '#fca5a5' : '#dc2626' },
+                          { color: danger.fg },
                         ]}>
                         {field}
                       </Text>
@@ -727,22 +756,25 @@ export function ShiftSignupSheet({
               )}
               <Pressable
                 onPress={handleGoToProfile}
+                accessibilityRole="button"
+                accessibilityLabel="Complete profile"
+                android_ripple={{ color: rowRipple }}
                 style={({ pressed }) => [
                   ss.profileIncompleteButton,
                   {
-                    borderColor: isDark ? '#fca5a5' : '#dc2626',
-                    opacity: pressed ? 0.7 : 1,
+                    borderColor: danger.fg,
+                    opacity: pressed && Platform.OS === 'ios' ? 0.7 : 1,
                   },
                 ]}>
                 <Ionicons
                   name="person-outline"
                   size={16}
-                  color={isDark ? '#fca5a5' : '#dc2626'}
+                  color={danger.fg}
                 />
                 <Text
                   style={[
                     ss.profileIncompleteButtonText,
-                    { color: isDark ? '#fca5a5' : '#dc2626' },
+                    { color: danger.fg },
                   ]}>
                   Complete Profile
                 </Text>
@@ -752,9 +784,9 @@ export function ShiftSignupSheet({
 
           {/* Error message */}
           {error && (
-            <View style={[ss.errorBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2' }]}>
-              <Ionicons name="alert-circle" size={18} color={isDark ? '#fca5a5' : '#dc2626'} />
-              <Text style={[ss.errorText, { color: isDark ? '#fca5a5' : '#dc2626' }]}>{error}</Text>
+            <View style={[ss.errorBox, { backgroundColor: danger.bg }]} accessibilityRole="alert">
+              <Ionicons name="alert-circle" size={18} color={danger.fg} />
+              <Text style={[ss.errorText, { color: danger.fg }]}>{error}</Text>
             </View>
           )}
         </ScrollView>
@@ -768,48 +800,27 @@ export function ShiftSignupSheet({
               paddingBottom: Math.max(insets.bottom, 16),
             },
           ]}>
-          <Pressable
+          <Button
+            label="Cancel"
+            variant="ghost"
             onPress={onClose}
             disabled={isSubmitting}
-            style={({ pressed }) => [
-              ss.footerButtonSecondary,
-              {
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}>
-            <Text style={[ss.footerButtonSecondaryText, { color: colors.text }]}>Cancel</Text>
-          </Pressable>
+            haptic={false}
+            style={ss.footerButton}
+          />
 
           {/* While the profile is incomplete the signup would only 403, so
-              the sheet's "Complete Profile" button is the real action —
+              the sheet's "Complete Profile" button is the real action -
               disable the confirm CTA rather than letting it dead-end. It
               re-enables live once the refetched eligibility clears the flag. */}
-          <Pressable
+          <Button
+            label={buttonLabel}
             onPress={handleSubmit}
-            disabled={isSubmitting || profileIncomplete}
-            accessibilityState={{
-              disabled: isSubmitting || profileIncomplete,
-              busy: isSubmitting,
-            }}
-            style={({ pressed }) => [
-              ss.footerButtonPrimary,
-              {
-                backgroundColor:
-                  isSubmitting || profileIncomplete
-                    ? colors.textSecondary
-                    : Brand.green,
-                opacity: profileIncomplete ? 0.5 : pressed ? 0.9 : 1,
-                transform: [{ scale: pressed && !profileIncomplete ? 0.98 : 1 }],
-                flex: 1,
-              },
-            ]}>
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color={Palette.cream50} />
-            ) : (
-              <Text style={ss.footerButtonPrimaryText}>{buttonLabel}</Text>
-            )}
-          </Pressable>
+            loading={isSubmitting}
+            disabled={profileIncomplete}
+            haptic={false}
+            style={[ss.footerButton, ss.footerButtonPrimary]}
+          />
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -983,6 +994,8 @@ const ss = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 999,
     borderWidth: 1,
+    minHeight: 44,
+    overflow: 'hidden',
   },
   addNoteText: {
     fontSize: 14,
@@ -1038,6 +1051,9 @@ const ss = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
+    minHeight: 44,
+    // Clips the Android ripple to the row.
+    overflow: 'hidden',
   },
   backupCheck: {
     width: 24,
@@ -1126,6 +1142,7 @@ const ss = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     minHeight: 44,
+    overflow: 'hidden',
   },
   profileIncompleteButtonText: {
     fontSize: 14,
@@ -1140,29 +1157,11 @@ const ss = StyleSheet.create({
     paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  footerButtonSecondary: {
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
-  },
-  footerButtonSecondaryText: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
+  // Both stretch to the taller of the two when a long label wraps.
+  footerButton: {
+    alignSelf: 'stretch',
   },
   footerButtonPrimary: {
-    paddingVertical: 14,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
-  },
-  footerButtonPrimaryText: {
-    color: Palette.cream50,
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
+    flex: 1,
   },
 });

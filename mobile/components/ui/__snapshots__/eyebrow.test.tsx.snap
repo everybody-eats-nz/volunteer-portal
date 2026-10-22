@@ -3,10 +3,11 @@
 exports[`Eyebrow > matches the snapshot 1`] = `
 <Text
   accessibilityRole="header"
-  numberOfLines={1}
+  maxFontSizeMultiplier={1.4}
   style={
     [
       {
+        "flexShrink": 1,
         "fontFamily": "PlusJakartaSans_600SemiBold",
         "fontSize": 11,
         "letterSpacing": 2,

@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   submitErrorText: {
     flex: 1,
     fontFamily: FontFamily.medium,
-    fontSize: 13.5,
+    fontSize: 14,
     lineHeight: 18,
   },
 

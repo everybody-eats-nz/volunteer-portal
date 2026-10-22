@@ -9,6 +9,7 @@ import {
   Animated as RNAnimated,
   Easing,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,7 +24,15 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Brand, Colors, FontFamily, Palette } from '@/constants/theme';
+import {
+  Brand,
+  Colors,
+  FontFamily,
+  MaxFontScale,
+  Palette,
+  Tones,
+  type ToneName,
+} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -237,10 +246,18 @@ export function OnboardingFlow() {
               hitSlop={16}
               accessibilityRole="button"
               accessibilityLabel="Go back to previous step"
+              // Invisible on the first step, so keep it out of the screen
+              // reader's way too.
+              accessibilityElementsHidden={stepIndex === 0}
+              importantForAccessibility={stepIndex === 0 ? 'no-hide-descendants' : 'auto'}
+              android_ripple={{
+                color: isDark ? 'rgba(253,248,239,0.12)' : 'rgba(29,83,55,0.12)',
+                borderless: true,
+              }}
               style={({ pressed }) => [
                 styles.backBtn,
                 {
-                  opacity: stepIndex === 0 ? 0 : pressed ? 0.5 : 1,
+                  opacity: stepIndex === 0 ? 0 : pressed && Platform.OS === 'ios' ? 0.5 : 1,
                   backgroundColor: isDark
                     ? 'rgba(253,248,239,0.06)'
                     : 'rgba(29,83,55,0.06)',
@@ -258,6 +275,8 @@ export function OnboardingFlow() {
                 styles.stepCounter,
                 { color: colors.textSecondary, fontFamily: FontFamily.semiBold },
               ]}
+              accessibilityLabel={`Step ${stepIndex + 1} of ${totalSteps}`}
+              maxFontSizeMultiplier={MaxFontScale.compact}
             >
               {String(stepIndex + 1).padStart(2, '0')}
               <Text style={{ opacity: 0.5 }}>
@@ -565,44 +584,30 @@ function BookingStep({ isDark, colors }: StepCommon) {
 }
 
 function FeedStep({ isDark, colors }: StepCommon) {
+  const tones = Tones[isDark ? 'dark' : 'light'];
   const samples: {
     icon: string;
     label: string;
     text: string;
-    tint: { bg: string; bgDark: string; fg: string; fgDark: string };
+    tone: ToneName;
   }[] = [
     {
       icon: '🆕',
       label: 'New shift',
       text: 'Fresh shifts dropped for Wellington this week.',
-      tint: {
-        bg: Palette.forest100,
-        bgDark: 'rgba(45,100,56,0.22)',
-        fg: Palette.forest500,
-        fgDark: Palette.forest200,
-      },
+      tone: 'forest',
     },
     {
       icon: '🏆',
       label: 'Achievement',
       text: 'Whaea unlocked the 10-shift milestone.',
-      tint: {
-        bg: '#f5f3ff',
-        bgDark: 'rgba(124,58,237,0.18)',
-        fg: '#7c3aed',
-        fgDark: '#c4b5fd',
-      },
+      tone: 'violet',
     },
     {
       icon: '🔥',
       label: 'Streak',
       text: 'Kōwhai is on a 4-month volunteering streak.',
-      tint: {
-        bg: '#fff7ed',
-        bgDark: 'rgba(234,88,12,0.18)',
-        fg: '#ea580c',
-        fgDark: '#fdba74',
-      },
+      tone: 'orange',
     },
   ];
   return (
@@ -642,7 +647,7 @@ function FeedStep({ isDark, colors }: StepCommon) {
               style={[
                 styles.feedEmoji,
                 {
-                  backgroundColor: isDark ? s.tint.bgDark : s.tint.bg,
+                  backgroundColor: tones[s.tone].bg,
                 },
               ]}
             >
@@ -652,7 +657,7 @@ function FeedStep({ isDark, colors }: StepCommon) {
               <Text
                 style={[
                   styles.feedLabel,
-                  { color: isDark ? s.tint.fgDark : s.tint.fg },
+                  { color: tones[s.tone].fg },
                 ]}
               >
                 {s.label}
@@ -838,7 +843,7 @@ function TermsStep({ isDark, colors }: StepCommon) {
         <Text
           style={[
             styles.zeroTolerance,
-            { color: isDark ? '#fbbf24' : '#92400e', fontFamily: FontFamily.semiBold },
+            { color: Tones[isDark ? 'dark' : 'light'].amber.fg, fontFamily: FontFamily.semiBold },
           ]}
         >
           Zero tolerance for objectionable content or abusive behaviour.
@@ -1222,7 +1227,9 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
+    minHeight: 44,
   },
   secondaryBtnText: {
     fontSize: 14,
