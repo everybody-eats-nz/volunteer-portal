@@ -2,8 +2,16 @@
 
 import { Component, type ComponentProps, type ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { ArrowDownRight, ArrowUpRight, Info, Minus } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  Info,
+  Minus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ChartTokens } from "../_lib/chart-theme";
 import {
   Dialog,
   DialogContent,
@@ -29,24 +37,29 @@ const LazyApexChart = dynamic(() => import("react-apexcharts"), {
 /**
  * Single dynamic ApexCharts import reused by every chart. The wrapper reserves
  * the chart's height so the placeholder matches it (a 40px sparkline must not
- * flash a 300px block) and nothing jumps when the chunk arrives.
+ * flash a 300px block) and nothing jumps when the chunk arrives. Each chart is
+ * isolated in its own error boundary, so one bad chart shows an error state in
+ * its own frame instead of blanking the page.
  */
 export function ApexChart(props: ComponentProps<typeof LazyApexChart>) {
   const { height = 300 } = props;
+  const minHeight = typeof height === "number" ? height : undefined;
   return (
     <div style={{ minHeight: height }}>
-      <LazyApexChart {...props} />
+      <ChartErrorBoundary height={minHeight} compact={(minHeight ?? 300) < 120}>
+        <LazyApexChart {...props} />
+      </ChartErrorBoundary>
     </div>
   );
 }
 
 /**
  * Isolates a single chart/section so a render error in one ApexCharts instance
- * (bad data, misconfig) degrades to a friendly message instead of taking down
- * the whole dashboard.
+ * (bad data, misconfig) degrades to a message with a retry instead of taking
+ * down the whole dashboard.
  */
 export class ChartErrorBoundary extends Component<
-  { children: ReactNode },
+  { children: ReactNode; height?: number; compact?: boolean },
   { hasError: boolean }
 > {
   state = { hasError: false };
@@ -60,15 +73,81 @@ export class ChartErrorBoundary extends Component<
   }
 
   render() {
-    if (this.state.hasError) {
+    if (!this.state.hasError) return this.props.children;
+    if (this.props.compact) {
       return (
-        <div className="flex h-[260px] flex-col items-center justify-center gap-1 px-4 text-center text-sm text-muted-foreground">
-          <span>Couldn&rsquo;t render this section.</span>
+        <div
+          role="alert"
+          className="flex h-full items-center text-xs text-muted-foreground"
+          style={{ minHeight: this.props.height }}
+        >
+          Chart unavailable
         </div>
       );
     }
-    return this.props.children;
+    return (
+      <div
+        role="alert"
+        data-testid="chart-error"
+        className="flex flex-col items-center justify-center gap-2 px-4 text-center"
+        style={{ height: this.props.height ?? 260 }}
+      >
+        <AlertTriangle className="h-5 w-5 text-muted-foreground" aria-hidden />
+        <p className="text-sm font-medium">This chart couldn&rsquo;t be drawn</p>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          The rest of the page is unaffected. Try drawing it again, or reload
+          the page if it keeps failing.
+        </p>
+        <button
+          type="button"
+          onClick={() => this.setState({ hasError: false })}
+          className="mt-1 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
+}
+
+/**
+ * Small area sparkline for KPI cards. Decorative: the card's number carries the
+ * value, so it has no tooltip and no animation.
+ */
+export function Sparkline({
+  data,
+  color,
+  tokens,
+}: {
+  data: number[];
+  color: string;
+  tokens: ChartTokens;
+}) {
+  if (!data.some((v) => v > 0)) return <div className="h-10" />;
+  return (
+    <div aria-hidden>
+      <ApexChart
+        type="area"
+        height={40}
+        options={{
+          chart: {
+            sparkline: { enabled: true },
+            animations: { enabled: false },
+            background: "transparent",
+          },
+          colors: [color],
+          stroke: { curve: "smooth", width: 2 },
+          fill: {
+            type: "gradient",
+            gradient: { opacityFrom: 0.4, opacityTo: 0.02, stops: [0, 100] },
+          },
+          tooltip: { enabled: false },
+          theme: { mode: tokens.mode },
+        }}
+        series={[{ data }]}
+      />
+    </div>
+  );
 }
 
 export function ChartSkeleton({ height = 300 }: { height?: number }) {
@@ -215,7 +294,7 @@ export function DeltaBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground",
+          "inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground",
           className
         )}
       >
@@ -229,7 +308,7 @@ export function DeltaBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
+        "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums",
         positive
           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
           : "bg-red-500/10 text-red-600 dark:text-red-400",
@@ -248,19 +327,31 @@ export function DeltaBadge({
   );
 }
 
+/**
+ * Empty state for a chart with nothing to plot. Takes the chart's height so
+ * the card doesn't collapse, and never draws an empty axis frame.
+ */
 export function ChartEmpty({
   message,
+  hint,
   height = 300,
 }: {
   message: string;
+  /** What the admin can do about it, e.g. widen the time period. */
+  hint?: string;
   height?: number;
 }) {
   return (
     <div
-      className="flex flex-col items-center justify-center gap-1 text-center text-sm text-muted-foreground"
+      data-testid="chart-empty"
+      className="flex flex-col items-center justify-center gap-1.5 px-4 text-center"
       style={{ height }}
     >
-      <span>{message}</span>
+      <BarChart3 className="h-5 w-5 text-muted-foreground/70" aria-hidden />
+      <p className="text-sm font-medium text-muted-foreground">{message}</p>
+      {hint && (
+        <p className="max-w-xs text-xs text-muted-foreground">{hint}</p>
+      )}
     </div>
   );
 }

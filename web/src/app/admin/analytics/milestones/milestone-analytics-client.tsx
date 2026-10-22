@@ -1,6 +1,20 @@
 "use client";
 
-import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
+import {
+  ApexChart,
+  ChartEmpty,
+  ChartIcon,
+} from "@/app/admin/analytics/_components/primitives";
+import {
+  barGap,
+  baseOptions,
+  chartModeFrom,
+  chartTokens,
+  colorForLocation,
+  ordinalScale,
+  plural,
+  type ChartTokens,
+} from "@/app/admin/analytics/_lib/chart-theme";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -66,71 +80,53 @@ const MONTHS_LABELS: Record<string, string> = {
   "24": "24 months",
 };
 
-// Milestone colour palette — one per threshold
-const MILESTONE_COLORS: Record<number, string> = {
-  10: "#6366f1",
-  25: "#8b5cf6",
-  50: "#ec4899",
-  100: "#f59e0b",
-  200: "#10b981",
-  500: "#3b82f6",
-};
+/**
+ * Milestone tiers are ordered (10 → 500 shifts), so they share one forest ramp:
+ * the bigger the milestone, the stronger the colour.
+ */
+function milestoneColors(
+  thresholds: number[],
+  tokens: ChartTokens
+): Map<number, string> {
+  const sorted = [...thresholds].sort((a, b) => a - b);
+  const ramp = ordinalScale(sorted.length, tokens);
+  return new Map(sorted.map((t, i) => [t, ramp[i]]));
+}
 
-// Stable per-restaurant colour palette. Matches the recruitment analytics
-// section so stacks line up across pages. "Unspecified" is muted on purpose
-// so it doesn't dominate the visual.
-const LOCATION_COLORS: Record<string, string> = {
-  Wellington: "#3b82f6",
-  "Glen Innes": "#8b5cf6",
-  Onehunga: "#10b981",
-  "Special Event Venue": "#f59e0b",
-  [UNSPECIFIED_LOCATION]: "#94a3b8",
-};
-
-const FALLBACK_LOCATION_COLORS = [
-  "#ec4899",
-  "#14b8a6",
-  "#fb923c",
-  "#6366f1",
-  "#f43f5e",
-  "#22c55e",
-];
-
-function colorForLocation(location: string, index: number): string {
+function MilestoneBadge({ threshold, color }: { threshold: number; color: string }) {
   return (
-    LOCATION_COLORS[location] ??
-    FALLBACK_LOCATION_COLORS[index % FALLBACK_LOCATION_COLORS.length]
+    <span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold">
+      <span
+        className="h-2 w-2 shrink-0 rounded-full"
+        style={{ backgroundColor: color }}
+        aria-hidden
+      />
+      {threshold} shifts
+    </span>
   );
 }
 
 function MilestoneCard({
   threshold,
+  color,
   hitInPeriod,
   allTimeTotal,
   periodLabel,
 }: {
   threshold: number;
+  color: string;
   hitInPeriod: number;
   allTimeTotal: number;
   periodLabel: string;
 }) {
-  const color = MILESTONE_COLORS[threshold] ?? "#6b7280";
   return (
     <Card className="overflow-hidden py-0">
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-3">
-          <div
-            className="rounded-lg p-2"
-            style={{ backgroundColor: color + "20" }}
-          >
-            <Trophy className="h-4 w-4" style={{ color }} />
+          <div className="rounded-lg bg-muted/60 p-2">
+            <Trophy className="h-4 w-4" style={{ color }} aria-hidden />
           </div>
-          <span
-            className="text-xs font-semibold rounded-full px-2 py-0.5"
-            style={{ backgroundColor: color + "20", color }}
-          >
-            {threshold} shifts
-          </span>
+          <MilestoneBadge threshold={threshold} color={color} />
         </div>
         <p className="text-3xl font-bold tracking-tight">{hitInPeriod}</p>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -168,9 +164,8 @@ export function MilestoneAnalyticsClient({
   const [activeSegment, setActiveSegment] =
     useState<ActiveMilestoneSegment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
-    | "dark"
-    | "light";
+  const tokens = chartTokens(chartModeFrom(resolvedTheme));
+  const base = baseOptions(tokens);
 
   const openSegment = (s: ActiveMilestoneSegment) => {
     setActiveSegment(s);
@@ -192,10 +187,27 @@ export function MilestoneAnalyticsClient({
   );
 
   const restaurantList = data.locations;
-  const hasMultipleRestaurants = restaurantList.length > 1;
-  const locationColors = restaurantList.map((loc, i) =>
-    colorForLocation(loc, i)
+  const locationColors = restaurantList.map((loc) =>
+    colorForLocation(loc, tokens)
   );
+  const tierColors = milestoneColors(
+    data.milestoneHits.map((m) => m.threshold),
+    tokens
+  );
+  const tierColor = (threshold: number) =>
+    tierColors.get(threshold) ?? tokens.palette.neutral;
+  // Every bar chart below stacks by restaurant and shares this frame.
+  const stackedBarBase = {
+    ...base,
+    stroke: barGap(tokens),
+    legend: { ...base.legend, show: true, showForSingleSeries: true },
+    tooltip: {
+      ...base.tooltip,
+      shared: true,
+      intersect: false,
+      y: { formatter: (val: number) => plural(val, "volunteer") },
+    },
+  };
 
   // Distribution chart — horizontal bars, stacked by restaurant
   const distCategories = data.distribution.map((b) => b.label);
@@ -307,6 +319,7 @@ export function MilestoneAnalyticsClient({
             <motion.div key={m.threshold} variants={staggerItem}>
               <MilestoneCard
                 threshold={m.threshold}
+                color={tierColor(m.threshold)}
                 hitInPeriod={m.hitInPeriod}
                 allTimeTotal={m.allTimeTotal}
                 periodLabel={periodLabel}
@@ -328,7 +341,11 @@ export function MilestoneAnalyticsClient({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <DialogTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground transition-colors">
+                          <button
+                          type="button"
+                          aria-label="More info"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
                             <Info className="h-3.5 w-3.5" />
                           </button>
                         </DialogTrigger>
@@ -367,11 +384,11 @@ export function MilestoneAnalyticsClient({
                 {hitsAnyValue ? (
                   <ApexChart
                     options={{
+                      ...stackedBarBase,
                       chart: {
+                        ...base.chart,
                         type: "bar" as const,
                         stacked: true,
-                        toolbar: { show: false },
-                        background: "transparent",
                         events: {
                           dataPointSelection: (_e, _ctx, config) => {
                             if (!config) return;
@@ -399,56 +416,22 @@ export function MilestoneAnalyticsClient({
                           borderRadiusApplication: "end" as const,
                         },
                       },
-                      states: {
-                        active: { filter: { type: "none" } },
-                      },
                       xaxis: {
                         categories: hitsCategories.map((c) => `${c} shifts`),
-                        labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
-                          },
-                        },
+                        labels: { style: tokens.axisStyle },
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                       },
                       yaxis: {
+                        forceNiceScale: true,
                         labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
-                          },
+                          style: tokens.axisStyle,
+                          formatter: (v: number) => String(Math.round(v)),
                         },
                       },
                       colors: locationColors.length
                         ? locationColors
-                        : ["#f59e0b"],
-                      dataLabels: { enabled: false },
-                      grid: {
-                        borderColor: "#e5e7eb",
-                        strokeDashArray: 4,
-                        xaxis: { lines: { show: false } },
-                      },
-                      tooltip: {
-                        shared: true,
-                        intersect: false,
-                        y: {
-                          formatter: (val: number) =>
-                            `${val} volunteer${val !== 1 ? "s" : ""}`,
-                        },
-                      },
-                      legend: {
-                        show: hasMultipleRestaurants,
-                        position: "bottom" as const,
-                        fontSize: "12px",
-                        fontFamily: "var(--font-jakarta), sans-serif",
-                        markers: { size: 6, offsetX: -2 },
-                        itemMargin: { horizontal: 8, vertical: 4 },
-                      },
-                      theme: { mode: chartThemeMode },
+                        : [tokens.series[0]],
                     }}
                     series={
                       hitsSeriesByLocation.length > 0
@@ -466,9 +449,10 @@ export function MilestoneAnalyticsClient({
                     height={300}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                    No milestones crossed in the last {periodLabel}
-                  </div>
+                  <ChartEmpty
+                    message={`No milestones crossed in the last ${periodLabel}`}
+                    hint="Try a longer time period or another location."
+                  />
                 )}
               </CardContent>
             </Card>
@@ -483,7 +467,11 @@ export function MilestoneAnalyticsClient({
                   Volunteer Distribution
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                          type="button"
+                          aria-label="More info"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
                         <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
@@ -498,11 +486,11 @@ export function MilestoneAnalyticsClient({
                 {distCounts.some((v) => v > 0) ? (
                   <ApexChart
                     options={{
+                      ...stackedBarBase,
                       chart: {
+                        ...base.chart,
                         type: "bar" as const,
                         stacked: true,
-                        toolbar: { show: false },
-                        background: "transparent",
                         events: {
                           dataPointSelection: (_e, _ctx, config) => {
                             if (!config) return;
@@ -536,65 +524,34 @@ export function MilestoneAnalyticsClient({
                           barHeight: "60%",
                         },
                       },
-                      states: {
-                        active: { filter: { type: "none" } },
-                      },
                       xaxis: {
                         categories: distCategories,
                         title: {
                           text: "Volunteers",
                           style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
+                            fontFamily: tokens.axisStyle.fontFamily,
+                            fontSize: "12px",
                             fontWeight: 400,
+                            color: tokens.label,
                           },
                         },
                         labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
-                          },
+                          style: tokens.axisStyle,
+                          formatter: (v: string) =>
+                            String(Math.round(Number(v))),
                         },
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                       },
-                      yaxis: {
-                        labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "12px",
-                          },
-                        },
-                      },
+                      yaxis: { labels: { style: tokens.catStyle } },
                       colors: locationColors.length
                         ? locationColors
-                        : ["#3b82f6"],
-                      dataLabels: { enabled: false },
+                        : [tokens.series[0]],
                       grid: {
-                        borderColor: "#e5e7eb",
-                        strokeDashArray: 4,
+                        ...base.grid,
+                        xaxis: { lines: { show: true } },
                         yaxis: { lines: { show: false } },
                       },
-                      tooltip: {
-                        shared: true,
-                        intersect: false,
-                        y: {
-                          formatter: (val: number) =>
-                            `${val} volunteer${val !== 1 ? "s" : ""}`,
-                        },
-                      },
-                      legend: {
-                        show: hasMultipleRestaurants,
-                        position: "bottom" as const,
-                        fontSize: "12px",
-                        fontFamily: "var(--font-jakarta), sans-serif",
-                        markers: { size: 6, offsetX: -2 },
-                        itemMargin: { horizontal: 8, vertical: 4 },
-                      },
-                      theme: { mode: chartThemeMode },
                     }}
                     series={
                       distSeriesByLocation.length > 0
@@ -605,9 +562,10 @@ export function MilestoneAnalyticsClient({
                     height={300}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                    No distribution data available
-                  </div>
+                  <ChartEmpty
+                    message="No volunteers have completed a shift yet"
+                    hint="Bands fill in as volunteers complete shifts."
+                  />
                 )}
               </CardContent>
             </Card>
@@ -625,7 +583,11 @@ export function MilestoneAnalyticsClient({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <DialogTrigger asChild>
-                        <button className="text-muted-foreground hover:text-foreground transition-colors">
+                        <button
+                          type="button"
+                          aria-label="More info"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </DialogTrigger>
@@ -674,11 +636,11 @@ export function MilestoneAnalyticsClient({
               {projHasAdditional ? (
                 <ApexChart
                   options={{
+                    ...stackedBarBase,
                     chart: {
+                      ...base.chart,
                       type: "bar" as const,
                       stacked: true,
-                      toolbar: { show: false },
-                      background: "transparent",
                       events: {
                         dataPointSelection: (_e, _ctx, config) => {
                           if (!config) return;
@@ -707,62 +669,31 @@ export function MilestoneAnalyticsClient({
                         columnWidth: "50%",
                       },
                     },
-                    states: {
-                      active: { filter: { type: "none" } },
-                    },
                     xaxis: {
                       categories: projCategories,
-                      labels: {
-                        style: {
-                          fontFamily: "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
-                        },
-                      },
+                      labels: { style: tokens.axisStyle },
                       axisBorder: { show: false },
                       axisTicks: { show: false },
                     },
                     yaxis: {
+                      forceNiceScale: true,
                       title: {
                         text: "Volunteers projected",
                         style: {
-                          fontFamily: "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
+                          fontFamily: tokens.axisStyle.fontFamily,
+                          fontSize: "12px",
                           fontWeight: 400,
+                          color: tokens.label,
                         },
                       },
                       labels: {
-                        style: {
-                          fontFamily: "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
-                        },
+                        style: tokens.axisStyle,
+                        formatter: (v: number) => String(Math.round(v)),
                       },
                     },
                     colors: locationColors.length
                       ? locationColors
-                      : ["#6366f1"],
-                    dataLabels: { enabled: false },
-                    grid: {
-                      borderColor: "#e5e7eb",
-                      strokeDashArray: 4,
-                      xaxis: { lines: { show: false } },
-                    },
-                    tooltip: {
-                      shared: true,
-                      intersect: false,
-                      y: {
-                        formatter: (val: number) =>
-                          `${val} volunteer${val !== 1 ? "s" : ""}`,
-                      },
-                    },
-                    legend: {
-                      show: hasMultipleRestaurants,
-                      position: "bottom" as const,
-                      fontSize: "12px",
-                      fontFamily: "var(--font-jakarta), sans-serif",
-                      markers: { size: 6, offsetX: -2 },
-                      itemMargin: { horizontal: 8, vertical: 4 },
-                    },
-                    theme: { mode: chartThemeMode },
+                      : [tokens.series[0]],
                   }}
                   series={
                     projProjectedSeries.length > 0
@@ -780,10 +711,10 @@ export function MilestoneAnalyticsClient({
                   height={300}
                 />
               ) : (
-                <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                  No volunteers are projected to cross a milestone in the next
-                  12 months
-                </div>
+                <ChartEmpty
+                  message="No volunteers are projected to cross a milestone in the next 12 months"
+                  hint="Projections use each volunteer's shift rate over the last 6 months."
+                />
               )}
             </CardContent>
           </Card>
@@ -799,7 +730,11 @@ export function MilestoneAnalyticsClient({
                   Approaching Volunteers
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                          type="button"
+                          aria-label="More info"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
                         <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
@@ -851,8 +786,7 @@ export function MilestoneAnalyticsClient({
                     <span className="w-8" />
                   </div>
                   {selectedProjection.approaching.map((v) => {
-                    const color =
-                      MILESTONE_COLORS[selectedMilestone] ?? "#6b7280";
+                    const color = tierColor(selectedMilestone);
                     const pctDone = (v.totalShifts / selectedMilestone) * 100;
                     return (
                       <div
@@ -938,7 +872,11 @@ export function MilestoneAnalyticsClient({
                   Recent Milestone Achievements
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                          type="button"
+                          aria-label="More info"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
                         <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
@@ -993,7 +931,7 @@ export function MilestoneAnalyticsClient({
                     <span className="w-8" />
                   </div>
                   {filteredRecentAchievements.map((a) => {
-                    const color = MILESTONE_COLORS[a.threshold] ?? "#6b7280";
+                    const color = tierColor(a.threshold);
                     const absoluteDate = formatInNZT(
                       a.achievedAt,
                       "d MMM yyyy"
@@ -1018,16 +956,7 @@ export function MilestoneAnalyticsClient({
                           </div>
                         </div>
                         <span className="w-28">
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-                            style={{
-                              backgroundColor: color + "20",
-                              color,
-                            }}
-                          >
-                            <Trophy className="h-3 w-3" />
-                            {a.threshold} shifts
-                          </span>
+                          <MilestoneBadge threshold={a.threshold} color={color} />
                         </span>
                         <span className="hidden sm:block w-20 text-right text-sm tabular-nums font-medium">
                           {a.totalShifts}

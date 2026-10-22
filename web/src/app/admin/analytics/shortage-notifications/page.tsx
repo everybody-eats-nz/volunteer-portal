@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -11,6 +12,11 @@ import {
   parseMonthsParam,
   CONVERSION_WINDOW_DAYS,
 } from "@/lib/shortage-analytics";
+
+export const metadata: Metadata = {
+  title: "Shortage Analytics",
+  description: "Shift-shortage alerts sent to volunteers and the signups they drove, org-wide and by restaurant",
+};
 
 export default async function ShortageNotificationsAnalyticsPage({
   searchParams,
@@ -45,7 +51,7 @@ export default async function ShortageNotificationsAnalyticsPage({
 
   return (
     <AdminPageWrapper
-      title="Shortage Notifications"
+      title="Shortage Analytics"
       description="Shift-shortage alerts sent to volunteers and the signups they drove, org-wide and by restaurant"
     >
       <PageContainer testid="shortage-notifications-analytics-page">

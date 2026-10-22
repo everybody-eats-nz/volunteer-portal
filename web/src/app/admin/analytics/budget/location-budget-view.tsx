@@ -47,7 +47,6 @@ import {
   compactMoney,
   money0,
   num,
-  PALETTE,
   type ChartTokens,
 } from "../_lib/chart-theme";
 import { BudgetProgressBar, STATUS_META, StatusPill } from "@/components/budget-status";
@@ -374,7 +373,7 @@ function Figure({
   const StatusIcon = valueStatus ? STATUS_META[valueStatus].icon : null;
   return (
     <div className="min-w-0 px-5 py-4 sm:px-6" data-testid={testid}>
-      <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         {label}
       </dt>
@@ -486,7 +485,7 @@ function NightlyChart({
               yaxis: [
                 {
                   y: target,
-                  borderColor: tokens.mode === "dark" ? "#e2e8f0" : "#334155",
+                  borderColor: tokens.foreground,
                   strokeDashArray: 5,
                   borderWidth: 1.5,
                 },
@@ -507,7 +506,7 @@ function NightlyChart({
               data: held.map((n) => ({
                 x: dayMs(n.date),
                 y: Math.round(n.actual as number),
-                fillColor: n.status ? STATUS_META[n.status].hex : PALETTE.neutral,
+                fillColor: n.status ? STATUS_META[n.status].hex : tokens.palette.neutral,
               })),
             },
           ]}
@@ -600,7 +599,7 @@ function CumulativeChart({
           options={{
             ...base,
             chart: { ...base.chart, id: "budget-cumulative", zoom: { enabled: false } },
-            colors: [PALETTE.koha, PALETTE.target],
+            colors: [tokens.palette.koha, tokens.palette.target],
             stroke: { curve: "straight", width: [2.5, 2], dashArray: [0, 6] },
             fill: {
               type: ["gradient", "solid"],

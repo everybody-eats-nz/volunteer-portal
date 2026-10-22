@@ -175,7 +175,7 @@ function ConversionRow({ conversion: c }: { conversion: ShortageConversion }) {
       >
         <Avatar className="h-8 w-8 shadow-sm">
           <AvatarImage src={c.profilePhotoUrl ?? ""} alt={c.name} />
-          <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-semibold">
+          <AvatarFallback className="bg-primary-light text-primary-text text-xs font-semibold">
             {getInitials(c.name, c.email)}
           </AvatarFallback>
         </Avatar>
@@ -192,12 +192,12 @@ function ConversionRow({ conversion: c }: { conversion: ShortageConversion }) {
             </span>
             <Badge
               variant="outline"
-              className="text-[10px] font-medium px-1.5 py-0"
+              className="text-xs font-medium px-1.5 py-0"
             >
               {c.shiftLocation}
             </Badge>
           </div>
-          <p className="text-[11px] text-muted-foreground tabular-nums">
+          <p className="text-xs text-muted-foreground tabular-nums">
             {formatShiftDate(c.shiftDate)} · {lag}
           </p>
         </div>

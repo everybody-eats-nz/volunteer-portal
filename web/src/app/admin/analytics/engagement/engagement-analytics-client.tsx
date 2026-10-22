@@ -1,6 +1,24 @@
 "use client";
 
-import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
+import {
+  ApexChart,
+  ChartEmpty,
+  ChartIcon,
+  SegmentedControl,
+} from "@/app/admin/analytics/_components/primitives";
+import {
+  barGap,
+  baseOptions,
+  chartModeFrom,
+  chartTokens,
+  deltaHtml,
+  insideLabelStyle,
+  ordinalScale,
+  plural,
+  readableInk,
+  segmentLabel,
+  sequentialBins,
+} from "@/app/admin/analytics/_lib/chart-theme";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -151,7 +169,22 @@ export function EngagementAnalyticsClient({
   const [activeSegment, setActiveSegment] = useState<EngagementSegment | null>(
     null
   );
-  const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as "dark" | "light";
+  const tokens = chartTokens(chartModeFrom(resolvedTheme));
+  const base = baseOptions(tokens);
+  // Activity levels are ordered (never → highly active), so they share one
+  // forest ramp: the more active, the stronger the colour.
+  const [neverColor, inactiveColor, activeColor, highlyActiveColor] =
+    ordinalScale(4, tokens);
+  const activityColor: Record<string, string> = {
+    "Highly Active": highlyActiveColor,
+    Active: activeColor,
+    Inactive: inactiveColor,
+    "Never Volunteered": neverColor,
+  };
+  const heatBins = sequentialBins(tokens);
+  const breakdownColors = data.breakdown.map(
+    (b) => activityColor[b.label] ?? tokens.palette.neutral
+  );
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
@@ -287,12 +320,12 @@ export function EngagementAnalyticsClient({
                       data.summary.activeCount + data.summary.highlyActiveCount
                     }
                     max={volunteersWithShifts}
-                    color="#10b981"
+                    color={highlyActiveColor}
                     size={72}
                     strokeWidth={6}
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <Activity className="h-5 w-5 text-[var(--ee-primary-text)]" />
                   </div>
                 </div>
                 <Tooltip>
@@ -424,8 +457,7 @@ export function EngagementAnalyticsClient({
               desc: "2+ shifts/month avg",
               tooltip:
                 "Volunteers averaging 2 or more completed shifts per month during the selected period. Click to see who.",
-              bg: "bg-emerald-50 dark:bg-emerald-950/20",
-              ring: "#10b981",
+              ring: highlyActiveColor,
             },
             {
               label: "Active",
@@ -434,8 +466,7 @@ export function EngagementAnalyticsClient({
               desc: "1+ shift in period",
               tooltip:
                 "Volunteers with at least 1 completed shift in the selected period (but fewer than 2/month avg). Click to see who.",
-              bg: "bg-blue-50 dark:bg-blue-950/20",
-              ring: "#3b82f6",
+              ring: activeColor,
             },
             {
               label: "Inactive",
@@ -444,8 +475,7 @@ export function EngagementAnalyticsClient({
               desc: "No shifts in period",
               tooltip:
                 "Volunteers who have completed shifts before but none during the selected period. Click to see who.",
-              bg: "bg-amber-50 dark:bg-amber-950/20",
-              ring: "#f59e0b",
+              ring: inactiveColor,
             },
             {
               label: "Never Volunteered",
@@ -454,8 +484,7 @@ export function EngagementAnalyticsClient({
               desc: "0 completed shifts",
               tooltip:
                 "Registered volunteers who have never completed a shift. Click to see who.",
-              bg: "bg-red-50 dark:bg-red-950/20",
-              ring: "#ef4444",
+              ring: neverColor,
             },
           ].map((stat) => (
             <motion.div key={stat.label} variants={staggerItem}>
@@ -468,9 +497,7 @@ export function EngagementAnalyticsClient({
                     data-testid={`engagement-card-${stat.segment}`}
                     aria-label={`View ${stat.label} volunteers`}
                   >
-                    <Card
-                      className={`${stat.bg} border-0 py-5 cursor-pointer transition-transform hover:scale-[1.01]`}
-                    >
+                    <Card className="py-5 cursor-pointer transition-colors hover:bg-muted/40">
                       <CardContent className="flex items-center gap-4">
                         <EngagementRing
                           value={stat.value}
@@ -513,7 +540,11 @@ export function EngagementAnalyticsClient({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <DialogTrigger asChild>
-                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                            <button
+                              type="button"
+                              aria-label="More info"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                            >
                               <Info className="h-3.5 w-3.5" />
                             </button>
                           </DialogTrigger>
@@ -529,19 +560,19 @@ export function EngagementAnalyticsClient({
                         </DialogHeader>
                         <div className="space-y-3 text-sm">
                           <div className="flex gap-3">
-                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                            <span className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: highlyActiveColor }} />
                             <p><span className="font-medium">Highly Active</span> &mdash; Averaging 2 or more completed shifts per month during the selected period.</p>
                           </div>
                           <div className="flex gap-3">
-                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                            <span className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: activeColor }} />
                             <p><span className="font-medium">Active</span> &mdash; At least 1 completed shift in the period, but fewer than 2 per month on average.</p>
                           </div>
                           <div className="flex gap-3">
-                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                            <span className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: inactiveColor }} />
                             <p><span className="font-medium">Inactive</span> &mdash; Has completed shifts before but none during the selected period.</p>
                           </div>
                           <div className="flex gap-3">
-                            <span className="inline-block w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                            <span className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: neverColor }} />
                             <p><span className="font-medium">Never Volunteered</span> &mdash; Registered but has never completed a shift.</p>
                           </div>
                           <p className="text-muted-foreground pt-1">
@@ -551,28 +582,14 @@ export function EngagementAnalyticsClient({
                       </DialogContent>
                     </Dialog>
                   </CardTitle>
-                  <div className="flex items-center rounded-md border text-sm">
-                    <button
-                      onClick={() => setBreakdownView("overall")}
-                      className={`px-3 py-1 rounded-l-md transition-colors ${
-                        breakdownView === "overall"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      Overall
-                    </button>
-                    <button
-                      onClick={() => setBreakdownView("shiftType")}
-                      className={`px-3 py-1 rounded-r-md transition-colors ${
-                        breakdownView === "shiftType"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      By Shift Type
-                    </button>
-                  </div>
+                  <SegmentedControl
+                    value={breakdownView}
+                    onChange={setBreakdownView}
+                    options={[
+                      { value: "overall", label: "Overall" },
+                      { value: "shiftType", label: "By Shift Type" },
+                    ]}
+                  />
                 </div>
               </CardHeader>
               <CardContent>
@@ -581,30 +598,21 @@ export function EngagementAnalyticsClient({
                     <div>
                       <ApexChart
                         options={{
-                          chart: {
-                            type: "donut" as const,
-                            background: "transparent",
-                          },
+                          ...base,
+                          chart: { ...base.chart, type: "donut" as const },
                           labels: data.breakdown.map((b) => b.label),
-                          colors: data.breakdown.map((b) => b.color),
+                          colors: breakdownColors,
                           legend: {
+                            ...base.legend,
                             position: "bottom" as const,
-                            fontFamily: "var(--font-jakarta), sans-serif",
-                            fontSize: "12px",
-                            markers: { size: 6, offsetX: -2 },
-                            itemMargin: { horizontal: 8, vertical: 4 },
+                            horizontalAlign: "center" as const,
                           },
                           dataLabels: {
                             enabled: true,
                             formatter: function (val: number) {
                               return Math.round(val) + "%";
                             },
-                            style: {
-                              fontSize: "11px",
-                              fontFamily:
-                                "var(--font-jakarta), sans-serif",
-                              fontWeight: 600,
-                            },
+                            style: insideLabelStyle(breakdownColors),
                             dropShadow: { enabled: false },
                           },
                           plotOptions: {
@@ -615,32 +623,44 @@ export function EngagementAnalyticsClient({
                                   show: true,
                                   name: {
                                     fontSize: "13px",
-                                    fontFamily:
-                                      "var(--font-jakarta), sans-serif",
+                                    fontFamily: tokens.axisStyle.fontFamily,
                                     fontWeight: 500,
+                                    color: tokens.label,
                                     offsetY: -4,
                                   },
                                   value: {
                                     fontSize: "22px",
-                                    fontFamily:
-                                      "var(--font-jakarta), sans-serif",
+                                    fontFamily: tokens.axisStyle.fontFamily,
                                     fontWeight: 700,
+                                    color: tokens.foreground,
                                     offsetY: 4,
+                                    formatter: (val: string) =>
+                                      Number(val).toLocaleString("en-NZ"),
                                   },
                                   total: {
                                     show: true,
                                     label: "Total",
-                                    fontFamily:
-                                      "var(--font-jakarta), sans-serif",
+                                    fontFamily: tokens.axisStyle.fontFamily,
                                     fontSize: "13px",
                                     fontWeight: 500,
+                                    color: tokens.label,
+                                    formatter: () =>
+                                      data.breakdown
+                                        .reduce((sum, b) => sum + b.value, 0)
+                                        .toLocaleString("en-NZ"),
                                   },
                                 },
                               },
                             },
                           },
-                          stroke: { width: 2, colors: ["var(--card)"] },
-                          theme: { mode: chartThemeMode },
+                          stroke: { width: 2, colors: [tokens.surface] },
+                          tooltip: {
+                            ...base.tooltip,
+                            y: {
+                              formatter: (val: number) =>
+                                plural(val, "volunteer"),
+                            },
+                          },
                         }}
                         series={data.breakdown.map((b) => b.value)}
                         type="donut"
@@ -661,14 +681,14 @@ export function EngagementAnalyticsClient({
                                     className={
                                       b.label === "Inactive" || b.label === "Never Volunteered"
                                         ? diff > 0
-                                          ? "text-red-500"
+                                          ? "text-red-700 dark:text-red-400"
                                           : diff < 0
-                                            ? "text-emerald-500"
+                                            ? "text-emerald-700 dark:text-emerald-400"
                                             : "text-muted-foreground"
                                         : diff > 0
-                                          ? "text-emerald-500"
+                                          ? "text-emerald-700 dark:text-emerald-400"
                                           : diff < 0
-                                            ? "text-red-500"
+                                            ? "text-red-700 dark:text-red-400"
                                             : "text-muted-foreground"
                                     }
                                   >
@@ -683,18 +703,19 @@ export function EngagementAnalyticsClient({
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
-                      No data available
-                    </div>
+                    <ChartEmpty
+                      height={320}
+                      message="No volunteers registered yet"
+                    />
                   )
                 ) : shiftTypeData.length > 0 ? (
                   <ApexChart
                     options={{
+                      ...base,
                       chart: {
+                        ...base.chart,
                         type: "bar" as const,
                         stacked: true,
-                        toolbar: { show: false },
-                        background: "transparent",
                       },
                       plotOptions: {
                         bar: {
@@ -704,53 +725,44 @@ export function EngagementAnalyticsClient({
                           barHeight: "60%",
                         },
                       },
+                      stroke: barGap(tokens),
                       xaxis: {
                         categories: shiftTypeData.map((s) => s.shiftTypeName),
                         labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
-                          },
+                          style: tokens.axisStyle,
+                          formatter: (v: string) =>
+                            String(Math.round(Number(v))),
                         },
                         title: {
                           text: "Volunteers",
                           style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
-                            fontWeight: 400,
-                          },
-                        },
-                      },
-                      yaxis: {
-                        labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
+                            fontFamily: tokens.axisStyle.fontFamily,
                             fontSize: "12px",
+                            fontWeight: 400,
+                            color: tokens.label,
                           },
                         },
                       },
-                      colors: ["#10b981", "#3b82f6"],
+                      yaxis: { labels: { style: tokens.catStyle } },
+                      colors: [highlyActiveColor, activeColor],
                       dataLabels: {
                         enabled: true,
-                        formatter: function (val: number) {
-                          return val > 0 ? String(val) : "";
-                        },
-                        style: {
-                          fontFamily:
-                            "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                        },
+                        formatter: segmentLabel(
+                          shiftTypeData.map((s) => s.highlyActive + s.active)
+                        ),
+                        style: insideLabelStyle([
+                          highlyActiveColor,
+                          activeColor,
+                        ]),
                       },
                       grid: {
-                        borderColor: "#e5e7eb",
-                        strokeDashArray: 4,
+                        ...base.grid,
+                        xaxis: { lines: { show: true } },
                         yaxis: { lines: { show: false } },
                       },
+                      legend: { ...base.legend, show: true },
                       tooltip: {
+                        ...base.tooltip,
                         shared: true,
                         intersect: false,
                         custom: function ({
@@ -761,30 +773,22 @@ export function EngagementAnalyticsClient({
                           const st = shiftTypeData[dataPointIndex];
                           if (!st) return "";
                           const currTotal = st.highlyActive + st.active;
-                          const diff = currTotal - st.prevTotal;
                           const diffLabel =
                             st.prevTotal > 0
-                              ? diff > 0
-                                ? `<span style="color:#10b981">+${diff} vs prior</span>`
-                                : diff < 0
-                                  ? `<span style="color:#ef4444">${diff} vs prior</span>`
-                                  : `<span style="color:#64748b">no change</span>`
+                              ? deltaHtml(
+                                  currTotal - st.prevTotal,
+                                  "vs prior",
+                                  tokens
+                                )
                               : "";
                           return `<div style="padding:8px 12px;font-size:12px;line-height:1.6">
                             <b>${st.shiftTypeName}</b><br/>
-                            <span style="color:#10b981">\u25CF</span> Highly Active: ${st.highlyActive}<br/>
-                            <span style="color:#3b82f6">\u25CF</span> Active: ${st.active}<br/>
+                            <span style="color:${highlyActiveColor}">\u25CF</span> Highly Active: ${st.highlyActive}<br/>
+                            <span style="color:${activeColor}">\u25CF</span> Active: ${st.active}<br/>
                             <b>Total: ${currTotal}</b>
                             ${st.prevTotal > 0 ? `<br/>Prior period: ${st.prevTotal} ${diffLabel}` : ""}
                           </div>`;
                         },
-                      },
-                      legend: {
-                        position: "top" as const,
-                        fontSize: "12px",
-                        fontFamily:
-                          "var(--font-jakarta), sans-serif",
-                        markers: { size: 6, offsetX: -2 },
                       },
                       annotations: {
                         points: shiftTypeData
@@ -794,8 +798,8 @@ export function EngagementAnalyticsClient({
                             y: s.shiftTypeName as unknown as number,
                             marker: {
                               size: 5,
-                              fillColor: "#64748b",
-                              strokeColor: "#fff",
+                              fillColor: tokens.palette.target,
+                              strokeColor: tokens.surface,
                               strokeWidth: 2,
                               shape: "circle" as const,
                             },
@@ -803,17 +807,15 @@ export function EngagementAnalyticsClient({
                               text: "Prior: " + s.prevTotal,
                               borderWidth: 0,
                               style: {
-                                fontSize: "9px",
-                                fontFamily:
-                                  "var(--font-jakarta), sans-serif",
-                                color: "#64748b",
+                                fontSize: "12px",
+                                fontFamily: tokens.axisStyle.fontFamily,
+                                color: tokens.label,
                                 background: "transparent",
                                 padding: { left: 4, right: 4, top: 1, bottom: 1 },
                               },
                             },
                           })),
                       },
-                      theme: { mode: chartThemeMode },
                     }}
                     series={[
                       {
@@ -829,9 +831,11 @@ export function EngagementAnalyticsClient({
                     height={Math.max(320, shiftTypeData.length * 60)}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
-                    No shift type data available
-                  </div>
+                  <ChartEmpty
+                    height={320}
+                    message="No completed shifts in this period"
+                    hint="Try a longer time period or another location."
+                  />
                 )}
               </CardContent>
             </Card>
@@ -849,7 +853,11 @@ export function EngagementAnalyticsClient({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <DialogTrigger asChild>
-                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                            <button
+                              type="button"
+                              aria-label="More info"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                            >
                               <Info className="h-3.5 w-3.5" />
                             </button>
                           </DialogTrigger>
@@ -871,108 +879,77 @@ export function EngagementAnalyticsClient({
                       </DialogContent>
                     </Dialog>
                   </CardTitle>
-                  <div className="flex items-center rounded-md border text-sm">
-                    <button
-                      onClick={() => setTrendView("monthly")}
-                      className={`px-3 py-1 rounded-l-md transition-colors ${
-                        trendView === "monthly"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      Monthly
-                    </button>
-                    <button
-                      onClick={() => setTrendView("weekly")}
-                      className={`px-3 py-1 rounded-r-md transition-colors ${
-                        trendView === "weekly"
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      Weekly
-                    </button>
-                  </div>
+                  <SegmentedControl
+                    value={trendView}
+                    onChange={setTrendView}
+                    options={[
+                      { value: "monthly", label: "Monthly" },
+                      { value: "weekly", label: "Weekly" },
+                    ]}
+                  />
                 </div>
               </CardHeader>
               <CardContent>
-                {currTrendData.length > 0 ? (
+                {currTrendData.some((t) => t.activeVolunteers > 0) ? (
                   <ApexChart
                     options={{
-                      chart: {
-                        type: "area" as const,
-                        toolbar: { show: false },
-                        background: "transparent",
-                      },
+                      ...base,
+                      chart: { ...base.chart, type: "area" as const },
                       xaxis: {
                         categories: trendCategories,
                         tickAmount: 12,
                         labels: {
                           hideOverlappingLabels: true,
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
-                          },
+                          style: tokens.axisStyle,
                         },
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                       },
                       yaxis: {
                         labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-jakarta), sans-serif",
-                            fontSize: "11px",
-                          },
+                          style: tokens.axisStyle,
+                          formatter: (v: number) => String(Math.round(v)),
                         },
                         min: 0,
+                        forceNiceScale: true,
                       },
-                      colors: ["#3b82f6", "#64748b"],
+                      colors: [tokens.palette.volunteers, tokens.palette.target],
                       stroke: {
                         curve: "smooth" as const,
                         width: [2.5, 2],
                         dashArray: [0, 5],
                       },
                       fill: {
-                        type: "gradient",
+                        type: ["gradient", "solid"],
+                        opacity: [1, 0],
                         gradient: {
                           shadeIntensity: 1,
-                          opacityFrom: 0.35,
+                          opacityFrom: 0.32,
                           opacityTo: 0.02,
                           stops: [0, 90, 100],
                         },
                       },
-                      dataLabels: { enabled: false },
-                      grid: {
-                        borderColor: "#e5e7eb",
-                        strokeDashArray: 4,
-                        xaxis: { lines: { show: false } },
-                      },
                       tooltip: {
+                        ...base.tooltip,
                         shared: true,
                         y: {
                           formatter: function (val: number) {
                             if (val == null) return "";
-                            return val + " volunteers";
+                            return plural(val, "volunteer");
                           },
                         },
                       },
                       markers: {
-                        size: isWeekly ? 0 : [4, 3],
+                        size: isWeekly ? 0 : [4, 0],
                         strokeWidth: 2,
-                        strokeColors: "#fff",
-                        hover: { sizeOffset: 4 },
+                        strokeColors: tokens.surface,
+                        hover: { sizeOffset: 3 },
                       },
                       legend: {
-                        show: hasPrevYearData,
-                        position: "top" as const,
-                        fontSize: "12px",
-                        fontFamily:
-                          "var(--font-jakarta), sans-serif",
-                        markers: { size: 6, offsetX: -2 },
+                        ...base.legend,
+                        show: true,
+                        showForSingleSeries: true,
                       },
-                      theme: { mode: chartThemeMode },
                     }}
                     series={[
                       {
@@ -996,9 +973,10 @@ export function EngagementAnalyticsClient({
                     height={320}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
-                    No trend data available
-                  </div>
+                  <ChartEmpty
+                    height={320}
+                    message="No completed shifts in the last 12 months"
+                  />
                 )}
               </CardContent>
             </Card>
@@ -1006,8 +984,7 @@ export function EngagementAnalyticsClient({
         </div>
 
         {/* Retention Heatmap */}
-        {retentionData.cohorts.length > 0 && (
-          <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem}>
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -1018,7 +995,11 @@ export function EngagementAnalyticsClient({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <DialogTrigger asChild>
-                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                            <button
+                              type="button"
+                              aria-label="More info"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                            >
                               <Info className="h-3.5 w-3.5" />
                             </button>
                           </DialogTrigger>
@@ -1037,11 +1018,11 @@ export function EngagementAnalyticsClient({
                           <p><span className="font-medium">&ldquo;Start&rdquo;</span> is always 100% &mdash; it&rsquo;s the month they joined. Each subsequent column (Month 1, Month 2, etc.) shows what percentage of that cohort completed at least one shift in that month.</p>
                           <p>Volunteers can skip months and return later, so a later month can sometimes be higher than an earlier one. This highlights re-engagement patterns.</p>
                           <div className="flex flex-wrap gap-2 pt-1">
-                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-emerald-500" /> 81–100%</span>
-                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-green-500" /> 61–80%</span>
-                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-yellow-500" /> 41–60%</span>
-                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-orange-500" /> 21–40%</span>
-                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-red-500" /> 1–20%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded" style={{ backgroundColor: heatBins[4] }} /> 81–100%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded" style={{ backgroundColor: heatBins[3] }} /> 61–80%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded" style={{ backgroundColor: heatBins[2] }} /> 41–60%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded" style={{ backgroundColor: heatBins[1] }} /> 21–40%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded" style={{ backgroundColor: heatBins[0] }} /> 1–20%</span>
                           </div>
                         </div>
                       </DialogContent>
@@ -1053,62 +1034,40 @@ export function EngagementAnalyticsClient({
                 </div>
               </CardHeader>
               <CardContent>
+                {retentionData.cohorts.length > 0 ? (
                 <ApexChart
                   options={{
-                    chart: {
-                      type: "heatmap" as const,
-                      toolbar: { show: false },
-                      background: "transparent",
-                    },
+                    ...base,
+                    chart: { ...base.chart, type: "heatmap" as const },
                     plotOptions: {
                       heatmap: {
                         radius: 4,
                         enableShades: false,
                         colorScale: {
                           ranges: [
-                            {
-                              from: -1,
-                              to: -1,
-                              color: resolvedTheme === "dark" ? "#1e293b" : "#f1f5f9",
-                              name: "N/A",
-                            },
-                            {
-                              from: 0,
-                              to: 0,
-                              color: resolvedTheme === "dark" ? "#1e293b" : "#f1f5f9",
-                              name: "0%",
-                            },
-                            {
-                              from: 1,
-                              to: 20,
-                              color: "#ef4444",
-                              name: "1–20%",
-                            },
-                            {
-                              from: 21,
-                              to: 40,
-                              color: "#f97316",
-                              name: "21–40%",
-                            },
-                            {
-                              from: 41,
-                              to: 60,
-                              color: "#eab308",
-                              name: "41–60%",
-                            },
-                            {
-                              from: 61,
-                              to: 80,
-                              color: "#22c55e",
-                              name: "61–80%",
-                            },
-                            {
-                              from: 81,
-                              to: 100,
-                              color: "#10b981",
-                              name: "81–100%",
-                            },
-                          ],
+                            { from: -1, to: -1, name: "No data yet" },
+                            { from: 0, to: 0, name: "0%" },
+                          ]
+                            .map((r) => ({
+                              ...r,
+                              color: tokens.empty,
+                              foreColor: tokens.label,
+                            }))
+                            .concat(
+                              [
+                                [1, 20],
+                                [21, 40],
+                                [41, 60],
+                                [61, 80],
+                                [81, 100],
+                              ].map(([from, to], i) => ({
+                                from,
+                                to,
+                                name: `${from}–${to}%`,
+                                color: heatBins[i],
+                                foreColor: readableInk(heatBins[i]),
+                              }))
+                            ),
                         },
                       },
                     },
@@ -1119,38 +1078,23 @@ export function EngagementAnalyticsClient({
                         return val + "%";
                       },
                       style: {
-                        fontSize: "11px",
-                        fontFamily: "var(--font-jakarta), sans-serif",
+                        fontSize: "12px",
+                        fontFamily: tokens.axisStyle.fontFamily,
                         fontWeight: 500,
-                        colors: [resolvedTheme === "dark" ? "#e2e8f0" : "#1e293b"],
                       },
                     },
                     xaxis: {
                       position: "top" as const,
-                      labels: {
-                        style: {
-                          fontFamily: "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
-                        },
-                      },
+                      labels: { style: tokens.axisStyle },
                       axisBorder: { show: false },
                       axisTicks: { show: false },
                       tooltip: { enabled: false },
                     },
-                    yaxis: {
-                      labels: {
-                        style: {
-                          fontFamily: "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
-                        },
-                      },
-                    },
+                    yaxis: { labels: { style: tokens.axisStyle } },
                     grid: { show: false },
-                    stroke: {
-                      width: 2,
-                      colors: [resolvedTheme === "dark" ? "#0f172a" : "#ffffff"],
-                    },
+                    stroke: { width: 2, colors: [tokens.surface] },
                     tooltip: {
+                      ...base.tooltip,
                       custom: function ({
                         seriesIndex,
                         dataPointIndex,
@@ -1178,8 +1122,12 @@ export function EngagementAnalyticsClient({
                       },
                       x: { show: false },
                     },
-                    legend: { show: false },
-                    theme: { mode: chartThemeMode },
+                    legend: {
+                      ...base.legend,
+                      show: true,
+                      position: "bottom" as const,
+                      horizontalAlign: "center" as const,
+                    },
                   }}
                   series={retentionData.cohorts
                     .slice()
@@ -1195,12 +1143,18 @@ export function EngagementAnalyticsClient({
                       })),
                     }))}
                   type="heatmap"
-                  height={Math.max(280, retentionData.cohorts.length * 36)}
+                  height={Math.max(300, retentionData.cohorts.length * 36 + 40)}
                 />
+                ) : (
+                  <ChartEmpty
+                    height={280}
+                    message="No first shifts in the last 12 months"
+                    hint="Cohorts appear once volunteers complete their first shift."
+                  />
+                )}
               </CardContent>
             </Card>
           </motion.div>
-        )}
 
         {/* Volunteer Table */}
         <motion.div variants={staggerItem}>

@@ -1,6 +1,20 @@
 "use client";
 
-import { ApexChart, ChartIcon } from "@/app/admin/analytics/_components/primitives";
+import {
+  ApexChart,
+  ChartEmpty,
+  ChartIcon,
+} from "@/app/admin/analytics/_components/primitives";
+import {
+  barGap,
+  baseOptions,
+  chartModeFrom,
+  chartTokens,
+  colorForLocation,
+  insideLabelStyle,
+  plural,
+  segmentLabel,
+} from "@/app/admin/analytics/_lib/chart-theme";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
@@ -44,33 +58,6 @@ const MONTHS_LABELS: Record<string, string> = {
   "12": "12 months",
 };
 
-// Stable per-location color palette. Well-known locations get fixed colors so
-// the stacking stays consistent across pages; anything else cycles through
-// `FALLBACK_COLORS`. "Unspecified" is muted so it doesn't dominate.
-const LOCATION_COLORS: Record<string, string> = {
-  Wellington: "#3b82f6",
-  "Glen Innes": "#8b5cf6",
-  Onehunga: "#10b981",
-  "Special Event Venue": "#f59e0b",
-  [UNSPECIFIED_LOCATION]: "#94a3b8",
-};
-
-const FALLBACK_COLORS = [
-  "#ec4899",
-  "#14b8a6",
-  "#fb923c",
-  "#6366f1",
-  "#f43f5e",
-  "#22c55e",
-];
-
-function colorForLocation(location: string, index: number): string {
-  return (
-    LOCATION_COLORS[location] ??
-    FALLBACK_COLORS[index % FALLBACK_COLORS.length]
-  );
-}
-
 function pct(num: number, total: number) {
   if (total === 0) return 0;
   return Math.round((num / total) * 100);
@@ -88,7 +75,11 @@ function InfoDialog({ title, description, children }: InfoDialogProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           <DialogTrigger asChild>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              type="button"
+              aria-label={`About ${title}`}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Info className="h-3.5 w-3.5" />
             </button>
           </DialogTrigger>
@@ -142,9 +133,8 @@ interface ActiveSegment {
 
 export function RecruitmentSection({ data, months, location }: Props) {
   const { resolvedTheme } = useTheme();
-  const chartMode = (resolvedTheme === "dark" ? "dark" : "light") as
-    | "dark"
-    | "light";
+  const tokens = chartTokens(chartModeFrom(resolvedTheme));
+  const base = baseOptions(tokens);
 
   const { funnel, registrationTrend, locations } = data;
   const total = funnel.totalRegistrations;
@@ -158,7 +148,18 @@ export function RecruitmentSection({ data, months, location }: Props) {
     setDialogOpen(true);
   };
 
-  const locationColors = locations.map((loc, i) => colorForLocation(loc, i));
+  const locationColors = locations.map((loc) => colorForLocation(loc, tokens));
+  const singleColor = [tokens.series[0]];
+  // Both bar charts stack by restaurant and share this frame.
+  const stackedBarBase = {
+    ...base,
+    stroke: barGap(tokens),
+    legend: { ...base.legend, show: true, showForSingleSeries: true },
+    tooltip: {
+      ...base.tooltip,
+      y: { formatter: (val: number) => plural(val, "volunteer") },
+    },
+  };
 
   // Funnel stages — strictly decreasing from total → first shift
   const profileComplete = total - funnel.incompleteProfiles;
@@ -392,11 +393,11 @@ export function RecruitmentSection({ data, months, location }: Props) {
               {registrationTrend.some((t) => t.count > 0) ? (
                 <ApexChart
                   options={{
+                    ...stackedBarBase,
                     chart: {
+                      ...base.chart,
                       type: "bar" as const,
                       stacked: true,
-                      toolbar: { show: false },
-                      background: "transparent",
                       events: {
                         dataPointSelection: (_e, _ctx, config) => {
                           if (!config) return;
@@ -429,17 +430,10 @@ export function RecruitmentSection({ data, months, location }: Props) {
                         columnWidth: "65%",
                       },
                     },
-                    states: {
-                      active: { filter: { type: "none" } },
-                    },
                     xaxis: {
                       categories: registrationTrend.map((t) => t.month),
                       labels: {
-                        style: {
-                          fontFamily:
-                            "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
-                        },
+                        style: tokens.axisStyle,
                         rotate: -45,
                         rotateAlways: false,
                         hideOverlappingLabels: true,
@@ -449,46 +443,23 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     },
                     yaxis: {
                       min: 0,
+                      forceNiceScale: true,
                       labels: {
-                        style: {
-                          fontFamily:
-                            "var(--font-jakarta), sans-serif",
-                          fontSize: "11px",
-                        },
+                        style: tokens.axisStyle,
                         formatter: (v: number) => String(Math.round(v)),
                       },
                     },
-                    colors: locationColors.length ? locationColors : ["#3b82f6"],
-                    dataLabels: { enabled: false },
-                    legend: {
-                      show: locations.length > 1,
-                      position: "bottom",
-                      fontFamily: "var(--font-jakarta), sans-serif",
-                      fontSize: "12px",
-                      markers: { size: 6 },
-                      itemMargin: { horizontal: 8, vertical: 4 },
-                    },
-                    grid: {
-                      borderColor: "#e5e7eb",
-                      strokeDashArray: 4,
-                      xaxis: { lines: { show: false } },
-                    },
-                    tooltip: {
-                      y: {
-                        formatter: (val: number) =>
-                          `${val} volunteer${val !== 1 ? "s" : ""}`,
-                      },
-                    },
-                    theme: { mode: chartMode },
+                    colors: locationColors.length ? locationColors : singleColor,
                   }}
                   series={registrationSeries}
                   type="bar"
                   height={320}
                 />
               ) : (
-                <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
-                  No registration data available
-                </div>
+                <ChartEmpty
+                  height={320}
+                  message="No new registrations in the last 12 months"
+                />
               )}
             </CardContent>
           </Card>
@@ -533,7 +504,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
             <CardContent>
               {total > 0 ? (
                 <div className="space-y-4 py-2">
-                  {locations.length > 1 && (
+                  {locations.length > 0 && (
                     <div className="flex flex-wrap gap-3 pb-1">
                       {locations.map((loc, i) => (
                         <div
@@ -590,20 +561,20 @@ export function RecruitmentSection({ data, months, location }: Props) {
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="text-muted-foreground tabular-nums text-xs">
-                              {stage.value.toLocaleString()}
+                              {stage.value.toLocaleString("en-NZ")}
                             </span>
                             <span className="font-semibold tabular-nums w-9 text-right text-sm">
                               {stagePct}%
                             </span>
                           </div>
                         </div>
-                        <div className="h-5 bg-muted/30 rounded overflow-hidden flex">
+                        <div className="flex h-5 gap-[2px] overflow-hidden rounded bg-muted/40">
                           {segments.map((seg, si) => (
                             <Tooltip key={seg.loc}>
                               <TooltipTrigger asChild>
                                 <motion.button
                                   type="button"
-                                  aria-label={`View ${seg.value.toLocaleString()} ${seg.loc} volunteers at ${stage.name} stage`}
+                                  aria-label={`View ${seg.value.toLocaleString("en-NZ")} ${seg.loc} volunteers at ${stage.name} stage`}
                                   className="h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 hover:opacity-80 transition-opacity"
                                   style={{ background: seg.color }}
                                   initial={{ width: 0 }}
@@ -621,14 +592,14 @@ export function RecruitmentSection({ data, months, location }: Props) {
                                         location: seg.loc,
                                       },
                                       title: `${stage.name} · ${seg.loc}`,
-                                      subtitle: `${seg.value.toLocaleString()} volunteers from the last ${periodLabel}, grouped by furthest stage reached`,
+                                      subtitle: `${seg.value.toLocaleString("en-NZ")} volunteers from the last ${periodLabel}, grouped by furthest stage reached`,
                                     })
                                   }
                                 />
                               </TooltipTrigger>
                               <TooltipContent side="top">
                                 <span className="font-medium">{seg.loc}</span>:{" "}
-                                {seg.value.toLocaleString()} (
+                                {seg.value.toLocaleString("en-NZ")} (
                                 {pct(seg.value, stage.value)}% of stage) ·{" "}
                                 <span className="text-muted-foreground">
                                   click for list
@@ -639,7 +610,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                         </div>
                         {dropOff != null && dropOff > 0 && (
                           <p className="text-xs text-muted-foreground pl-4">
-                            ↓ {dropOff.toLocaleString()} dropped off
+                            ↓ {dropOff.toLocaleString("en-NZ")} dropped off
                             {dropOffPct != null ? ` (${dropOffPct}%)` : ""}
                           </p>
                         )}
@@ -648,9 +619,11 @@ export function RecruitmentSection({ data, months, location }: Props) {
                   })}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-[280px] text-muted-foreground text-sm">
-                  No registrations in this period
-                </div>
+                <ChartEmpty
+                  height={280}
+                  message={`No registrations in the last ${periodLabel}`}
+                  hint="Try a longer time period or another location."
+                />
               )}
             </CardContent>
           </Card>
@@ -658,8 +631,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
       </div>
 
       {/* Time-to-first-shift distribution */}
-      {hasDistribution && (
-        <motion.div variants={staggerItem}>
+      <motion.div variants={staggerItem}>
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold tracking-tight">
@@ -685,13 +657,14 @@ export function RecruitmentSection({ data, months, location }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {hasDistribution ? (
               <ApexChart
                 options={{
+                  ...stackedBarBase,
                   chart: {
+                    ...base.chart,
                     type: "bar" as const,
                     stacked: true,
-                    toolbar: { show: false },
-                    background: "transparent",
                     events: {
                       dataPointSelection: (_e, _ctx, config) => {
                         if (!config) return;
@@ -723,66 +696,40 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       barHeight: "55%",
                     },
                   },
-                  states: {
-                    active: { filter: { type: "none" } },
-                  },
                   xaxis: {
                     categories: timeToFirstShiftBuckets.map(([label]) => label),
                     labels: {
-                      style: {
-                        fontFamily: "var(--font-jakarta), sans-serif",
-                        fontSize: "12px",
-                      },
+                      style: tokens.axisStyle,
+                      formatter: (v: string) => String(Math.round(Number(v))),
                     },
                     axisBorder: { show: false },
                     axisTicks: { show: false },
                     title: {
                       text: "Volunteers",
                       style: {
-                        fontFamily: "var(--font-jakarta), sans-serif",
-                        fontSize: "11px",
-                        fontWeight: 400,
-                      },
-                    },
-                  },
-                  yaxis: {
-                    labels: {
-                      style: {
-                        fontFamily: "var(--font-jakarta), sans-serif",
+                        fontFamily: tokens.axisStyle.fontFamily,
                         fontSize: "12px",
+                        fontWeight: 400,
+                        color: tokens.label,
                       },
                     },
                   },
-                  colors: locationColors.length ? locationColors : ["#10b981"],
+                  yaxis: { labels: { style: tokens.catStyle } },
+                  colors: locationColors.length ? locationColors : singleColor,
                   dataLabels: {
                     enabled: true,
-                    formatter: (val: number) => (val > 0 ? String(val) : ""),
-                    style: {
-                      fontFamily: "var(--font-jakarta), sans-serif",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                    },
-                  },
-                  legend: {
-                    show: locations.length > 1,
-                    position: "bottom",
-                    fontFamily: "var(--font-jakarta), sans-serif",
-                    fontSize: "12px",
-                    markers: { size: 6 },
-                    itemMargin: { horizontal: 8, vertical: 4 },
+                    formatter: segmentLabel(
+                      timeToFirstShiftBuckets.map(([, key]) => funnel[key])
+                    ),
+                    style: insideLabelStyle(
+                      locationColors.length ? locationColors : singleColor
+                    ),
                   },
                   grid: {
-                    borderColor: "#e5e7eb",
-                    strokeDashArray: 4,
+                    ...base.grid,
+                    xaxis: { lines: { show: true } },
                     yaxis: { lines: { show: false } },
                   },
-                  tooltip: {
-                    y: {
-                      formatter: (val: number) =>
-                        `${val} volunteer${val !== 1 ? "s" : ""}`,
-                    },
-                  },
-                  theme: { mode: chartMode },
                 }}
                 series={
                   timeToFirstShiftSeries.length > 0
@@ -799,10 +746,15 @@ export function RecruitmentSection({ data, months, location }: Props) {
                 type="bar"
                 height={300}
               />
+              ) : (
+                <ChartEmpty
+                  message={`Nobody registered in the last ${periodLabel} has completed a shift yet`}
+                  hint="This fills in as new volunteers complete their first shift."
+                />
+              )}
             </CardContent>
           </Card>
         </motion.div>
-      )}
 
       <RecruitmentUsersDialog
         open={dialogOpen}

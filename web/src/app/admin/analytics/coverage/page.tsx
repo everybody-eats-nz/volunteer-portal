@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -7,6 +8,11 @@ import { CoverageAnalyticsClient } from "./coverage-analytics-client";
 import { getActiveLocationNames } from "@/lib/locations";
 import { getShiftCoverage } from "@/lib/shift-coverage";
 import { parseDaysParam } from "@/lib/parse-days-param";
+
+export const metadata: Metadata = {
+  title: "Shift Coverage",
+  description: "Shifts run, positions filled, and understaffing by restaurant",
+};
 
 export default async function CoverageAnalyticsPage({
   searchParams,

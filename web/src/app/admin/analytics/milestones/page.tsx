@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -6,6 +7,11 @@ import { PageContainer } from "@/components/page-container";
 import { MilestoneAnalyticsClient } from "./milestone-analytics-client";
 import { getActiveLocationNames } from "@/lib/locations";
 import { getMilestoneData } from "@/lib/milestone-analytics";
+
+export const metadata: Metadata = {
+  title: "Milestone Analytics",
+  description: "Track when volunteers hit key shift milestones and project future recognition opportunities",
+};
 
 export default async function MilestoneAnalyticsPage({
   searchParams,

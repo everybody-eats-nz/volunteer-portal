@@ -203,7 +203,7 @@ export function BudgetFormDialog({
               aria-live="polite"
             >
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Nightly target
                 </p>
                 <p className="text-xs text-muted-foreground">

@@ -38,13 +38,20 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ChartCard, ChartEmpty, ApexChart } from "../_components/primitives";
+import {
+  ApexChart,
+  ChartCard,
+  ChartEmpty,
+  Sparkline,
+} from "../_components/primitives";
 import {
   baseOptions,
+  chartModeFrom,
   chartTokens,
+  colorForLocation,
   compactCount,
   num,
-  SERIES_COLORS,
+  type ChartTokens,
 } from "../_lib/chart-theme";
 import { ShortageConversionsDialog } from "./shortage-conversions-dialog";
 import { ShortageConvertersTable } from "./shortage-converters-table";
@@ -71,41 +78,6 @@ const MONTHS_LABELS: Record<string, string> = {
   all: "all time",
 };
 
-/** Small area sparkline, matching the Restaurant Analytics KPI cards. */
-function Sparkline({
-  data,
-  color,
-  mode,
-}: {
-  data: number[];
-  color: string;
-  mode: "light" | "dark";
-}) {
-  if (!data.some((v) => v > 0)) return <div className="h-10" />;
-  return (
-    <ApexChart
-      type="area"
-      height={40}
-      options={{
-        chart: {
-          sparkline: { enabled: true },
-          animations: { enabled: false },
-          background: "transparent",
-        },
-        colors: [color],
-        stroke: { curve: "smooth", width: 2 },
-        fill: {
-          type: "gradient",
-          gradient: { opacityFrom: 0.4, opacityTo: 0.02, stops: [0, 100] },
-        },
-        tooltip: { enabled: false },
-        theme: { mode },
-      }}
-      series={[{ data }]}
-    />
-  );
-}
-
 function KpiCard({
   icon: Icon,
   label,
@@ -114,7 +86,7 @@ function KpiCard({
   tint,
   spark,
   sparkColor,
-  mode,
+  tokens,
   footer,
   tooltip,
   onClick,
@@ -126,7 +98,7 @@ function KpiCard({
   tint: string;
   spark: number[];
   sparkColor: string;
-  mode: "light" | "dark";
+  tokens: ChartTokens;
   footer?: React.ReactNode;
   tooltip: string;
   onClick?: () => void;
@@ -148,7 +120,7 @@ function KpiCard({
         >
           <Icon className="h-4 w-4" />
         </span>
-        <span className="text-[11px] font-semibold uppercase tracking-wide">
+        <span className="text-xs font-semibold uppercase tracking-wide">
           {label}
         </span>
       </div>
@@ -157,7 +129,7 @@ function KpiCard({
       </p>
       <div className="mt-2 min-h-5 text-xs text-muted-foreground">{footer}</div>
       <div className="-mx-1 mt-2">
-        <Sparkline data={spark} color={sparkColor} mode={mode} />
+        <Sparkline data={spark} color={sparkColor} tokens={tokens} />
       </div>
     </>
   );
@@ -221,7 +193,7 @@ function StatChip({
             <Icon className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {label}
             </p>
             <p className="text-lg font-bold leading-tight tabular-nums">
@@ -260,8 +232,7 @@ export function ShortageNotificationsAnalyticsClient({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLocation, setModalLocation] = useState("all");
 
-  const mode = resolvedTheme === "dark" ? "dark" : "light";
-  const tokens = chartTokens(mode);
+  const tokens = chartTokens(chartModeFrom(resolvedTheme));
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
@@ -279,10 +250,11 @@ export function ShortageNotificationsAnalyticsClient({
   const hasData = totals.emails > 0;
 
   // Stacked "delivered by restaurant" columns + a total signups line on top.
-  const locationColors = trendByLocation.map(
-    (_, i) => SERIES_COLORS[i % SERIES_COLORS.length]
+  const locationColors = trendByLocation.map((l) =>
+    colorForLocation(l.location, tokens)
   );
-  const signupsColor = mode === "dark" ? "#e2e8f0" : "#0f172a";
+  // The total line is drawn in ink so it never competes with a restaurant.
+  const signupsColor = tokens.foreground;
   const trendSeries = [
     ...trendByLocation.map((l) => ({
       name: l.location,
@@ -371,8 +343,8 @@ export function ShortageNotificationsAnalyticsClient({
             accent="text-sky-600 dark:text-sky-400"
             tint="bg-sky-500"
             spark={trend.map((t) => t.sendEvents)}
-            sparkColor="#0ea5e9"
-            mode={mode}
+            sparkColor={tokens.series[6]}
+            tokens={tokens}
             footer={`Send events · last ${periodLabel}`}
             tooltip="Each time an admin sends a shortage alert counts as one send event, no matter how many volunteers it reaches."
           />
@@ -383,8 +355,8 @@ export function ShortageNotificationsAnalyticsClient({
             accent="text-blue-600 dark:text-blue-400"
             tint="bg-blue-500"
             spark={trend.map((t) => t.deliveredEmails)}
-            sparkColor="#3b82f6"
-            mode={mode}
+            sparkColor={tokens.series[3]}
+            tokens={tokens}
             footer={`of ${num(totals.emails)} emails sent`}
             tooltip="Notification emails successfully delivered to volunteers across all send events."
           />
@@ -395,8 +367,8 @@ export function ShortageNotificationsAnalyticsClient({
             accent="text-emerald-600 dark:text-emerald-400"
             tint="bg-emerald-500"
             spark={trend.map((t) => t.signups)}
-            sparkColor="#10b981"
-            mode={mode}
+            sparkColor={tokens.series[0]}
+            tokens={tokens}
             footer={
               <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
                 View volunteers
@@ -413,8 +385,8 @@ export function ShortageNotificationsAnalyticsClient({
             accent="text-violet-600 dark:text-violet-400"
             tint="bg-violet-500"
             spark={convTrend}
-            sparkColor="#8b5cf6"
-            mode={mode}
+            sparkColor={tokens.series[5]}
+            tokens={tokens}
             footer={`${num(totals.converted)} of ${num(totals.successfulEmails)} delivered`}
             tooltip={`Share of delivered alerts that led to a signup within ${windowLabel} (signups ÷ delivered alerts). A correlation, not proof of cause.`}
           />
@@ -523,7 +495,7 @@ export function ShortageNotificationsAnalyticsClient({
                 markers: {
                   size: [...trendByLocation.map(() => 0), 5],
                   strokeWidth: 2,
-                  strokeColors: tokens.mode === "dark" ? "#0f1114" : "#fff",
+                  strokeColors: tokens.surface,
                 },
                 tooltip: { shared: true, intersect: false },
               }}

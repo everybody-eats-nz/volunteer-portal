@@ -19,42 +19,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { ApexChart, DeltaBadge } from "./primitives";
-import { nzd, num } from "../_lib/chart-theme";
-
-function Sparkline({
-  data,
-  color,
-  mode,
-}: {
-  data: number[];
-  color: string;
-  mode: "light" | "dark";
-}) {
-  if (!data.some((v) => v > 0)) return <div className="h-10" />;
-  return (
-    <ApexChart
-      type="area"
-      height={40}
-      options={{
-        chart: {
-          sparkline: { enabled: true },
-          animations: { enabled: false },
-          background: "transparent",
-        },
-        colors: [color],
-        stroke: { curve: "smooth", width: 2 },
-        fill: {
-          type: "gradient",
-          gradient: { opacityFrom: 0.4, opacityTo: 0.02, stops: [0, 100] },
-        },
-        tooltip: { enabled: false },
-        theme: { mode },
-      }}
-      series={[{ data }]}
-    />
-  );
-}
+import { DeltaBadge, Sparkline } from "./primitives";
+import {
+  chartModeFrom,
+  chartTokens,
+  nzd,
+  num,
+  type ChartTokens,
+} from "../_lib/chart-theme";
 
 function PrimaryCard({
   icon: Icon,
@@ -64,7 +36,7 @@ function PrimaryCard({
   tint,
   spark,
   sparkColor,
-  sparkMode,
+  tokens,
   footer,
   tooltip,
 }: {
@@ -75,7 +47,7 @@ function PrimaryCard({
   tint: string;
   spark: number[];
   sparkColor: string;
-  sparkMode: "light" | "dark";
+  tokens: ChartTokens;
   footer?: React.ReactNode;
   tooltip: string;
 }) {
@@ -98,7 +70,7 @@ function PrimaryCard({
             >
               <Icon className="h-4 w-4" />
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide">
+            <span className="text-xs font-semibold uppercase tracking-wide">
               {label}
             </span>
           </div>
@@ -107,7 +79,7 @@ function PrimaryCard({
           </p>
           <div className="mt-2 min-h-5">{footer}</div>
           <div className="-mx-1 mt-2">
-            <Sparkline data={spark} color={sparkColor} mode={sparkMode} />
+            <Sparkline data={spark} color={sparkColor} tokens={tokens} />
           </div>
         </div>
       </TooltipTrigger>
@@ -146,7 +118,7 @@ function StatChip({
             <Icon className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {label}
             </p>
             <p className="text-lg font-bold leading-tight tabular-nums">
@@ -177,7 +149,7 @@ export function KpiHero({
   rangeLabel: string;
 }) {
   const { resolvedTheme } = useTheme();
-  const sparkMode = resolvedTheme === "dark" ? "dark" : "light";
+  const tokens = chartTokens(chartModeFrom(resolvedTheme));
   const s = data.serviceStats;
   const m = reports.monthly;
 
@@ -189,7 +161,7 @@ export function KpiHero({
       accent: "text-emerald-600 dark:text-emerald-400",
       tint: "bg-emerald-500",
       spark: m.customers,
-      sparkColor: "#10b981",
+      sparkColor: tokens.palette.guests,
       footer: (
         <DeltaBadge
           percent={data.summary.yoyChangePercent}
@@ -205,14 +177,14 @@ export function KpiHero({
       accent: "text-amber-600 dark:text-amber-400",
       tint: "bg-amber-500",
       spark: m.koha,
-      sparkColor: "#f59e0b",
+      sparkColor: tokens.palette.koha,
       footer: (
         <div className="flex flex-wrap items-center gap-1.5">
           <DeltaBadge percent={s.kohaYoyPercent} base={s.prevTotalKoha} />
           {s.kohaTargetPercent !== null && (
             <span
               className={cn(
-                "inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
+                "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums",
                 s.kohaTargetPercent >= 100
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                   : "bg-muted text-muted-foreground"
@@ -233,7 +205,7 @@ export function KpiHero({
       accent: "text-amber-600 dark:text-amber-400",
       tint: "bg-amber-500",
       spark: m.perHead.map((v) => v ?? 0),
-      sparkColor: "#f59e0b",
+      sparkColor: tokens.palette.koha,
       footer: (
         <span className="text-xs text-muted-foreground">
           {s.perPaying === null
@@ -251,7 +223,7 @@ export function KpiHero({
       accent: "text-violet-600 dark:text-violet-400",
       tint: "bg-violet-500",
       spark: m.newVolunteers,
-      sparkColor: "#8b5cf6",
+      sparkColor: tokens.palette.volunteers,
       footer: (
         <span className="text-xs text-muted-foreground">
           first-time volunteers
@@ -301,7 +273,7 @@ export function KpiHero({
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {primaries.map((p) => (
-          <PrimaryCard key={p.label} {...p} sparkMode={sparkMode} />
+          <PrimaryCard key={p.label} {...p} tokens={tokens} />
         ))}
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

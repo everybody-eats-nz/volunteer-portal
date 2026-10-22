@@ -206,7 +206,7 @@ function BudgetCard({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
       <dd className="mt-0.5 truncate text-sm font-semibold tabular-nums">

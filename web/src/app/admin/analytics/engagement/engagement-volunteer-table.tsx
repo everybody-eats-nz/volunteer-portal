@@ -15,6 +15,7 @@ import {
   Search,
   Loader2,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 
@@ -239,12 +240,21 @@ export function EngagementVolunteerTable({
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 shadow-sm">
               <AvatarImage src={v.profilePhotoUrl || ""} alt={displayName} />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-xs">
+              <AvatarFallback className="bg-primary-light text-primary-text font-semibold text-xs">
                 {getUserInitials(v)}
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="font-medium text-sm">{displayName}</div>
+              {/* The name is the row's keyboard-reachable link; clicking
+                  anywhere else on the row is a mouse shortcut to the same
+                  page. */}
+              <Link
+                href={`/admin/volunteers/${v.id}`}
+                className="rounded-sm font-medium text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                data-testid={`engagement-volunteer-link-${v.id}`}
+              >
+                {displayName}
+              </Link>
               <div className="text-xs text-muted-foreground">{v.email}</div>
             </div>
           </div>
@@ -456,9 +466,12 @@ export function EngagementVolunteerTable({
                 <TableRow
                   key={row.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() =>
-                    router.push(`/admin/volunteers/${row.original.id}`)
-                  }
+                  onClick={(e) => {
+                    // Let the name link (and any other control) handle its
+                    // own click, including modifier-clicks into a new tab.
+                    if ((e.target as HTMLElement).closest("a, button")) return;
+                    router.push(`/admin/volunteers/${row.original.id}`);
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="px-4 py-3">

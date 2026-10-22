@@ -208,7 +208,7 @@ function UserRow({
       >
         <Avatar className="h-8 w-8 shadow-sm">
           <AvatarImage src={user.profilePhotoUrl ?? ""} alt={displayName} />
-          <AvatarFallback className="bg-gradient-to-br from-amber-500 to-pink-600 text-white text-xs font-semibold">
+          <AvatarFallback className="bg-primary-light text-primary-text text-xs font-semibold">
             {getInitials(user)}
           </AvatarFallback>
         </Avatar>

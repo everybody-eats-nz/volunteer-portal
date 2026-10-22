@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -14,6 +15,11 @@ import {
 import { buildCafeReport, buildEventsReport } from "@/lib/events-cafe-report";
 import type { Prisma } from "@/generated/client";
 import { EventsCafeClient } from "./events-cafe-client";
+
+export const metadata: Metadata = {
+  title: "Events & Cafe",
+  description: "Fundraiser income and profit, and cafe takings, kept separate from koha",
+};
 
 // Everything that isn't a service night, i.e. isn't koha.
 const OTHER_ACTIVITY: Prisma.MealsServedWhereInput = {

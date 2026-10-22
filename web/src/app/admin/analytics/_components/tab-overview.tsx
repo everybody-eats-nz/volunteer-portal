@@ -17,11 +17,12 @@ import {
 } from "./primitives";
 import {
   baseOptions,
+  deltaHtml,
+  insideLabelStyle,
   type ChartTokens,
   compactCount,
   nzd,
   num,
-  PALETTE,
 } from "../_lib/chart-theme";
 
 export function TabOverview({
@@ -121,7 +122,7 @@ function GuestsTrend({
               labels: { formatter: compactCount, style: tokens.axisStyle },
               min: 0,
             },
-            colors: [PALETTE.guests, PALETTE.target],
+            colors: [tokens.palette.guests, tokens.palette.target],
             stroke: { curve: "smooth", width: [2.5, 2], dashArray: [0, 5] },
             fill: {
               type: "gradient",
@@ -135,7 +136,7 @@ function GuestsTrend({
             markers: {
               size: isWeekly ? 0 : [3.5, 0],
               strokeWidth: 2,
-              strokeColors: tokens.mode === "dark" ? "#0f1114" : "#fff",
+              strokeColors: tokens.surface,
               hover: { sizeOffset: 3 },
             },
             tooltip: {
@@ -193,12 +194,12 @@ function KohaMix({
             ...baseOptions(tokens),
             chart: { ...baseOptions(tokens).chart, type: "donut" },
             labels: ["Cash", "Eftpos", "Stripe"],
-            colors: [PALETTE.cash, PALETTE.eftpos, PALETTE.stripe],
-            stroke: { width: 0 },
+            colors: [tokens.palette.cash, tokens.palette.eftpos, tokens.palette.stripe],
+            stroke: { width: 2, colors: [tokens.surface] },
             dataLabels: {
               enabled: true,
               formatter: (val: number) => `${Math.round(val)}%`,
-              style: { fontFamily: "var(--font-jakarta)", fontSize: "11px" },
+              style: { fontFamily: "var(--font-jakarta)", fontSize: "12px" },
               dropShadow: { enabled: false },
             },
             legend: {
@@ -325,7 +326,7 @@ function KohaTrend({
               min: 0,
               max: is100 ? 100 : undefined,
             },
-            colors: [PALETTE.cash, PALETTE.eftpos, PALETTE.stripe, PALETTE.target],
+            colors: [tokens.palette.cash, tokens.palette.eftpos, tokens.palette.stripe, tokens.palette.target],
             plotOptions: {
               bar: {
                 columnWidth: "55%",
@@ -403,7 +404,7 @@ function YoYSummary({ data }: { data: RestaurantAnalyticsData }) {
                 className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2.5"
               >
                 <div>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {mt.label}
                   </p>
                   <p className="text-xl font-bold tabular-nums">
@@ -424,7 +425,7 @@ function YoYSummary({ data }: { data: RestaurantAnalyticsData }) {
                       {positive ? "+" : ""}
                       {pct}%
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       was {mt.fmt(mt.previous)}
                     </p>
                   </div>
@@ -502,16 +503,11 @@ function GuestsByLocation({
               },
             },
             yaxis: { labels: { style: tokens.catStyle } },
-            colors: [PALETTE.guests],
+            colors: [tokens.palette.guests],
             dataLabels: {
               enabled: true,
               formatter: (val: number) => (val > 0 ? num(val) : ""),
-              style: {
-                fontFamily: "var(--font-jakarta)",
-                fontSize: "11px",
-                fontWeight: 600,
-                colors: ["#fff"],
-              },
+              style: insideLabelStyle([tokens.palette.guests]),
               offsetX: -2,
             },
             grid: {
@@ -528,11 +524,7 @@ function GuestsByLocation({
                 const diff = loc.totalMeals - loc.prevYearMeals;
                 const diffLabel =
                   loc.prevYearMeals > 0
-                    ? diff > 0
-                      ? `<span style="color:#10b981">+${num(diff)} vs last year</span>`
-                      : diff < 0
-                        ? `<span style="color:#ef4444">${num(diff)} vs last year</span>`
-                        : `<span style="color:#64748b">No change</span>`
+                    ? deltaHtml(diff, "vs last year", tokens)
                     : "";
                 return `<div style="padding:8px 12px;font-size:12px;line-height:1.6">
                   <b>${loc.location}</b><br/>
@@ -551,8 +543,8 @@ function GuestsByLocation({
                       y: l.location as unknown as number,
                       marker: {
                         size: 5,
-                        fillColor: PALETTE.target,
-                        strokeColor: tokens.mode === "dark" ? "#0f1114" : "#fff",
+                        fillColor: tokens.palette.target,
+                        strokeColor: tokens.surface,
                         strokeWidth: 2,
                         shape: "circle",
                       },
@@ -560,7 +552,7 @@ function GuestsByLocation({
                         text: "Last yr: " + num(l.prevYearMeals),
                         borderWidth: 0,
                         style: {
-                          fontSize: "9px",
+                          fontSize: "12px",
                           fontFamily: "var(--font-jakarta)",
                           color: tokens.label,
                           background: "transparent",
