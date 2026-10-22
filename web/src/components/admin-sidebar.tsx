@@ -56,8 +56,17 @@ const DETAIL_ROUTE_PARENTS: [prefix: string, parent: string][] = [
 /** Brand active state: forest tint, bold label and a left rule. */
 // The tint is a step deeper than the sidebar's hover tint so the current page
 // still out-ranks whatever row the pointer is on.
-const ACTIVE_ITEM_CLASSES =
-  "relative data-[active=true]:bg-forest-100 data-[active=true]:font-semibold data-[active=true]:text-forest-600 data-[active=true]:hover:bg-forest-100 data-[active=true]:hover:text-forest-600 dark:data-[active=true]:bg-forest-500/60 dark:data-[active=true]:text-primary-text dark:data-[active=true]:hover:bg-forest-500/60 dark:data-[active=true]:hover:text-primary-text data-[active=true]:before:absolute data-[active=true]:before:inset-y-1.5 data-[active=true]:before:left-0 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-full data-[active=true]:before:bg-forest-500 dark:data-[active=true]:before:bg-primary-text";
+const ACTIVE_ITEM_CLASSES = cn(
+  "relative",
+  // Tint and text, held on hover
+  "data-[active=true]:bg-forest-100 data-[active=true]:font-semibold data-[active=true]:text-forest-600",
+  "data-[active=true]:hover:bg-forest-100 data-[active=true]:hover:text-forest-600",
+  "dark:data-[active=true]:bg-forest-500/60 dark:data-[active=true]:text-primary-text",
+  "dark:data-[active=true]:hover:bg-forest-500/60 dark:data-[active=true]:hover:text-primary-text",
+  // 3px left rule
+  "data-[active=true]:before:absolute data-[active=true]:before:inset-y-1.5 data-[active=true]:before:left-0 data-[active=true]:before:w-[3px] data-[active=true]:before:rounded-full",
+  "data-[active=true]:before:bg-forest-500 dark:data-[active=true]:before:bg-primary-text"
+);
 
 /** Count badges keep white text even when their row is hovered or active. */
 const COUNT_BADGE_CLASSES =

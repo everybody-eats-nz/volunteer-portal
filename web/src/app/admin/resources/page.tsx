@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { Prisma } from "@/generated/client";
+import { Prisma, ResourceCategory, ResourceType } from "@/generated/client";
 import { Eye, FilePen, Library, Upload } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
@@ -11,6 +11,13 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { AdminResourcesTable } from "@/components/admin-resources-table";
 import { KpiTile } from "@/components/admin/kpi-tile";
 import { CreateResourceDialog } from "@/components/create-resource-dialog";
+
+function isEnumValue<T extends Record<string, string>>(
+  enumObject: T,
+  value: string | undefined
+): value is T[keyof T] {
+  return value !== undefined && Object.values(enumObject).includes(value);
+}
 
 export const metadata: Metadata = {
   title: "Resource Hub",
@@ -47,12 +54,14 @@ export default async function AdminResourcesPage({
   // Build where clause for filtering
   const whereClause: Prisma.ResourceWhereInput = {};
 
-  if (categoryFilter) {
-    whereClause.category = categoryFilter as Prisma.EnumResourceCategoryFilter;
+  // Hand-edited URLs can carry any string; Prisma throws on an unknown enum
+  // value, so ignore filters that aren't one.
+  if (isEnumValue(ResourceCategory, categoryFilter)) {
+    whereClause.category = categoryFilter;
   }
 
-  if (typeFilter) {
-    whereClause.type = typeFilter as Prisma.EnumResourceTypeFilter;
+  if (isEnumValue(ResourceType, typeFilter)) {
+    whereClause.type = typeFilter;
   }
 
   if (publishedFilter !== undefined && publishedFilter !== null) {
