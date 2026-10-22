@@ -34,6 +34,7 @@ const HERO_PALETTE: Record<
     accent: string;
     heroText: string;
     bodyText: string;
+    /** 0.72 keeps ≥4.5:1 on the lightest gradient stop of every status. */
     mutedText: string;
     chevron: string;
     eyebrow: string;
@@ -50,7 +51,7 @@ const HERO_PALETTE: Record<
     accent: HERO_STATUS.confirmed.solid,
     heroText: Palette.cream50,
     bodyText: "rgba(253, 248, 239, 0.92)",
-    mutedText: "rgba(253, 248, 239, 0.62)",
+    mutedText: "rgba(253, 248, 239, 0.72)",
     chevron: "rgba(253, 248, 239, 0.45)",
     eyebrow: "Your next shift",
     label: "Confirmed",
@@ -65,7 +66,7 @@ const HERO_PALETTE: Record<
     accent: HERO_STATUS.pending.solid,
     heroText: "#fdf6e3",
     bodyText: "rgba(253, 246, 227, 0.92)",
-    mutedText: "rgba(253, 246, 227, 0.60)",
+    mutedText: "rgba(253, 246, 227, 0.72)",
     chevron: "rgba(255, 255, 255, 0.45)",
     eyebrow: "Awaiting approval",
     label: "Pending",
@@ -80,7 +81,7 @@ const HERO_PALETTE: Record<
     accent: HERO_STATUS.waitlisted.solid,
     heroText: "#f1f5f9",
     bodyText: "rgba(241, 245, 249, 0.92)",
-    mutedText: "rgba(241, 245, 249, 0.58)",
+    mutedText: "rgba(241, 245, 249, 0.72)",
     chevron: "rgba(255, 255, 255, 0.45)",
     eyebrow: "You're on the waitlist",
     label: "Waitlisted",
