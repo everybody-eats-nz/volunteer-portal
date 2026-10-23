@@ -98,13 +98,47 @@ A shift counts once it's CONFIRMED and has finished, the same basis as hours
 and achievements elsewhere. A year in progress covers the year so far.
 Friends with `PRIVATE` visibility are never named.
 
+## Look and motion
+
+Type and colour follow everybodyeats.nz: light Fraunces headlines set tight
+with an italic phrase ("Kia ora, *Aroha*"), Plus Jakarta Sans for sentences,
+JetBrains Mono on the dockets, and the site's cream, forest, soft sun
+(`#f8fb69`) and peach. The Fraunces files in `public/fonts` are instanced
+and subset from the site's variable fonts (see `theme.ts`).
+
+The recurring object is a plate, after the site's "one plate at a time": the
+year is served on one in the intro and every shift lands as a plate in the
+tally. The rhythm scene is a plain month bar chart. The outro draws in
+the site's dining-room mural (from marketing-cms, as a WebP mask tinted
+cream).
+
+Photos are used in two places only, each in a rounded card with a slow
+push-in (`components/photo.tsx`): food on the table under the meals count,
+and a photo of the volunteer's go-to station in the roles scene (dish pit,
+kitchen prep, plating line or front of house, matched on the shift name).
+They come from the mobile app's photos, cropped so that nobody's face is in
+frame, into `public/year-in-review/`. Around it, the kitchen: big figures roll
+in on slot-machine reels, events hang as dockets on a ticket rail, and the
+summary docket prints in jerks and gets stamped "Paid in aroha". The crew
+scene draws one dot per volunteer they worked alongside, opening out in a
+sunflower spiral.
+
+Scenes sweep in behind two bands of brand colour on a diagonal
+(`components/band-wipe.tsx`), so each scene's entrances wait until it's
+uncovered (`REVEAL_SECONDS` in `components/motion.tsx`). Every scene's
+colours are in `sceneColors` in `theme.ts`. Flat colour on purpose: a paper
+grain overlay was tried and made the MP4 3.6 times bigger.
+
+The kawakawa illustration is cropped along its top edge, so it hangs from
+the top of the frame (behind Instagram's header), never mid-frame.
+
 ## Instagram fit
 
 - 1080 x 1920 (9:16), H.264, yuv420p, 30 fps, no audio. Volunteers can add a
   song in Instagram.
 - Content stays out of the top 250px and bottom 400px, where Instagram draws
   its own UI (`layout` in `src/remotion/year-in-review/theme.ts`).
-- With every scene it runs 52 seconds, under the 60 second Story limit.
+- With every scene it runs 53 seconds, under the 60 second Story limit.
   `timeline.test.ts` guards this.
 
 ## Code

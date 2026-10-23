@@ -6,6 +6,7 @@ import { YearInReview } from "@/remotion/year-in-review/YearInReview";
 import type { YearInReviewProps } from "@/remotion/year-in-review/schema";
 import { FPS, getDurationInFrames } from "@/remotion/year-in-review/timeline";
 import { colors, layout } from "@/remotion/year-in-review/theme";
+import { INTRO_GAP_CENTRE } from "@/remotion/year-in-review/scenes/Intro";
 
 /**
  * The intro fades in from an empty frame, so the player waits on the intro
@@ -23,11 +24,11 @@ const renderPoster: RenderPoster = () => {
     <div
       style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
     >
-      {/* In the empty space between the intro's logo and greeting */}
+      {/* In the empty space between the intro's greeting and plate */}
       <div
         style={{
           position: "absolute",
-          top: "36%",
+          top: `${INTRO_GAP_CENTRE * 100}%`,
           left: "50%",
           translate: "-50% -50%",
           width: size,
