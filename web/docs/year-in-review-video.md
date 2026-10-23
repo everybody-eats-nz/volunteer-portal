@@ -1,0 +1,116 @@
+# Year in mahi video
+
+A Spotify Wrapped style video of one volunteer's year, built with
+[Remotion](https://www.remotion.dev) and sized for Instagram Stories and Reels.
+Everybody Eats is a charity, so it uses Remotion under the free licence for
+non-profits.
+
+## Where people see it
+
+| Where | What |
+|-------|------|
+| `/admin/year-in-review` | Admins switch it on for everyone, pick the year, and watch or download anyone's video |
+| `/dashboard` | A banner once it's on, for anyone with a completed shift that year |
+| `/year-in-review` | The volunteer's video: player, then "Get the video" renders the MP4 on the server for Download / Share |
+| Mobile home tab | A card that opens `app/year-in-review.tsx`, a WebView onto `/embed/year-in-review` |
+
+Admins and volunteers are treated alike: everyone with a completed shift
+that year gets a video. Admins can open theirs before it's switched on.
+
+### Rendering on the server
+
+"Get the video" (web) and "Save or share video" (app) call
+`POST /api/year-in-review/video`, which queues a `YearInReviewVideo` job and
+answers straight away; the page polls `GET` for progress. A single loop inside
+the web container renders queued jobs one at a time with `@remotion/renderer`
+and Chrome Headless Shell, using half the CPUs so the site stays responsive.
+Requests never wait on a render: Cloudflare cuts requests off at 100 seconds.
+
+- **Caching:** a finished video is reused until the person's stats change. A
+  year in progress moves daily (the Everybody Eats totals), so a video under
+  a day old is reused regardless. Failed renders are retried on the next ask.
+- **Restarts:** a render cut off mid-way (deploy, crash) is picked up again
+  once it's 15 minutes stale, the next time anyone asks or polls.
+- **Storage:** a private Supabase bucket, `year-in-review` (created on first
+  upload). Files are served only through `/api/year-in-review/video/file`, to
+  the owner or an admin. Without Supabase (local dev, CI) they go to
+  `$YEAR_IN_REVIEW_VIDEO_DIR` or the OS temp dir.
+- **Access:** session or the app's bearer token. Admins may pass `?userId=`
+  and `?year=` for anyone's video (`lib/year-in-review-access.server.ts`).
+- **Image:** CI runs `npm run video:bundle` after `next build`; the Dockerfile
+  copies `remotion-bundle/` (source maps included: the renderer reads them),
+  installs Chrome's shared libraries and colour emoji, and fetches Chrome
+  Headless Shell into `node_modules/.remotion`. Locally, run
+  `npm run video:bundle` once before asking for a video.
+- **Resources:** a render holds Chrome (~0.5-1 GB RAM) for about a minute.
+  Videos render on demand, not all at once when the switch is turned on.
+
+### In the app
+
+The app opens `/embed/year-in-review` in a WebView with its bearer token as
+an `Authorization` header (`getMobileUserFromHeaders`), so the player updates
+without an app release. `/embed/*` pages render without the site header and
+footer. The app's own "Save or share video" button asks for the MP4, shows
+progress, then downloads it with the token and opens the share sheet. The
+home card asks `GET /api/mobile/year-in-review` whether to show.
+
+## Making a video from the command line
+
+```bash
+cd web
+npm run video:props -- volunteer@example.com 2026   # year defaults to this NZ year
+npm run video:studio -- --props=out/year-in-review/<userId>-2026.json
+npm run video:render -- --props=out/year-in-review/<userId>-2026.json
+```
+
+`video:props` reads the database in `DATABASE_URL` and writes the props JSON
+to `out/` (gitignored). Studio runs on http://localhost:3200 and shows a
+sample volunteer when no `--props` is passed. Renders land in `out/` as
+`year-in-mahi-<year>-<name>.mp4`.
+
+## What it shows
+
+| Scene | Data | Shown when |
+|-------|------|-----------|
+| Intro | First name, year | Always |
+| Shifts | Completed shifts, hours, first shift | Always |
+| Meals | People served on their nights (all report types) and food saved | They have day reports |
+| Rhythm | Shifts per month, favourite weekday | Always |
+| Roles | Shift types ranked, home restaurant | Always |
+| Crew | Volunteers on the same nights, top 3 friends | Anyone else was on |
+| Achievements | Badges unlocked that year | Any unlocked |
+| Top percent | Rank by shifts among that year's volunteers | Top 25% |
+| Together | Everybody Eats meals, service nights, volunteers, hours, events | Always |
+| Docket | Summary as a kitchen docket | Always |
+| Outro | Thanks and sign-off | Always |
+
+A shift counts once it's CONFIRMED and has finished, the same basis as hours
+and achievements elsewhere. A year in progress covers the year so far.
+Friends with `PRIVATE` visibility are never named.
+
+## Instagram fit
+
+- 1080 x 1920 (9:16), H.264, yuv420p, 30 fps, no audio. Volunteers can add a
+  song in Instagram.
+- Content stays out of the top 250px and bottom 400px, where Instagram draws
+  its own UI (`layout` in `src/remotion/year-in-review/theme.ts`).
+- With every scene it runs 52 seconds, under the 60 second Story limit.
+  `timeline.test.ts` guards this.
+
+## Code
+
+| Path | Role |
+|------|------|
+| `src/lib/year-in-review.server.ts` | Prisma queries, builds the props |
+| `src/lib/year-in-review.ts` | Pure aggregation (unit tested) |
+| `src/remotion/year-in-review/schema.ts` | Zod props schema shared by both sides |
+| `src/remotion/year-in-review/timeline.ts` | Scene order, optional scenes, duration |
+| `src/remotion/year-in-review/scenes/` | One component per scene |
+| `scripts/year-in-review-props.ts` | CLI behind `video:props` |
+| `src/lib/year-in-review-settings.ts` | On/off switch and year (site settings, category `YEAR_IN_REVIEW`) |
+| `src/lib/year-in-review-render.server.ts` | Render queue: request, claim, render, store |
+| `src/lib/year-in-review-video-storage.server.ts` | Private bucket (or local disk) for the MP4s |
+| `src/app/api/year-in-review/video/` | Request / poll, and the file itself |
+| `src/components/year-in-review/` | Player, share panel and its polling hook, dashboard banner |
+| `src/app/admin/year-in-review/` | Admin page |
+| `remotion.config.ts` | Entry point, Studio port, codec |

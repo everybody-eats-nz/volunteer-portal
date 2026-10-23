@@ -26,7 +26,11 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:reset": "npx prisma migrate reset; npx prisma db seed",
     "prisma:reset:ci": "npx prisma migrate reset --force; npx prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "video:props": "tsx scripts/year-in-review-props.ts",
+    "video:studio": "remotion studio",
+    "video:render": "remotion render YearInReview",
+    "video:bundle": "remotion bundle --out-dir=remotion-bundle"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
@@ -55,6 +59,11 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.21",
     "@radix-ui/react-tooltip": "^1.2.16",
+    "@remotion/fonts": "4.0.538",
+    "@remotion/google-fonts": "4.0.538",
+    "@remotion/player": "4.0.538",
+    "@remotion/renderer": "4.0.538",
+    "@remotion/transitions": "4.0.538",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.2",
     "@supabase/supabase-js": "^2.112.4",
@@ -94,6 +103,7 @@
     "react-image-crop": "^11.0.10",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "remotion": "4.0.538",
     "sanitize-html": "^2.18.1",
     "sharp": "^0.35.5",
     "sonner": "^2.0.8",
@@ -109,6 +119,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "^1.64.1",
+    "@remotion/cli": "4.0.538",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
     "@types/canvas-confetti": "^1.9.0",

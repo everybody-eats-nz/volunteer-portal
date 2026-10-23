@@ -30,6 +30,14 @@ export const queryKeys = {
     all: ['notifications'] as const,
     list: () => [...queryKeys.notifications.all, 'list'] as const,
   },
+  yearInReview: {
+    all: ['year-in-review'] as const,
+    /** Whether the home tab shows the Year in mahi card. */
+    availability: () =>
+      [...queryKeys.yearInReview.all, 'availability'] as const,
+    /** The server-rendered MP4's status. */
+    video: () => [...queryKeys.yearInReview.all, 'video'] as const,
+  },
   surveys: {
     all: ['surveys'] as const,
     /** Surveys waiting on the volunteer, for the home tab's survey card. */

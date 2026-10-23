@@ -1,0 +1,70 @@
+import type { ComponentType } from "react";
+import { linearTiming, TransitionSeries } from "@remotion/transitions";
+import { slide } from "@remotion/transitions/slide";
+import { Easing } from "remotion";
+import { Achievements } from "./scenes/Achievements";
+import { Crew } from "./scenes/Crew";
+import { Docket } from "./scenes/Docket";
+import { Intro } from "./scenes/Intro";
+import { Meals } from "./scenes/Meals";
+import { Outro } from "./scenes/Outro";
+import { Rhythm } from "./scenes/Rhythm";
+import { Roles } from "./scenes/Roles";
+import { Shifts } from "./scenes/Shifts";
+import { TopPercent } from "./scenes/TopPercent";
+import { Together } from "./scenes/Together";
+import type { YearInReviewProps } from "./schema";
+import { getScenes, type SceneId, TRANSITION_FRAMES } from "./timeline";
+
+const SCENES: Record<
+  SceneId,
+  { name: string; Component: ComponentType<YearInReviewProps> }
+> = {
+  intro: { name: "Intro", Component: Intro },
+  shifts: { name: "Shifts", Component: Shifts },
+  meals: { name: "Meals", Component: Meals },
+  rhythm: { name: "Rhythm", Component: Rhythm },
+  roles: { name: "Roles", Component: Roles },
+  crew: { name: "Crew", Component: Crew },
+  achievements: { name: "Achievements", Component: Achievements },
+  topPercent: { name: "Top percent", Component: TopPercent },
+  together: { name: "Together", Component: Together },
+  docket: { name: "Docket", Component: Docket },
+  outro: { name: "Outro", Component: Outro },
+};
+
+const transitionTiming = linearTiming({
+  durationInFrames: TRANSITION_FRAMES,
+  easing: Easing.bezier(0.65, 0, 0.35, 1),
+});
+
+/**
+ * A volunteer's year as a vertical story: one scene per stat, each sliding
+ * up over the last like Instagram Stories.
+ */
+export const YearInReview = (props: YearInReviewProps) => (
+  <TransitionSeries>
+    {getScenes(props).flatMap(({ id, durationInFrames }, i) => {
+      const { name, Component } = SCENES[id];
+      const scene = (
+        <TransitionSeries.Sequence
+          key={id}
+          name={name}
+          durationInFrames={durationInFrames}
+        >
+          <Component {...props} />
+        </TransitionSeries.Sequence>
+      );
+      return i === 0
+        ? [scene]
+        : [
+            <TransitionSeries.Transition
+              key={`${id}-in`}
+              presentation={slide({ direction: "from-bottom" })}
+              timing={transitionTiming}
+            />,
+            scene,
+          ];
+    })}
+  </TransitionSeries>
+);

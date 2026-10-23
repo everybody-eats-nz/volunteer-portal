@@ -30,7 +30,17 @@ const nextConfig: NextConfig = {
     : {}),
 
   // Keep native/heavy packages out of the server bundle
-  serverExternalPackages: ["@prisma/client", "bcrypt"],
+  serverExternalPackages: ["@prisma/client", "bcrypt", "@remotion/renderer"],
+
+  // The Year in mahi renderer runs its platform's native compositor (and the
+  // ffmpeg beside it) from disk, which file tracing only partly follows, so
+  // ship whichever compositor npm installed (Linux x64 in CI) whole.
+  outputFileTracingIncludes: {
+    "/api/year-in-review/**": [
+      "./node_modules/@remotion/compositor-*/**/*",
+      "./node_modules/@remotion/renderer/**/*",
+    ],
+  },
 
   // Configure external image domains
   images: {
