@@ -6,6 +6,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { YearInReviewAdmin } from "@/components/admin/year-in-review/year-in-review-admin";
 import {
+  canManageYearInReview,
   getYearInReviewSettings,
   selectableYears,
 } from "@/lib/year-in-review-settings";
@@ -19,6 +20,9 @@ export default async function YearInReviewAdminPage() {
   const session = await getServerSession(authOptions);
   if (session?.user?.role !== "ADMIN") {
     redirect("/dashboard");
+  }
+  if (!canManageYearInReview(session.user)) {
+    redirect("/admin");
   }
 
   const settings = await getYearInReviewSettings();

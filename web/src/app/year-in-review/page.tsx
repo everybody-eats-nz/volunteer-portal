@@ -30,12 +30,11 @@ export default async function YearInReviewPage() {
   }
 
   const settings = await getYearInReviewSettings();
-  const role = session.user.role;
 
   return (
     <PageContainer testid="year-in-review-page">
       <YearInReviewPageHeader year={settings.year} />
-      {canViewYearInReview(settings, role) ? (
+      {canViewYearInReview(settings, session.user) ? (
         <Suspense fallback={<YearInReviewSkeleton />}>
           <YearInReviewContent
             userId={userId}

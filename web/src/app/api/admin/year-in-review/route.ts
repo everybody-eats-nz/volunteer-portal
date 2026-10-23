@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth-options";
 import {
+  canManageYearInReview,
   saveYearInReviewSettings,
   selectableYears,
 } from "@/lib/year-in-review-settings";
@@ -21,7 +22,7 @@ const settingsSchema = z.object({
  */
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== "ADMIN") {
+  if (!session?.user || !canManageYearInReview(session.user)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

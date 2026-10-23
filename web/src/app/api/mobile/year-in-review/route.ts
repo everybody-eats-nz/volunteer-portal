@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
   const settings = await getYearInReviewSettings();
   const available =
-    canViewYearInReview(settings, auth.user.role) &&
+    canViewYearInReview(settings, auth.user) &&
     (await hasYearInReview(auth.userId, settings.year));
 
   return NextResponse.json({ available, year: settings.year });

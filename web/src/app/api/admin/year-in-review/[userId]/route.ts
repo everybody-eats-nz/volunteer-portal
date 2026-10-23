@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { selectableYears } from "@/lib/year-in-review-settings";
+import {
+  canManageYearInReview,
+  selectableYears,
+} from "@/lib/year-in-review-settings";
 import { getVolunteerYearInReview } from "@/lib/year-in-review.server";
 
 /**
@@ -16,7 +19,7 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== "ADMIN") {
+  if (!session?.user || !canManageYearInReview(session.user)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

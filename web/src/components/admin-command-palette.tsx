@@ -26,6 +26,7 @@ interface User {
 
 interface AdminCommandPaletteProps {
   children: React.ReactNode;
+  hiddenNavItems: string[];
 }
 
 // Helper function to determine if a query matches any navigation items
@@ -62,7 +63,10 @@ function isNavigationQuery(query: string): boolean {
   });
 }
 
-export function AdminCommandPalette({ children }: AdminCommandPaletteProps) {
+export function AdminCommandPalette({
+  children,
+  hiddenNavItems,
+}: AdminCommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -182,7 +186,9 @@ export function AdminCommandPalette({ children }: AdminCommandPaletteProps) {
             <>
               {adminNavCategories.map((category) => (
                 <CommandGroup key={category.label} heading={category.label}>
-                  {category.items.map((item) => (
+                  {category.items
+                    .filter((item) => !hiddenNavItems.includes(item.href))
+                    .map((item) => (
                     <CommandItem
                       key={item.href}
                       value={`${item.title} ${item.description || ''} ${category.label} navigate admin ${item.commandKey || ''}`}

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { getMobileUser } from "@/lib/mobile-auth";
 import {
+  canManageYearInReview,
   canViewYearInReview,
   getYearInReviewSettings,
   selectableYears,
@@ -11,8 +12,8 @@ import {
 /**
  * Who a Year in mahi video request is for. Works for the web (session) and
  * the app (bearer token) alike: everyone gets their own video once it's
- * switched on (admins before then too), and admins can ask for anyone's, for
- * any recent year, with `?userId=` and `?year=`.
+ * switched on (managers before then too), and managers can ask for anyone's,
+ * for any recent year, with `?userId=` and `?year=`.
  */
 export async function resolveVideoRequest(
   request: Request
@@ -20,31 +21,35 @@ export async function resolveVideoRequest(
   const mobileUser = await getMobileUser(request);
   const session = mobileUser ? null : await getServerSession(authOptions);
   const viewer = mobileUser
-    ? { id: mobileUser.id, role: mobileUser.role }
+    ? { id: mobileUser.id, role: mobileUser.role, email: mobileUser.email }
     : session?.user
-      ? { id: session.user.id, role: session.user.role }
+      ? {
+          id: session.user.id,
+          role: session.user.role,
+          email: session.user.email,
+        }
       : null;
   if (!viewer) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const params = new URL(request.url).searchParams;
-  const isAdmin = viewer.role === "ADMIN";
+  const isManager = canManageYearInReview(viewer);
   const userId = params.get("userId") || viewer.id;
-  if (userId !== viewer.id && !isAdmin) {
+  if (userId !== viewer.id && !isManager) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const settings = await getYearInReviewSettings();
   const requestedYear = params.get("year");
-  if (requestedYear && isAdmin) {
+  if (requestedYear && isManager) {
     const year = Number(requestedYear);
     if (!selectableYears().includes(year)) {
       return NextResponse.json({ error: "Invalid year" }, { status: 400 });
     }
     return { userId, year };
   }
-  if (!canViewYearInReview(settings, viewer.role)) {
+  if (!canViewYearInReview(settings, viewer)) {
     return NextResponse.json(
       { error: "Year in mahi isn't available yet" },
       { status: 403 }

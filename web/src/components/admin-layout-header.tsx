@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { useAdminHeader } from "@/contexts/admin-header-context";
 import { AdminCommandPalette } from "@/components/admin-command-palette";
 
-export function AdminLayoutHeader() {
+export function AdminLayoutHeader({
+  hiddenNavItems,
+}: {
+  hiddenNavItems: string[];
+}) {
   const { title, description, actions, breadcrumbs } = useAdminHeader();
 
   return (
@@ -61,7 +65,7 @@ export function AdminLayoutHeader() {
         )}
       </div>
       <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-        <AdminCommandPalette>
+        <AdminCommandPalette hiddenNavItems={hiddenNavItems}>
           <Button 
             variant="outline" 
             size="sm" 

@@ -30,8 +30,9 @@ export default defineConfig({
   ],
 
   webServer: {
+    // The seeded admin manages Year in mahi too (otherwise only Malin can).
     command:
-      "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run dev",
+      "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true YEAR_IN_REVIEW_MANAGER_EMAILS=admin@everybodyeats.nz npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

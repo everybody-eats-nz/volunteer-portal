@@ -9,13 +9,20 @@ non-profits.
 
 | Where | What |
 |-------|------|
-| `/admin/year-in-review` | Admins switch it on for everyone, pick the year, and watch or download anyone's video |
+| `/admin/year-in-review` | Managers switch it on for everyone, pick the year, and watch or download anyone's video |
 | `/dashboard` | A banner once it's on, for anyone with a completed shift that year |
 | `/year-in-review` | The volunteer's video: player, then "Get the video" renders the MP4 on the server for Download / Share |
 | Mobile home tab | A card that opens `app/year-in-review.tsx`, a WebView onto `/embed/year-in-review` |
 
 Admins and volunteers are treated alike: everyone with a completed shift
-that year gets a video. Admins can open theirs before it's switched on.
+that year gets a video.
+
+**Managers:** for now only Malin (hardcoded in
+`lib/year-in-review-settings.ts`, `canManageYearInReview`) sees the admin
+page, its sidebar and command palette entries, can watch anyone's video, and
+can open theirs before it's switched on. Other admins are treated like
+volunteers. `YEAR_IN_REVIEW_MANAGER_EMAILS` (comma separated) adds more; the
+e2e server sets it to the seeded admin.
 
 ### Rendering on the server
 
@@ -33,9 +40,9 @@ Requests never wait on a render: Cloudflare cuts requests off at 100 seconds.
   once it's 15 minutes stale, the next time anyone asks or polls.
 - **Storage:** a private Supabase bucket, `year-in-review` (created on first
   upload). Files are served only through `/api/year-in-review/video/file`, to
-  the owner or an admin. Without Supabase (local dev, CI) they go to
+  the owner or a manager. Without Supabase (local dev, CI) they go to
   `$YEAR_IN_REVIEW_VIDEO_DIR` or the OS temp dir.
-- **Access:** session or the app's bearer token. Admins may pass `?userId=`
+- **Access:** session or the app's bearer token. Managers may pass `?userId=`
   and `?year=` for anyone's video (`lib/year-in-review-access.server.ts`).
 - **Image:** CI runs `npm run video:bundle` after `next build`; the Dockerfile
   copies `remotion-bundle/` (source maps included: the renderer reads them),
