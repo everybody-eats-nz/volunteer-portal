@@ -1,3 +1,9 @@
+## [0.197.1] - 2026-10-23
+
+### Changes
+- fix: ship the Remotion renderer's whole dependency tree in the Docker image ([#1382](https://github.com/everybody-eats-nz/volunteer-portal/pull/1382)) by @malinmalliyawadu
+
+
 ## [0.197.0] - 2026-10-23
 
 ### Changes
