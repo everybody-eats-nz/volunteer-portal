@@ -1,3 +1,9 @@
+## [0.197.0] - 2026-10-23
+
+### Changes
+- feat: Year in mahi - Wrapped-style yearly video for every volunteer ([#1381](https://github.com/everybody-eats-nz/volunteer-portal/pull/1381)) by @malinmalliyawadu
+
+
 ## [0.196.0] - 2026-10-22
 
 ### Changes
