@@ -1,3 +1,9 @@
+## [0.198.0] - 2026-10-23
+
+### Changes
+- feat: redesign the Year in mahi video after everybodyeats.nz ([#1386](https://github.com/everybody-eats-nz/volunteer-portal/pull/1386)) by @malinmalliyawadu
+
+
 ## [0.197.4] - 2026-10-23
 
 ### Changes
