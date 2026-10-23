@@ -1,3 +1,9 @@
+## [0.199.0] - 2026-10-23
+
+### Changes
+- Year in mahi: fast crew query, profile photo on the intro, readable role names ([#1387](https://github.com/everybody-eats-nz/volunteer-portal/pull/1387)) by @malinmalliyawadu
+
+
 ## [0.198.0] - 2026-10-23
 
 ### Changes
