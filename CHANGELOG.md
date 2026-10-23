@@ -1,3 +1,9 @@
+## [0.197.2] - 2026-10-23
+
+### Changes
+- feat: restrict Year in mahi management to Malin for now ([#1383](https://github.com/everybody-eats-nz/volunteer-portal/pull/1383)) by @malinmalliyawadu
+
+
 ## [0.197.1] - 2026-10-23
 
 ### Changes
