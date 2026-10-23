@@ -67,6 +67,13 @@ export const Scene = ({
   );
 };
 
+/**
+ * How far Fraunces italic ink leans past its advance. It varies by glyph (a
+ * "d" leans further than an "a"); this middle value centres the names tried
+ * to within a few pixels, where they sat up to 15px right before.
+ */
+const ITALIC_NUDGE = "0.1em";
+
 /** A run of display text; `{ italic }` runs are set in Fraunces italic. */
 export type Segment = string | { readonly italic: string };
 
@@ -118,6 +125,16 @@ export const Words = ({
                 // A polygon clip, not overflow: it reaches past the line box
                 // for descenders without moving the baseline.
                 clipPath: "polygon(-20% -30%, 120% -30%, 120% 125%, -20% 125%)",
+                // Italic ink leans past its advance on the right, so a
+                // centred line ending in italics sits right of centre. Each
+                // italic word reserves the overhang on its right; one that
+                // follows another italic word pulls back into the first's
+                // reservation, keeping the gap between them as set. The
+                // first after roman text keeps its full gap.
+                ...(slanted && {
+                  marginLeft: words[i - 1]?.slanted ? `-${ITALIC_NUDGE}` : 0,
+                  marginRight: ITALIC_NUDGE,
+                }),
               }}
             >
               <span

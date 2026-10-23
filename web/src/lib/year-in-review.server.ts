@@ -38,7 +38,7 @@ export async function getVolunteerYearInReview(
   const [user, signups] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { firstName: true, name: true },
+      select: { firstName: true, name: true, profilePhotoUrl: true },
     }),
     prisma.signup.findMany({
       where: { userId, ...completedInYear },
@@ -144,6 +144,7 @@ export async function getVolunteerYearInReview(
   return {
     year,
     firstName: greetingName(user),
+    photoUrl: user.profilePhotoUrl,
     shifts: {
       completed: summary.completed,
       hours: summary.hours,

@@ -33,6 +33,7 @@ export const RemotionRoot = () => (
     defaultProps={{
       year: 2026,
       firstName: "Aroha",
+      photoUrl: null,
       shifts: {
         completed: 38,
         hours: 121,

@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Player, type PlayerRef, type RenderPoster } from "@remotion/player";
 import { YearInReview } from "@/remotion/year-in-review/YearInReview";
 import type { YearInReviewProps } from "@/remotion/year-in-review/schema";
 import { FPS, getDurationInFrames } from "@/remotion/year-in-review/timeline";
 import { colors, layout } from "@/remotion/year-in-review/theme";
-import { INTRO_GAP_CENTRE } from "@/remotion/year-in-review/scenes/Intro";
+import { introGapCentre } from "@/remotion/year-in-review/scenes/Intro";
 
 /**
  * The intro fades in from an empty frame, so the player waits on the intro
@@ -18,40 +18,42 @@ const POSTER_FRAME = Math.round(2.5 * FPS);
 /** A play button over the waiting frame; clicks pass through to the player. */
 const POSTER_BUTTON = 72;
 
-const renderPoster: RenderPoster = () => {
-  const size = POSTER_BUTTON;
-  return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-      {/* In the empty space between the intro's greeting and plate */}
-      <div
-        style={{
-          position: "absolute",
-          top: `${INTRO_GAP_CENTRE * 100}%`,
-          left: "50%",
-          translate: "-50% -50%",
-          width: size,
-          height: size,
-          borderRadius: "50%",
-          backgroundColor: colors.sun,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.3)",
-        }}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          width={size * 0.42}
-          height={size * 0.42}
-          aria-hidden
-          style={{ marginLeft: size * 0.06 }}
+/** `top` is where the button sits, as a share of the frame's height. */
+const posterRenderer = (top: number): RenderPoster =>
+  function PosterButton() {
+    const size = POSTER_BUTTON;
+    return (
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        {/* In the empty space between the intro's greeting and plate */}
+        <div
+          style={{
+            position: "absolute",
+            top: `${top * 100}%`,
+            left: "50%",
+            translate: "-50% -50%",
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            backgroundColor: colors.sun,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 12px 32px rgba(0, 0, 0, 0.3)",
+          }}
         >
-          <path d="M6 4.5v15l13-7.5z" fill={colors.forest700} />
-        </svg>
+          <svg
+            viewBox="0 0 24 24"
+            width={size * 0.42}
+            height={size * 0.42}
+            aria-hidden
+            style={{ marginLeft: size * 0.06 }}
+          >
+            <path d="M6 4.5v15l13-7.5z" fill={colors.forest700} />
+          </svg>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 /**
  * The "Year in mahi" video, played live from the same composition the
@@ -64,6 +66,10 @@ export default function YearInReviewPlayer({
   readonly data: YearInReviewProps;
 }) {
   const playerRef = useRef<PlayerRef>(null);
+  const renderPoster = useMemo(
+    () => posterRenderer(introGapCentre(data)),
+    [data]
+  );
   const started = useRef(false);
 
   const onPlay = useCallback(() => {

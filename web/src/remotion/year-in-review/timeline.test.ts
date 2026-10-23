@@ -11,6 +11,7 @@ import {
 const everything: YearInReviewProps = {
   year: 2026,
   firstName: "Aroha",
+  photoUrl: null,
   shifts: {
     completed: 12,
     hours: 40,
