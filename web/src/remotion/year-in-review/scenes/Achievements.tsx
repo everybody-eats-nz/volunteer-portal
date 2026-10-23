@@ -6,6 +6,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { clamp, CountUp, Rise, Scene } from "../components/motion";
+import { Sound } from "../components/sound";
 import { body, display, italic, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, fonts, layout } from "../theme";
@@ -206,6 +207,16 @@ export const Achievements = ({ achievements }: YearInReviewProps) => {
 
   return (
     <Scene id="achievements" backdrop={<Confetti />}>
+      <Sound name="confetti" at={CONFETTI_AT} volume={0.4} />
+      {/* A ting as each medal settles face up. */}
+      {shown.map((badge, i) => (
+        <Sound
+          key={badge.name}
+          name="medal"
+          at={MEDALS_FROM + i * MEDAL_STAGGER + 0.35}
+          volume={0.18}
+        />
+      ))}
       <Rise delay={0}>
         <div style={lead}>Ka pai! This year you unlocked</div>
       </Rise>

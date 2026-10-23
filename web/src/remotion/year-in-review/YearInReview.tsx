@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import { AbsoluteFill } from "remotion";
 import { bandWipe } from "./components/band-wipe";
+import { Music, Sound } from "./components/sound";
 import { Achievements } from "./scenes/Achievements";
 import { Crew } from "./scenes/Crew";
 import { Docket } from "./scenes/Docket";
@@ -15,7 +16,12 @@ import { TopPercent } from "./scenes/TopPercent";
 import { Together } from "./scenes/Together";
 import type { YearInReviewProps } from "./schema";
 import { colors, sceneColors } from "./theme";
-import { getScenes, type SceneId, TRANSITION_FRAMES } from "./timeline";
+import {
+  getDurationInFrames,
+  getScenes,
+  type SceneId,
+  TRANSITION_FRAMES,
+} from "./timeline";
 
 const SCENES: Record<
   SceneId,
@@ -69,6 +75,8 @@ export const YearInReview = (props: YearInReviewProps) => {
               durationInFrames={durationInFrames}
             >
               <Component {...props} />
+              {/* The bands sweeping the next scene in. */}
+              {i > 0 && <Sound name="whoosh" at={0.05} volume={0.35} />}
             </TransitionSeries.Sequence>
           );
           return i === 0
@@ -85,6 +93,7 @@ export const YearInReview = (props: YearInReviewProps) => {
               ];
         })}
       </TransitionSeries>
+      <Music durationInFrames={getDurationInFrames(props)} />
     </AbsoluteFill>
   );
 };

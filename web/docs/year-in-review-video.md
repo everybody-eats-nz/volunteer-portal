@@ -131,10 +131,31 @@ grain overlay was tried and made the MP4 3.6 times bigger.
 The kawakawa illustration is cropped along its top edge, so it hangs from
 the top of the frame (behind Instagram's header), never mid-frame.
 
+## Sound
+
+Mostly sound effects, timed to the motion, over a quiet music bed:
+whooshes on the band wipes, a click as each slot-machine reel catches, the
+plate set down, plates stacking in the tally, a marimba run up the month
+bars, a shimmer as the crowd blooms, a confetti pop and medal tings, a bell
+when the top percent lands, dockets swishing onto the rail, the docket
+printer stepping and the stamp coming down.
+
+- `components/sound.tsx` places each effect (`<Sound name at volume>`),
+  mounted only while it plays; `MIX` lifts them all together and
+  `MUSIC_VOLUME` sets the bed. A full render peaks around -4 dBFS.
+- Whoosh, whip, page turn, mouse click and ding come from Remotion's sound
+  library, copied into `public/year-in-review/audio/`. Everything else,
+  music included, is synthesised by `npm run video:sounds`
+  (`scripts/year-in-review-sounds.ts`), so Everybody Eats owns it and
+  Instagram's copyright matching has nothing to flag. Volunteers can still
+  turn the video's sound down and add a song in Instagram.
+- The web player plays audio through a pool of shared `<audio>` tags on
+  phones (`numberOfSharedAudioTags`); raise it if a scene ever stacks more
+  sounds at once.
+
 ## Instagram fit
 
-- 1080 x 1920 (9:16), H.264, yuv420p, 30 fps, no audio. Volunteers can add a
-  song in Instagram.
+- 1080 x 1920 (9:16), H.264, yuv420p, 30 fps, AAC audio at 128k.
 - Content stays out of the top 250px and bottom 400px, where Instagram draws
   its own UI (`layout` in `src/remotion/year-in-review/theme.ts`).
 - With every scene it runs 53 seconds, under the 60 second Story limit.
@@ -156,4 +177,5 @@ the top of the frame (behind Instagram's header), never mid-frame.
 | `src/app/api/year-in-review/video/` | Request / poll, and the file itself |
 | `src/components/year-in-review/` | Player, share panel and its polling hook, dashboard banner |
 | `src/app/admin/year-in-review/` | Admin page |
-| `remotion.config.ts` | Entry point, Studio port, codec |
+| `scripts/year-in-review-sounds.ts` | Synthesises the music bed and sound effects (`npm run video:sounds`) |
+| `remotion.config.ts` | Entry point, Studio port, codecs |

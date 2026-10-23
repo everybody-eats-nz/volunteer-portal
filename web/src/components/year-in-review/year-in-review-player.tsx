@@ -21,9 +21,7 @@ const POSTER_BUTTON = 72;
 const renderPoster: RenderPoster = () => {
   const size = POSTER_BUTTON;
   return (
-    <div
-      style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-    >
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
       {/* In the empty space between the intro's greeting and plate */}
       <div
         style={{
@@ -107,6 +105,10 @@ export default function YearInReviewPlayer({
       doubleClickToFullscreen
       allowFullscreen
       spaceKeyToPlayOrPause
+      // On phones the player plays audio through a pool of <audio> tags
+      // unlocked on the first tap; the badges scene can stack the music,
+      // confetti, six medal tings and a whoosh at once.
+      numberOfSharedAudioTags={16}
       acknowledgeRemotionLicense
       style={{ width: "100%", height: "100%" }}
     />

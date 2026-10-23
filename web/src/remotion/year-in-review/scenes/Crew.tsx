@@ -7,6 +7,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { clamp, Pop, Rise, Scene, Words } from "../components/motion";
+import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fonts, formatNumber, layout } from "../theme";
@@ -141,6 +142,7 @@ export const Crew = ({ crew }: YearInReviewProps) => {
 
   return (
     <Scene id="crew" backdrop={<Crowd dots={dots} />}>
+      <Sound name="bloom" at={BLOOM_START} volume={0.3} />
       <Rise delay={0}>
         <div style={{ ...lead, color: colors.forest200 }}>
           You cooked, served and scrubbed alongside

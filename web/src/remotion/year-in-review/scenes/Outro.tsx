@@ -6,6 +6,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { clamp, easeOut, Rise, Scene, Words } from "../components/motion";
+import { Sound } from "../components/sound";
 import { display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, layout } from "../theme";
@@ -64,6 +65,8 @@ export const Outro = ({ firstName, year }: YearInReviewProps) => {
       backdrop={<DiningRoom />}
       style={{ alignItems: "center", textAlign: "center" }}
     >
+      {/* A shimmer as the room lights up. */}
+      <Sound name="bloom" at={0.5} volume={0.22} />
       <Words
         text={["Ngā mihi,", { italic: firstName }]}
         delay={0.1}

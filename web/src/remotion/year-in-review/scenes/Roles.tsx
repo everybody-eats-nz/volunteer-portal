@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { clamp, easeOut, Grow, Rise, Scene } from "../components/motion";
 import { PhotoCard } from "../components/photo";
+import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { shiftTypePhoto } from "../shift-photos";
@@ -97,6 +98,7 @@ export const Roles = ({ roles, locations }: YearInReviewProps) => {
         <div style={lead}>Your go-to role</div>
       </Rise>
       <Marquee text={top.name} delay={0.1} style={{ marginTop: 28 }} />
+      <Sound name="whip" at={0.1} volume={0.3} />
       <PhotoCard
         // The same photo the app shows on this shift type.
         photo={shiftTypePhoto(top.name)}

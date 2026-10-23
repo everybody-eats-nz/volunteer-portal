@@ -9,6 +9,7 @@ import {
 import { Rise, Scene, SlotNumber, Words } from "../components/motion";
 import { PhotoCard } from "../components/photo";
 import { Plate } from "../components/plate";
+import { Sound } from "../components/sound";
 import { display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, layout } from "../theme";
@@ -86,6 +87,8 @@ export const Intro = ({ firstName, year }: YearInReviewProps) => {
             }}
           />
           <Served year={year} />
+          <Sound name="whip" at={0.35} volume={0.3} />
+          <Sound name="plate-down" at={1.05} volume={0.45} />
         </>
       }
       style={{ alignItems: "center", textAlign: "center" }}

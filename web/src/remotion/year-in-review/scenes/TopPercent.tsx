@@ -1,5 +1,6 @@
 import { Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { clamp, Rise, Scene, Words } from "../components/motion";
+import { Sound } from "../components/sound";
 import { body, display } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { fitFontSize, layout } from "../theme";
@@ -77,6 +78,7 @@ export const TopPercent = ({ topPercent }: YearInReviewProps) => {
       >
         <Countdown to={rank} />
       </div>
+      <Sound name="ding" at={LANDED} volume={0.4} />
       <Rise delay={LANDED} style={{ marginTop: 40 }}>
         <div style={{ ...body, fontSize: 50, fontWeight: 500 }}>
           of Everybody Eats volunteers for shifts this year.

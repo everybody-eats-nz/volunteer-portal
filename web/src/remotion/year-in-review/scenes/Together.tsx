@@ -8,6 +8,7 @@ import {
   SlotNumber,
   Words,
 } from "../components/motion";
+import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, fonts, formatNumber, layout } from "../theme";
@@ -229,6 +230,15 @@ export const Together = ({ year, organisation }: YearInReviewProps) => {
           </Rise>
           <div style={{ marginTop: 28 }}>
             <Rail />
+            {/* Each docket swishing along the rail. */}
+            {events.slice(0, TICKETS_SHOWN).map((event, i) => (
+              <Sound
+                key={`${event.date}-${event.location}`}
+                name="page-turn"
+                at={TICKETS_FROM + 0.15 + i * 0.18}
+                volume={0.3}
+              />
+            ))}
             <div style={{ display: "flex", gap: 47, marginTop: -2 }}>
               {events.slice(0, TICKETS_SHOWN).map((event, i) => (
                 <Ticket

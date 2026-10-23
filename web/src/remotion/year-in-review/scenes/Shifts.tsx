@@ -1,5 +1,6 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { clamp, Rise, Scene, Words } from "../components/motion";
+import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, formatNumber, layout } from "../theme";
@@ -159,6 +160,7 @@ export const Shifts = ({ shifts }: YearInReviewProps) => {
         style={{ ...display(150), marginTop: -24, marginBottom: 44 }}
       />
       <Tally count={shifts.completed} />
+      <Sound name="tally" at={TALLY_START} volume={0.4} />
       <div style={{ flex: 1 }} />
       <Rise delay={2.1}>
         <div style={{ ...body, fontWeight: 600 }}>

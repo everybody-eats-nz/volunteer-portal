@@ -293,7 +293,8 @@ async function renderVideo(
     pixelFormat: "yuv420p",
     imageFormat: "jpeg",
     jpegQuality: 90,
-    muted: true,
+    // Music and sound effects only: 128k AAC is plenty.
+    audioBitrate: "128k",
     // Leave half the CPUs to the site while a video renders.
     concurrency: Math.max(1, Math.floor(os.availableParallelism() / 2)),
     logLevel: "warn",

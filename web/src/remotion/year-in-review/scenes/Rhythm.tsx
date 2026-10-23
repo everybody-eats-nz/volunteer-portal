@@ -1,5 +1,6 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { clamp, easeOut, Rise, Scene, Words } from "../components/motion";
+import { Sound } from "../components/sound";
 import { body, display } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, fonts, layout, MONTHS, WEEKDAYS } from "../theme";
@@ -161,6 +162,13 @@ export const Rhythm = ({ rhythm }: YearInReviewProps) => {
         }}
       >
         <MonthChart rhythm={rhythm} />
+        {/* A note per bar as it grows, then a ting for the busiest. */}
+        <Sound name="month-run" at={BARS_FROM} volume={0.35} />
+        <Sound
+          name="medal"
+          at={BARS_FROM + 11 * BAR_STAGGER + 0.5}
+          volume={0.2}
+        />
         <Rise delay={BARS_FROM + 11 * BAR_STAGGER + 0.7}>
           <div style={{ ...body, fontWeight: 600 }}>
             {MONTHS[rhythm.busiestMonth]} was your busiest month, with{" "}

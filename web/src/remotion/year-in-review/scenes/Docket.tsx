@@ -8,6 +8,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { clamp, Rise, Scene } from "../components/motion";
+import { Sound } from "../components/sound";
 import { lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fonts, formatNumber, layout } from "../theme";
@@ -47,14 +48,37 @@ const TornEdge = () => (
  * Feeds the docket down out of the printer slot in short jerks, the way a
  * thermal printer advances, then jolts when the stamp comes down.
  */
+/** How many steps of paper have fed out by `frame`, fractional. */
+const fedAt = (frame: number, fps: number) =>
+  interpolate(frame, [PRINT_FROM * fps, PRINT_TO * fps], [0, 1], {
+    ...clamp,
+    easing: Easing.bezier(0.33, 1, 0.68, 1),
+  }) * FEED_STEPS;
+
+/** The printer's motor buzzing once per feed step, in time with the paper. */
+const PrinterSounds = () => {
+  const { fps } = useVideoConfig();
+  // A step starts moving as the feed crosses each whole step; the last
+  // crossing is the paper coming to rest, not another step.
+  const starts = [PRINT_FROM * fps];
+  for (let frame = PRINT_FROM * fps + 1; frame <= PRINT_TO * fps; frame++) {
+    if (Math.floor(fedAt(frame, fps)) > Math.floor(fedAt(frame - 1, fps))) {
+      starts.push(frame);
+    }
+  }
+  return (
+    <>
+      {starts.slice(0, FEED_STEPS).map((frame) => (
+        <Sound key={frame} name="printer-step" at={frame / fps} volume={0.3} />
+      ))}
+    </>
+  );
+};
+
 const PrintOut = ({ children }: { readonly children: ReactNode }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const fed =
-    interpolate(frame, [PRINT_FROM * fps, PRINT_TO * fps], [0, 1], {
-      ...clamp,
-      easing: Easing.bezier(0.33, 1, 0.68, 1),
-    }) * FEED_STEPS;
+  const fed = fedAt(frame, fps);
   // Each step moves in its first 40%, then the paper rests.
   const step = Math.floor(fed);
   const stepped =
@@ -172,6 +196,8 @@ export const Docket = (props: YearInReviewProps) => {
       id="docket"
       style={{ alignItems: "center", paddingTop: layout.marginTop - 40 }}
     >
+      <PrinterSounds />
+      <Sound name="stamp" at={STAMP_AT} volume={0.55} />
       {/* The docket printer, its slot along the bottom edge */}
       <div
         style={{

@@ -9,6 +9,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { formatNumber, layout, sceneColors } from "../theme";
+import { Sound } from "./sound";
 import { italic } from "./type";
 import type { SceneId } from "../timeline";
 
@@ -178,6 +179,8 @@ const Reel = ({
 
   return (
     <span style={{ position: "relative", display: "inline-block" }}>
+      {/* A click as the reel catches. */}
+      <Sound name="mouse-click" at={landAt} volume={0.3} />
       {/* Holds the landed digit's width, so the number never reflows. */}
       <span style={{ visibility: "hidden" }}>{digit}</span>
       {[nearest - 1, nearest, nearest + 1, nearest + 2].map((n) => {
