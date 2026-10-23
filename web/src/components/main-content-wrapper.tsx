@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SITE_CONTAINER } from "@/lib/site-container";
+import { isEmbedPath } from "@/lib/embed-paths";
 
 interface MainContentWrapperProps {
   children: React.ReactNode;
@@ -27,6 +28,11 @@ export function MainContentWrapper({ children }: MainContentWrapperProps) {
   // container and their own safe-area padding. Nesting them inside this one
   // doubles the horizontal padding and wastes the width they need.
   if (pathname.startsWith("/drive") || pathname.startsWith("/v/")) {
+    return <>{children}</>;
+  }
+
+  // Pages inside the mobile app's WebView are full-bleed.
+  if (isEmbedPath(pathname)) {
     return <>{children}</>;
   }
 

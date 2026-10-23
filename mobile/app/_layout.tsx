@@ -29,7 +29,7 @@ import {
   getUnreadCount,
   subscribeToNotificationsUnread,
 } from '@/hooks/use-notifications';
-import { Colors } from '@/constants/theme';
+import { Colors, FontFamily, Palette } from '@/constants/theme';
 import { AchievementCelebration } from '@/components/achievement-celebration';
 import { AuthGate } from '@/components/auth-gate';
 import { OnboardingFlow } from '@/components/onboarding-flow';
@@ -220,6 +220,19 @@ export default function RootLayout() {
               headerTransparent: true,
               headerBackTitle: 'Back',
               title: '',
+            }}
+          />
+          {/* Dark header to match the video page it frames. */}
+          <Stack.Screen
+            name="year-in-review"
+            options={{
+              headerShown: true,
+              headerBackTitle: 'Back',
+              title: 'Year in mahi',
+              headerStyle: { backgroundColor: Palette.forest700 },
+              headerTintColor: Palette.cream50,
+              headerTitleStyle: { fontFamily: FontFamily.semiBold },
+              headerShadowVisible: false,
             }}
           />
           <Stack.Screen name="help/ai" options={{ headerShown: false }} />

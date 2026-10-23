@@ -13,6 +13,7 @@ import {
   Tags,
   MapPin,
   Trophy,
+  Clapperboard,
   BarChart3,
   ClipboardList,
   Activity,
@@ -184,6 +185,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: Trophy,
         description: "Manage volunteer achievements",
         commandKey: "achievements",
+      },
+      {
+        title: "Year in mahi",
+        href: "/admin/year-in-review",
+        icon: Clapperboard,
+        description: "Each volunteer's year as a shareable video",
+        commandKey: "year-in-review wrapped video",
       },
       {
         title: "Archiving",

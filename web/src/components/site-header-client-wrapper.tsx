@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
 import { showEnvironmentLabel, getEnvironmentLabel } from "@/lib/environment";
 import { SITE_CONTAINER } from "@/lib/site-container";
+import { isEmbedPath } from "@/lib/embed-paths";
 
 export function SiteHeaderClientWrapper() {
   const pathname = usePathname();
@@ -36,8 +37,9 @@ export function SiteHeaderClientWrapper() {
   // Clear profile photo when logged out (derived from status, not set in effect)
   const effectiveProfilePhotoUrl = status === "authenticated" ? profilePhotoUrl : null;
 
-  // Hide header on admin pages (they have their own sidebar layout)
-  if (pathname.startsWith("/admin")) {
+  // Hide header on admin pages (they have their own sidebar layout) and on
+  // pages embedded in the mobile app
+  if (pathname.startsWith("/admin") || isEmbedPath(pathname)) {
     return null;
   }
 

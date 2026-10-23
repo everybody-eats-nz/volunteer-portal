@@ -11,18 +11,21 @@ export default function SiteSettingsLoading() {
       title="Site Settings"
       description="Configure site-wide settings and URLs"
     >
-      <SkeletonCard className="py-5">
-        <div className="flex items-center justify-between gap-4 px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Skeleton className="size-5 shrink-0 rounded" />
-            <div className="min-w-0 space-y-1.5">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-80 max-w-full" />
+      {/* Messaging hours and Year in mahi link cards */}
+      {[0, 1].map((i) => (
+        <SkeletonCard key={i} className="py-5">
+          <div className="flex items-center justify-between gap-4 px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <Skeleton className="size-5 shrink-0 rounded" />
+              <div className="min-w-0 space-y-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-80 max-w-full" />
+              </div>
             </div>
+            <Skeleton className="size-4 shrink-0 rounded" />
           </div>
-          <Skeleton className="size-4 shrink-0 rounded" />
-        </div>
-      </SkeletonCard>
+        </SkeletonCard>
+      ))}
 
       <SkeletonCard className="flex flex-col gap-6 py-6">
         <SkeletonCardHeader titleWidth="w-36" />

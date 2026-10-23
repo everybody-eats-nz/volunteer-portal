@@ -14,6 +14,7 @@ import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
 
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 import { DashboardSurveyBannerServer } from "@/components/dashboard-survey-banner-server";
+import { DashboardYearInReviewBanner } from "@/components/year-in-review/dashboard-year-in-review-banner";
 import { DashboardSuggestedFriends } from "@/components/dashboard-suggested-friends";
 import { AchievementTracker } from "@/components/achievement-tracker";
 import type { Metadata } from "next";
@@ -62,6 +63,11 @@ export default async function DashboardPage() {
       {/* Profile completion banner - streams in from server */}
       <Suspense fallback={null}>
         <ProfileCompletionBannerServer />
+      </Suspense>
+
+      {/* Year in mahi - once an admin switches it on */}
+      <Suspense fallback={null}>
+        <DashboardYearInReviewBanner />
       </Suspense>
 
       {/* Survey banner - fetched server-side, streams in */}

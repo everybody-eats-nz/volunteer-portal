@@ -126,7 +126,18 @@ export function toMobileUser(
  * Returns null if no valid token is present.
  */
 export async function getMobileUser(request: Request): Promise<MobileUser | null> {
-  const authHeader = request.headers.get("Authorization");
+  return getMobileUserFromHeaders(request.headers);
+}
+
+/**
+ * Like getMobileUser, for server components that only have the request
+ * headers (e.g. a page the app opens in a WebView with an Authorization
+ * header).
+ */
+export async function getMobileUserFromHeaders(
+  headers: Headers
+): Promise<MobileUser | null> {
+  const authHeader = headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
 
   const token = authHeader.slice(7);

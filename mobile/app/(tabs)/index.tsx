@@ -26,6 +26,7 @@ import {
 import { VolunteersNeededCard } from "@/components/home/volunteers-needed-card";
 import { ImageViewer } from "@/components/image-viewer";
 import { SurveyCard } from "@/components/survey-card";
+import { YearInReviewCard } from "@/components/year-in-review-card";
 import { ThemedText } from "@/components/themed-text";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
@@ -40,6 +41,7 @@ import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
 import { useHomeShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import { usePendingSurveys } from "@/hooks/use-surveys";
+import { useYearInReview } from "@/hooks/use-year-in-review";
 import type { FeedItem, LikeUser } from "@/lib/dummy-data";
 import { posthog } from "@/lib/posthog";
 
@@ -73,6 +75,7 @@ export default function HomeScreen() {
     refresh: refreshSurveys,
     dismiss: dismissSurvey,
   } = usePendingSurveys();
+  const yearInReview = useYearInReview();
 
   const {
     toggleLike: apiToggleLike,
@@ -425,6 +428,7 @@ export default function HomeScreen() {
               refreshShifts();
               refreshFeed();
               refreshSurveys();
+              yearInReview.refresh();
               // A newly assigned survey arrives with a notification, so the
               // bell is refreshed alongside the card it belongs to.
               refreshNotifications();
@@ -529,6 +533,23 @@ export default function HomeScreen() {
           />
         )}
 
+        {/* ── Year in mahi ──
+             Seasonal, so it sits right under the next shift while it's
+             switched on, above the survey and everything people browse. */}
+        {yearInReview.available && yearInReview.year !== null && (
+          <View
+            style={[styles.yearInReview, { marginTop: nextShift ? 20 : 0 }]}
+          >
+            <YearInReviewCard
+              year={yearInReview.year}
+              onWatch={() => {
+                posthog?.capture("year_in_review_opened", { source: "home" });
+                router.push("/year-in-review" as Href);
+              }}
+            />
+          </View>
+        )}
+
         {/* ── Survey ──
              Under the next shift, which is what people open the app for, and
              above everything they only browse. One at a time, newest first:
@@ -536,7 +557,12 @@ export default function HomeScreen() {
              so a volunteer who is due several is asked, not buried. */}
         {nextSurvey && (
           <View
-            style={[styles.surveys, { marginTop: nextShift ? 20 : 0 }]}
+            style={[
+              styles.surveys,
+              {
+                marginTop: nextShift || yearInReview.available ? 20 : 0,
+              },
+            ]}
           >
             <SurveyCard
               key={nextSurvey.assignmentId}
@@ -567,7 +593,9 @@ export default function HomeScreen() {
              roster gap as an easy tap-in for picking up more. */}
         <VolunteersNeededCard
           shifts={upcomingAvailable}
-          marginTop={nextShift || nextSurvey ? 20 : 0}
+          marginTop={
+            nextShift || yearInReview.available || nextSurvey ? 20 : 0
+          }
           collapsible={nextShift?.status === "CONFIRMED"}
           onShiftPress={(id) => router.push(`/shift/${id}` as Href)}
           onBrowseDay={(dateKey) =>
@@ -738,6 +766,9 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
   },
   // Survey
+  yearInReview: {
+    paddingHorizontal: 20,
+  },
   surveys: {
     paddingHorizontal: 20,
     gap: 10,
