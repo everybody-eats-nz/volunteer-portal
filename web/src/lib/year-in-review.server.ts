@@ -68,7 +68,7 @@ export async function getVolunteerYearInReview(
 
   const [
     dayReports,
-    coVolunteerSignups,
+    coVolunteerNights,
     friendships,
     achievements,
     shiftCountsByVolunteer,
@@ -81,27 +81,7 @@ export async function getVolunteerYearInReview(
       },
       select: { date: true, location: true, mealsServed: true },
     }),
-    // Everyone else rostered on the same nights at the same restaurant.
-    prisma.signup.findMany({
-      where: {
-        status: "CONFIRMED",
-        userId: { not: userId },
-        OR: [...myNights].map((night) => {
-          const [day, location] = night.split("|");
-          const { start, end } = nzDayRange(day);
-          return {
-            shift: {
-              location: location || null,
-              start: { gte: start, lt: end },
-            },
-          };
-        }),
-      },
-      select: {
-        userId: true,
-        shift: { select: { start: true, location: true } },
-      },
-    }),
+    getCoVolunteerNights(userId, myNights),
     prisma.friendship.findMany({
       where: {
         status: "ACCEPTED",
@@ -153,11 +133,6 @@ export async function getVolunteerYearInReview(
     .filter((r) => myNights.has(nightKey(r.date, r.location)))
     .reduce((sum, r) => sum + (r.mealsServed ?? 0), 0);
 
-  const coVolunteerNights = coVolunteerSignups.map((s) => ({
-    userId: s.userId,
-    night: nightKey(s.shift.start, s.shift.location),
-  }));
-
   // Friends who keep their shift activity private stay out of the video.
   const friends = new Map(
     friendships
@@ -208,6 +183,44 @@ export async function getVolunteerYearInReview(
       volunteers: shiftCountsByVolunteer.length,
     },
   };
+}
+
+/**
+ * Everyone else rostered on the volunteer's nights at the same restaurant,
+ * one row per person per night.
+ *
+ * A single join against the nights passed in as arrays: a Prisma `OR` per
+ * night becomes one join per night, which took seconds for a volunteer with a
+ * couple of hundred shifts.
+ */
+async function getCoVolunteerNights(
+  userId: string,
+  nights: Set<string>
+): Promise<{ userId: string; night: string }[]> {
+  const keys = [...nights];
+  const locations: (string | null)[] = [];
+  const starts: string[] = [];
+  const ends: string[] = [];
+  for (const night of keys) {
+    const [day, location] = night.split("|");
+    const { start, end } = nzDayRange(day);
+    locations.push(location || null);
+    starts.push(start.toISOString());
+    ends.push(end.toISOString());
+  }
+
+  return prisma.$queryRaw<{ userId: string; night: string }[]>`
+    SELECT DISTINCT sg."userId", n.night
+    FROM unnest(
+      ${keys}::text[], ${locations}::text[], ${starts}::text[], ${ends}::text[]
+    ) AS n(night, location, day_start, day_end)
+    JOIN "Shift" s
+      ON s.location IS NOT DISTINCT FROM n.location
+      AND s."start" >= n.day_start::timestamp
+      AND s."start" < n.day_end::timestamp
+    JOIN "Signup" sg ON sg."shiftId" = s.id
+    WHERE sg.status = 'CONFIRMED' AND sg."userId" <> ${userId}
+  `;
 }
 
 /** Everybody Eats' year across every restaurant, for the "together" scene. */
