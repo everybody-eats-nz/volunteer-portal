@@ -69,12 +69,38 @@ export async function saveYearInReviewSettings(
 }
 
 /**
- * Everyone can open their video once it's switched on. Admins can open
+ * For now only Malin manages Year in mahi: the admin page, watching anyone's
+ * video, and seeing it before it's switched on. Other admins are treated like
+ * volunteers. `YEAR_IN_REVIEW_MANAGER_EMAILS` (comma separated) adds more,
+ * which the e2e server uses for the seeded admin.
+ */
+const YEAR_IN_REVIEW_MANAGER_EMAILS = [
+  "malin.malliya.wadu@gmail.com",
+  ...(process.env.YEAR_IN_REVIEW_MANAGER_EMAILS ?? "").split(","),
+]
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
+
+export type YearInReviewViewer = {
+  role?: string | null;
+  email?: string | null;
+};
+
+export function canManageYearInReview(viewer: YearInReviewViewer): boolean {
+  return (
+    viewer.role === "ADMIN" &&
+    !!viewer.email &&
+    YEAR_IN_REVIEW_MANAGER_EMAILS.includes(viewer.email.toLowerCase())
+  );
+}
+
+/**
+ * Everyone can open their video once it's switched on. Managers can open
  * theirs before that, to check the year before everyone else sees it.
  */
 export function canViewYearInReview(
   settings: YearInReviewSettings,
-  role: string | undefined
+  viewer: YearInReviewViewer
 ): boolean {
-  return settings.enabled || role === "ADMIN";
+  return settings.enabled || canManageYearInReview(viewer);
 }

@@ -37,7 +37,7 @@ async function EmbedContent() {
   }
 
   const settings = await getYearInReviewSettings();
-  if (!canViewYearInReview(settings, user.role)) {
+  if (!canViewYearInReview(settings, user)) {
     return <Message>Your year in mahi isn&apos;t out yet.</Message>;
   }
 

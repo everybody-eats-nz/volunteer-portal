@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { countUnreadForTeam } from "@/lib/services/messaging";
+import { canManageYearInReview } from "@/lib/year-in-review-settings";
 
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { AdminLayoutHeader } from "@/components/admin-layout-header";
@@ -105,6 +106,9 @@ async function AdminLayoutContent({
   ]);
 
   const hiddenNavItems: string[] = [];
+  if (!canManageYearInReview(session.user)) {
+    hiddenNavItems.push("/admin/year-in-review");
+  }
 
   return (
     <AdminHeaderProvider>
@@ -120,7 +124,7 @@ async function AdminLayoutContent({
         />
         <SidebarInset>
           <ScrollToTop />
-          <AdminLayoutHeader />
+          <AdminLayoutHeader hiddenNavItems={hiddenNavItems} />
           <div className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">{children}</div>
           </div>

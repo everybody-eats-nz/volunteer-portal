@@ -8,7 +8,10 @@ import { ArrowRight, Clapperboard, Clock } from "lucide-react";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { SiteSettingsForm } from "@/components/site-settings-form";
-import { YEAR_IN_REVIEW_CATEGORY } from "@/lib/year-in-review-settings";
+import {
+  YEAR_IN_REVIEW_CATEGORY,
+  canManageYearInReview,
+} from "@/lib/year-in-review-settings";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -51,23 +54,25 @@ export default async function SiteSettingsPage() {
               </CardContent>
             </Link>
           </Card>
-          <Card className="overflow-hidden py-0 transition-colors hover:bg-muted/30">
-            <Link href="/admin/year-in-review" className="block">
-              <CardContent className="py-5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Clapperboard className="w-5 h-5 text-primary-text" />
-                  <div>
-                    <p className="font-medium">Year in mahi</p>
-                    <p className="text-sm text-muted-foreground">
-                      Turn on each volunteer&apos;s yearly video and pick its
-                      year
-                    </p>
+          {canManageYearInReview(session.user) && (
+            <Card className="overflow-hidden py-0 transition-colors hover:bg-muted/30">
+              <Link href="/admin/year-in-review" className="block">
+                <CardContent className="py-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <Clapperboard className="w-5 h-5 text-primary-text" />
+                    <div>
+                      <p className="font-medium">Year in mahi</p>
+                      <p className="text-sm text-muted-foreground">
+                        Turn on each volunteer&apos;s yearly video and pick its
+                        year
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              </CardContent>
-            </Link>
-          </Card>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                </CardContent>
+              </Link>
+            </Card>
+          )}
           <SiteSettingsForm settings={settings} />
         </div>
       </PageContainer>
