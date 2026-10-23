@@ -196,15 +196,27 @@ async function renderNextJob(): Promise<boolean> {
   const job = await nextJob();
   if (!job) return false;
 
-  // Claim it, unless it changed (re-queued with new props) since we read it.
+  // Claim it with a compare-and-set: if anything (another claim, a re-queue
+  // with new props) changed the row since we read it, this matches nothing.
   const claimed = await prisma.yearInReviewVideo.updateMany({
-    where: { id: job.id, propsHash: job.propsHash, updatedAt: job.updatedAt },
+    where: {
+      id: job.id,
+      status: job.status,
+      propsHash: job.propsHash,
+      updatedAt: job.updatedAt,
+    },
     data: { status: "RENDERING", startedAt: new Date(), progress: 0 },
   });
   if (claimed.count === 0) return true;
 
   const storagePath = `${job.userId}/${job.year}-${job.propsHash.slice(0, 16)}.mp4`;
   const workDir = await mkdtemp(path.join(os.tmpdir(), "year-in-review-"));
+  // The file the row already points at must survive whatever happens here.
+  const discard = () =>
+    storagePath === job.storagePath
+      ? Promise.resolve()
+      : deleteVideo(storagePath).catch(() => {});
+  let uploaded = false;
   try {
     const file = path.join(workDir, "video.mp4");
     // Progress for the waiting screen, written in 5% steps.
@@ -220,6 +232,7 @@ async function renderNextJob(): Promise<boolean> {
         .catch(() => {});
     });
     await saveVideo(storagePath, await readFile(file));
+    uploaded = true;
 
     // Only finish it if nobody re-queued it with newer numbers meanwhile.
     const finished = await prisma.yearInReviewVideo.updateMany({
@@ -233,12 +246,14 @@ async function renderNextJob(): Promise<boolean> {
       },
     });
     if (finished.count === 0) {
-      await deleteVideo(storagePath);
+      await discard();
     } else if (job.storagePath && job.storagePath !== storagePath) {
       await deleteVideo(job.storagePath).catch(() => {});
     }
   } catch (error) {
     console.error(`Year in mahi render failed for ${job.id}`, error);
+    // Uploaded but never recorded: nothing would ever point at it.
+    if (uploaded) await discard();
     await prisma.yearInReviewVideo.updateMany({
       where: { id: job.id, propsHash: job.propsHash },
       data: {

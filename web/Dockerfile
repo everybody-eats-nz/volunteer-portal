@@ -25,7 +25,8 @@ ENV NODE_ENV=production \
 # videos (lib/year-in-review-render.server.ts): the shared libraries Chrome
 # Headless Shell needs (remotion.dev/docs/miscellaneous/linux-dependencies;
 # the ALSA package was renamed in Debian trixie) and colour emoji for the
-# achievement badges.
+# achievement badges. Chrome adds a few hundred MB to the image; a render
+# (one at a time) holds about 0.5-1 GB of RAM for roughly a minute.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
        libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 libgbm1 \
