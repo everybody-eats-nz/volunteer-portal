@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.197.4",
+  "version": "0.198.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -30,7 +30,8 @@
     "video:props": "tsx scripts/year-in-review-props.ts",
     "video:studio": "remotion studio",
     "video:render": "remotion render YearInReview",
-    "video:bundle": "remotion bundle --out-dir=remotion-bundle"
+    "video:bundle": "remotion bundle --out-dir=remotion-bundle",
+    "video:sounds": "tsx scripts/year-in-review-sounds.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
