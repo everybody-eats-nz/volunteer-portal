@@ -90,7 +90,7 @@ export const Meals = ({ impact }: YearInReviewProps) => (
       </div>
     </Rise>
     <PhotoCard
-      photo="table"
+      photo="community-table"
       // Arrives with the count, not after it, so the scene builds as one.
       delay={0.6}
       style={{

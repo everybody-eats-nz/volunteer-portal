@@ -6,21 +6,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
+import type { Photo } from "../shift-photos";
 import { clamp, easeOut } from "./motion";
-
-/**
- * Photos from the mobile app, cropped so nobody's face is in them: everyone
- * else's year is in these videos too. Exported at 1000px wide, about 60-100
- * KB each, into `public/year-in-review/`.
- */
-export type Photo =
-  | "aprons"
-  | "dishwasher"
-  | "kitchen-prep"
-  | "plating-line"
-  | "serving-plates"
-  | "serving"
-  | "table";
 
 /**
  * A photo in a rounded card, the way the marketing site frames its photos.

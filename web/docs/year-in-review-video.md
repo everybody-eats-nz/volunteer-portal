@@ -115,15 +115,12 @@ cream).
 Photos are used in three places, each in a rounded card with a slow push-in
 (`components/photo.tsx`): plates being carried out on the intro, which is
 cream like the site's hero so the photo stands out, with the year's plate
-set over its bottom edge; food on the table under the meals count; and the
-volunteer's go-to station in the roles scene (dish pit, kitchen prep,
-plating line or front of house, matched on the shift name).
-They come from the mobile app's photos, cropped so that nobody's face is in
-frame, into `public/year-in-review/`. Around it, the kitchen: big figures roll
-in on slot-machine reels, events hang as dockets on a ticket rail, and the
-summary docket prints in jerks and gets stamped "Paid in aroha". The crew
-scene draws one dot per volunteer they worked alongside, opening out in a
-sunflower spiral.
+set over its bottom edge; food on the table under the meals count; and, in
+the roles scene, the photo the mobile app shows on the volunteer's go-to
+shift type (`shift-photos.ts` mirrors the app's `getShiftThemeByName`; keep
+them in step). They are the app's shift cover photos, cropped so nobody's
+face is in frame except in the dining room and catering spread, in
+`public/year-in-review/`.
 
 Scenes sweep in behind two bands of brand colour on a diagonal
 (`components/band-wipe.tsx`), so each scene's entrances wait until it's

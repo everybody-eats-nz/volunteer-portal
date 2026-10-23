@@ -1,23 +1,15 @@
 import type { CSSProperties } from "react";
 import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { clamp, easeOut, Grow, Rise, Scene } from "../components/motion";
-import { type Photo, PhotoCard } from "../components/photo";
+import { PhotoCard } from "../components/photo";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
+import { shiftTypePhoto } from "../shift-photos";
 import { colors, fonts, layout } from "../theme";
 
 /** Copies of the name in a marquee row: enough to cover the frame twice. */
 const COPIES = 6;
 const MARQUEE_SIZE = 210;
-
-/** A photo of the station they worked most, matched on the shift name. */
-const rolePhoto = (role: string): Photo => {
-  if (/dish/i.test(role)) return "dishwasher";
-  if (/pack ?down/i.test(role)) return "plating-line";
-  if (/kitchen|prep|chef|cook/i.test(role)) return "kitchen-prep";
-  if (/front of house|foh|serv|host/i.test(role)) return "aprons";
-  return "serving";
-};
 
 /** "Glen Innes", "Glen Innes and Onehunga", "A, B and C". */
 const listNames = (names: string[]) =>
@@ -106,7 +98,8 @@ export const Roles = ({ roles, locations }: YearInReviewProps) => {
       </Rise>
       <Marquee text={top.name} delay={0.1} style={{ marginTop: 28 }} />
       <PhotoCard
-        photo={rolePhoto(top.name)}
+        // The same photo the app shows on this shift type.
+        photo={shiftTypePhoto(top.name)}
         delay={0.5}
         // Takes whatever room the scene has, within reason: a volunteer
         // with one role gets a bigger photo instead of an empty gap.
