@@ -1,38 +1,70 @@
 import { loadFont as loadLocalFont } from "@remotion/fonts";
-import { loadFont as loadDmMono } from "@remotion/google-fonts/DMMono";
+import { loadFont as loadJetBrainsMono } from "@remotion/google-fonts/JetBrainsMono";
 import { loadFont as loadJakarta } from "@remotion/google-fonts/PlusJakartaSans";
 import { staticFile } from "remotion";
+import type { SceneId } from "./timeline";
 
-/** Everybody Eats brand palette, shared with the portal and marketing site. */
+/**
+ * Everybody Eats brand palette, as the marketing site (everybodyeats.nz)
+ * uses it: cream pages, deep forest sections, a soft sun accent and peach.
+ */
 export const colors = {
   cream: "#fdf8ef",
   paper: "#ffffff",
+  peach: "#f4d2be",
   forest200: "#9bbda0",
   forest500: "#1d5337",
   forest700: "#0e2a1c",
-  sun: "#edf03f",
-  ink: "#14181c",
+  sun: "#f8fb69",
+  ink: "#1a1410",
 } as const;
 
-// Fraunces with its soft, wonky, large-optical-size look baked in (only the
-// weight axis is left variable), so the display style doesn't depend on
-// font-variation-settings support wherever the video plays or renders.
-// 57 KB instead of the 350 KB full variable font. Made from
-// Fraunces-VariableFont.ttf with
-// `fonttools varLib.instancer ... opsz=144 SOFT=100 WONK=1 wght=400:900`.
+/** Each scene's colour field and the text colour on it. */
+export const sceneColors: Record<
+  SceneId,
+  { readonly background: string; readonly color: string }
+> = {
+  // Cream, like the site's hero, so the intro photo stands out.
+  intro: { background: colors.cream, color: colors.forest700 },
+  shifts: { background: colors.sun, color: colors.forest700 },
+  meals: { background: colors.cream, color: colors.forest700 },
+  rhythm: { background: colors.forest500, color: colors.cream },
+  roles: { background: colors.peach, color: colors.forest700 },
+  crew: { background: colors.forest700, color: colors.cream },
+  achievements: { background: colors.cream, color: colors.forest700 },
+  topPercent: { background: colors.sun, color: colors.forest700 },
+  together: { background: colors.forest500, color: colors.cream },
+  docket: { background: colors.cream, color: colors.forest700 },
+  outro: { background: colors.forest700, color: colors.cream },
+};
+
+// Fraunces as the marketing site sets it: light, high-contrast display cuts
+// with italic phrases. Instanced from the variable fonts in public/fonts at
+// the largest optical size (the video never sets Fraunces small) and
+// weights 200-600, then subset to Latin with macrons:
+// `fonttools varLib.instancer ... opsz=144 SOFT=0 WONK=1 wght=200:600`
+// and `fonttools subset ... --flavor=woff2`. About 40 KB each, against
+// 350 KB for each full variable font.
 loadLocalFont({
-  family: "Fraunces Display",
-  url: staticFile("fonts/Fraunces-Display.woff2"),
-  weight: "400 900",
+  family: "Fraunces Light",
+  url: staticFile("fonts/Fraunces-Light.woff2"),
+  weight: "200 600",
+  style: "normal",
+});
+loadLocalFont({
+  family: "Fraunces Light",
+  url: staticFile("fonts/Fraunces-Light-Italic.woff2"),
+  weight: "200 600",
+  style: "italic",
 });
 
 export const fonts = {
-  display: '"Fraunces Display", serif',
+  display: '"Fraunces Light", serif',
   body: loadJakarta("normal", {
-    weights: ["500", "700", "800"],
+    weights: ["400", "500", "600", "700"],
     subsets: ["latin", "latin-ext"],
   }).fontFamily,
-  docket: loadDmMono("normal", {
+  mono: loadJetBrainsMono("normal", {
     weights: ["400", "500"],
     subsets: ["latin", "latin-ext"],
   }).fontFamily,
