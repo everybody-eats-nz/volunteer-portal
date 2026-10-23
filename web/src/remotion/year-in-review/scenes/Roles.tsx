@@ -15,7 +15,7 @@ const rolePhoto = (role: string): Photo => {
   if (/dish/i.test(role)) return "dishwasher";
   if (/pack ?down/i.test(role)) return "plating-line";
   if (/kitchen|prep|chef|cook/i.test(role)) return "kitchen-prep";
-  if (/front of house|foh|serv|host/i.test(role)) return "front-of-house";
+  if (/front of house|foh|serv|host/i.test(role)) return "aprons";
   return "serving";
 };
 

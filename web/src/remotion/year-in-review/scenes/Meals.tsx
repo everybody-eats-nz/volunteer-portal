@@ -91,7 +91,8 @@ export const Meals = ({ impact }: YearInReviewProps) => (
     </Rise>
     <PhotoCard
       photo="table"
-      delay={2.2}
+      // Arrives with the count, not after it, so the scene builds as one.
+      delay={0.6}
       style={{
         flex: 1,
         minHeight: 0,

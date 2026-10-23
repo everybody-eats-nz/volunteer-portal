@@ -112,10 +112,12 @@ tally. The rhythm scene is a plain month bar chart. The outro draws in
 the site's dining-room mural (from marketing-cms, as a WebP mask tinted
 cream).
 
-Photos are used in two places only, each in a rounded card with a slow
-push-in (`components/photo.tsx`): food on the table under the meals count,
-and a photo of the volunteer's go-to station in the roles scene (dish pit,
-kitchen prep, plating line or front of house, matched on the shift name).
+Photos are used in three places, each in a rounded card with a slow push-in
+(`components/photo.tsx`): plates being carried out on the intro, which is
+cream like the site's hero so the photo stands out, with the year's plate
+set over its bottom edge; food on the table under the meals count; and the
+volunteer's go-to station in the roles scene (dish pit, kitchen prep,
+plating line or front of house, matched on the shift name).
 They come from the mobile app's photos, cropped so that nobody's face is in
 frame, into `public/year-in-review/`. Around it, the kitchen: big figures roll
 in on slot-machine reels, events hang as dockets on a ticket rail, and the

@@ -14,10 +14,11 @@ import { clamp, easeOut } from "./motion";
  * KB each, into `public/year-in-review/`.
  */
 export type Photo =
+  | "aprons"
   | "dishwasher"
   | "kitchen-prep"
   | "plating-line"
-  | "front-of-house"
+  | "serving-plates"
   | "serving"
   | "table";
 

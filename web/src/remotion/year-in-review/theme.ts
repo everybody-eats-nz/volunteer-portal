@@ -24,7 +24,8 @@ export const sceneColors: Record<
   SceneId,
   { readonly background: string; readonly color: string }
 > = {
-  intro: { background: colors.forest700, color: colors.cream },
+  // Cream, like the site's hero, so the intro photo stands out.
+  intro: { background: colors.cream, color: colors.forest700 },
   shifts: { background: colors.sun, color: colors.forest700 },
   meals: { background: colors.cream, color: colors.forest700 },
   rhythm: { background: colors.forest500, color: colors.cream },
