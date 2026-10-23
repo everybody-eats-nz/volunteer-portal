@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Img,
   interpolate,
@@ -6,7 +7,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { Rise, Scene, SlotNumber, Words } from "../components/motion";
+import { Pop, Rise, Scene, SlotNumber, Words } from "../components/motion";
 import { PhotoCard } from "../components/photo";
 import { Plate } from "../components/plate";
 import { Sound } from "../components/sound";
@@ -14,20 +15,116 @@ import { display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, layout } from "../theme";
 
-/** Roughly where "Here's your year in mahi" ends. */
-const TEXT_BOTTOM = 660;
-const PHOTO_TOP = TEXT_BOTTOM + 56;
-const PHOTO_HEIGHT = 540;
+const LOGO_WIDTH = 280;
+const LOGO_HEIGHT = Math.round((LOGO_WIDTH / 179) * 65);
+const AVATAR = 200;
+const HEADER_GAP = 56;
+const GREETING_MAX = 150;
+const GREETING_MIN = 104;
+/** Fraunces' average glyph width, generous so a wrap is never missed. */
+const GREETING_CHAR_WIDTH = 0.46;
+const LEAD_GAP = 28;
+const PHOTO_GAP = 56;
+/** The photo card ends here whatever sits above it. */
+const PHOTO_BOTTOM = 1256;
 const PLATE = 540;
 /** The plate comes to rest over the photo's bottom edge. */
-const PLATE_CENTRE_Y = PHOTO_TOP + PHOTO_HEIGHT + 40;
+const PLATE_CENTRE_Y = PHOTO_BOTTOM + 40;
+
+const greetingFor = (firstName: string) => `Kia ora, ${firstName}`;
+
+/**
+ * Where the intro's pieces land for this volunteer. The text block grows
+ * with their photo and a name long enough to wrap, and the serving photo
+ * starts below it, so the photo shortens rather than the text running into
+ * it. The plate always lands in the same place.
+ */
+function introLayout({
+  firstName,
+  photoUrl,
+}: Pick<YearInReviewProps, "firstName" | "photoUrl">) {
+  const greeting = greetingFor(firstName);
+  const greetingSize = fitFontSize(
+    greeting,
+    GREETING_MAX,
+    undefined,
+    GREETING_CHAR_WIDTH,
+    GREETING_MIN
+  );
+  const lines = Math.ceil(
+    (greeting.length * GREETING_CHAR_WIDTH * greetingSize) /
+      (layout.width - layout.gutter * 2)
+  );
+  const textBottom =
+    layout.marginTop +
+    (photoUrl ? AVATAR : LOGO_HEIGHT) +
+    HEADER_GAP +
+    lines * greetingSize * Number(display(greetingSize).lineHeight) +
+    LEAD_GAP +
+    Number(lead.fontSize) * Number(lead.lineHeight);
+  const photoTop = textBottom + PHOTO_GAP;
+
+  return { greetingSize, photoTop, photoHeight: PHOTO_BOTTOM - photoTop };
+}
 
 /**
  * The middle of the photo above the plate, as a share of the frame's
  * height: the web player puts its play button here.
  */
-export const INTRO_GAP_CENTRE =
-  (PHOTO_TOP + PLATE_CENTRE_Y - PLATE / 2) / 2 / layout.height;
+export function introGapCentre(
+  props: Pick<YearInReviewProps, "firstName" | "photoUrl">
+): number {
+  const { photoTop } = introLayout(props);
+  return (photoTop + PLATE_CENTRE_Y - PLATE / 2) / 2 / layout.height;
+}
+
+const Logo = () => (
+  <Img
+    src={staticFile("everybody-eats-logo.svg")}
+    style={{ width: LOGO_WIDTH, display: "block" }}
+  />
+);
+
+/**
+ * The volunteer's profile photo on a plate's white rim. One that won't load
+ * (an expired sign-in photo, say) gives way to the logo in the same space
+ * rather than failing the render.
+ */
+const ProfilePhoto = ({ photoUrl }: { readonly photoUrl: string }) => {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div
+        style={{ height: AVATAR, display: "flex", alignItems: "center" }}
+      >
+        <Logo />
+      </div>
+    );
+  }
+  return (
+    <Pop delay={0.1}>
+      <div
+        style={{
+          width: AVATAR,
+          height: AVATAR,
+          borderRadius: "50%",
+          overflow: "hidden",
+          border: `10px solid ${colors.paper}`,
+          backgroundColor: colors.paper,
+          boxShadow: "0 10px 24px rgba(0, 0, 0, 0.22)",
+        }}
+      >
+        <Img
+          src={photoUrl}
+          maxRetries={1}
+          onError={() => setFailed(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      </div>
+    </Pop>
+  );
+};
 
 /** The year, served: the plate slides in across the pass and settles. */
 const Served = ({ year }: { readonly year: number }) => {
@@ -64,8 +161,11 @@ const Served = ({ year }: { readonly year: number }) => {
   );
 };
 
-export const Intro = ({ firstName, year }: YearInReviewProps) => {
-  const greeting = `Kia ora, ${firstName}`;
+export const Intro = ({ firstName, photoUrl, year }: YearInReviewProps) => {
+  const { greetingSize, photoTop, photoHeight } = introLayout({
+    firstName,
+    photoUrl,
+  });
 
   return (
     <Scene
@@ -81,9 +181,9 @@ export const Intro = ({ firstName, year }: YearInReviewProps) => {
             style={{
               position: "absolute",
               left: layout.gutter,
-              top: PHOTO_TOP,
+              top: photoTop,
               width: layout.width - layout.gutter * 2,
-              height: PHOTO_HEIGHT,
+              height: photoHeight,
             }}
           />
           <Served year={year} />
@@ -93,21 +193,22 @@ export const Intro = ({ firstName, year }: YearInReviewProps) => {
       }
       style={{ alignItems: "center", textAlign: "center" }}
     >
-      <Rise delay={0.1} distance={30}>
-        <Img
-          src={staticFile("everybody-eats-logo.svg")}
-          style={{ width: 280 }}
-        />
-      </Rise>
+      {photoUrl ? (
+        <ProfilePhoto photoUrl={photoUrl} />
+      ) : (
+        <Rise delay={0.1} distance={30}>
+          <Logo />
+        </Rise>
+      )}
       <Words
         text={["Kia ora,", { italic: firstName }]}
         delay={0.25}
         style={{
-          ...display(fitFontSize(greeting, 150, undefined, 0.46, 104)),
-          marginTop: 72,
+          ...display(greetingSize),
+          marginTop: HEADER_GAP,
         }}
       />
-      <Rise delay={0.7} style={{ marginTop: 28 }}>
+      <Rise delay={0.7} style={{ marginTop: LEAD_GAP }}>
         <div style={{ ...lead, color: colors.forest500 }}>
           Here&apos;s your year in mahi
         </div>

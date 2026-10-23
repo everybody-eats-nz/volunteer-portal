@@ -1,16 +1,27 @@
 import type { CSSProperties } from "react";
 import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { clamp, easeOut, Grow, Rise, Scene } from "../components/motion";
+import { clamp, easeOut, Grow, Rise, Scene, Words } from "../components/motion";
 import { PhotoCard } from "../components/photo";
 import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { shiftTypePhoto } from "../shift-photos";
-import { colors, fonts, layout } from "../theme";
+import { colors, fitFontSize, fonts, layout } from "../theme";
 
 /** Copies of the name in a marquee row: enough to cover the frame twice. */
 const COPIES = 6;
-const MARQUEE_SIZE = 210;
+const MARQUEE_MAX = 210;
+/**
+ * The smallest a ticker gets. A name that would need to go smaller to show
+ * whole between the gutters is set still instead: a ticker of a long name
+ * only ever shows a slice of it.
+ */
+const MARQUEE_MIN = 150;
+const HEADLINE_MAX = 150;
+const HEADLINE_MIN = 96;
+/** Fraunces' average glyph width, generous so the fit is never short. */
+const CHAR_WIDTH = 0.4;
+const CONTENT_WIDTH = layout.width - layout.gutter * 2;
 
 /** "Glen Innes", "Glen Innes and Onehunga", "A, B and C". */
 const listNames = (names: string[]) =>
@@ -24,10 +35,12 @@ const listNames = (names: string[]) =>
  */
 const Marquee = ({
   text,
+  size,
   delay,
   style,
 }: {
   readonly text: string;
+  readonly size: number;
   readonly delay: number;
   readonly style?: CSSProperties;
 }) => {
@@ -46,13 +59,15 @@ const Marquee = ({
       style={{
         marginLeft: -layout.gutter,
         width: layout.width,
-        overflow: "hidden",
+        // Clips the sides only: the line box is shorter than the glyphs,
+        // and overflow would cut off descenders.
+        clipPath: "inset(-30% 0)",
         whiteSpace: "nowrap",
       }}
     >
       <div
         style={{
-          ...display(MARQUEE_SIZE),
+          ...display(size),
           // The display style balances lines; a ticker must never wrap.
           textWrap: "nowrap",
           display: "inline-block",
@@ -87,6 +102,39 @@ const Marquee = ({
   );
 };
 
+/**
+ * The go-to role as a ticker when the whole name fits between the gutters,
+ * otherwise a still headline wrapped to fit ("Kitchen Service & Pack Down").
+ */
+const RoleName = ({ name }: { readonly name: string }) => {
+  const tickerSize = fitFontSize(name, MARQUEE_MAX, CONTENT_WIDTH, CHAR_WIDTH);
+  if (tickerSize >= MARQUEE_MIN) {
+    return (
+      <Marquee
+        text={name}
+        size={tickerSize}
+        delay={0.1}
+        style={{ marginTop: 28 }}
+      />
+    );
+  }
+  // Sized as if over two lines; longer names wrap to more at the minimum.
+  const size = fitFontSize(
+    name,
+    HEADLINE_MAX,
+    CONTENT_WIDTH * 2,
+    CHAR_WIDTH,
+    HEADLINE_MIN
+  );
+  return (
+    <Words
+      text={name}
+      delay={0.1}
+      style={{ ...display(size), marginTop: 28 }}
+    />
+  );
+};
+
 export const Roles = ({ roles, locations }: YearInReviewProps) => {
   const [top] = roles;
   const ranked = roles.slice(0, 4);
@@ -97,7 +145,7 @@ export const Roles = ({ roles, locations }: YearInReviewProps) => {
       <Rise delay={0}>
         <div style={lead}>Your go-to role</div>
       </Rise>
-      <Marquee text={top.name} delay={0.1} style={{ marginTop: 28 }} />
+      <RoleName name={top.name} />
       <Sound name="whip" at={0.1} volume={0.3} />
       <PhotoCard
         // The same photo the app shows on this shift type.

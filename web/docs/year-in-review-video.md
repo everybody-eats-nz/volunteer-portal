@@ -82,7 +82,7 @@ sample volunteer when no `--props` is passed. Renders land in `out/` as
 
 | Scene | Data | Shown when |
 |-------|------|-----------|
-| Intro | First name, year | Always |
+| Intro | Profile photo (else the logo), first name, year | Always |
 | Shifts | Completed shifts, hours, first shift | Always |
 | Meals | People served on their nights (all report types) and food saved | They have day reports |
 | Rhythm | Shifts per month, favourite weekday | Always |

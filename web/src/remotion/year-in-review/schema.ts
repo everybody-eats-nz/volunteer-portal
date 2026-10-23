@@ -19,6 +19,11 @@ const rankedSchema = z.object({
 export const yearInReviewSchema = z.object({
   year: z.number().int(),
   firstName: z.string(),
+  /**
+   * Their profile photo as stored: a base64 `data:` URI (older uploads), a
+   * Supabase Storage URL, or the photo from a Google sign-in.
+   */
+  photoUrl: z.string().nullable(),
   shifts: z.object({
     completed: z.number().int().positive(),
     /** Whole hours, rounded down like everywhere else in the portal. */
