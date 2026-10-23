@@ -40,8 +40,11 @@ Requests never wait on a render: Cloudflare cuts requests off at 100 seconds.
 - **Image:** CI runs `npm run video:bundle` after `next build`; the Dockerfile
   copies `remotion-bundle/` (source maps included: the renderer reads them),
   installs Chrome's shared libraries and colour emoji, and fetches Chrome
-  Headless Shell into `node_modules/.remotion`. Locally, run
-  `npm run video:bundle` once before asking for a video.
+  Headless Shell into `node_modules/.remotion`. `next.config.ts` ships
+  `@remotion/renderer` and every package it depends on whole into the
+  standalone output, because file tracing misses the native compositor and
+  picks ESM builds where the renderer `require()`s CommonJS ones. Locally,
+  run `npm run video:bundle` once before asking for a video.
 - **Resources:** a render holds Chrome (~0.5-1 GB RAM) for about a minute.
   Videos render on demand, not all at once when the switch is turned on.
 

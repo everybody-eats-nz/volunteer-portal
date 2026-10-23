@@ -1,5 +1,6 @@
 import { withPostHogConfig } from "@posthog/nextjs-config";
 import type { NextConfig } from "next";
+import { existsSync, readFileSync } from "node:fs";
 import { readdir, rm } from "node:fs/promises";
 import path from "node:path";
 
@@ -32,14 +33,14 @@ const nextConfig: NextConfig = {
   // Keep native/heavy packages out of the server bundle
   serverExternalPackages: ["@prisma/client", "bcrypt", "@remotion/renderer"],
 
-  // The Year in mahi renderer runs its platform's native compositor (and the
-  // ffmpeg beside it) from disk, which file tracing only partly follows, so
-  // ship whichever compositor npm installed (Linux x64 in CI) whole.
+  // File tracing can't be trusted with the Year in mahi renderer: it misses
+  // the native compositor (and the ffmpeg beside it) that the renderer runs
+  // from disk, and it resolves packages with conditional exports (remotion,
+  // ws) to their ESM builds while the renderer require()s the CommonJS ones.
+  // So ship the renderer and every package it depends on whole, including
+  // whichever compositor npm installed (Linux x64 in CI).
   outputFileTracingIncludes: {
-    "/api/year-in-review/**": [
-      "./node_modules/@remotion/compositor-*/**/*",
-      "./node_modules/@remotion/renderer/**/*",
-    ],
+    "/api/year-in-review/**": packageGlobs("@remotion/renderer"),
   },
 
   // Configure external image domains
@@ -163,6 +164,39 @@ async function removeSourceMaps(distDir: string) {
       .filter((file) => file.endsWith(".map"))
       .map((file) => rm(path.join(distDir, file), { force: true }))
   );
+}
+
+// Globs for a package and its installed dependencies (optional ones included),
+// found the way Node resolves them: the nearest node_modules up the tree.
+function packageGlobs(name: string): string[] {
+  const dirs = new Set<string>();
+
+  const visit = (pkg: string, from: string) => {
+    for (let dir = from; ; dir = path.dirname(dir)) {
+      const pkgDir = path.join(dir, "node_modules", pkg);
+      if (existsSync(path.join(pkgDir, "package.json"))) {
+        if (dirs.has(pkgDir)) return;
+        dirs.add(pkgDir);
+        const manifest = JSON.parse(
+          readFileSync(path.join(pkgDir, "package.json"), "utf8")
+        );
+        for (const dep of Object.keys({
+          ...manifest.dependencies,
+          ...manifest.optionalDependencies,
+        })) {
+          visit(dep, pkgDir);
+        }
+        return;
+      }
+      if (dir === path.dirname(dir)) return; // not installed (optional)
+    }
+  };
+  visit(name, process.cwd());
+
+  return [...dirs].map((dir) => {
+    const relative = path.relative(process.cwd(), dir).split(path.sep);
+    return `./${relative.join("/")}/**/*`;
+  });
 }
 
 const finalConfig = posthogEnabled
