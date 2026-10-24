@@ -165,7 +165,8 @@ jobs:
           COOLIFY_WEBHOOK_TOKEN: ${{ secrets.COOLIFY_WEBHOOK_TOKEN }}
         run: |
           if [ -n "$COOLIFY_WEBHOOK_URL" ]; then
-            curl -fsS -X GET "$COOLIFY_WEBHOOK_URL" \
+            # Coolify v4.2+ only accepts POST on /deploy (GET returns 405)
+            curl -fsS -X POST "$COOLIFY_WEBHOOK_URL" \
               -H "Authorization: Bearer $COOLIFY_WEBHOOK_TOKEN"
             echo "Coolify deploy triggered"
           else
