@@ -20,6 +20,18 @@
  */
 export const WEB_HOST = "volunteers.everybodyeats.nz";
 
+/**
+ * Steps of the web profile wizard (`/profile/edit?step=…`) that have a
+ * matching section on the mobile edit screen. The rest ("personal",
+ * "security") open the screen at the top.
+ */
+export const PROFILE_EDIT_STEPS = [
+  "availability",
+  "emergency",
+  "medical",
+  "communication",
+];
+
 export function mapDeepLinkToRoute(rawPath: string): string {
   // Custom-scheme links (OAuth redirects, our own app scheme) aren't web URLs
   // — hand them back untouched so Expo Router resolves them as it did before.
@@ -120,7 +132,18 @@ export function mapDeepLinkToRoute(rawPath: string): string {
     return "/(tabs)/profile";
   }
 
-  // /profile* -> profile tab
+  // /profile/edit?step=X -> the edit screen, opened on the section the web
+  // wizard's step points at. Emails link here to change notification settings
+  // (?step=communication). Only steps the screen knows are forwarded, so the
+  // link can't carry anything else into the route.
+  if (pathname === "/profile/edit") {
+    const step = query.get("step");
+    return step && PROFILE_EDIT_STEPS.includes(step)
+      ? `/profile/edit?step=${step}`
+      : "/profile/edit";
+  }
+
+  // Any other /profile* path -> profile tab
   if (pathname === "/profile" || pathname.startsWith("/profile/")) {
     return "/(tabs)/profile";
   }
