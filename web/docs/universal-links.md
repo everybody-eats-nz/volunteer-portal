@@ -27,15 +27,16 @@ Only these open the app; everything else (including `/api/*`, `/login`,
 `/register`, `/verify-email`, `/reset-password`, `/surveys/*`, OAuth) stays in
 the browser by design. **Keep these three places in sync:**
 
-| Path             | Mobile route        |
-| ---------------- | ------------------- |
-| `/shifts`        | `/(tabs)/shifts`    |
-| `/shifts/:id`    | `/shift/[id]`       |
-| `/dashboard`     | `/(tabs)` (home)    |
-| `/profile[/*]`   | `/(tabs)/profile`   |
-| `/friends`       | `/(tabs)/profile`   |
-| `/friends/:id`   | `/user/[id]`        |
-| `/achievements*` | `/(tabs)/profile`   |
+| Path                    | Mobile route                   |
+| ----------------------- | ------------------------------ |
+| `/shifts`               | `/(tabs)/shifts`               |
+| `/shifts/:id`           | `/shift/[id]`                  |
+| `/dashboard`            | `/(tabs)` (home)               |
+| `/profile/edit?step=X`  | `/profile/edit` (on section X) |
+| `/profile[/*]` (others) | `/(tabs)/profile`              |
+| `/friends`              | `/(tabs)/profile`              |
+| `/friends/:id`          | `/user/[id]`                   |
+| `/achievements*`        | `/(tabs)/profile`              |
 
 ### `/surveys/*` is deliberately not claimed yet
 

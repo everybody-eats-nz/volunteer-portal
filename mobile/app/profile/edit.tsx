@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as Notifications from "expo-notifications";
-import { Stack, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  type LayoutChangeEvent,
   Linking,
   Modal,
   Platform,
@@ -261,6 +262,23 @@ export default function EditProfileScreen() {
   // The form is far taller than the space above the keyboard, so each field
   // is brought clear of it on its own (see useKeyboardAwareScroll).
   const keyboardScroll = useKeyboardAwareScroll();
+
+  // A link to /profile/edit?step=… (an email's "notification settings" link,
+  // mapped in deep-link-routing.ts) opens the screen on that section. The
+  // scroll follows the section while content above it loads in and moves it,
+  // until the volunteer scrolls for themselves.
+  const { step } = useLocalSearchParams<{ step?: string }>();
+  const followStep = useRef(Boolean(step));
+  const onSectionLayout =
+    (sectionStep: string) => (event: LayoutChangeEvent) => {
+      if (sectionStep !== step || !followStep.current) return;
+      // Clear the transparent header the content's top padding makes room for.
+      const y = event.nativeEvent.layout.y - (insets.top + 56) - 8;
+      keyboardScroll.scrollProps.ref.current?.scrollTo({
+        y: Math.max(0, y),
+        animated: true,
+      });
+    };
 
   // Fetch shift types and newsletter lists
   useEffect(() => {
@@ -696,6 +714,9 @@ export default function EditProfileScreen() {
       />
       <Animated.ScrollView
         {...keyboardScroll.scrollProps}
+        onScrollBeginDrag={() => {
+          followStep.current = false;
+        }}
         style={{ flex: 1 }}
         contentContainerStyle={[
           s.content,
@@ -863,7 +884,7 @@ export default function EditProfileScreen() {
 
         {/* ── Default Location ── */}
         {availableLocations.length > 0 && (
-          <View style={s.section}>
+          <View style={s.section} onLayout={onSectionLayout("availability")}>
             <Text style={[s.sectionTitle, { color: colors.text }]}>
               Default Location
             </Text>
@@ -926,7 +947,7 @@ export default function EditProfileScreen() {
         )}
 
         {/* ── Emergency Contact ── */}
-        <View style={s.section}>
+        <View style={s.section} onLayout={onSectionLayout("emergency")}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>
             Emergency Contact
           </Text>
@@ -971,7 +992,7 @@ export default function EditProfileScreen() {
         </View>
 
         {/* ── Medical ── */}
-        <View style={s.section}>
+        <View style={s.section} onLayout={onSectionLayout("medical")}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>
             Medical Information
           </Text>
@@ -992,7 +1013,7 @@ export default function EditProfileScreen() {
         </View>
 
         {/* ── Notification Preferences ── */}
-        <View style={s.section}>
+        <View style={s.section} onLayout={onSectionLayout("communication")}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>
             Notifications
           </Text>

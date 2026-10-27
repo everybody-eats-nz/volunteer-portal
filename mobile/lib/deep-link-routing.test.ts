@@ -104,8 +104,35 @@ describe("mapDeepLinkToRoute", () => {
       expect(mapDeepLinkToRoute("/profile")).toBe("/(tabs)/profile");
     });
 
-    it("maps /profile sub-pages to the profile tab", () => {
-      expect(mapDeepLinkToRoute("/profile/edit")).toBe("/(tabs)/profile");
+    it("maps /profile/edit to the edit screen", () => {
+      expect(mapDeepLinkToRoute("/profile/edit")).toBe("/profile/edit");
+    });
+
+    it("forwards a known wizard step to the edit screen", () => {
+      expect(mapDeepLinkToRoute("/profile/edit?step=communication")).toBe(
+        "/profile/edit?step=communication"
+      );
+    });
+
+    it("drops a step the edit screen has no section for", () => {
+      expect(mapDeepLinkToRoute("/profile/edit?step=security")).toBe(
+        "/profile/edit"
+      );
+      expect(mapDeepLinkToRoute("/profile/edit?step=%2F%2Fevil")).toBe(
+        "/profile/edit"
+      );
+    });
+
+    it("opens the edit screen from an email's settings link", () => {
+      expect(
+        mapDeepLinkToRoute(
+          "https://volunteers.everybodyeats.nz/profile/edit?step=communication"
+        )
+      ).toBe("/profile/edit?step=communication");
+    });
+
+    it("maps other /profile sub-pages to the profile tab", () => {
+      expect(mapDeepLinkToRoute("/profile/something")).toBe("/(tabs)/profile");
     });
 
     it("maps /achievements to the profile tab", () => {
