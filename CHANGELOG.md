@@ -1,3 +1,9 @@
+## [0.199.4] - 2026-10-27
+
+### Changes
+- fix(mobile): open profile edit links on the right section ([#1395](https://github.com/everybody-eats-nz/volunteer-portal/pull/1395)) by @malinmalliyawadu
+
+
 ## [0.199.3] - 2026-10-26
 
 ### Changes
