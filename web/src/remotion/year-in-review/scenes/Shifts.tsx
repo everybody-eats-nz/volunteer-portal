@@ -1,9 +1,17 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { clamp, Rise, Scene, Words } from "../components/motion";
+import {
+  clamp,
+  Rise,
+  Scene,
+  useBeatPulse,
+  useSquash,
+  Words,
+} from "../components/motion";
 import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, formatNumber, layout } from "../theme";
+import { beats } from "../timeline";
 
 const firstShiftDate = new Intl.DateTimeFormat("en-NZ", {
   day: "numeric",
@@ -12,14 +20,14 @@ const firstShiftDate = new Intl.DateTimeFormat("en-NZ", {
 });
 
 const TALLY_WIDTH = layout.width - layout.gutter * 2;
-const TALLY_HEIGHT = 250;
-/** When the first plate lands, and how long the whole stack takes. */
-const TALLY_START = 0.35;
-const TALLY_SECONDS = 1.6;
+const TALLY_HEIGHT = 300;
+/** The first plate lands here, and the last on beat three. */
+const TALLY_START = 0.6;
+const TALLY_END = beats(3);
 
 /** The largest plate size that fits `count` plates in the tally box. */
 const plateSize = (count: number) => {
-  for (let size = 120; size > 6; size -= 2) {
+  for (let size = 132; size > 6; size -= 2) {
     const columns = Math.floor(TALLY_WIDTH / size);
     if (Math.ceil(count / columns) * size <= TALLY_HEIGHT) return size;
   }
@@ -28,9 +36,9 @@ const plateSize = (count: number) => {
 
 /** Seconds into the scene that plate `i` of `count` lands. */
 const landsAt = (i: number, count: number) =>
-  TALLY_START + (count > 1 ? (i / (count - 1)) * TALLY_SECONDS : 0);
+  TALLY_START + (count > 1 ? (i / (count - 1)) * (TALLY_END - TALLY_START) : 0);
 
-/** A plate seen from above: a rim around the well. */
+/** A plate seen from above, set down from a little height. */
 const Plate = ({
   index,
   count,
@@ -46,7 +54,7 @@ const Plate = ({
     frame,
     fps,
     delay: landsAt(index, count) * fps,
-    config: { damping: 11, stiffness: 180 },
+    config: { damping: 12, stiffness: 190 },
   });
   const diameter = size * 0.84;
 
@@ -69,8 +77,8 @@ const Plate = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          scale: interpolate(land, [0, 1], [0, 1]),
-          translate: `0px ${interpolate(land, [0, 1], [-size * 0.6, 0])}px`,
+          opacity: interpolate(land, [0, 0.2], [0, 1], clamp),
+          scale: `${interpolate(land, [0, 1], [1.5, 1])}`,
         }}
       >
         <div
@@ -87,18 +95,33 @@ const Plate = ({
   );
 };
 
-/** Counts up in step with the plates landing. */
+/** Counts up in step with the plates landing, and squashes on the last. */
 const TallyCount = ({ count }: { readonly count: number }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const landed = Array.from({ length: count }).filter(
     (_, i) => frame >= landsAt(i, count) * fps
   ).length;
+  const squash = useSquash(TALLY_END, 0.16);
+  const pulse = useBeatPulse(TALLY_END + 0.3);
 
   return (
-    <span style={{ fontVariantNumeric: "tabular-nums" }}>
+    <div
+      style={{
+        ...display(count >= 1000 ? 330 : count >= 100 ? 420 : 500),
+        fontVariantNumeric: "tabular-nums",
+        opacity: interpolate(
+          frame,
+          [(TALLY_START - 0.15) * fps, TALLY_START * fps],
+          [0, 1],
+          clamp
+        ),
+        scale: `${pulse} ${squash * pulse}`,
+        transformOrigin: "left bottom",
+      }}
+    >
       {formatNumber(landed)}
-    </span>
+    </div>
   );
 };
 
@@ -124,50 +147,29 @@ const Tally = ({ count }: { readonly count: number }) => {
 };
 
 export const Shifts = ({ shifts }: YearInReviewProps) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const { first } = shifts;
   const where = first.location ? ` in ${first.location}` : "";
 
   return (
     <Scene id="shifts">
-      <Rise delay={0}>
-        <div style={lead}>You turned up for</div>
-      </Rise>
-      <div
-        style={{
-          ...display(shifts.completed >= 100 ? 420 : 500),
-          // Lands with a nudge when the last plate does.
-          scale: interpolate(
-            frame,
-            [
-              (TALLY_START + TALLY_SECONDS) * fps,
-              (TALLY_START + TALLY_SECONDS + 0.12) * fps,
-              (TALLY_START + TALLY_SECONDS + 0.35) * fps,
-            ],
-            [1, 1.06, 1],
-            clamp
-          ),
-          transformOrigin: "left center",
-          opacity: interpolate(frame, [0, 0.2 * fps], [0, 1], clamp),
-        }}
-      >
+      <Words text="You turned up for" delay={0.05} stagger={0.05} style={lead} />
+      <div style={{ marginTop: 20 }}>
         <TallyCount count={shifts.completed} />
       </div>
       <Words
         text={[{ italic: shifts.completed === 1 ? "shift" : "shifts" }]}
-        delay={0.2}
-        style={{ ...display(150), marginTop: -24, marginBottom: 44 }}
+        delay={0.3}
+        style={{ ...display(150), marginTop: -20, marginBottom: 36 }}
       />
       <Tally count={shifts.completed} />
       <Sound name="tally" at={TALLY_START} volume={0.4} />
       <div style={{ flex: 1 }} />
-      <Rise delay={2.1}>
+      <Rise delay={TALLY_END + 0.3}>
         <div style={{ ...body, fontWeight: 600 }}>
           That&apos;s {formatNumber(shifts.hours)} hours of mahi.
         </div>
       </Rise>
-      <Rise delay={2.4} style={{ marginTop: 16 }}>
+      <Rise delay={TALLY_END + 0.55} style={{ marginTop: 12 }}>
         <div style={body}>
           It all started on {firstShiftDate.format(new Date(first.date))} with a{" "}
           {first.role} shift{where}.

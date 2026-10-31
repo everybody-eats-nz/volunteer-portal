@@ -29,7 +29,7 @@ const MURAL_BOTTOM = layout.height - 70;
 const DiningRoom = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const lit = interpolate(frame, [0.5 * fps, 2.3 * fps], [0, 78], {
+  const lit = interpolate(frame, [0.3 * fps, 2 * fps], [0, 78], {
     ...clamp,
     easing: easeOut,
   });
@@ -66,21 +66,21 @@ export const Outro = ({ firstName, year }: YearInReviewProps) => {
       style={{ alignItems: "center", textAlign: "center" }}
     >
       {/* A shimmer as the room lights up. */}
-      <Sound name="bloom" at={0.5} volume={0.22} />
+      <Sound name="bloom" at={0.3} volume={0.22} />
       <Words
         text={["Ngā mihi,", { italic: firstName }]}
-        delay={0.1}
+        delay={0.05}
         style={{
           ...display(fitFontSize(thanks, 150, undefined, 0.46, 104)),
           marginTop: 40,
         }}
       />
-      <Rise delay={0.6} style={{ marginTop: 36 }}>
+      <Rise delay={0.5} style={{ marginTop: 36 }}>
         <div style={{ ...lead, color: colors.forest200 }}>
           See you in the kitchen in {year + 1}.
         </div>
       </Rise>
-      <Rise delay={1.4} distance={30} style={{ marginTop: 64 }}>
+      <Rise delay={1.1} distance={30} style={{ marginTop: 64 }}>
         <Img src={staticFile("logo.svg")} style={{ width: 260 }} />
         <div style={{ ...lead, color: colors.sun, marginTop: 20 }}>
           everybodyeats.nz

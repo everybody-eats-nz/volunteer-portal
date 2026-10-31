@@ -2,8 +2,18 @@ import type { YearInReviewProps } from "./schema";
 
 export const FPS = 30;
 
-/** Frames each scene overlaps the next while it wipes in. */
-export const TRANSITION_FRAMES = 24;
+/** The music bed's tempo (`scripts/year-in-review-sounds.ts`). */
+export const BPM = 92;
+/** One beat, in seconds. Scene lengths are whole beats so every cut lands on one. */
+export const BEAT = 60 / BPM;
+/** Seconds for `n` beats. */
+export const beats = (n: number) => n * BEAT;
+
+/**
+ * Frames the plate iris takes to open over the previous scene. Each scene
+ * except the last carries this overlap, so scene starts stay on the beat.
+ */
+export const TRANSITION_FRAMES = 18;
 
 export type SceneId =
   | "intro"
@@ -18,32 +28,54 @@ export type SceneId =
   | "docket"
   | "outro";
 
-const seconds = (s: number) => Math.round(s * FPS);
+/**
+ * The scenes this volunteer's video plays, in order, and how many beats
+ * each gets. Stories with nothing to say (no friends on shift, no new
+ * badges) are left out rather than shown empty, and the video gets shorter.
+ */
+function sceneBeats(
+  props: YearInReviewProps
+): { id: SceneId; beats: number }[] {
+  const scenes: { id: SceneId; beats: number; show: boolean }[] = [
+    { id: "intro", beats: 6, show: true },
+    { id: "shifts", beats: 8, show: true },
+    { id: "meals", beats: 7, show: props.impact.mealsServed > 0 },
+    { id: "rhythm", beats: 8, show: true },
+    { id: "roles", beats: 8, show: props.roles.length > 0 },
+    { id: "crew", beats: 7, show: props.crew.alongside > 0 },
+    { id: "achievements", beats: 8, show: props.achievements.length > 0 },
+    { id: "topPercent", beats: 6, show: props.topPercent !== null },
+    { id: "together", beats: 9, show: true },
+    { id: "docket", beats: 9, show: true },
+    { id: "outro", beats: 6, show: true },
+  ];
+  return scenes.filter((s) => s.show).map(({ id, beats: b }) => ({ id, beats: b }));
+}
 
 /**
- * The scenes this volunteer's video plays, in order. Stories with nothing to
- * say (no friends on shift, no new badges) are left out rather than shown
- * empty, and the video gets shorter.
+ * Each scene's length in frames. Scene starts are rounded from the running
+ * beat count, not accumulated, so they never drift off the beat. Every scene
+ * but the last also plays on under the next one's iris.
  */
 export function getScenes(
   props: YearInReviewProps
 ): { id: SceneId; durationInFrames: number }[] {
-  const scenes: { id: SceneId; seconds: number; show: boolean }[] = [
-    { id: "intro", seconds: 4.5, show: true },
-    { id: "shifts", seconds: 5.5, show: true },
-    { id: "meals", seconds: 5.5, show: props.impact.mealsServed > 0 },
-    { id: "rhythm", seconds: 6, show: true },
-    { id: "roles", seconds: 5.5, show: props.roles.length > 0 },
-    { id: "crew", seconds: 5.5, show: props.crew.alongside > 0 },
-    { id: "achievements", seconds: 5.5, show: props.achievements.length > 0 },
-    { id: "topPercent", seconds: 4.5, show: props.topPercent !== null },
-    { id: "together", seconds: 6.5, show: true },
-    { id: "docket", seconds: 7, show: true },
-    { id: "outro", seconds: 5, show: true },
-  ];
-  return scenes
-    .filter((scene) => scene.show)
-    .map(({ id, seconds: s }) => ({ id, durationInFrames: seconds(s) }));
+  const scenes = sceneBeats(props);
+  let total = 0;
+  const starts = scenes.map(({ beats: b }) => {
+    const start = Math.round(beats(total) * FPS);
+    total += b;
+    return start;
+  });
+  const end = Math.round(beats(total) * FPS);
+  return scenes.map(({ id }, i) => {
+    const last = i === scenes.length - 1;
+    const next = last ? end : starts[i + 1];
+    return {
+      id,
+      durationInFrames: next - starts[i] + (last ? 0 : TRANSITION_FRAMES),
+    };
+  });
 }
 
 /**

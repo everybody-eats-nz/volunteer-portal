@@ -1,31 +1,36 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { clamp, easeOut, Rise, Scene, Words } from "../components/motion";
+import { clamp, Pop, Rise, Scene, Words } from "../components/motion";
+import { Plate } from "../components/plate";
 import { Sound } from "../components/sound";
 import { body, display } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, fonts, layout, MONTHS, WEEKDAYS } from "../theme";
 
-const CHART_WIDTH = layout.width - layout.gutter * 2;
-const CHART_HEIGHT = 620;
-const GAP = 16;
-const BAR_WIDTH = (CHART_WIDTH - GAP * 11) / 12;
-/** Room above the tallest bar for the busiest month's count. */
-const LABEL_ROOM = 90;
+const CENTRE = { x: layout.width / 2, y: 1120 };
+/** The plate in the middle, and where the bars start outside it. */
+const PLATE = 290;
+const INNER = 165;
+/** The longest bar's length; the busiest month reaches this. */
+const REACH = 225;
+const BAR_WIDTH = 40;
+const STUB = 16;
 /** Seconds into the scene that January's bar starts to grow. */
-const BARS_FROM = 0.6;
+const BARS_FROM = 0.75;
 const BAR_STAGGER = 0.06;
+const BARS_DONE = BARS_FROM + 11 * BAR_STAGGER + 0.45;
 
-/** One month's column, growing up from the baseline in turn. */
+/**
+ * One month's bar, radiating out from the plate at its hour on the clock
+ * (January at twelve), growing outward in turn with its initial beyond it.
+ */
 const Bar = ({
   month,
-  count,
+  length,
   busiest,
-  height,
 }: {
   readonly month: number;
-  readonly count: number;
+  readonly length: number;
   readonly busiest: boolean;
-  readonly height: number;
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -34,69 +39,52 @@ const Bar = ({
     frame,
     fps,
     delay: start,
-    config: { damping: 15, stiffness: 120 },
+    config: { damping: 13, stiffness: 120 },
   });
-  // The busiest month's count lands once every bar is up.
-  const labelAt = (BARS_FROM + 11 * BAR_STAGGER + 0.5) * fps;
+  const angle = month * 30;
+  const color = busiest ? colors.sun : colors.cream;
 
   return (
     <div
       style={{
+        position: "absolute",
+        left: CENTRE.x - BAR_WIDTH / 2,
+        top: CENTRE.y,
         width: BAR_WIDTH,
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-end",
+        // Drawn pointing up from the centre, then turned to its month.
+        rotate: `${angle}deg`,
+        transformOrigin: "50% 0%",
       }}
     >
-      {busiest && (
-        <div
-          style={{
-            ...display(64),
-            color: colors.sun,
-            marginBottom: 18,
-            opacity: interpolate(
-              frame,
-              [labelAt, labelAt + 0.4 * fps],
-              [0, 1],
-              clamp
-            ),
-            translate: `0px ${interpolate(
-              frame,
-              [labelAt, labelAt + 0.6 * fps],
-              [20, 0],
-              { ...clamp, easing: easeOut }
-            )}px`,
-          }}
-        >
-          {count}
-        </div>
-      )}
       <div
         style={{
-          width: "100%",
-          height,
+          position: "absolute",
+          left: 0,
+          bottom: INNER,
+          width: BAR_WIDTH,
+          height: length,
           borderRadius: BAR_WIDTH / 2,
-          backgroundColor: busiest ? colors.sun : colors.forest200,
-          opacity: busiest ? 1 : count === 0 ? 0.25 : 0.55,
-          transformOrigin: "bottom",
+          backgroundColor: color,
+          opacity: busiest ? 1 : 0.55,
+          transformOrigin: "50% 100%",
           scale: `1 ${grow}`,
         }}
       />
       <div
         style={{
+          position: "absolute",
+          left: 0,
+          width: BAR_WIDTH,
+          bottom: INNER + REACH + 18,
+          textAlign: "center",
           fontFamily: fonts.body,
           fontWeight: 700,
           fontSize: 32,
-          marginTop: 22,
-          color: busiest ? colors.sun : colors.forest200,
-          opacity: interpolate(
-            frame,
-            [start, start + 0.4 * fps],
-            [0, 1],
-            clamp
-          ),
+          lineHeight: 1,
+          color,
+          opacity: interpolate(frame, [start, start + 0.3 * fps], [0, 1], clamp),
+          // Letters stay upright whichever way their bar points.
+          rotate: `${-angle}deg`,
         }}
       >
         {MONTHS[month][0]}
@@ -106,76 +94,69 @@ const Bar = ({
 };
 
 /**
- * Shifts per month as a row of rounded columns, the busiest in the accent
- * with its count above it. An empty month keeps a stub so the year reads
- * whole.
+ * Shifts per month as a clock of bars around a plate, the busiest in the
+ * accent. An empty month keeps a stub so the year reads whole. Once every
+ * bar is out, the busiest month's count is served on the plate.
  */
-const MonthChart = ({ rhythm }: Pick<YearInReviewProps, "rhythm">) => {
-  const busiest = Math.max(...rhythm.months, 1);
-  const tallest = CHART_HEIGHT - LABEL_ROOM - 56;
+const MonthClock = ({ rhythm }: Pick<YearInReviewProps, "rhythm">) => {
+  const most = Math.max(...rhythm.months, 1);
+  const count = rhythm.months[rhythm.busiestMonth];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: GAP,
-        width: CHART_WIDTH,
-        height: CHART_HEIGHT,
-      }}
-    >
-      {rhythm.months.map((count, month) => (
+    <>
+      {rhythm.months.map((shifts, month) => (
         <Bar
           key={MONTHS[month]}
           month={month}
-          count={count}
+          length={Math.max(STUB, (shifts / most) * REACH)}
           busiest={month === rhythm.busiestMonth}
-          height={Math.max(BAR_WIDTH, (count / busiest) * tallest)}
         />
       ))}
-    </div>
+      <Pop
+        delay={BARS_DONE}
+        style={{
+          position: "absolute",
+          left: CENTRE.x - PLATE / 2,
+          top: CENTRE.y - PLATE / 2,
+        }}
+      >
+        <Plate size={PLATE}>
+          <div style={{ ...display(124), lineHeight: 1 }}>{count}</div>
+          <div
+            style={{
+              fontFamily: fonts.body,
+              fontWeight: 600,
+              fontSize: 26,
+              marginTop: 6,
+              color: colors.forest500,
+            }}
+          >
+            in {MONTHS[rhythm.busiestMonth]}
+          </div>
+        </Plate>
+      </Pop>
+    </>
   );
 };
 
 export const Rhythm = ({ rhythm }: YearInReviewProps) => {
   const weekday = WEEKDAYS[rhythm.favouriteWeekday];
-  const busiestCount = rhythm.months[rhythm.busiestMonth];
 
   return (
-    <Scene id="rhythm">
+    <Scene id="rhythm" backdrop={<MonthClock rhythm={rhythm} />}>
+      {/* A note per bar as it grows, then a ting as the count is served. */}
+      <Sound name="month-run" at={BARS_FROM} volume={0.35} />
+      <Sound name="medal" at={BARS_DONE + 0.1} volume={0.2} />
       <Words
         text={[{ italic: `${weekday}s` }, "were your night"]}
+        delay={0.05}
         style={display(fitFontSize(`${weekday}s were`, 140, undefined, 0.46))}
       />
-      <Rise delay={0.5} style={{ marginTop: 28 }}>
+      <Rise delay={0.5} style={{ marginTop: 24 }}>
         <div style={{ ...body, color: colors.forest200 }}>
           {rhythm.favouriteWeekdayCount} of your shifts landed on a {weekday}.
         </div>
       </Rise>
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          paddingTop: 56,
-          gap: 56,
-        }}
-      >
-        <MonthChart rhythm={rhythm} />
-        {/* A note per bar as it grows, then a ting for the busiest. */}
-        <Sound name="month-run" at={BARS_FROM} volume={0.35} />
-        <Sound
-          name="medal"
-          at={BARS_FROM + 11 * BAR_STAGGER + 0.5}
-          volume={0.2}
-        />
-        <Rise delay={BARS_FROM + 11 * BAR_STAGGER + 0.7}>
-          <div style={{ ...body, fontWeight: 600 }}>
-            {MONTHS[rhythm.busiestMonth]} was your busiest month, with{" "}
-            {busiestCount} {busiestCount === 1 ? "shift" : "shifts"}.
-          </div>
-        </Rise>
-      </div>
     </Scene>
   );
 };

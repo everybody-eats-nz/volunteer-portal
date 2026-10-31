@@ -1,19 +1,32 @@
 import { Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { clamp, Rise, Scene, Words } from "../components/motion";
+import {
+  clamp,
+  easeOut,
+  Rise,
+  Scene,
+  useBeatPulse,
+  useSquash,
+  Words,
+} from "../components/motion";
 import { Sound } from "../components/sound";
 import { body, display } from "../components/type";
 import type { YearInReviewProps } from "../schema";
-import { fitFontSize, layout } from "../theme";
+import { colors, fitFontSize, layout } from "../theme";
+import { beats } from "../timeline";
 
-const COUNT_FROM = 0.3;
-const COUNT_SECONDS = 1.3;
-const LANDED = COUNT_FROM + COUNT_SECONDS;
+const COUNT_FROM = 0.25;
+/** The rank lands on beat two. */
+const LANDED = beats(2);
 
 const MAX_SIZE = 560;
+/** Where the number sits; the rims ripple out from behind it. */
+const NUMBER_CENTRE_Y = 960;
+const RINGS = 3;
 
 /**
  * Counts down from 100%, slowing as it closes in on their rank. Each value
- * is set as large as fits, so the number swells as it shrinks.
+ * is set as large as fits, so the number swells as it shrinks, then
+ * squashes as it lands and breathes with the beat.
  */
 const Countdown = ({ to }: { readonly to: number }) => {
   const frame = useCurrentFrame();
@@ -24,11 +37,16 @@ const Countdown = ({ to }: { readonly to: number }) => {
       easing: Easing.bezier(0.1, 0.8, 0.2, 1),
     })
   );
+  const squash = useSquash(LANDED, 0.24);
+  const pulse = useBeatPulse(LANDED + 0.3, 0.04);
   return (
     <span
       style={{
         ...display(fitFontSize(`${value}%`, MAX_SIZE, undefined, 0.5)),
         fontVariantNumeric: "tabular-nums",
+        display: "inline-block",
+        scale: `${pulse} ${squash * pulse}`,
+        transformOrigin: "50% 100%",
       }}
     >
       {value}
@@ -38,14 +56,48 @@ const Countdown = ({ to }: { readonly to: number }) => {
   );
 };
 
-export const TopPercent = ({ topPercent }: YearInReviewProps) => {
+/** Plate rims rippling out from the number as it lands. */
+const Ripples = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+
+  return (
+    <>
+      {Array.from({ length: RINGS }, (_, i) => {
+        const start = (LANDED + i * 0.14) * fps;
+        const progress = interpolate(frame, [start, start + 1.3 * fps], [0, 1], {
+          ...clamp,
+          easing: easeOut,
+        });
+        if (progress === 0) return null;
+        const radius = 120 + progress * 900;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: layout.width / 2 - radius,
+              top: NUMBER_CENTRE_Y - radius,
+              width: radius * 2,
+              height: radius * 2,
+              borderRadius: "50%",
+              border: `${14 - i * 3}px solid ${colors.paper}`,
+              opacity: (1 - progress) * 0.9,
+            }}
+          />
+        );
+      })}
+    </>
+  );
+};
+
+export const TopPercent = ({ topPercent }: YearInReviewProps) => {
   const rank = topPercent ?? 0;
 
   return (
     <Scene
       id="topPercent"
+      backdrop={<Ripples />}
       style={{
         justifyContent: "center",
         alignItems: "center",
@@ -54,7 +106,7 @@ export const TopPercent = ({ topPercent }: YearInReviewProps) => {
     >
       <Words
         text={["You're in the", { italic: "top" }]}
-        delay={0.1}
+        delay={0.05}
         style={display(140)}
       />
       <div
@@ -67,13 +119,6 @@ export const TopPercent = ({ topPercent }: YearInReviewProps) => {
           justifyContent: "center",
           marginTop: 24,
           width: layout.width - layout.gutter * 2,
-          // A thump as the number lands.
-          scale: interpolate(
-            frame,
-            [LANDED * fps - 4, LANDED * fps, LANDED * fps + 8],
-            [1, 1.08, 1],
-            clamp
-          ),
         }}
       >
         <Countdown to={rank} />
