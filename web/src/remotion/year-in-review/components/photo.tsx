@@ -29,7 +29,7 @@ export const PhotoCard = ({
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const start = delay * fps;
-  const rise = interpolate(frame, [start, start + 0.9 * fps], [0, 1], {
+  const rise = interpolate(frame, [start, start + 0.8 * fps], [0, 1], {
     ...clamp,
     easing: easeOut,
   });
@@ -51,10 +51,10 @@ export const PhotoCard = ({
           height: "100%",
           objectFit: "cover",
           objectPosition: focus,
-          scale: interpolate(frame, [start, durationInFrames], [1.14, 1], {
+          scale: `${interpolate(frame, [start, durationInFrames], [1.14, 1], {
             ...clamp,
             easing: easeOut,
-          }),
+          })}`,
         }}
       />
     </div>

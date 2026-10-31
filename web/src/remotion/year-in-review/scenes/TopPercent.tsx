@@ -1,19 +1,21 @@
 import { Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { clamp, Rise, Scene, Words } from "../components/motion";
+import { clamp, Rise, Scene, useSquash, Words } from "../components/motion";
 import { Sound } from "../components/sound";
 import { body, display } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { fitFontSize, layout } from "../theme";
+import { beats } from "../timeline";
 
-const COUNT_FROM = 0.3;
-const COUNT_SECONDS = 1.3;
-const LANDED = COUNT_FROM + COUNT_SECONDS;
+const COUNT_FROM = 0.25;
+/** The rank lands on beat two. */
+const LANDED = beats(2);
 
 const MAX_SIZE = 560;
 
 /**
  * Counts down from 100%, slowing as it closes in on their rank. Each value
- * is set as large as fits, so the number swells as it shrinks.
+ * is set as large as fits, so the number swells as it shrinks, then
+ * squashes as it lands and breathes with the beat.
  */
 const Countdown = ({ to }: { readonly to: number }) => {
   const frame = useCurrentFrame();
@@ -24,11 +26,15 @@ const Countdown = ({ to }: { readonly to: number }) => {
       easing: Easing.bezier(0.1, 0.8, 0.2, 1),
     })
   );
+  const squash = useSquash(LANDED, 0.24);
   return (
     <span
       style={{
         ...display(fitFontSize(`${value}%`, MAX_SIZE, undefined, 0.5)),
         fontVariantNumeric: "tabular-nums",
+        display: "inline-block",
+        scale: `1 ${squash}`,
+        transformOrigin: "50% 100%",
       }}
     >
       {value}
@@ -39,8 +45,6 @@ const Countdown = ({ to }: { readonly to: number }) => {
 };
 
 export const TopPercent = ({ topPercent }: YearInReviewProps) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
   const rank = topPercent ?? 0;
 
   return (
@@ -54,7 +58,7 @@ export const TopPercent = ({ topPercent }: YearInReviewProps) => {
     >
       <Words
         text={["You're in the", { italic: "top" }]}
-        delay={0.1}
+        delay={0.05}
         style={display(140)}
       />
       <div
@@ -67,13 +71,6 @@ export const TopPercent = ({ topPercent }: YearInReviewProps) => {
           justifyContent: "center",
           marginTop: 24,
           width: layout.width - layout.gutter * 2,
-          // A thump as the number lands.
-          scale: interpolate(
-            frame,
-            [LANDED * fps - 4, LANDED * fps, LANDED * fps + 8],
-            [1, 1.08, 1],
-            clamp
-          ),
         }}
       >
         <Countdown to={rank} />

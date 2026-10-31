@@ -11,13 +11,14 @@ import {
   easeOut,
   Rise,
   Scene,
-  SlotNumber,
   Words,
 } from "../components/motion";
+import { Climb } from "../components/climb";
 import { PhotoCard } from "../components/photo";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, formatNumber, layout } from "../theme";
+import { beats } from "../timeline";
 
 // The kawakawa illustration is 1316 x 484, cropped along its top edge to
 // hang from the top of a page. It hangs from the top of the frame the same
@@ -30,12 +31,14 @@ const BAND_HEIGHT = Math.round((BAND_WIDTH / 1316) * 484);
 const BAND_LEFT = -40;
 /** The text starts just below the lowest drawing in the band. */
 const CONTENT_TOP = BAND_HEIGHT - 10;
+/** The count lands on beat three. */
+const COUNT_LANDS = beats(3);
 
 /** The line drawing inks itself in from the left, then drifts. */
 const Kawakawa = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const drawn = interpolate(frame, [0.5 * fps, 2.4 * fps], [0, 100], {
+  const drawn = interpolate(frame, [0.1 * fps, 1.5 * fps], [0, 100], {
     ...clamp,
     easing: easeOut,
   });
@@ -60,46 +63,59 @@ const Kawakawa = () => {
   );
 };
 
+const Count = ({ value }: { readonly value: number }) => {
+  return (
+    <div
+      style={{
+        ...display(fitFontSize(formatNumber(value), 360, undefined, 0.6)),
+        color: colors.forest500,
+        marginTop: 28,
+      }}
+    >
+      <Climb value={value} start={0.35} land={COUNT_LANDS} />
+    </div>
+  );
+};
+
 export const Meals = ({ impact }: YearInReviewProps) => (
-  <Scene id="meals" backdrop={<Kawakawa />} style={{ paddingTop: CONTENT_TOP }}>
+  <Scene
+    id="meals"
+    backdrop={
+      <>
+        <Kawakawa />
+        {/* Food on the table, running on behind Instagram's caption. */}
+        <PhotoCard
+          photo="community-table"
+          delay={0.9}
+          style={{
+            position: "absolute",
+            left: layout.gutter,
+            right: layout.gutter,
+            top: 1250,
+            bottom: 70,
+          }}
+        />
+      </>
+    }
+    style={{ paddingTop: CONTENT_TOP }}
+  >
     <Words
       text="On your nights, the whānau served"
+      delay={0.05}
       stagger={0.05}
       style={lead}
     />
-    <div
-      style={{
-        ...display(
-          fitFontSize(formatNumber(impact.mealsServed), 360, undefined, 0.6)
-        ),
-        color: colors.forest500,
-        marginTop: 32,
-      }}
-    >
-      <SlotNumber value={impact.mealsServed} delay={0.2} duration={1.9} />
-    </div>
+    <Count value={impact.mealsServed} />
     <Words
       text={[{ italic: "meals" }]}
-      delay={0.4}
+      delay={0.5}
       style={{ ...display(160), marginTop: 0 }}
     />
-    <Rise delay={1.9} style={{ marginTop: 56 }}>
-      <div style={body}>
+    <Rise delay={COUNT_LANDS + 0.25} style={{ marginTop: 48 }}>
+      <div style={{ ...body, maxWidth: 560 }}>
         That&apos;s about {formatNumber(impact.foodSavedKg)} kg of rescued food
         cooked up instead of thrown out.
       </div>
     </Rise>
-    <PhotoCard
-      photo="community-table"
-      // Arrives with the count, not after it, so the scene builds as one.
-      delay={0.6}
-      style={{
-        flex: 1,
-        minHeight: 0,
-        marginTop: 56,
-        // Runs on behind Instagram's caption, stopping short of the edge.
-        marginBottom: -(layout.marginBottom - 70),
-      }}
-    />
   </Scene>
 );

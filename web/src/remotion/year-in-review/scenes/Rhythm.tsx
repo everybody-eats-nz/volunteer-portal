@@ -12,8 +12,9 @@ const BAR_WIDTH = (CHART_WIDTH - GAP * 11) / 12;
 /** Room above the tallest bar for the busiest month's count. */
 const LABEL_ROOM = 90;
 /** Seconds into the scene that January's bar starts to grow. */
-const BARS_FROM = 0.6;
+const BARS_FROM = 0.7;
 const BAR_STAGGER = 0.06;
+const BARS_DONE = BARS_FROM + 11 * BAR_STAGGER + 0.45;
 
 /** One month's column, growing up from the baseline in turn. */
 const Bar = ({
@@ -34,10 +35,10 @@ const Bar = ({
     frame,
     fps,
     delay: start,
-    config: { damping: 15, stiffness: 120 },
+    config: { damping: 13, stiffness: 120 },
   });
   // The busiest month's count lands once every bar is up.
-  const labelAt = (BARS_FROM + 11 * BAR_STAGGER + 0.5) * fps;
+  const labelAt = BARS_DONE * fps;
 
   return (
     <div
@@ -58,13 +59,13 @@ const Bar = ({
             marginBottom: 18,
             opacity: interpolate(
               frame,
-              [labelAt, labelAt + 0.4 * fps],
+              [labelAt, labelAt + 0.3 * fps],
               [0, 1],
               clamp
             ),
             translate: `0px ${interpolate(
               frame,
-              [labelAt, labelAt + 0.6 * fps],
+              [labelAt, labelAt + 0.5 * fps],
               [20, 0],
               { ...clamp, easing: easeOut }
             )}px`,
@@ -78,8 +79,8 @@ const Bar = ({
           width: "100%",
           height,
           borderRadius: BAR_WIDTH / 2,
-          backgroundColor: busiest ? colors.sun : colors.forest200,
-          opacity: busiest ? 1 : count === 0 ? 0.25 : 0.55,
+          backgroundColor: busiest ? colors.sun : colors.cream,
+          opacity: busiest ? 1 : count === 0 ? 0.2 : 0.5,
           transformOrigin: "bottom",
           scale: `1 ${grow}`,
         }}
@@ -90,13 +91,8 @@ const Bar = ({
           fontWeight: 700,
           fontSize: 32,
           marginTop: 22,
-          color: busiest ? colors.sun : colors.forest200,
-          opacity: interpolate(
-            frame,
-            [start, start + 0.4 * fps],
-            [0, 1],
-            clamp
-          ),
+          color: busiest ? colors.sun : colors.cream,
+          opacity: interpolate(frame, [start, start + 0.3 * fps], [0, 1], clamp),
         }}
       >
         {MONTHS[month][0]}
@@ -111,7 +107,7 @@ const Bar = ({
  * whole.
  */
 const MonthChart = ({ rhythm }: Pick<YearInReviewProps, "rhythm">) => {
-  const busiest = Math.max(...rhythm.months, 1);
+  const most = Math.max(...rhythm.months, 1);
   const tallest = CHART_HEIGHT - LABEL_ROOM - 56;
 
   return (
@@ -129,7 +125,7 @@ const MonthChart = ({ rhythm }: Pick<YearInReviewProps, "rhythm">) => {
           month={month}
           count={count}
           busiest={month === rhythm.busiestMonth}
-          height={Math.max(BAR_WIDTH, (count / busiest) * tallest)}
+          height={Math.max(BAR_WIDTH, (count / most) * tallest)}
         />
       ))}
     </div>
@@ -138,15 +134,16 @@ const MonthChart = ({ rhythm }: Pick<YearInReviewProps, "rhythm">) => {
 
 export const Rhythm = ({ rhythm }: YearInReviewProps) => {
   const weekday = WEEKDAYS[rhythm.favouriteWeekday];
-  const busiestCount = rhythm.months[rhythm.busiestMonth];
+  const busiest = rhythm.months[rhythm.busiestMonth];
 
   return (
     <Scene id="rhythm">
       <Words
         text={[{ italic: `${weekday}s` }, "were your night"]}
+        delay={0.05}
         style={display(fitFontSize(`${weekday}s were`, 140, undefined, 0.46))}
       />
-      <Rise delay={0.5} style={{ marginTop: 28 }}>
+      <Rise delay={0.5} style={{ marginTop: 24 }}>
         <div style={{ ...body, color: colors.forest200 }}>
           {rhythm.favouriteWeekdayCount} of your shifts landed on a {weekday}.
         </div>
@@ -157,22 +154,18 @@ export const Rhythm = ({ rhythm }: YearInReviewProps) => {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          paddingTop: 56,
-          gap: 56,
+          paddingTop: 48,
+          gap: 48,
         }}
       >
         <MonthChart rhythm={rhythm} />
         {/* A note per bar as it grows, then a ting for the busiest. */}
         <Sound name="month-run" at={BARS_FROM} volume={0.35} />
-        <Sound
-          name="medal"
-          at={BARS_FROM + 11 * BAR_STAGGER + 0.5}
-          volume={0.2}
-        />
-        <Rise delay={BARS_FROM + 11 * BAR_STAGGER + 0.7}>
+        <Sound name="medal" at={BARS_DONE} volume={0.2} />
+        <Rise delay={BARS_DONE + 0.2}>
           <div style={{ ...body, fontWeight: 600 }}>
             {MONTHS[rhythm.busiestMonth]} was your busiest month, with{" "}
-            {busiestCount} {busiestCount === 1 ? "shift" : "shifts"}.
+            {busiest} {busiest === 1 ? "shift" : "shifts"}.
           </div>
         </Rise>
       </div>

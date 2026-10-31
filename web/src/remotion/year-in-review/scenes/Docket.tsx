@@ -12,13 +12,14 @@ import { Sound } from "../components/sound";
 import { lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fonts, formatNumber, layout } from "../theme";
+import { beats } from "../timeline";
 
 const PAPER_WIDTH = 780;
 const TEAR = 22;
 /** Seconds into the scene: the printer feeds the docket, then it's stamped. */
-const PRINT_FROM = 0.2;
-const PRINT_TO = 2.6;
-const STAMP_AT = 3;
+const PRINT_FROM = 0.15;
+const PRINT_TO = beats(3.5);
+const STAMP_AT = beats(4);
 /** Lines of paper the printer feeds per jerk. */
 const FEED_STEPS = 16;
 
@@ -118,8 +119,8 @@ const Stamp = () => {
       style={{
         position: "absolute",
         // In the blank tail of the docket, clear of every figure.
-        right: 90,
-        bottom: TEAR + 44,
+        right: 80,
+        bottom: TEAR + 14,
         rotate: "-9deg",
         scale: interpolate(hit, [0, 1], [2.6, 1]),
         opacity: interpolate(hit, [0, 1], [0, 0.88]),
@@ -137,7 +138,7 @@ const Stamp = () => {
       }}
     >
       <div style={{ fontSize: 30 }}>Paid in</div>
-      <div style={{ fontSize: 88, marginTop: 6 }}>Aroha</div>
+      <div style={{ fontSize: 80, marginTop: 6 }}>Aroha</div>
     </div>
   );
 };
@@ -225,7 +226,9 @@ export const Docket = (props: YearInReviewProps) => {
       </div>
       <div
         style={{
-          overflow: "hidden",
+          // Clips only the top, where the paper is still inside the
+          // printer; the shadow is free to fall past the torn edge.
+          clipPath: "inset(0 -120px -120px -120px)",
           // A long docket overflows rather than being squeezed and clipped.
           flexShrink: 0,
           marginTop: -18,
@@ -241,7 +244,7 @@ export const Docket = (props: YearInReviewProps) => {
               backgroundColor: colors.paper,
               color: colors.ink,
               // A long tail of blank paper below the total, for the stamp.
-              padding: "64px 56px 210px",
+              padding: "64px 56px 244px",
               fontFamily: fonts.mono,
               fontSize: 35,
               lineHeight: 1.5,

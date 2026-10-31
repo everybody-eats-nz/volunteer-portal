@@ -106,39 +106,53 @@ JetBrains Mono on the dockets, and the site's cream, forest, soft sun
 (`#f8fb69`) and peach. The Fraunces files in `public/fonts` are instanced
 and subset from the site's variable fonts (see `theme.ts`).
 
-The recurring object is a plate, after the site's "one plate at a time": the
-year is served on one in the intro and every shift lands as a plate in the
-tally. The rhythm scene is a plain month bar chart. The outro draws in
+Scenes flick up over each other like story cards: the next scene pushes
+the last up off the top of the frame on the beat (`components/push.tsx`),
+and each scene's entrances wait until it has mostly arrived
+(`REVEAL_SECONDS` in `components/motion.tsx`). The intro is a type poster:
+the greeting, and the year as big as the frame allows, landing with a thump.
+
+Photos sit in rounded cards with a slow push-in (`components/photo.tsx`):
+food on the table under the meals count, and the photo the mobile app shows
+on the volunteer's go-to shift type in the roles scene (`shift-photos.ts`
+mirrors the app's `getShiftThemeByName`; keep them in step). They are the
+app's shift cover photos, cropped so nobody's face is in frame except in
+the dining room and catering spread, in `public/year-in-review/`.
+
+Every cut lands on the beat. The music bed runs at 92 BPM (`BEAT` in
+`timeline.ts`); scenes are whole beats long, scene starts are rounded from
+the running beat count so they never drift, and the hero number in each
+scene lands on a beat too.
+Big counts climb from zero (`components/climb.tsx`), fast then easing in,
+the figure widening as it grows, then squash into place with a click
+(`useSquash`, after the kinetic-type idea of letters set under pressure).
+Odometer reels were tried and dropped: Fraunces' light figures look broken
+mid-roll. Lines of display type
+rise word by word out of a mask (`Words`).
+
+Scene by scene: shifts set down as dots while the count steps; the role
+name runs as two tickers against each other, one filled and one outlined;
+the months grow as a plain bar chart; the crowd blooms out in a sunflower
+spiral; badges fan open like a hand of cards from a pin below them; the
+top-percent number counts down and lands with a thump; events hang on the
+kitchen ticket rail; the docket prints and is stamped; the outro lights up
 the site's dining-room mural (from marketing-cms, as a WebP mask tinted
 cream).
 
-Photos are used in three places, each in a rounded card with a slow push-in
-(`components/photo.tsx`): plates being carried out on the intro, which is
-cream like the site's hero so the photo stands out, with the year's plate
-set over its bottom edge; food on the table under the meals count; and, in
-the roles scene, the photo the mobile app shows on the volunteer's go-to
-shift type (`shift-photos.ts` mirrors the app's `getShiftThemeByName`; keep
-them in step). They are the app's shift cover photos, cropped so nobody's
-face is in frame except in the dining room and catering spread, in
-`public/year-in-review/`.
-
-Scenes sweep in behind two bands of brand colour on a diagonal
-(`components/band-wipe.tsx`), so each scene's entrances wait until it's
-uncovered (`REVEAL_SECONDS` in `components/motion.tsx`). Every scene's
-colours are in `sceneColors` in `theme.ts`. Flat colour on purpose: a paper
-grain overlay was tried and made the MP4 3.6 times bigger.
+Every scene's colours are in `sceneColors` in `theme.ts`. Flat colour on
+purpose: a paper grain overlay was tried and made the MP4 3.6 times bigger.
 
 The kawakawa illustration is cropped along its top edge, so it hangs from
 the top of the frame (behind Instagram's header), never mid-frame.
 
 ## Sound
 
-Mostly sound effects, timed to the motion, over a quiet music bed:
-whooshes on the band wipes, a click as each slot-machine reel catches, the
-plate set down, plates stacking in the tally, a marimba run up the month
-bars, a shimmer as the crowd blooms, a confetti pop and medal tings, a bell
-when the top percent lands, dockets swishing onto the rail, the docket
-printer stepping and the stamp coming down.
+Mostly sound effects, timed to the motion, over a quiet music bed: a whip
+as each scene flicks up, a click as each count lands, dots stacking in the
+tally, a marimba run up the month bars, a shimmer as the crowd blooms, a
+confetti pop and a ting as each badge card fans out, a bell when the top
+percent lands, dockets swishing onto the rail, the docket printer stepping
+and the stamp coming down.
 
 - `components/sound.tsx` places each effect (`<Sound name at volume>`),
   mounted only while it plays; `MIX` lifts them all together and
@@ -158,8 +172,9 @@ printer stepping and the stamp coming down.
 - 1080 x 1920 (9:16), H.264, yuv420p, 30 fps, AAC audio at 128k.
 - Content stays out of the top 250px and bottom 400px, where Instagram draws
   its own UI (`layout` in `src/remotion/year-in-review/theme.ts`).
-- With every scene it runs 53 seconds, under the 60 second Story limit.
-  `timeline.test.ts` guards this.
+- With every scene it runs 82 beats, about 53 seconds, under the 60 second
+  Story limit. `timeline.test.ts` guards this, and that every scene starts
+  on a beat.
 
 ## Code
 
@@ -168,7 +183,7 @@ printer stepping and the stamp coming down.
 | `src/lib/year-in-review.server.ts` | Prisma queries, builds the props |
 | `src/lib/year-in-review.ts` | Pure aggregation (unit tested) |
 | `src/remotion/year-in-review/schema.ts` | Zod props schema shared by both sides |
-| `src/remotion/year-in-review/timeline.ts` | Scene order, optional scenes, duration |
+| `src/remotion/year-in-review/timeline.ts` | Scene order, optional scenes, beat grid, duration |
 | `src/remotion/year-in-review/scenes/` | One component per scene |
 | `scripts/year-in-review-props.ts` | CLI behind `video:props` |
 | `src/lib/year-in-review-settings.ts` | On/off switch and year (site settings, category `YEAR_IN_REVIEW`) |

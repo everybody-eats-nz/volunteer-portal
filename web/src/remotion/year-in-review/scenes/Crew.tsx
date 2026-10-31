@@ -6,35 +6,45 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { clamp, Pop, Rise, Scene, Words } from "../components/motion";
+import {
+  clamp,
+  Pop,
+  Rise,
+  Scene,
+  useSquash,
+  Words,
+} from "../components/motion";
 import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fonts, formatNumber, layout } from "../theme";
+import { beats } from "../timeline";
 
-const AVATAR = 200;
+const AVATAR = 190;
 
 /** Most people drawn in the crowd; beyond this each dot stands for more. */
 const MAX_DOTS = 420;
-const BLOOM_RADIUS = 620;
-const BLOOM_CENTRE = { x: layout.width / 2, y: 640 };
-const BLOOM_START = 0.2;
-const BLOOM_SECONDS = 1.8;
+const BLOOM_RADIUS = 720;
+const BLOOM_CENTRE = { x: layout.width / 2, y: 660 };
+const BLOOM_START = 0.15;
+/** The last dot opens on beat three. */
+const BLOOM_END = beats(3);
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
 /** Seconds into the scene that dot `i` of `dots` appears. */
 const bloomsAt = (i: number, dots: number) =>
-  BLOOM_START + (dots > 1 ? Math.sqrt(i / (dots - 1)) * BLOOM_SECONDS : 0);
+  BLOOM_START +
+  (dots > 1 ? Math.sqrt(i / (dots - 1)) * (BLOOM_END - BLOOM_START) : 0);
 
 /**
  * Everyone they worked alongside, one dot each, opening out from the middle
- * in a sunflower spiral.
+ * in a sunflower spiral until it fills the frame.
  */
 const Crowd = ({ dots }: { readonly dots: number }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const spacing = Math.min(46, BLOOM_RADIUS / Math.sqrt(dots));
-  const size = spacing * 0.62;
+  const spacing = Math.min(52, BLOOM_RADIUS / Math.sqrt(dots));
+  const size = spacing * 0.6;
 
   return (
     <>
@@ -45,7 +55,7 @@ const Crowd = ({ dots }: { readonly dots: number }) => {
           frame,
           fps,
           delay: bloomsAt(i, dots) * fps,
-          config: { damping: 12, stiffness: 160 },
+          config: { damping: 11, stiffness: 170 },
         });
         return (
           <div
@@ -57,8 +67,9 @@ const Crowd = ({ dots }: { readonly dots: number }) => {
               width: size,
               height: size,
               borderRadius: "50%",
-              backgroundColor: colors.forest500,
-              scale: appear,
+              backgroundColor: colors.forest200,
+              opacity: 0.4,
+              scale: `${appear}`,
             }}
           />
         );
@@ -67,7 +78,7 @@ const Crowd = ({ dots }: { readonly dots: number }) => {
   );
 };
 
-/** Counts up as the crowd fills in. */
+/** Counts up as the crowd fills in, squashing as the last dot opens. */
 const CrowdCount = ({
   value,
   dots,
@@ -79,18 +90,23 @@ const CrowdCount = ({
   const { fps } = useVideoConfig();
   const seconds = frame / fps;
   // Invert bloomsAt: how many dots are out by now.
-  const shown = interpolate(
-    seconds,
-    [BLOOM_START, BLOOM_START + BLOOM_SECONDS],
-    [0, 1],
-    clamp
-  );
+  const shown = interpolate(seconds, [BLOOM_START, BLOOM_END], [0, 1], clamp);
   const current = Math.round(value * shown * shown);
+  const squash = useSquash(BLOOM_END, 0.16);
 
   return (
-    <span style={{ fontVariantNumeric: "tabular-nums" }}>
+    <div
+      style={{
+        ...display(value >= 1000 ? 340 : value >= 100 ? 420 : 500),
+        color: colors.sun,
+        marginTop: 20,
+        fontVariantNumeric: "tabular-nums",
+        scale: `1 ${squash}`,
+        transformOrigin: "left bottom",
+      }}
+    >
       {formatNumber(Math.min(value, Math.max(dots > 0 ? 1 : 0, current)))}
-    </span>
+    </div>
   );
 };
 
@@ -112,14 +128,14 @@ const Avatar = ({
         height: AVATAR,
         borderRadius: "50%",
         overflow: "hidden",
-        border: `6px solid ${colors.sun}`,
-        outline: `6px solid ${colors.forest700}`,
+        border: `8px solid ${colors.paper}`,
         backgroundColor: colors.sun,
         color: colors.forest700,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        ...display(110),
+        boxShadow: "0 12px 28px rgba(0, 0, 0, 0.35)",
+        ...display(100),
       }}
     >
       {photoUrl && !failed ? (
@@ -138,50 +154,41 @@ const Avatar = ({
 
 export const Crew = ({ crew }: YearInReviewProps) => {
   const dots = Math.min(crew.alongside, MAX_DOTS);
-  const others = `other ${crew.alongside === 1 ? "volunteer" : "volunteers"}`;
+  const others = crew.alongside === 1 ? "volunteer" : "volunteers";
 
   return (
     <Scene id="crew" backdrop={<Crowd dots={dots} />}>
       <Sound name="bloom" at={BLOOM_START} volume={0.3} />
-      <Rise delay={0}>
-        <div style={{ ...lead, color: colors.forest200 }}>
-          You cooked, served and scrubbed alongside
-        </div>
-      </Rise>
-      <div
-        style={{
-          ...display(
-            crew.alongside >= 1000 ? 340 : crew.alongside >= 100 ? 420 : 500
-          ),
-          color: colors.sun,
-          marginTop: 24,
-        }}
-      >
-        <CrowdCount value={crew.alongside} dots={dots} />
-      </div>
       <Words
-        text={["other", { italic: others.replace(/^other /, "") }]}
+        text="You cooked, served and scrubbed alongside"
+        delay={0.05}
+        stagger={0.04}
+        style={{ ...lead, color: colors.forest200 }}
+      />
+      <CrowdCount value={crew.alongside} dots={dots} />
+      <Words
+        text={["other", { italic: others }]}
         delay={0.3}
-        style={display(130)}
+        style={{ ...display(130), marginTop: -16 }}
       />
       <div style={{ flex: 1 }} />
       {crew.friends.length > 0 && (
         <>
-          <Rise delay={1.9}>
-            <div style={{ ...body, fontWeight: 600, marginBottom: 40 }}>
+          <Rise delay={BLOOM_END + 0.1}>
+            <div style={{ ...body, fontWeight: 600, marginBottom: 32 }}>
               Your regular crew
             </div>
           </Rise>
-          <div style={{ display: "flex", gap: 48 }}>
+          <div style={{ display: "flex", gap: 44 }}>
             {crew.friends.map((friend, i) => (
-              <Pop key={friend.name} delay={2.1 + i * 0.15}>
+              <Pop key={friend.name} delay={BLOOM_END + 0.25 + i * 0.14}>
                 <Avatar name={friend.name} photoUrl={friend.photoUrl} />
                 <div
                   style={{
                     fontFamily: fonts.body,
                     fontWeight: 700,
-                    fontSize: 40,
-                    marginTop: 20,
+                    fontSize: 38,
+                    marginTop: 18,
                     width: AVATAR,
                     textAlign: "center",
                     overflow: "hidden",
@@ -195,7 +202,7 @@ export const Crew = ({ crew }: YearInReviewProps) => {
                   style={{
                     fontFamily: fonts.body,
                     fontWeight: 500,
-                    fontSize: 34,
+                    fontSize: 32,
                     color: colors.forest200,
                     width: AVATAR,
                     textAlign: "center",

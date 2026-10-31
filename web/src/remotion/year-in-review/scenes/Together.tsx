@@ -5,24 +5,40 @@ import {
   easeOut,
   Rise,
   Scene,
-  SlotNumber,
   Words,
 } from "../components/motion";
+import { Climb } from "../components/climb";
 import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, fonts, formatNumber, layout } from "../theme";
+import { beats } from "../timeline";
 
 const TICKETS_SHOWN = 3;
 const TICKET_WIDTH = 262;
-/** Seconds into the scene that the first ticket slides onto the rail. */
-const TICKETS_FROM = 2.5;
+/** The meals count lands on beat three; the first ticket slides on at five. */
+const COUNT_LANDS = beats(3);
+const TICKETS_FROM = beats(5);
 
 const eventDate = new Intl.DateTimeFormat("en-NZ", {
   day: "numeric",
   month: "short",
   timeZone: "Pacific/Auckland",
 });
+
+const Count = ({ value }: { readonly value: number }) => {
+  return (
+    <div
+      style={{
+        ...display(fitFontSize(formatNumber(value), 290, undefined, 0.6)),
+        color: colors.sun,
+        marginTop: 16,
+      }}
+    >
+      <Climb value={value} start={0.35} land={COUNT_LANDS} />
+    </div>
+  );
+};
 
 const Stat = ({
   value,
@@ -35,10 +51,10 @@ const Stat = ({
   readonly delay: number;
   readonly numberWidth: number;
 }) => (
-  <Rise delay={delay} distance={40}>
+  <Rise delay={delay} distance={30}>
     <div style={{ display: "flex", alignItems: "baseline", gap: 24 }}>
       <div style={{ ...display(96), color: colors.sun, minWidth: numberWidth }}>
-        <CountUp value={value} delay={delay} duration={1} />
+        <CountUp value={value} delay={delay} duration={0.9} />
       </div>
       <div style={{ ...body, fontWeight: 500 }}>{label}</div>
     </div>
@@ -162,65 +178,51 @@ export const Together = ({ year, organisation }: YearInReviewProps) => {
 
   return (
     <Scene id="together">
-      <Rise delay={0}>
-        <div style={{ ...lead, color: colors.forest200 }}>
-          Together, Everybody Eats served
-        </div>
-      </Rise>
-      <div
-        style={{
-          ...display(
-            fitFontSize(
-              formatNumber(organisation.mealsServed),
-              290,
-              undefined,
-              0.6
-            )
-          ),
-          color: colors.sun,
-          marginTop: 20,
-        }}
-      >
-        <SlotNumber value={organisation.mealsServed} delay={0.1} duration={2} />
-      </div>
+      <Words
+        text="Together, Everybody Eats served"
+        delay={0.05}
+        stagger={0.05}
+        style={{ ...lead, color: colors.forest200 }}
+      />
+      <Count value={organisation.mealsServed} />
       <Words
         text={["meals in", { italic: String(year) }]}
-        delay={0.3}
+        delay={0.4}
         style={display(120)}
       />
       <div
         style={{
-          marginTop: 56,
+          marginTop: 48,
           display: "flex",
           flexDirection: "column",
-          gap: 14,
+          gap: 12,
         }}
       >
         <Stat
           value={organisation.serviceNights}
           label="service nights"
-          delay={1.1}
+          delay={COUNT_LANDS + 0.1}
           numberWidth={numberWidth}
         />
         <Stat
           value={organisation.volunteers}
           label="volunteers"
-          delay={1.3}
+          delay={COUNT_LANDS + 0.3}
           numberWidth={numberWidth}
         />
         <Stat
           value={organisation.volunteerHours}
           label="hours of mahi"
-          delay={1.5}
+          delay={COUNT_LANDS + 0.5}
           numberWidth={numberWidth}
         />
       </div>
       {events.length > 0 && (
         <>
           <Rise
-            delay={TICKETS_FROM - 0.8}
+            delay={TICKETS_FROM - 0.7}
             distance={30}
-            style={{ marginTop: 56 }}
+            style={{ marginTop: 48 }}
           >
             <div style={{ ...body, fontWeight: 600 }}>
               And we hosted {events.length}{" "}

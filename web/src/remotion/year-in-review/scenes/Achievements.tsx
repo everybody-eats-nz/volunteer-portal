@@ -11,124 +11,89 @@ import { body, display, italic, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, fonts, layout } from "../theme";
 
-const SHOWN = 6;
-const MEDAL = 246;
-const SCALLOPS = 18;
-/** Seconds into the scene that the first medal flips over. */
-const MEDALS_FROM = 0.8;
-const MEDAL_STAGGER = 0.14;
+const SHOWN = 5;
+const CARD = { width: 320, height: 430 };
+/** The cards' top edge, and how far below it the pin they fan from sits. */
+const CARDS_TOP = 730;
+const PIVOT = CARD.height * 1.5;
+/** Degrees between neighbouring cards once the hand is open, and how far
+ * each slides sideways on top of the turn, so every badge stays in view. */
+const SPREAD = 15;
+const SLIDE = 60;
+/** Seconds into the scene the hand starts to fan open. */
+const FAN_FROM = 0.7;
+const FAN_STAGGER = 0.09;
 
-/** A rosette outline: a circle with a scalloped rim, like a ribbon medal. */
-const rosette = (() => {
-  const r = MEDAL / 2;
-  const inner = r * 0.9;
-  const points: string[] = [];
-  for (let i = 0; i < SCALLOPS; i++) {
-    const a1 = (i / SCALLOPS) * Math.PI * 2;
-    const a2 = ((i + 1) / SCALLOPS) * Math.PI * 2;
-    const mid = (a1 + a2) / 2;
-    const x1 = r + inner * Math.cos(a1);
-    const y1 = r + inner * Math.sin(a1);
-    const cx = r + r * 1.08 * Math.cos(mid);
-    const cy = r + r * 1.08 * Math.sin(mid);
-    const x2 = r + inner * Math.cos(a2);
-    const y2 = r + inner * Math.sin(a2);
-    points.push(`${i === 0 ? `M${x1},${y1}` : ""} Q${cx},${cy} ${x2},${y2}`);
-  }
-  return `${points.join(" ")} Z`;
-})();
-
-/** A badge medal that flips over like a coin as it lands. */
-const Medal = ({
+/**
+ * One badge, a card in the hand. All the cards start stacked square behind
+ * the middle one, then each swings out to its place about a pin below the
+ * hand, nearest the middle first, with a ting as it settles.
+ */
+const Card = ({
   icon,
   name,
   index,
+  count,
 }: {
   readonly icon: string;
   readonly name: string;
   readonly index: number;
+  readonly count: number;
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const flip = spring({
+  const mid = (count - 1) / 2;
+  const offset = index - mid;
+  const rank = Math.abs(offset);
+  const start = (FAN_FROM + rank * FAN_STAGGER) * fps;
+  const fan = spring({
     frame,
     fps,
-    delay: (MEDALS_FROM + index * MEDAL_STAGGER) * fps,
-    config: { damping: 13, stiffness: 90 },
+    delay: start,
+    config: { damping: 13, stiffness: 95 },
   });
-  const angle = interpolate(flip, [0, 1], [540, 0]);
-  // Past 90 degrees the medal shows its plain back.
-  const showingFront = Math.cos((angle * Math.PI) / 180) > 0;
+  const lift = spring({
+    frame,
+    fps,
+    delay: 0.3 * fps,
+    config: { damping: 14, stiffness: 120 },
+  });
 
   return (
     <div
       style={{
+        position: "absolute",
+        left: layout.width / 2 - CARD.width / 2,
+        top: CARDS_TOP,
+        width: CARD.width,
+        height: CARD.height,
+        transformOrigin: `50% ${PIVOT}px`,
+        rotate: `${offset * SPREAD * fan}deg`,
+        translate: `${offset * SLIDE * fan}px ${(1 - lift) * 160}px`,
+        opacity: interpolate(lift, [0, 0.3], [0, 1], clamp),
+        // The middle card sits on top; the hand stacks outward from it.
+        zIndex: count - Math.ceil(rank),
+        borderRadius: 26,
+        backgroundColor: colors.paper,
+        border: `3px solid ${colors.forest200}`,
+        boxShadow: "0 18px 36px rgba(14, 42, 28, 0.22)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        opacity: interpolate(flip, [0, 0.15], [0, 1], clamp),
+        padding: "48px 20px 0",
+        boxSizing: "border-box",
+        textAlign: "center",
       }}
     >
-      <div
-        style={{
-          width: MEDAL,
-          height: MEDAL,
-          position: "relative",
-          transform: `perspective(900px) rotateY(${angle}deg) scale(${interpolate(
-            flip,
-            [0, 1],
-            [0.5, 1]
-          )})`,
-        }}
-      >
-        <svg
-          width={MEDAL}
-          height={MEDAL}
-          viewBox={`0 0 ${MEDAL} ${MEDAL}`}
-          style={{ position: "absolute", inset: 0, overflow: "visible" }}
-        >
-          <path
-            d={rosette}
-            fill={showingFront ? colors.paper : colors.sun}
-            stroke={colors.forest500}
-            strokeWidth={5}
-          />
-          <circle
-            cx={MEDAL / 2}
-            cy={MEDAL / 2}
-            r={MEDAL * 0.36}
-            fill="none"
-            stroke={colors.forest500}
-            strokeWidth={2.5}
-            strokeDasharray="2 9"
-            strokeLinecap="round"
-            opacity={0.5}
-          />
-        </svg>
-        {showingFront && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 106,
-              lineHeight: 1,
-            }}
-          >
-            {icon}
-          </div>
-        )}
-      </div>
+      <div style={{ fontSize: 132, lineHeight: 1 }}>{icon}</div>
       <div
         style={{
           fontFamily: fonts.body,
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: 30,
           lineHeight: 1.15,
-          textAlign: "center",
-          marginTop: 18,
+          marginTop: 28,
+          color: colors.forest700,
           textWrap: "balance",
         }}
       >
@@ -139,12 +104,12 @@ const Medal = ({
 };
 
 const CONFETTI = 90;
-const CONFETTI_AT = 0.35;
+const CONFETTI_AT = 0.3;
 const CONFETTI_COLORS = [
   colors.forest500,
   colors.sun,
   colors.forest700,
-  colors.forest200,
+  colors.peach,
 ];
 
 /**
@@ -206,66 +171,56 @@ export const Achievements = ({ achievements }: YearInReviewProps) => {
   }`;
 
   return (
-    <Scene id="achievements" backdrop={<Confetti />}>
+    <Scene
+      id="achievements"
+      backdrop={
+        <>
+          <Confetti />
+          {shown.map((badge, i) => (
+            <Card
+              key={badge.name}
+              icon={badge.icon}
+              name={badge.name}
+              index={i}
+              count={shown.length}
+            />
+          ))}
+        </>
+      }
+    >
       <Sound name="confetti" at={CONFETTI_AT} volume={0.4} />
-      {/* A ting as each medal settles face up. */}
+      {/* A ting as each card swings out. */}
       {shown.map((badge, i) => (
         <Sound
           key={badge.name}
           name="medal"
-          at={MEDALS_FROM + i * MEDAL_STAGGER + 0.35}
+          at={FAN_FROM + Math.abs(i - (shown.length - 1) / 2) * FAN_STAGGER + 0.3}
           volume={0.18}
         />
       ))}
       <Rise delay={0}>
         <div style={lead}>Ka pai! This year you unlocked</div>
       </Rise>
-      <Rise delay={0.25} distance={120} style={{ marginTop: 16 }}>
+      <Rise delay={0.2} distance={80} style={{ marginTop: 12 }}>
         <div
           style={{
             ...display(fitFontSize(headline, 230, undefined, 0.46)),
             color: colors.forest500,
           }}
         >
-          <CountUp value={achievements.length} delay={0.25} duration={0.8} />{" "}
+          <CountUp value={achievements.length} delay={0.2} duration={0.7} />{" "}
           <span style={italic}>
             {achievements.length === 1 ? "badge" : "badges"}
           </span>
         </div>
       </Rise>
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            rowGap: 56,
-            columnGap: 28,
-          }}
-        >
-          {shown.map((badge, i) => (
-            <Medal
-              key={badge.name}
-              icon={badge.icon}
-              name={badge.name}
-              index={i}
-            />
-          ))}
-        </div>
-        {more > 0 && (
-          <Rise delay={2} style={{ marginTop: 48 }}>
-            <div style={{ ...body, fontWeight: 600 }}>
-              Plus {more} more on your profile.
-            </div>
-          </Rise>
-        )}
-      </div>
+      {more > 0 && (
+        <Rise delay={2.2} style={{ marginTop: "auto" }}>
+          <div style={{ ...body, fontWeight: 600 }}>
+            Plus {more} more on your profile.
+          </div>
+        </Rise>
+      )}
     </Scene>
   );
 };
