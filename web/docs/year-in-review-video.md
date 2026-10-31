@@ -106,39 +106,57 @@ JetBrains Mono on the dockets, and the site's cream, forest, soft sun
 (`#f8fb69`) and peach. The Fraunces files in `public/fonts` are instanced
 and subset from the site's variable fonts (see `theme.ts`).
 
-The recurring object is a plate, after the site's "one plate at a time": the
-year is served on one in the intro and every shift lands as a plate in the
-tally. The rhythm scene is a plain month bar chart. The outro draws in
-the site's dining-room mural (from marketing-cms, as a WebP mask tinted
-cream).
+The whole video is served on one object, a plate, after the site's "one
+plate at a time":
 
-Photos are used in three places, each in a rounded card with a slow push-in
-(`components/photo.tsx`): plates being carried out on the intro, which is
-cream like the site's hero so the photo stands out, with the year's plate
-set over its bottom edge; food on the table under the meals count; and, in
-the roles scene, the photo the mobile app shows on the volunteer's go-to
-shift type (`shift-photos.ts` mirrors the app's `getShiftThemeByName`; keep
-them in step). They are the app's shift cover photos, cropped so nobody's
-face is in frame except in the dining room and catering spread, in
-`public/year-in-review/`.
+- **The intro** sets a plate down on a dark field and rolls the year up on
+  it. The first cut opens from that plate's edge, so the plate grows into
+  the next scene.
+- **Every cut is a plate iris** (`components/plate-iris.tsx`): a circle with
+  a white rim opens from the middle of the frame in the next scene's colour
+  while the old scene sinks back, smaller and in shadow. Each scene's
+  entrances wait until the iris has opened (`REVEAL_SECONDS` in
+  `components/motion.tsx`).
+- **Photos sit on plates** (`PhotoPlate` in `components/plate.tsx`): a round
+  crop in a white rim, set down with a clink and a slow push-in. The app's
+  shift cover photos, cropped so nobody's face is in frame except in the
+  dining room and catering spread, in `public/year-in-review/`
+  (`shift-photos.ts` mirrors the app's `getShiftThemeByName`; keep them in
+  step).
+- **The months ring a plate** in the rhythm scene, a clock of bars with the
+  busiest month's count served in the middle.
 
-Scenes sweep in behind two bands of brand colour on a diagonal
-(`components/band-wipe.tsx`), so each scene's entrances wait until it's
-uncovered (`REVEAL_SECONDS` in `components/motion.tsx`). Every scene's
-colours are in `sceneColors` in `theme.ts`. Flat colour on purpose: a paper
-grain overlay was tried and made the MP4 3.6 times bigger.
+Every cut lands on the beat. The music bed runs at 92 BPM (`BEAT` in
+`timeline.ts`); scenes are whole beats long, scene starts are rounded from
+the running beat count so they never drift, and the hero number in each
+scene lands on a beat too, then breathes with the bed (`useBeatPulse`).
+Big numbers roll in on reels like an odometer (`components/odometer.tsx`),
+each digit squashing into place with a click (`useSquash`, after the
+kinetic-type idea of letters set under pressure). Lines of display type
+rise word by word out of a mask (`Words`).
+
+Scene by scene: shifts stack up as plates while the count steps; the role
+name runs as two tickers against each other, one filled and one outlined;
+the crowd blooms out in a sunflower spiral; badges fan open like a hand of
+cards from a pin below them; the top-percent number counts down while
+plate rims ripple out behind it; events hang on the kitchen ticket rail;
+the docket prints and is stamped; the outro lights up the site's
+dining-room mural (from marketing-cms, as a WebP mask tinted cream).
+
+Every scene's colours are in `sceneColors` in `theme.ts`. Flat colour on
+purpose: a paper grain overlay was tried and made the MP4 3.6 times bigger.
 
 The kawakawa illustration is cropped along its top edge, so it hangs from
 the top of the frame (behind Instagram's header), never mid-frame.
 
 ## Sound
 
-Mostly sound effects, timed to the motion, over a quiet music bed:
-whooshes on the band wipes, a click as each slot-machine reel catches, the
-plate set down, plates stacking in the tally, a marimba run up the month
-bars, a shimmer as the crowd blooms, a confetti pop and medal tings, a bell
-when the top percent lands, dockets swishing onto the rail, the docket
-printer stepping and the stamp coming down.
+Mostly sound effects, timed to the motion, over a quiet music bed: a whip
+as each plate iris opens, a click as each odometer reel catches, the plate
+set down, plates stacking in the tally, a marimba run round the month
+clock, a shimmer as the crowd blooms, a confetti pop and a ting as each
+badge card fans out, a bell when the top percent lands, dockets swishing
+onto the rail, the docket printer stepping and the stamp coming down.
 
 - `components/sound.tsx` places each effect (`<Sound name at volume>`),
   mounted only while it plays; `MIX` lifts them all together and
@@ -158,8 +176,9 @@ printer stepping and the stamp coming down.
 - 1080 x 1920 (9:16), H.264, yuv420p, 30 fps, AAC audio at 128k.
 - Content stays out of the top 250px and bottom 400px, where Instagram draws
   its own UI (`layout` in `src/remotion/year-in-review/theme.ts`).
-- With every scene it runs 53 seconds, under the 60 second Story limit.
-  `timeline.test.ts` guards this.
+- With every scene it runs 82 beats, about 53 seconds, under the 60 second
+  Story limit. `timeline.test.ts` guards this, and that every scene starts
+  on a beat.
 
 ## Code
 
@@ -168,7 +187,7 @@ printer stepping and the stamp coming down.
 | `src/lib/year-in-review.server.ts` | Prisma queries, builds the props |
 | `src/lib/year-in-review.ts` | Pure aggregation (unit tested) |
 | `src/remotion/year-in-review/schema.ts` | Zod props schema shared by both sides |
-| `src/remotion/year-in-review/timeline.ts` | Scene order, optional scenes, duration |
+| `src/remotion/year-in-review/timeline.ts` | Scene order, optional scenes, beat grid, duration |
 | `src/remotion/year-in-review/scenes/` | One component per scene |
 | `scripts/year-in-review-props.ts` | CLI behind `video:props` |
 | `src/lib/year-in-review-settings.ts` | On/off switch and year (site settings, category `YEAR_IN_REVIEW`) |

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { YearInReviewProps } from "./schema";
 import {
+  BEAT,
+  beats,
   FPS,
   getDurationInFrames,
   getScenes,
@@ -70,6 +72,31 @@ describe("getScenes", () => {
       "docket",
       "outro",
     ]);
+  });
+});
+
+describe("getScenes", () => {
+  it("starts every scene on a beat of the music", () => {
+    const scenes = getScenes(everything);
+    let start = 0;
+    for (const scene of scenes) {
+      const beat = start / FPS / BEAT;
+      // Within a frame of a whole beat.
+      expect(Math.abs(beat - Math.round(beat)) * BEAT * FPS).toBeLessThan(0.5);
+      start += scene.durationInFrames - TRANSITION_FRAMES;
+    }
+  });
+
+  it("gives every scene but the last the overlap under the next iris", () => {
+    const scenes = getScenes(everything);
+    // The intro is six beats, plus the frames it plays on under the iris.
+    expect(scenes[0].durationInFrames).toBe(
+      Math.round(beats(6) * FPS) + TRANSITION_FRAMES
+    );
+    // The outro is six beats and nothing follows it.
+    expect(scenes[scenes.length - 1].durationInFrames).toBe(
+      Math.round(beats(82) * FPS) - Math.round(beats(76) * FPS)
+    );
   });
 });
 

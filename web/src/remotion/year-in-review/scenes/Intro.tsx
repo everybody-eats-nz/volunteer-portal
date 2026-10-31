@@ -7,87 +7,54 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { Pop, Rise, Scene, SlotNumber, Words } from "../components/motion";
-import { PhotoCard } from "../components/photo";
+import {
+  clamp,
+  Pop,
+  Rise,
+  Scene,
+  useBeatPulse,
+  Words,
+} from "../components/motion";
+import { Odometer } from "../components/odometer";
 import { Plate } from "../components/plate";
+import { RIM, type IrisOrigin } from "../components/plate-iris";
 import { Sound } from "../components/sound";
 import { display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, layout } from "../theme";
+import { beats, TRANSITION_FRAMES } from "../timeline";
 
-const LOGO_WIDTH = 280;
-const LOGO_HEIGHT = Math.round((LOGO_WIDTH / 179) * 65);
-const AVATAR = 200;
-const HEADER_GAP = 56;
+const LOGO_WIDTH = 250;
+const AVATAR = 150;
 const GREETING_MAX = 150;
 const GREETING_MIN = 104;
 /** Fraunces' average glyph width, generous so a wrap is never missed. */
 const GREETING_CHAR_WIDTH = 0.46;
-const LEAD_GAP = 28;
-const PHOTO_GAP = 56;
-/** The photo card ends here whatever sits above it. */
-const PHOTO_BOTTOM = 1256;
-const PLATE = 540;
-/** The plate comes to rest over the photo's bottom edge. */
-const PLATE_CENTRE_Y = PHOTO_BOTTOM + 40;
-
-const greetingFor = (firstName: string) => `Kia ora, ${firstName}`;
+const PLATE = 720;
+const PLATE_CENTRE_Y = 1040;
+/** Seconds into the scene the year lands on the plate: beat three. */
+const YEAR_LANDS = beats(3);
 
 /**
- * Where the intro's pieces land for this volunteer. The text block grows
- * with their photo and a name long enough to wrap, and the serving photo
- * starts below it, so the photo shortens rather than the text running into
- * it. The plate always lands in the same place.
+ * The plate the year is served on. The first scene cut opens from its
+ * edge, so the plate grows into the next scene (`YearInReview`).
  */
-function introLayout({
-  firstName,
-  photoUrl,
-}: Pick<YearInReviewProps, "firstName" | "photoUrl">) {
-  const greeting = greetingFor(firstName);
-  const greetingSize = fitFontSize(
-    greeting,
-    GREETING_MAX,
-    undefined,
-    GREETING_CHAR_WIDTH,
-    GREETING_MIN
-  );
-  const lines = Math.ceil(
-    (greeting.length * GREETING_CHAR_WIDTH * greetingSize) /
-      (layout.width - layout.gutter * 2)
-  );
-  const textBottom =
-    layout.marginTop +
-    (photoUrl ? AVATAR : LOGO_HEIGHT) +
-    HEADER_GAP +
-    lines * greetingSize * Number(display(greetingSize).lineHeight) +
-    LEAD_GAP +
-    Number(lead.fontSize) * Number(lead.lineHeight);
-  const photoTop = textBottom + PHOTO_GAP;
-
-  return { greetingSize, photoTop, photoHeight: PHOTO_BOTTOM - photoTop };
-}
-
-/**
- * The middle of the photo above the plate, as a share of the frame's
- * height: the web player puts its play button here.
- */
-export function introGapCentre(
-  props: Pick<YearInReviewProps, "firstName" | "photoUrl">
-): number {
-  const { photoTop } = introLayout(props);
-  return (photoTop + PLATE_CENTRE_Y - PLATE / 2) / 2 / layout.height;
-}
+export const INTRO_IRIS: IrisOrigin = {
+  x: layout.width / 2,
+  y: PLATE_CENTRE_Y,
+  radius: PLATE / 2 - RIM,
+};
 
 const Logo = () => (
   <Img
-    src={staticFile("everybody-eats-logo.svg")}
+    src={staticFile("logo.svg")}
     style={{ width: LOGO_WIDTH, display: "block" }}
   />
 );
 
 /**
- * The volunteer's profile photo on a plate's white rim. One that won't load
- * (an expired sign-in photo, say) gives way to the logo in the same space
+ * The volunteer's profile photo in a white rim. One that won't load (an
+ * expired sign-in photo, say) gives way to the logo in the same space
  * rather than failing the render.
  */
 const ProfilePhoto = ({ photoUrl }: { readonly photoUrl: string }) => {
@@ -95,48 +62,51 @@ const ProfilePhoto = ({ photoUrl }: { readonly photoUrl: string }) => {
 
   if (failed) {
     return (
-      <div
-        style={{ height: AVATAR, display: "flex", alignItems: "center" }}
-      >
+      <div style={{ height: AVATAR, display: "flex", alignItems: "center" }}>
         <Logo />
       </div>
     );
   }
   return (
-    <Pop delay={0.1}>
-      <div
-        style={{
-          width: AVATAR,
-          height: AVATAR,
-          borderRadius: "50%",
-          overflow: "hidden",
-          border: `10px solid ${colors.paper}`,
-          backgroundColor: colors.paper,
-          boxShadow: "0 10px 24px rgba(0, 0, 0, 0.22)",
-        }}
-      >
-        <Img
-          src={photoUrl}
-          maxRetries={1}
-          onError={() => setFailed(true)}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-      </div>
-    </Pop>
+    <div
+      style={{
+        width: AVATAR,
+        height: AVATAR,
+        borderRadius: "50%",
+        overflow: "hidden",
+        border: `8px solid ${colors.paper}`,
+        backgroundColor: colors.paper,
+        boxShadow: "0 10px 24px rgba(0, 0, 0, 0.35)",
+      }}
+    >
+      <Img
+        src={photoUrl}
+        maxRetries={1}
+        onError={() => setFailed(true)}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    </div>
   );
 };
 
-/** The year, served: the plate slides in across the pass and settles. */
+/** The year, served: the plate is set down and the year rolls up on it. */
 const Served = ({ year }: { readonly year: number }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const slide = spring({
+  const { fps, durationInFrames } = useVideoConfig();
+  const land = spring({
     frame,
     fps,
-    delay: 0.3 * fps,
-    durationInFrames: 1.2 * fps,
-    config: { damping: 200 },
+    delay: 0.1 * fps,
+    config: { damping: 13, stiffness: 110 },
   });
+  const pulse = useBeatPulse(YEAR_LANDS + 0.1);
+  // The plate is cleared just before the next scene grows out of it.
+  const cleared = interpolate(
+    frame,
+    [durationInFrames - TRANSITION_FRAMES - 7, durationInFrames - TRANSITION_FRAMES],
+    [1, 0],
+    clamp
+  );
 
   return (
     <Plate
@@ -145,27 +115,26 @@ const Served = ({ year }: { readonly year: number }) => {
         position: "absolute",
         left: (layout.width - PLATE) / 2,
         top: PLATE_CENTRE_Y - PLATE / 2,
-        translate: `${interpolate(slide, [0, 1], [layout.width, 0])}px 0px`,
-        rotate: `${interpolate(slide, [0, 1], [40, 0])}deg`,
+        opacity: interpolate(land, [0, 0.2], [0, 1], clamp),
+        scale: `${interpolate(land, [0, 1], [0.5, 1])}`,
       }}
     >
-      <SlotNumber
-        // Plain digits: a year has no thousands separator.
-        value={year}
-        grouping={false}
-        delay={0.7}
-        duration={1.5}
-        style={display(fitFontSize(String(year), 220, PLATE * 0.8, 0.55))}
-      />
+      <div style={{ opacity: cleared, scale: `${pulse}` }}>
+        <Odometer
+          // Plain digits: a year has no thousands separator.
+          value={year}
+          grouping={false}
+          start={0.55}
+          land={YEAR_LANDS}
+          style={display(fitFontSize(String(year), 220, PLATE * 0.64, 0.55))}
+        />
+      </div>
     </Plate>
   );
 };
 
 export const Intro = ({ firstName, photoUrl, year }: YearInReviewProps) => {
-  const { greetingSize, photoTop, photoHeight } = introLayout({
-    firstName,
-    photoUrl,
-  });
+  const greeting = `Kia ora, ${firstName}`;
 
   return (
     <Scene
@@ -173,43 +142,33 @@ export const Intro = ({ firstName, photoUrl, year }: YearInReviewProps) => {
       reveal={0}
       backdrop={
         <>
-          {/* A volunteer carrying plates out, face out of frame. */}
-          <PhotoCard
-            photo="serving-plates"
-            delay={0.15}
-            focus="center 35%"
-            style={{
-              position: "absolute",
-              left: layout.gutter,
-              top: photoTop,
-              width: layout.width - layout.gutter * 2,
-              height: photoHeight,
-            }}
-          />
           <Served year={year} />
-          <Sound name="whip" at={0.35} volume={0.3} />
-          <Sound name="plate-down" at={1.05} volume={0.45} />
+          <Sound name="plate-down" at={0.32} volume={0.5} />
         </>
       }
       style={{ alignItems: "center", textAlign: "center" }}
     >
-      {photoUrl ? (
-        <ProfilePhoto photoUrl={photoUrl} />
-      ) : (
-        <Rise delay={0.1} distance={30}>
-          <Logo />
-        </Rise>
-      )}
+      <Pop delay={0.2}>
+        {photoUrl ? <ProfilePhoto photoUrl={photoUrl} /> : <Logo />}
+      </Pop>
       <Words
         text={["Kia ora,", { italic: firstName }]}
-        delay={0.25}
+        delay={0.45}
         style={{
-          ...display(greetingSize),
-          marginTop: HEADER_GAP,
+          ...display(
+            fitFontSize(
+              greeting,
+              GREETING_MAX,
+              undefined,
+              GREETING_CHAR_WIDTH,
+              GREETING_MIN
+            )
+          ),
+          marginTop: 36,
         }}
       />
-      <Rise delay={0.7} style={{ marginTop: LEAD_GAP }}>
-        <div style={{ ...lead, color: colors.forest500 }}>
+      <Rise delay={1.3} style={{ marginTop: "auto" }}>
+        <div style={{ ...lead, color: colors.forest200 }}>
           Here&apos;s your year in mahi
         </div>
       </Rise>

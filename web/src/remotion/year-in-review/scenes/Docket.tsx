@@ -12,13 +12,14 @@ import { Sound } from "../components/sound";
 import { lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fonts, formatNumber, layout } from "../theme";
+import { beats } from "../timeline";
 
 const PAPER_WIDTH = 780;
 const TEAR = 22;
 /** Seconds into the scene: the printer feeds the docket, then it's stamped. */
-const PRINT_FROM = 0.2;
-const PRINT_TO = 2.6;
-const STAMP_AT = 3;
+const PRINT_FROM = 0.15;
+const PRINT_TO = beats(3.5);
+const STAMP_AT = beats(4);
 /** Lines of paper the printer feeds per jerk. */
 const FEED_STEPS = 16;
 
