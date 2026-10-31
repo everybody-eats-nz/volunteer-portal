@@ -123,21 +123,23 @@ plate at a time":
   dining room and catering spread, in `public/year-in-review/`
   (`shift-photos.ts` mirrors the app's `getShiftThemeByName`; keep them in
   step).
-- **The months ring a plate** in the rhythm scene, a clock of bars with the
-  busiest month's count served in the middle.
 
 Every cut lands on the beat. The music bed runs at 92 BPM (`BEAT` in
 `timeline.ts`); scenes are whole beats long, scene starts are rounded from
 the running beat count so they never drift, and the hero number in each
 scene lands on a beat too, then breathes with the bed (`useBeatPulse`).
-Big numbers roll in on reels like an odometer (`components/odometer.tsx`),
-each digit squashing into place with a click (`useSquash`, after the
-kinetic-type idea of letters set under pressure). Lines of display type
+Big counts climb from zero on odometer reels (`components/odometer.tsx`):
+the ones reel spins, each reel above it rolls only on the carry, and the
+figure widens as it grows, then squashes into place with a click
+(`useSquash`, after the kinetic-type idea of letters set under pressure).
+The year on the intro plate isn't a count, so it arrives on spinning reels
+instead (`Reels`). Lines of display type
 rise word by word out of a mask (`Words`).
 
 Scene by scene: shifts stack up as plates while the count steps; the role
 name runs as two tickers against each other, one filled and one outlined;
-the crowd blooms out in a sunflower spiral; badges fan open like a hand of
+the months grow as a plain bar chart; the crowd blooms out in a sunflower
+spiral; badges fan open like a hand of
 cards from a pin below them; the top-percent number counts down while
 plate rims ripple out behind it; events hang on the kitchen ticket rail;
 the docket prints and is stamped; the outro lights up the site's

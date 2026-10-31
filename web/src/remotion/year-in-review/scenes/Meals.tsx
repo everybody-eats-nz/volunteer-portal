@@ -77,7 +77,7 @@ const Count = ({ value }: { readonly value: number }) => {
         transformOrigin: "left center",
       }}
     >
-      <Odometer value={value} start={0.4} land={COUNT_LANDS} />
+      <Odometer value={value} start={0.35} land={COUNT_LANDS} />
     </div>
   );
 };

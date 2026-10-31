@@ -15,7 +15,7 @@ import {
   useBeatPulse,
   Words,
 } from "../components/motion";
-import { Odometer } from "../components/odometer";
+import { Reels } from "../components/odometer";
 import { Plate } from "../components/plate";
 import { RIM, type IrisOrigin } from "../components/plate-iris";
 import { Sound } from "../components/sound";
@@ -120,10 +120,8 @@ const Served = ({ year }: { readonly year: number }) => {
       }}
     >
       <div style={{ opacity: cleared, scale: `${pulse}` }}>
-        <Odometer
-          // Plain digits: a year has no thousands separator.
+        <Reels
           value={year}
-          grouping={false}
           start={0.55}
           land={YEAR_LANDS}
           style={display(fitFontSize(String(year), 220, PLATE * 0.64, 0.55))}
