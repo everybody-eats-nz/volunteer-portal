@@ -127,7 +127,7 @@ plate at a time":
 Every cut lands on the beat. The music bed runs at 92 BPM (`BEAT` in
 `timeline.ts`); scenes are whole beats long, scene starts are rounded from
 the running beat count so they never drift, and the hero number in each
-scene lands on a beat too, then breathes with the bed (`useBeatPulse`).
+scene lands on a beat too.
 Big counts climb from zero (`components/climb.tsx`), fast then easing in,
 the figure widening as it grows, then squash into place with a click
 (`useSquash`, after the kinetic-type idea of letters set under pressure).

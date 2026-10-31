@@ -11,7 +11,6 @@ import {
   easeOut,
   Rise,
   Scene,
-  useBeatPulse,
   Words,
 } from "../components/motion";
 import { Climb } from "../components/climb";
@@ -66,15 +65,12 @@ const Kawakawa = () => {
 };
 
 const Count = ({ value }: { readonly value: number }) => {
-  const pulse = useBeatPulse(COUNT_LANDS + 0.1);
   return (
     <div
       style={{
         ...display(fitFontSize(formatNumber(value), 360, undefined, 0.6)),
         color: colors.forest500,
         marginTop: 28,
-        scale: `${pulse}`,
-        transformOrigin: "left center",
       }}
     >
       <Climb value={value} start={0.35} land={COUNT_LANDS} />

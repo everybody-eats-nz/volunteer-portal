@@ -3,7 +3,6 @@ import {
   clamp,
   Rise,
   Scene,
-  useBeatPulse,
   useSquash,
   Words,
 } from "../components/motion";
@@ -103,7 +102,6 @@ const TallyCount = ({ count }: { readonly count: number }) => {
     (_, i) => frame >= landsAt(i, count) * fps
   ).length;
   const squash = useSquash(TALLY_END, 0.16);
-  const pulse = useBeatPulse(TALLY_END + 0.3);
 
   return (
     <div
@@ -116,7 +114,7 @@ const TallyCount = ({ count }: { readonly count: number }) => {
           [0, 1],
           clamp
         ),
-        scale: `${pulse} ${squash * pulse}`,
+        scale: `1 ${squash}`,
         transformOrigin: "left bottom",
       }}
     >

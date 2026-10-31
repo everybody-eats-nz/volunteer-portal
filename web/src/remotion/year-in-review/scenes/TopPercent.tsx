@@ -4,7 +4,6 @@ import {
   easeOut,
   Rise,
   Scene,
-  useBeatPulse,
   useSquash,
   Words,
 } from "../components/motion";
@@ -38,14 +37,13 @@ const Countdown = ({ to }: { readonly to: number }) => {
     })
   );
   const squash = useSquash(LANDED, 0.24);
-  const pulse = useBeatPulse(LANDED + 0.3, 0.04);
   return (
     <span
       style={{
         ...display(fitFontSize(`${value}%`, MAX_SIZE, undefined, 0.5)),
         fontVariantNumeric: "tabular-nums",
         display: "inline-block",
-        scale: `${pulse} ${squash * pulse}`,
+        scale: `1 ${squash}`,
         transformOrigin: "50% 100%",
       }}
     >

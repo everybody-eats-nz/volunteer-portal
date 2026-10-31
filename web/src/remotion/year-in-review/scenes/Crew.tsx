@@ -11,7 +11,6 @@ import {
   Pop,
   Rise,
   Scene,
-  useBeatPulse,
   useSquash,
   Words,
 } from "../components/motion";
@@ -94,7 +93,6 @@ const CrowdCount = ({
   const shown = interpolate(seconds, [BLOOM_START, BLOOM_END], [0, 1], clamp);
   const current = Math.round(value * shown * shown);
   const squash = useSquash(BLOOM_END, 0.16);
-  const pulse = useBeatPulse(BLOOM_END + 0.3);
 
   return (
     <div
@@ -103,7 +101,7 @@ const CrowdCount = ({
         color: colors.sun,
         marginTop: 20,
         fontVariantNumeric: "tabular-nums",
-        scale: `${pulse} ${squash * pulse}`,
+        scale: `1 ${squash}`,
         transformOrigin: "left bottom",
       }}
     >

@@ -5,7 +5,6 @@ import {
   easeOut,
   Rise,
   Scene,
-  useBeatPulse,
   Words,
 } from "../components/motion";
 import { Climb } from "../components/climb";
@@ -28,15 +27,12 @@ const eventDate = new Intl.DateTimeFormat("en-NZ", {
 });
 
 const Count = ({ value }: { readonly value: number }) => {
-  const pulse = useBeatPulse(COUNT_LANDS + 0.1);
   return (
     <div
       style={{
         ...display(fitFontSize(formatNumber(value), 290, undefined, 0.6)),
         color: colors.sun,
         marginTop: 16,
-        scale: `${pulse}`,
-        transformOrigin: "left center",
       }}
     >
       <Climb value={value} start={0.35} land={COUNT_LANDS} />

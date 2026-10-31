@@ -9,7 +9,6 @@ import {
   useVideoConfig,
 } from "remotion";
 import { formatNumber, layout, sceneColors } from "../theme";
-import { BEAT } from "../timeline";
 import { italic } from "./type";
 import type { SceneId } from "../timeline";
 
@@ -66,21 +65,6 @@ export const Scene = ({
       </Sequence>
     </AbsoluteFill>
   );
-};
-
-/**
- * How much (1 = none) to scale something so it breathes with the music: a
- * small kick on every beat that decays before the next. Scenes start on
- * beats, so the local clock lines up with the bed. Nothing pulses before
- * `from` seconds, so a number can land first and then pick up the beat.
- */
-export const useBeatPulse = (from: number, strength = 0.03): number => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const t = frame / fps;
-  if (t < from) return 1;
-  const phase = (t % BEAT) / BEAT;
-  return 1 + strength * Math.exp(-7 * phase);
 };
 
 /**

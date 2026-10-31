@@ -12,7 +12,6 @@ import {
   Pop,
   Rise,
   Scene,
-  useBeatPulse,
   useSquash,
   Words,
 } from "../components/motion";
@@ -99,7 +98,6 @@ const Served = ({ year }: { readonly year: number }) => {
     delay: 0.1 * fps,
     config: { damping: 13, stiffness: 110 },
   });
-  const pulse = useBeatPulse(YEAR_LANDS + 0.1);
   const squash = useSquash(YEAR_LANDS, 0.14);
   // The plate is cleared just before the next scene grows out of it.
   const cleared = interpolate(
@@ -123,7 +121,7 @@ const Served = ({ year }: { readonly year: number }) => {
       <div
         style={{
           opacity: cleared,
-          scale: `${pulse} ${pulse * squash}`,
+          scale: `1 ${squash}`,
           transformOrigin: "50% 100%",
         }}
       >
