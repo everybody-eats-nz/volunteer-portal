@@ -1,3 +1,9 @@
+## [0.200.0] - 2026-10-31
+
+### Changes
+- Rebuild the Year in mahi video as a story-card Wrapped, on the beat ([#1396](https://github.com/everybody-eats-nz/volunteer-portal/pull/1396)) by @malinmalliyawadu
+
+
 ## [0.199.4] - 2026-10-27
 
 ### Changes
