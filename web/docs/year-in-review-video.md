@@ -128,12 +128,11 @@ Every cut lands on the beat. The music bed runs at 92 BPM (`BEAT` in
 `timeline.ts`); scenes are whole beats long, scene starts are rounded from
 the running beat count so they never drift, and the hero number in each
 scene lands on a beat too, then breathes with the bed (`useBeatPulse`).
-Big counts climb from zero on odometer reels (`components/odometer.tsx`):
-the ones reel spins, each reel above it rolls only on the carry, and the
-figure widens as it grows, then squashes into place with a click
+Big counts climb from zero (`components/climb.tsx`), fast then easing in,
+the figure widening as it grows, then squash into place with a click
 (`useSquash`, after the kinetic-type idea of letters set under pressure).
-The year on the intro plate isn't a count, so it arrives on spinning reels
-instead (`Reels`). Lines of display type
+Odometer reels were tried and dropped: Fraunces' light figures look broken
+mid-roll. Lines of display type
 rise word by word out of a mask (`Words`).
 
 Scene by scene: shifts stack up as plates while the count steps; the role
@@ -154,8 +153,7 @@ the top of the frame (behind Instagram's header), never mid-frame.
 ## Sound
 
 Mostly sound effects, timed to the motion, over a quiet music bed: a whip
-as each plate iris opens, a click as each odometer reel catches, the plate
-set down, plates stacking in the tally, a marimba run round the month
+as each plate iris opens, a click as each count lands, the plate set down, plates stacking in the tally, a marimba run round the month
 clock, a shimmer as the crowd blooms, a confetti pop and a ting as each
 badge card fans out, a bell when the top percent lands, dockets swishing
 onto the rail, the docket printer stepping and the stamp coming down.

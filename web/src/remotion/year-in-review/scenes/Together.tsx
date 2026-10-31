@@ -8,7 +8,7 @@ import {
   useBeatPulse,
   Words,
 } from "../components/motion";
-import { Odometer } from "../components/odometer";
+import { Climb } from "../components/climb";
 import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
@@ -39,7 +39,7 @@ const Count = ({ value }: { readonly value: number }) => {
         transformOrigin: "left center",
       }}
     >
-      <Odometer value={value} start={0.35} land={COUNT_LANDS} />
+      <Climb value={value} start={0.35} land={COUNT_LANDS} />
     </div>
   );
 };

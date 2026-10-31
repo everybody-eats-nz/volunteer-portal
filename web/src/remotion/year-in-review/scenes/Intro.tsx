@@ -13,9 +13,9 @@ import {
   Rise,
   Scene,
   useBeatPulse,
+  useSquash,
   Words,
 } from "../components/motion";
-import { Reels } from "../components/odometer";
 import { Plate } from "../components/plate";
 import { RIM, type IrisOrigin } from "../components/plate-iris";
 import { Sound } from "../components/sound";
@@ -32,8 +32,8 @@ const GREETING_MIN = 104;
 const GREETING_CHAR_WIDTH = 0.46;
 const PLATE = 720;
 const PLATE_CENTRE_Y = 1040;
-/** Seconds into the scene the year lands on the plate: beat three. */
-const YEAR_LANDS = beats(3);
+/** Seconds into the scene the year lands on the plate: beat two. */
+const YEAR_LANDS = beats(2);
 
 /**
  * The plate the year is served on. The first scene cut opens from its
@@ -89,7 +89,7 @@ const ProfilePhoto = ({ photoUrl }: { readonly photoUrl: string }) => {
   );
 };
 
-/** The year, served: the plate is set down and the year rolls up on it. */
+/** The year, served: the plate is set down and the year rises up on it. */
 const Served = ({ year }: { readonly year: number }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -100,6 +100,7 @@ const Served = ({ year }: { readonly year: number }) => {
     config: { damping: 13, stiffness: 110 },
   });
   const pulse = useBeatPulse(YEAR_LANDS + 0.1);
+  const squash = useSquash(YEAR_LANDS, 0.14);
   // The plate is cleared just before the next scene grows out of it.
   const cleared = interpolate(
     frame,
@@ -119,13 +120,19 @@ const Served = ({ year }: { readonly year: number }) => {
         scale: `${interpolate(land, [0, 1], [0.5, 1])}`,
       }}
     >
-      <div style={{ opacity: cleared, scale: `${pulse}` }}>
-        <Reels
-          value={year}
-          start={0.55}
-          land={YEAR_LANDS}
+      <div
+        style={{
+          opacity: cleared,
+          scale: `${pulse} ${pulse * squash}`,
+          transformOrigin: "50% 100%",
+        }}
+      >
+        <Words
+          text={String(year)}
+          delay={YEAR_LANDS - 0.55}
           style={display(fitFontSize(String(year), 220, PLATE * 0.64, 0.55))}
         />
+        <Sound name="mouse-click" at={YEAR_LANDS} volume={0.3} />
       </div>
     </Plate>
   );
