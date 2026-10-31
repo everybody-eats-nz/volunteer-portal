@@ -58,8 +58,20 @@ test.describe("Admin Attendance Tracking", () => {
       await expect(page.getByRole("dialog")).toBeVisible();
 
       // Click on a past date (use yesterday in NZ timezone)
-      const yesterday = addDaysInNZT(nowInNZT(), -1);
+      const today = nowInNZT();
+      const yesterday = addDaysInNZT(today, -1);
       const yesterdayStr = formatInNZT(yesterday, "yyyy-MM-dd");
+
+      // On the first of the month, yesterday is in the previous month. It
+      // only shows as a leading day if the month doesn't start on the first
+      // day of the week (1 November 2026 was a Sunday), so step back a month
+      // rather than depend on that.
+      if (formatInNZT(yesterday, "yyyy-MM") !== formatInNZT(today, "yyyy-MM")) {
+        await page
+          .getByRole("dialog")
+          .getByRole("button", { name: "Go to the Previous Month" })
+          .click();
+      }
 
       // Target the gridcell by its ISO date (react-day-picker puts data-day on
       // each cell). Filtering by visible "29" text would match March 29 first
@@ -69,6 +81,7 @@ test.describe("Admin Attendance Tracking", () => {
         .first();
 
       // Click the date - it should be selectable now
+      await expect(yesterdayButton).toBeVisible();
       await yesterdayButton.click();
 
       // Calendar should close and URL should update
