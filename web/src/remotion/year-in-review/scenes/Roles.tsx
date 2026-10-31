@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { clamp, easeOut, Grow, Rise, Scene, Words } from "../components/motion";
-import { PhotoPlate } from "../components/plate";
+import { PhotoCard } from "../components/photo";
 import { Sound } from "../components/sound";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
@@ -177,11 +177,10 @@ export const Roles = ({ roles, locations }: YearInReviewProps) => {
         }}
       >
         {/* The same photo the app shows on this shift type. */}
-        <PhotoPlate
+        <PhotoCard
           photo={shiftTypePhoto(top.name)}
-          size={PHOTO}
           delay={0.5}
-          style={{ flexShrink: 0 }}
+          style={{ width: PHOTO, height: PHOTO, flexShrink: 0 }}
         />
         {ranked.length > 1 && (
           <div

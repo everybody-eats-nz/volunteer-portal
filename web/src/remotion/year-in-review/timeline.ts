@@ -10,10 +10,11 @@ export const BEAT = 60 / BPM;
 export const beats = (n: number) => n * BEAT;
 
 /**
- * Frames the plate iris takes to open over the previous scene. Each scene
- * except the last carries this overlap, so scene starts stay on the beat.
+ * Frames the push takes to bring a scene up over the previous one. Each
+ * scene except the last carries this overlap, so scene starts stay on the
+ * beat.
  */
-export const TRANSITION_FRAMES = 18;
+export const TRANSITION_FRAMES = 14;
 
 export type SceneId =
   | "intro"
@@ -55,7 +56,7 @@ function sceneBeats(
 /**
  * Each scene's length in frames. Scene starts are rounded from the running
  * beat count, not accumulated, so they never drift off the beat. Every scene
- * but the last also plays on under the next one's iris.
+ * but the last also plays on under the next one's push.
  */
 export function getScenes(
   props: YearInReviewProps

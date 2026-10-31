@@ -24,7 +24,7 @@ export const sceneColors: Record<
   SceneId,
   { readonly background: string; readonly color: string }
 > = {
-  // Dark, so the white plate the year is served on is the whole picture.
+  // Dark, so the year in sun is the whole picture.
   intro: { background: colors.forest700, color: colors.cream },
   shifts: { background: colors.sun, color: colors.forest700 },
   meals: { background: colors.cream, color: colors.forest700 },

@@ -1,27 +1,11 @@
 import { useState } from "react";
-import {
-  Img,
-  interpolate,
-  spring,
-  staticFile,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
-import {
-  clamp,
-  Pop,
-  Rise,
-  Scene,
-  useSquash,
-  Words,
-} from "../components/motion";
-import { Plate } from "../components/plate";
-import { RIM, type IrisOrigin } from "../components/plate-iris";
+import { Img, staticFile } from "remotion";
+import { Pop, Rise, Scene, useSquash, Words } from "../components/motion";
 import { Sound } from "../components/sound";
 import { display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, layout } from "../theme";
-import { beats, TRANSITION_FRAMES } from "../timeline";
+import { beats } from "../timeline";
 
 const LOGO_WIDTH = 250;
 const AVATAR = 150;
@@ -29,20 +13,8 @@ const GREETING_MAX = 150;
 const GREETING_MIN = 104;
 /** Fraunces' average glyph width, generous so a wrap is never missed. */
 const GREETING_CHAR_WIDTH = 0.46;
-const PLATE = 720;
-const PLATE_CENTRE_Y = 1040;
-/** Seconds into the scene the year lands on the plate: beat two. */
+/** Seconds into the scene the year lands: beat two. */
 const YEAR_LANDS = beats(2);
-
-/**
- * The plate the year is served on. The first scene cut opens from its
- * edge, so the plate grows into the next scene (`YearInReview`).
- */
-export const INTRO_IRIS: IrisOrigin = {
-  x: layout.width / 2,
-  y: PLATE_CENTRE_Y,
-  radius: PLATE / 2 - RIM,
-};
 
 const Logo = () => (
   <Img
@@ -88,51 +60,23 @@ const ProfilePhoto = ({ photoUrl }: { readonly photoUrl: string }) => {
   );
 };
 
-/** The year, served: the plate is set down and the year rises up on it. */
-const Served = ({ year }: { readonly year: number }) => {
-  const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-  const land = spring({
-    frame,
-    fps,
-    delay: 0.1 * fps,
-    config: { damping: 13, stiffness: 110 },
-  });
+/** The year, as big as the frame allows, landing with a thump. */
+const Year = ({ year }: { readonly year: number }) => {
   const squash = useSquash(YEAR_LANDS, 0.14);
-  // The plate is cleared just before the next scene grows out of it.
-  const cleared = interpolate(
-    frame,
-    [durationInFrames - TRANSITION_FRAMES - 7, durationInFrames - TRANSITION_FRAMES],
-    [1, 0],
-    clamp
-  );
-
   return (
-    <Plate
-      size={PLATE}
-      style={{
-        position: "absolute",
-        left: (layout.width - PLATE) / 2,
-        top: PLATE_CENTRE_Y - PLATE / 2,
-        opacity: interpolate(land, [0, 0.2], [0, 1], clamp),
-        scale: `${interpolate(land, [0, 1], [0.5, 1])}`,
-      }}
-    >
-      <div
+    <div style={{ scale: `1 ${squash}`, transformOrigin: "50% 100%" }}>
+      <Words
+        text={String(year)}
+        delay={YEAR_LANDS - 0.55}
         style={{
-          opacity: cleared,
-          scale: `1 ${squash}`,
-          transformOrigin: "50% 100%",
+          ...display(
+            fitFontSize(String(year), 440, layout.width - layout.gutter * 2, 0.55)
+          ),
+          color: colors.sun,
         }}
-      >
-        <Words
-          text={String(year)}
-          delay={YEAR_LANDS - 0.55}
-          style={display(fitFontSize(String(year), 220, PLATE * 0.64, 0.55))}
-        />
-        <Sound name="mouse-click" at={YEAR_LANDS} volume={0.3} />
-      </div>
-    </Plate>
+      />
+      <Sound name="mouse-click" at={YEAR_LANDS} volume={0.3} />
+    </div>
   );
 };
 
@@ -143,12 +87,6 @@ export const Intro = ({ firstName, photoUrl, year }: YearInReviewProps) => {
     <Scene
       id="intro"
       reveal={0}
-      backdrop={
-        <>
-          <Served year={year} />
-          <Sound name="plate-down" at={0.32} volume={0.5} />
-        </>
-      }
       style={{ alignItems: "center", textAlign: "center" }}
     >
       <Pop delay={0.2}>
@@ -156,7 +94,7 @@ export const Intro = ({ firstName, photoUrl, year }: YearInReviewProps) => {
       </Pop>
       <Words
         text={["Kia ora,", { italic: firstName }]}
-        delay={0.45}
+        delay={0.4}
         style={{
           ...display(
             fitFontSize(
@@ -170,7 +108,17 @@ export const Intro = ({ firstName, photoUrl, year }: YearInReviewProps) => {
           marginTop: 36,
         }}
       />
-      <Rise delay={1.3} style={{ marginTop: "auto" }}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Year year={year} />
+      </div>
+      <Rise delay={1.3}>
         <div style={{ ...lead, color: colors.forest200 }}>
           Here&apos;s your year in mahi
         </div>

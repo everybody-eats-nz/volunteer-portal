@@ -106,23 +106,18 @@ JetBrains Mono on the dockets, and the site's cream, forest, soft sun
 (`#f8fb69`) and peach. The Fraunces files in `public/fonts` are instanced
 and subset from the site's variable fonts (see `theme.ts`).
 
-The whole video is served on one object, a plate, after the site's "one
-plate at a time":
+Scenes flick up over each other like story cards: the next scene pushes
+the last up off the top of the frame on the beat (`components/push.tsx`),
+and each scene's entrances wait until it has mostly arrived
+(`REVEAL_SECONDS` in `components/motion.tsx`). The intro is a type poster:
+the greeting, and the year as big as the frame allows, landing with a thump.
 
-- **The intro** sets a plate down on a dark field and rolls the year up on
-  it. The first cut opens from that plate's edge, so the plate grows into
-  the next scene.
-- **Every cut is a plate iris** (`components/plate-iris.tsx`): a circle with
-  a white rim opens from the middle of the frame in the next scene's colour
-  while the old scene sinks back, smaller and in shadow. Each scene's
-  entrances wait until the iris has opened (`REVEAL_SECONDS` in
-  `components/motion.tsx`).
-- **Photos sit on plates** (`PhotoPlate` in `components/plate.tsx`): a round
-  crop in a white rim, set down with a clink and a slow push-in. The app's
-  shift cover photos, cropped so nobody's face is in frame except in the
-  dining room and catering spread, in `public/year-in-review/`
-  (`shift-photos.ts` mirrors the app's `getShiftThemeByName`; keep them in
-  step).
+Photos sit in rounded cards with a slow push-in (`components/photo.tsx`):
+food on the table under the meals count, and the photo the mobile app shows
+on the volunteer's go-to shift type in the roles scene (`shift-photos.ts`
+mirrors the app's `getShiftThemeByName`; keep them in step). They are the
+app's shift cover photos, cropped so nobody's face is in frame except in
+the dining room and catering spread, in `public/year-in-review/`.
 
 Every cut lands on the beat. The music bed runs at 92 BPM (`BEAT` in
 `timeline.ts`); scenes are whole beats long, scene starts are rounded from
@@ -135,14 +130,14 @@ Odometer reels were tried and dropped: Fraunces' light figures look broken
 mid-roll. Lines of display type
 rise word by word out of a mask (`Words`).
 
-Scene by scene: shifts stack up as plates while the count steps; the role
+Scene by scene: shifts set down as dots while the count steps; the role
 name runs as two tickers against each other, one filled and one outlined;
 the months grow as a plain bar chart; the crowd blooms out in a sunflower
-spiral; badges fan open like a hand of
-cards from a pin below them; the top-percent number counts down while
-plate rims ripple out behind it; events hang on the kitchen ticket rail;
-the docket prints and is stamped; the outro lights up the site's
-dining-room mural (from marketing-cms, as a WebP mask tinted cream).
+spiral; badges fan open like a hand of cards from a pin below them; the
+top-percent number counts down and lands with a thump; events hang on the
+kitchen ticket rail; the docket prints and is stamped; the outro lights up
+the site's dining-room mural (from marketing-cms, as a WebP mask tinted
+cream).
 
 Every scene's colours are in `sceneColors` in `theme.ts`. Flat colour on
 purpose: a paper grain overlay was tried and made the MP4 3.6 times bigger.
@@ -153,10 +148,11 @@ the top of the frame (behind Instagram's header), never mid-frame.
 ## Sound
 
 Mostly sound effects, timed to the motion, over a quiet music bed: a whip
-as each plate iris opens, a click as each count lands, the plate set down, plates stacking in the tally, a marimba run round the month
-clock, a shimmer as the crowd blooms, a confetti pop and a ting as each
-badge card fans out, a bell when the top percent lands, dockets swishing
-onto the rail, the docket printer stepping and the stamp coming down.
+as each scene flicks up, a click as each count lands, dots stacking in the
+tally, a marimba run up the month bars, a shimmer as the crowd blooms, a
+confetti pop and a ting as each badge card fans out, a bell when the top
+percent lands, dockets swishing onto the rail, the docket printer stepping
+and the stamp coming down.
 
 - `components/sound.tsx` places each effect (`<Sound name at volume>`),
   mounted only while it plays; `MIX` lifts them all together and

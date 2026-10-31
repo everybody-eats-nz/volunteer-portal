@@ -87,9 +87,9 @@ describe("getScenes", () => {
     }
   });
 
-  it("gives every scene but the last the overlap under the next iris", () => {
+  it("gives every scene but the last the overlap under the next push", () => {
     const scenes = getScenes(everything);
-    // The intro is six beats, plus the frames it plays on under the iris.
+    // The intro is six beats, plus the frames it plays on under the push.
     expect(scenes[0].durationInFrames).toBe(
       Math.round(beats(6) * FPS) + TRANSITION_FRAMES
     );

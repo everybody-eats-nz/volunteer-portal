@@ -20,12 +20,12 @@ const firstShiftDate = new Intl.DateTimeFormat("en-NZ", {
 
 const TALLY_WIDTH = layout.width - layout.gutter * 2;
 const TALLY_HEIGHT = 300;
-/** The first plate lands here, and the last on beat three. */
+/** The first dot lands here, and the last on beat three. */
 const TALLY_START = 0.6;
 const TALLY_END = beats(3);
 
-/** The largest plate size that fits `count` plates in the tally box. */
-const plateSize = (count: number) => {
+/** The largest dot size that fits `count` dots in the tally box. */
+const dotSize = (count: number) => {
   for (let size = 132; size > 6; size -= 2) {
     const columns = Math.floor(TALLY_WIDTH / size);
     if (Math.ceil(count / columns) * size <= TALLY_HEIGHT) return size;
@@ -33,12 +33,12 @@ const plateSize = (count: number) => {
   return 6;
 };
 
-/** Seconds into the scene that plate `i` of `count` lands. */
+/** Seconds into the scene that dot `i` of `count` lands. */
 const landsAt = (i: number, count: number) =>
   TALLY_START + (count > 1 ? (i / (count - 1)) * (TALLY_END - TALLY_START) : 0);
 
-/** A plate seen from above, set down from a little height. */
-const Plate = ({
+/** One shift, a dot set down from a little height. */
+const Dot = ({
   index,
   count,
   size,
@@ -73,28 +73,15 @@ const Plate = ({
           height: diameter,
           borderRadius: "50%",
           backgroundColor: colors.forest700,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           opacity: interpolate(land, [0, 0.2], [0, 1], clamp),
           scale: `${interpolate(land, [0, 1], [1.5, 1])}`,
         }}
-      >
-        <div
-          style={{
-            width: "64%",
-            height: "64%",
-            borderRadius: "50%",
-            border: `${Math.max(1.5, diameter * 0.045)}px solid ${colors.sun}`,
-            opacity: 0.55,
-          }}
-        />
-      </div>
+      />
     </div>
   );
 };
 
-/** Counts up in step with the plates landing, and squashes on the last. */
+/** Counts up in step with the dots landing, and squashes on the last. */
 const TallyCount = ({ count }: { readonly count: number }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -123,9 +110,9 @@ const TallyCount = ({ count }: { readonly count: number }) => {
   );
 };
 
-/** Every shift of the year stacked up as a plate, one after another. */
+/** Every shift of the year set down as a dot, one after another. */
 const Tally = ({ count }: { readonly count: number }) => {
-  const size = plateSize(count);
+  const size = dotSize(count);
   return (
     <div
       style={{
@@ -138,7 +125,7 @@ const Tally = ({ count }: { readonly count: number }) => {
       }}
     >
       {Array.from({ length: count }, (_, i) => (
-        <Plate key={i} index={i} count={count} size={size} />
+        <Dot key={i} index={i} count={count} size={size} />
       ))}
     </div>
   );

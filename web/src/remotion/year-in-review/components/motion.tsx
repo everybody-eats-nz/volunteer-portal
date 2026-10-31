@@ -21,11 +21,11 @@ export const clamp = {
 export const easeOut = Easing.bezier(0.22, 1, 0.36, 1);
 
 /**
- * Seconds into a scene before its content starts moving. The scene arrives
- * under the plate iris ({@link plateIris}), so entrances wait until the
- * plate has opened over the middle of the frame.
+ * Seconds into a scene before its content starts moving. The scene pushes
+ * up over the last ({@link push}), so entrances wait until it has mostly
+ * arrived rather than playing while it's still moving.
  */
-export const REVEAL_SECONDS = 0.3;
+export const REVEAL_SECONDS = 0.2;
 
 /**
  * A full-bleed colour field with the shared safe-area padding. `backdrop`

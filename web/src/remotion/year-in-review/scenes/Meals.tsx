@@ -14,7 +14,7 @@ import {
   Words,
 } from "../components/motion";
 import { Climb } from "../components/climb";
-import { PhotoPlate } from "../components/plate";
+import { PhotoCard } from "../components/photo";
 import { body, display, lead } from "../components/type";
 import type { YearInReviewProps } from "../schema";
 import { colors, fitFontSize, formatNumber, layout } from "../theme";
@@ -31,7 +31,6 @@ const BAND_HEIGHT = Math.round((BAND_WIDTH / 1316) * 484);
 const BAND_LEFT = -40;
 /** The text starts just below the lowest drawing in the band. */
 const CONTENT_TOP = BAND_HEIGHT - 10;
-const PHOTO = 480;
 /** The count lands on beat three. */
 const COUNT_LANDS = beats(3);
 
@@ -84,15 +83,16 @@ export const Meals = ({ impact }: YearInReviewProps) => (
     backdrop={
       <>
         <Kawakawa />
-        {/* Food on the table, served over the bottom edge. */}
-        <PhotoPlate
+        {/* Food on the table, running on behind Instagram's caption. */}
+        <PhotoCard
           photo="community-table"
-          size={PHOTO}
           delay={0.9}
           style={{
             position: "absolute",
+            left: layout.gutter,
             right: layout.gutter,
-            bottom: 110,
+            top: 1250,
+            bottom: 70,
           }}
         />
       </>

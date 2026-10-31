@@ -1,12 +1,12 @@
 import type { ComponentType } from "react";
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import { AbsoluteFill } from "remotion";
-import { plateIris } from "./components/plate-iris";
+import { push } from "./components/push";
 import { Music, Sound } from "./components/sound";
 import { Achievements } from "./scenes/Achievements";
 import { Crew } from "./scenes/Crew";
 import { Docket } from "./scenes/Docket";
-import { Intro, INTRO_IRIS } from "./scenes/Intro";
+import { Intro } from "./scenes/Intro";
 import { Meals } from "./scenes/Meals";
 import { Outro } from "./scenes/Outro";
 import { Rhythm } from "./scenes/Rhythm";
@@ -39,14 +39,12 @@ const SCENES: Record<
   outro: { name: "Outro", Component: Outro },
 };
 
-// The iris eases itself.
+// The push eases itself.
 const transitionTiming = linearTiming({ durationInFrames: TRANSITION_FRAMES });
 
 /**
- * A volunteer's year as a vertical story, one scene per stat. Each scene is
- * set down over the last as a plate: a white-rimmed circle that opens from
- * the middle of the frame on the beat. The first opens from the plate the
- * intro serves the year on, so that plate becomes the whole video.
+ * A volunteer's year as a vertical story, one scene per stat, each pushing
+ * the last up off the frame on the beat like story cards flicked through.
  */
 export const YearInReview = (props: YearInReviewProps) => {
   const scenes = getScenes(props);
@@ -62,7 +60,7 @@ export const YearInReview = (props: YearInReviewProps) => {
               durationInFrames={durationInFrames}
             >
               <Component {...props} />
-              {/* The plate being set down over the last scene. */}
+              {/* The card flicking up over the last. */}
               {i > 0 && <Sound name="whip" at={0} volume={0.28} />}
             </TransitionSeries.Sequence>
           );
@@ -71,9 +69,7 @@ export const YearInReview = (props: YearInReviewProps) => {
             : [
                 <TransitionSeries.Transition
                   key={`${id}-in`}
-                  presentation={plateIris(
-                    scenes[i - 1].id === "intro" ? { from: INTRO_IRIS } : {}
-                  )}
+                  presentation={push()}
                   timing={transitionTiming}
                 />,
                 scene,
