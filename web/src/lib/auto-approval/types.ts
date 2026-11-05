@@ -58,6 +58,11 @@ export interface ShiftContext {
   location: string | null;
   start: Date;
   daysInAdvance: number;
+  /**
+   * False for shifts the team hand-picks (special events). Nothing is
+   * auto-approved onto them, whatever the rules say.
+   */
+  autoApprovalEnabled: boolean;
 }
 
 /** How one criterion of one rule fared. */

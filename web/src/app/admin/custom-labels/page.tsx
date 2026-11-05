@@ -20,11 +20,12 @@ export default async function CustomLabelsPage() {
 
   // Fetch labels alongside a small preview of recently-tagged volunteers so
   // each card can show an avatar stack without loading every member upfront.
-  const [labels, taggedVolunteers] = await Promise.all([
+  const [labels, taggedVolunteers, admins] = await Promise.all([
     prisma.customLabel.findMany({
       where: { isActive: true },
       include: {
         _count: { select: { users: true } },
+        watchers: { select: { userId: true } },
         users: {
           take: 5,
           orderBy: { assignedAt: "desc" },
@@ -48,6 +49,12 @@ export default async function CustomLabelsPage() {
     prisma.user.count({
       where: { customLabels: { some: { label: { isActive: true } } } },
     }),
+    // Who can be told when a label is added
+    prisma.user.findMany({
+      where: { role: "ADMIN", archivedAt: null },
+      select: { id: true, name: true, firstName: true, lastName: true, email: true },
+      orderBy: [{ firstName: "asc" }, { email: "asc" }],
+    }),
   ]);
 
   const initialLabels = labels.map((label) => ({
@@ -61,6 +68,14 @@ export default async function CustomLabelsPage() {
         <CustomLabelsContent
           initialLabels={initialLabels}
           taggedVolunteers={taggedVolunteers}
+          admins={admins.map((a) => ({
+            id: a.id,
+            name:
+              [a.firstName, a.lastName].filter(Boolean).join(" ") ||
+              a.name ||
+              a.email,
+            email: a.email,
+          }))}
         />
       </PageContainer>
     </AdminPageWrapper>

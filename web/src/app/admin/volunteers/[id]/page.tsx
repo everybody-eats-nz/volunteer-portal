@@ -206,6 +206,9 @@ export default async function AdminVolunteerPage({
       customLabels: {
         include: {
           label: true,
+          assignedBy: {
+            select: { name: true, firstName: true, lastName: true },
+          },
         },
         orderBy: {
           assignedAt: "desc",

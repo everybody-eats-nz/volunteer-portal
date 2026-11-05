@@ -28,6 +28,7 @@ const notificationMocks = vi.hoisted(() => ({
   createShiftCanceledNotification: vi.fn().mockResolvedValue(undefined),
   createWaitlistRemovedNotification: vi.fn().mockResolvedValue(undefined),
   createShiftFilledNotification: vi.fn().mockResolvedValue(undefined),
+  createWaitlistConfirmRequestNotification: vi.fn().mockResolvedValue(undefined),
 }));
 const emailMocks = vi.hoisted(() => ({
   sendShiftConfirmationNotification: vi.fn().mockResolvedValue(undefined),
@@ -39,7 +40,7 @@ vi.mock("@/lib/email-service", () => ({
   getEmailService: () => emailMocks,
 }));
 vi.mock("@/lib/signup-utils.server", () => ({
-  autoCancelOtherPendingSignupsForDay: vi.fn().mockResolvedValue(undefined),
+  autoCancelOverlappingPendingSignups: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/lib/shift-helpers", () => ({
   isFirstConfirmedShift: vi.fn().mockResolvedValue(false),
@@ -63,6 +64,7 @@ function makeSignup(
     shiftStart?: Date;
     shiftEnd?: Date;
     waitlistIfFull?: boolean;
+    respondedAt?: Date | null;
   } = {}
 ) {
   const start = overrides.shiftStart ?? new Date("2026-07-01T06:00:00.000Z");
@@ -72,6 +74,7 @@ function makeSignup(
     status,
     shiftId: "shift_1",
     waitlistIfFull: overrides.waitlistIfFull ?? true,
+    respondedAt: overrides.respondedAt ?? null,
     shift: {
       id: "shift_1",
       start,
@@ -185,6 +188,12 @@ describe("applySignupAction", () => {
 
     expect(result.signup.status).toBe("NO_SHOW");
     expect(result.message).toBe("Volunteer marked as no show");
+    // The sweep sends the email after the shift; marking just queues it
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { status: "NO_SHOW", noShowMarkedAt: expect.any(Date) },
+      })
+    );
   });
 
   it("reverses a no-show while the shift is still underway", async () => {
@@ -202,6 +211,12 @@ describe("applySignupAction", () => {
 
     expect(result.signup.status).toBe("CONFIRMED");
     expect(result.message).toBe("Volunteer attendance confirmed");
+    // Marking them present again calls off the no-show email
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { status: "CONFIRMED", noShowMarkedAt: null },
+      })
+    );
   });
 
   it("confirms a pending signup when the shift has capacity", async () => {
@@ -216,7 +231,9 @@ describe("applySignupAction", () => {
     expect(result.signup.status).toBe("CONFIRMED");
     expect(result.message).toBe("Signup approved and confirmed");
     expect(mockedUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: "CONFIRMED" } })
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "CONFIRMED" }),
+      })
     );
   });
 
@@ -251,7 +268,9 @@ describe("applySignupAction", () => {
 
     expect(result.signup.status).toBe("CANCELED");
     expect(mockedUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: "CANCELED" } })
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "CANCELED", response: "APPROVED" }),
+      })
     );
     expect(notificationMocks.createShiftFilledNotification).toHaveBeenCalledWith(
       "user_1",
@@ -299,11 +318,24 @@ describe("applySignupAction", () => {
     });
 
     expect(result.signup.status).toBe("WAITLISTED");
-    expect(result.message).toBe("Moved to waitlist and volunteer notified");
+    expect(result.message).toBe(
+      "Moved to waitlist and volunteer asked to keep their place"
+    );
     // Capacity is irrelevant to a deliberate park, so it should never be read.
     expect(mockedCount).not.toHaveBeenCalled();
+    // They didn't choose to wait, so they're asked to keep the place
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "WAITLISTED",
+          waitlistAddedByAdminAt: expect.any(Date),
+          waitlistConfirmedAt: null,
+          response: "WAITLISTED",
+        }),
+      })
+    );
     expect(
-      notificationMocks.createShiftWaitlistedNotification
+      notificationMocks.createWaitlistConfirmRequestNotification
     ).toHaveBeenCalledWith(
       "user_1",
       "Dishwashing",
@@ -333,6 +365,64 @@ describe("applySignupAction", () => {
 
     expect(result.signup.status).toBe("CANCELED");
     expect(result.message).toBe("Signup rejected");
+  });
+
+  it("records who declined an application and when", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("PENDING") as never);
+
+    await applySignupAction({
+      signupId: "signup_1",
+      action: "reject",
+      actorId: "admin_1",
+    });
+
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          status: "CANCELED",
+          respondedAt: expect.any(Date),
+          respondedById: "admin_1",
+          response: "DECLINED",
+        },
+      })
+    );
+  });
+
+  it("records an approval as the response to an application", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("PENDING") as never);
+    mockedCount.mockResolvedValue(0 as never);
+
+    await applySignupAction({
+      signupId: "signup_1",
+      action: "approve",
+      actorId: "admin_1",
+    });
+
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "CONFIRMED",
+          respondedById: "admin_1",
+          response: "APPROVED",
+        }),
+      })
+    );
+  });
+
+  it("keeps the first response time when a responded signup is decided again", async () => {
+    mockedFindUnique.mockResolvedValue(
+      makeSignup("PENDING", { respondedAt: new Date("2026-06-01") }) as never
+    );
+
+    await applySignupAction({
+      signupId: "signup_1",
+      action: "reject",
+      actorId: "admin_1",
+    });
+
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "CANCELED" } })
+    );
   });
 
   it("cancels a confirmed signup with the cancellation email", async () => {

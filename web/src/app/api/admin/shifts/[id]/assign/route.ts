@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { createShiftConfirmedNotification } from "@/lib/notifications";
+import {
+  createShiftConfirmedNotification,
+  createWaitlistConfirmRequestNotification,
+} from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { getLocationAddresses } from "@/lib/locations";
@@ -151,6 +154,8 @@ export async function POST(
         shiftId: shift.id,
         status: status,
         note: note || null,
+        // Put there by the team, so they're asked whether they want to wait
+        ...(status === "WAITLISTED" && { waitlistAddedByAdminAt: new Date() }),
       },
       include: {
         user: {
@@ -230,6 +235,31 @@ export async function POST(
           notificationError
         );
       }
+    }
+
+    if (status === "WAITLISTED") {
+      try {
+        await createWaitlistConfirmRequestNotification(
+          volunteer.id,
+          shift.shiftType.name,
+          new Intl.DateTimeFormat("en-NZ", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            timeZone: "Pacific/Auckland",
+          }).format(shift.start),
+          shift.id
+        );
+      } catch (notificationError) {
+        console.error("Error creating waitlist notification:", notificationError);
+      }
+
+      return NextResponse.json({
+        ...signup,
+        message: "Added to the waitlist. They've been asked to keep their place.",
+        isOverCapacity: false,
+      });
     }
 
     return NextResponse.json({

@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { PlannerSection } from "./planner-section";
 import { RunSheet, RunSheetLine } from "./run-sheet";
+import { AutoApprovalToggle } from "./auto-approval-toggle";
 import {
   ShiftTypeOption,
   TemplateOption,
@@ -319,8 +320,11 @@ export function SingleShiftPlanner({
           title="Date and time"
           description="All times are New Zealand time."
         >
-          <div className="grid gap-5 sm:grid-cols-3">
-            <div className="space-y-2">
+          {/* Date gets its own row until there's room for all three: the
+              date button needs ~11rem and the planner column is narrow next
+              to the run sheet. */}
+          <div className="grid grid-cols-2 gap-5 xl:grid-cols-3">
+            <div className="col-span-2 space-y-2 xl:col-span-1">
               <Label className="text-sm font-medium">Date *</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -387,8 +391,8 @@ export function SingleShiftPlanner({
 
         <PlannerSection
           step="Step 3"
-          title="Capacity and notes"
-          description="How many volunteers you need, plus anything they should know."
+          title="Capacity, notes and approval"
+          description="How many volunteers you need, anything they should know, and whether signups are approved automatically."
         >
           <div className="space-y-5">
             <div className="max-w-[12rem] space-y-2">
@@ -424,6 +428,7 @@ export function SingleShiftPlanner({
                 data-testid="shift-notes-textarea"
               />
             </div>
+            <AutoApprovalToggle />
           </div>
         </PlannerSection>
       </div>

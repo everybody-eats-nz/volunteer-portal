@@ -10,7 +10,19 @@ export type CreateShiftData = {
   notes?: string | null;
   /** Set when the shift is rostered from a template, so later template notes edits can reach it. */
   templateId?: string | null;
+  /** Off for special events the team hand-picks. Defaults to on. */
+  autoApprovalEnabled?: boolean;
 };
+
+/**
+ * Read the shift form's auto-approval toggle (`AutoApprovalToggle`). Missing
+ * means on, so older forms and API callers keep today's behaviour.
+ */
+export function parseAutoApprovalEnabled(
+  value: FormDataEntryValue | null | undefined
+): boolean {
+  return value !== "0" && value !== "false";
+}
 
 /**
  * Core shift creation logic
@@ -31,6 +43,7 @@ export async function createShiftRecord(data: CreateShiftData) {
       capacity: data.capacity,
       notes: data.notes ?? null,
       templateId: data.templateId ?? null,
+      autoApprovalEnabled: data.autoApprovalEnabled ?? true,
     },
   });
 }

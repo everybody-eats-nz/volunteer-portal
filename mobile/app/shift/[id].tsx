@@ -70,6 +70,7 @@ import {
 import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
 import { DayLeadsRow } from "@/components/day-leads-row";
 import { WaitlistOfferCard } from "@/components/waitlist-offer-card";
+import { WaitlistConfirmCard } from "@/components/waitlist-confirm-card";
 import { GlassButton } from "@/components/glass-button";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
@@ -169,6 +170,7 @@ export default function ShiftDetailScreen() {
     waitlistCount,
     waitlistOfferExpiresAt,
     waitlistOfferExpiresLabel,
+    waitlistNeedsConfirmation,
     events,
     dayLeads,
     periodFriends,
@@ -452,7 +454,8 @@ export default function ShiftDetailScreen() {
     otherPendingCount > 0;
   // A past shift you weren't on has nothing left to decide, so it gets no
   // status panel; the bottom pill already says it has passed.
-  const showStatus = !hasOffer && (isMyShift || !isPast);
+  const needsConfirm = waitlistNeedsConfirmation && !hasOffer && !isPast;
+  const showStatus = !hasOffer && !needsConfirm && (isMyShift || !isPast);
 
   // On iOS 26 the header controls sit in liquid glass, which keeps the
   // system's own label colour over any photo; elsewhere they need light
@@ -608,6 +611,13 @@ export default function ShiftDetailScreen() {
             <WaitlistOfferCard
               shiftId={shift.id}
               deadlineLabel={waitlistOfferExpiresLabel}
+              onAnswered={refresh}
+            />
+          )}
+          {needsConfirm && (
+            <WaitlistConfirmCard
+              shiftId={shift.id}
+              onLeave={handleCancel}
               onAnswered={refresh}
             />
           )}

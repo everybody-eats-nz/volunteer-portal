@@ -98,3 +98,24 @@ export function offerDeadlineLabel(expiresAt: Date, now: Date = new Date()): str
 
   return `${time} on ${formatInNZT(expiresAt, "EEEE")}`;
 }
+
+/**
+ * Waiting on the volunteer: an admin put them on this waitlist and they
+ * haven't said whether they want to stay. No place is offered until they do.
+ */
+export function needsWaitlistConfirmation(signup: {
+  status: string;
+  waitlistAddedByAdminAt?: Date | string | null;
+  waitlistConfirmedAt?: Date | string | null;
+}): boolean {
+  return (
+    signup.status === "WAITLISTED" &&
+    !!signup.waitlistAddedByAdminAt &&
+    !signup.waitlistConfirmedAt
+  );
+}
+
+export const WAITLIST_CONFIRM_TITLE = "Keep your waitlist place?";
+
+export const WAITLIST_CONFIRM_BODY =
+  "The team has put you on the waitlist for this shift. Keep your place and we'll offer it to you if a spot opens up, or leave the waitlist if you can't make it.";

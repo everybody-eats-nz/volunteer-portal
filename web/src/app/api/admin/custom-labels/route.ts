@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import {
+  LabelAssignmentError,
+  parseWatcherIds,
+  setLabelWatchers,
+} from "@/lib/custom-labels.server";
 
 // Get all custom labels
 export async function GET() {
@@ -22,6 +27,7 @@ export async function GET() {
             users: true,
           },
         },
+        watchers: { select: { userId: true } },
       },
       orderBy: [
         { createdAt: "desc" },
@@ -47,7 +53,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const { name, color, icon } = await request.json();
+    const { name, color, icon, requiresNote, watcherIds } =
+      await request.json();
+    const watchers = parseWatcherIds(watcherIds);
 
     if (!name || !color) {
       return NextResponse.json(
@@ -73,11 +81,20 @@ export async function POST(request: Request) {
         name,
         color,
         icon: icon || null,
+        requiresNote: requiresNote === true,
       },
     });
+    if (watchers) await setLabelWatchers(label.id, watchers);
 
-    return NextResponse.json(label);
+    const created = await prisma.customLabel.findUniqueOrThrow({
+      where: { id: label.id },
+      include: { watchers: { select: { userId: true } } },
+    });
+    return NextResponse.json(created);
   } catch (error) {
+    if (error instanceof LabelAssignmentError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Error creating custom label:", error);
     
     return NextResponse.json(

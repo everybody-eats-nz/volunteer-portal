@@ -2,6 +2,23 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import {
+  assignLabel,
+  updateLabelNote,
+  LabelAssignmentError,
+} from "@/lib/custom-labels.server";
+
+type AssignmentWithLabel = Awaited<ReturnType<typeof assignLabel>>;
+
+/** The shape the labels manager keeps: the label plus who added it and why. */
+function serializeAssignment(assignment: AssignmentWithLabel) {
+  return {
+    label: assignment.label,
+    note: assignment.note,
+    assignedAt: assignment.assignedAt,
+    assignedBy: assignment.assignedBy,
+  };
+}
 
 // Get user's custom labels
 export async function GET(
@@ -38,20 +55,18 @@ export async function GET(
   }
 }
 
-// Add label to user
+// Add label to user. Labels with `requiresNote` need a `note`.
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const { labelId } = await request.json();
-
+    const { labelId, note } = await request.json();
     if (!labelId) {
       return NextResponse.json(
         { error: "Label ID is required" },
@@ -59,57 +74,56 @@ export async function POST(
       );
     }
 
-    const resolvedParams = await params;
-    
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: resolvedParams.id },
+    const { id } = await params;
+    const assignment = await assignLabel({
+      userId: id,
+      labelId,
+      note,
+      assignedById: session.user.id,
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if label exists and is active
-    const label = await prisma.customLabel.findUnique({
-      where: { id: labelId, isActive: true },
-    });
-
-    if (!label) {
-      return NextResponse.json(
-        { error: "Label not found or inactive" },
-        { status: 404 }
-      );
-    }
-
-    const userLabel = await prisma.userCustomLabel.create({
-      data: {
-        userId: resolvedParams.id,
-        labelId,
-      },
-      include: {
-        label: true,
-      },
-    });
-
-    return NextResponse.json(userLabel.label);
+    return NextResponse.json(serializeAssignment(assignment));
   } catch (error) {
-    console.error("Error adding label to user:", error);
-    
-    // Check if it's a unique constraint violation
-    // This shouldn't happen since we check existence above
-    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' && error.message.includes('unique')) {
-      return NextResponse.json(
-        { error: "User already has this label" },
-        { status: 409 }
-      );
+    if (error instanceof LabelAssignmentError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    
+    console.error("Error adding label to user:", error);
     return NextResponse.json(
       { error: "Failed to add label to user" },
+      { status: 500 }
+    );
+  }
+}
+
+// Change the note on a label the user already has
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  try {
+    const { labelId, note } = await request.json();
+    if (!labelId) {
+      return NextResponse.json(
+        { error: "Label ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const { id } = await params;
+    const assignment = await updateLabelNote({ userId: id, labelId, note });
+    return NextResponse.json(serializeAssignment(assignment));
+  } catch (error) {
+    if (error instanceof LabelAssignmentError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("Error updating label note:", error);
+    return NextResponse.json(
+      { error: "Failed to update label note" },
       { status: 500 }
     );
   }

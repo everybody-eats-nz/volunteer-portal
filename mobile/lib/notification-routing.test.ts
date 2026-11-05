@@ -144,4 +144,21 @@ describe("navigateToNotificationTarget", () => {
       expect(pushMock).not.toHaveBeenCalled();
     });
   });
+  describe("waitlist and admin links", () => {
+    it("opens the shift when asked to keep a waitlist place", () => {
+      navigateToNotificationTarget("/shifts/mine?confirmWaitlist=shift-9");
+      expect(pushMock).toHaveBeenCalledWith({
+        pathname: "/shift/[id]",
+        params: { id: "shift-9" },
+      });
+    });
+
+    it("opens a volunteer's profile from an admin label alert", () => {
+      navigateToNotificationTarget("/admin/volunteers/user-4");
+      expect(pushMock).toHaveBeenCalledWith({
+        pathname: "/user/[id]",
+        params: { id: "user-4" },
+      });
+    });
+  });
 });

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createShiftConfirmedNotification,
   createShiftWaitlistedNotification,
+  createWaitlistConfirmRequestNotification,
   createShiftCanceledNotification,
   createWaitlistRemovedNotification,
   createShiftFilledNotification,
@@ -62,6 +63,26 @@ interface ApplySignupActionOptions {
   sendEmail?: boolean;
   /** Skip notifications + emails (used when cancelling past shifts). */
   skipNotification?: boolean;
+  /** The admin taking the action, recorded against application responses. */
+  actorId?: string;
+}
+
+/**
+ * The response fields for the first decision on a pending application. Later
+ * decisions (a waitlisted signup confirmed days afterwards, say) don't move
+ * the response time: the volunteer heard back the first time.
+ */
+function firstResponse(
+  signup: { respondedAt: Date | null },
+  response: "APPROVED" | "WAITLISTED" | "DECLINED",
+  actorId: string | undefined
+) {
+  if (signup.respondedAt) return {};
+  return {
+    respondedAt: new Date(),
+    respondedById: actorId ?? null,
+    response,
+  };
 }
 
 function formatNZLongDate(date: Date): string {
@@ -88,6 +109,7 @@ export async function applySignupAction({
   action,
   sendEmail,
   skipNotification,
+  actorId,
 }: ApplySignupActionOptions): Promise<SignupActionResult> {
   if (!SIGNUP_ACTIONS.includes(action)) {
     throw new SignupActionError(400, "Invalid action");
@@ -173,7 +195,10 @@ export async function applySignupAction({
     if (confirmedCount >= signup.shift.capacity && !signup.waitlistIfFull) {
       const updatedSignup = await prisma.signup.update({
         where: { id: signupId },
-        data: { status: "CANCELED" },
+        data: {
+          status: "CANCELED",
+          ...firstResponse(signup, "APPROVED", actorId),
+        },
       });
 
       try {
@@ -195,11 +220,16 @@ export async function applySignupAction({
       };
     }
 
-    // Over capacity → waitlist instead of confirming.
+    // Over capacity → waitlist instead of confirming. They said yes to
+    // waiting when they signed up, so this is not an admin-placed waitlist
+    // spot and needs no confirming.
     if (confirmedCount >= signup.shift.capacity) {
       const updatedSignup = await prisma.signup.update({
         where: { id: signupId },
-        data: { status: "WAITLISTED" },
+        data: {
+          status: "WAITLISTED",
+          ...firstResponse(signup, "APPROVED", actorId),
+        },
       });
 
       try {
@@ -221,7 +251,10 @@ export async function applySignupAction({
 
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
-      data: { status: "CONFIRMED" },
+      data: {
+        status: "CONFIRMED",
+        ...firstResponse(signup, "APPROVED", actorId),
+      },
     });
 
     try {
@@ -281,7 +314,10 @@ export async function applySignupAction({
     const wasConfirmed = signup.status === "CONFIRMED";
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
-      data: { status: "CANCELED" },
+      data: {
+        status: "CANCELED",
+        ...firstResponse(signup, "DECLINED", actorId),
+      },
     });
 
     if (wasConfirmed) {
@@ -337,13 +373,21 @@ export async function applySignupAction({
     // volunteer gets the same "you're on the waitlist" notification either way:
     // from their side the outcome is identical, and spelling out that a human
     // held them back would not help.
+    //
+    // The volunteer didn't choose this, so they're asked to keep the place
+    // before any opening is offered to them (`waitlistConfirmedAt`).
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
-      data: { status: "WAITLISTED" },
+      data: {
+        status: "WAITLISTED",
+        waitlistAddedByAdminAt: new Date(),
+        waitlistConfirmedAt: null,
+        ...firstResponse(signup, "WAITLISTED", actorId),
+      },
     });
 
     try {
-      await createShiftWaitlistedNotification(
+      await createWaitlistConfirmRequestNotification(
         signup.user.id,
         signup.shift.shiftType.name,
         formatNZLongDate(signup.shift.start),
@@ -355,7 +399,7 @@ export async function applySignupAction({
 
     return {
       signup: updatedSignup,
-      message: "Moved to waitlist and volunteer notified",
+      message: "Moved to waitlist and volunteer asked to keep their place",
     };
   }
 
@@ -512,9 +556,11 @@ export async function applySignupAction({
       );
     }
 
+    // The email itself goes out from the no-show sweep once the shift is
+    // over, so marking someone present again in the meantime cancels it.
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
-      data: { status: "NO_SHOW" },
+      data: { status: "NO_SHOW", noShowMarkedAt: new Date() },
     });
     return { signup: updatedSignup, message: "Volunteer marked as no show" };
   }
@@ -533,9 +579,11 @@ export async function applySignupAction({
     );
   }
 
+  // Clearing the mark stops a no-show email that hasn't gone yet. One that
+  // already went can't be recalled; the sweep never sends twice either way.
   const updatedSignup = await prisma.signup.update({
     where: { id: signupId },
-    data: { status: "CONFIRMED" },
+    data: { status: "CONFIRMED", noShowMarkedAt: null },
   });
   return { signup: updatedSignup, message: "Volunteer attendance confirmed" };
 }

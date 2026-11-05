@@ -185,6 +185,32 @@ The application uses Campaign Monitor for sending various transactional emails:
 - Variables: `{firstName}`, `{linkToDashboard}`
 - Sent to volunteers under 16 when their parental consent is approved by an admin
 
+**No-show Follow-up (`CAMPAIGN_MONITOR_NO_SHOW_EMAIL_ID`)**
+
+- Variables: `{firstName}`, `{shiftType}`, `{shiftDate}`, `{shiftTime}`, `{location}`, `{browseShiftsLink}`
+- Sent by the `/api/cron/no-show-emails` sweep once a shift has ended, to volunteers an admin marked as a no-show. Marking them present again before then means no email. Until the template ID is set, emails stay queued for up to 7 days.
+- Agreed copy (Nov 2026):
+
+  > Kia ora {firstName},
+  >
+  > We've recorded you as a no-show for a volunteer shift you were booked for: {shiftType} on {shiftDate}, {shiftTime} at {location}.
+  >
+  > When a volunteer doesn't turn up, it can leave the restaurant short on help and means a place that could have gone to another volunteer is unused.
+  >
+  > If you can't make a shift, please cancel it as soon as possible so we can offer the place to someone else.
+  >
+  > We understand things can come up, so if there was a reason you couldn't attend and weren't able to cancel in time, please get in touch with the team.
+  >
+  > Thanks for your help.
+  >
+  > Ngā mihi,
+  > The Everybody Eats Team
+
+**Label Alert (`CAMPAIGN_MONITOR_LABEL_ASSIGNED_EMAIL_ID`)**
+
+- Variables: `{firstName}` (the admin being told), `{volunteerName}`, `{labelName}`, `{note}` (empty for labels that take no note), `{assignedBy}`, `{profileLink}`
+- Sent to the admins watching a label (set on the label at `/admin/custom-labels`) whenever it is added to a volunteer. They also get an in-app notification and a push.
+
 ## 🤝 Contributing
 
 This application helps coordinate volunteers for Everybody Eats' mission to reduce food waste, food insecurity, and social isolation in Aotearoa/New Zealand. 🌱

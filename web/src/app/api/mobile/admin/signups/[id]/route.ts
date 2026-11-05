@@ -50,6 +50,7 @@ export async function POST(
       action,
       sendEmail,
       skipNotification,
+      actorId: auth.userId,
     });
     return NextResponse.json({
       ...result.signup,

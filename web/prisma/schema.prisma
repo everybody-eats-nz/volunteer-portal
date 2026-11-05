@@ -51,8 +51,8 @@ model User {
   parentalConsentApprovedBy String? // Admin who approved the consent
 
   // Shift shortage notification preferences
-  receiveShortageNotifications      Boolean  @default(true)
-  excludedShortageNotificationTypes String[] @default([]) // Array of shift type IDs they DON'T want notifications for (opt-out list), empty means get all types
+  receiveShortageNotifications      Boolean                @default(true)
+  excludedShortageNotificationTypes String[]               @default([]) // Array of shift type IDs they DON'T want notifications for (opt-out list), empty means get all types
   // Announcement categories this volunteer has opted out of (email, push and
   // feed). Shift shortages aren't stored here: they follow
   // receiveShortageNotifications so volunteers have one shortage switch.
@@ -135,7 +135,10 @@ model User {
   createdAdminNotes AdminNote[] @relation("NoteCreator")
 
   // Custom labels (admin-only)
-  customLabels UserCustomLabel[]
+  customLabels         UserCustomLabel[]
+  // Labels this admin put on volunteers, and the labels they want to hear about
+  assignedCustomLabels UserCustomLabel[]    @relation("LabelAssigner")
+  watchedCustomLabels  CustomLabelWatcher[]
 
   // Resource hub uploads
   uploadedResources Resource[] @relation("ResourceUploader")
@@ -182,6 +185,9 @@ model User {
 
   // Year in mahi videos rendered for them, one per year.
   yearInReviewVideos YearInReviewVideo[]
+
+  // Shift applications this admin approved, waitlisted or declined
+  respondedSignups Signup[] @relation("SignupResponder")
 
   // Analytics queries filter heavily on role + createdAt
   @@index([role, createdAt])
@@ -293,6 +299,10 @@ model Shift {
   // The template this shift was rostered from, so template notes edits can be
   // carried through to shifts already on the roster. Null for one-off shifts.
   templateId            String?
+  // Off for shifts the team wants to hand-pick (special events): nobody is
+  // auto-approved onto it and its waitlist is never offered places
+  // automatically. Every signup waits for a human.
+  autoApprovalEnabled   Boolean                @default(true)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   shiftType             ShiftType              @relation(fields: [shiftTypeId], references: [id])
@@ -372,8 +382,32 @@ model Signup {
   // don't offer this shift to them again; the place moves down the list.
   waitlistOfferDeclinedAt DateTime?
 
+  // Put on the waitlist by an admin rather than by their own choice. They
+  // never said they wanted to wait, so they are asked: until they confirm
+  // (`waitlistConfirmedAt`), no place is offered to them.
+  waitlistAddedByAdminAt DateTime?
+  waitlistConfirmedAt    DateTime?
+
+  // Shift applications: a volunteer's own signup that needed a decision.
+  // `appliedAt` marks the signup as an application at all (admin assignments
+  // and regular auto-signups never are); the response fields record the
+  // first decision on it, by a person or by the auto-approval rules. These
+  // feed the response-time report, which the team holds to 48 hours.
+  appliedAt     DateTime?
+  respondedAt   DateTime?
+  respondedById String?
+  response      SignupResponse?
+
+  // No-show email. Sent by a sweep after the shift ends rather than at the
+  // moment of marking, so a volunteer who walks in late and is marked
+  // present again never gets it. Only signups marked through the portal
+  // (`noShowMarkedAt` set) qualify, so historical no-shows are never emailed.
+  noShowMarkedAt    DateTime?
+  noShowEmailSentAt DateTime?
+
   shift                 Shift                  @relation(fields: [shiftId], references: [id])
   user                  User                   @relation(fields: [userId], references: [id])
+  respondedBy           User?                  @relation("SignupResponder", fields: [respondedById], references: [id], onDelete: SetNull)
   regularSignup         RegularSignup? // One-to-one relation with RegularSignup
   autoApproval          AutoApproval?
   autoApprovalDecisions AutoApprovalDecision[]
@@ -386,6 +420,18 @@ model Signup {
   // The expiry sweep asks one question across every shift at once: which live
   // offers have run out? Without this it is a full scan of Signup.
   @@index([waitlistOfferExpiresAt])
+  // Response-time report windows on when applications came in
+  @@index([appliedAt])
+  // The no-show email sweep looks for marked, unsent no-shows
+  @@index([noShowMarkedAt, noShowEmailSentAt])
+}
+
+/// The first decision on a shift application.
+enum SignupResponse {
+  APPROVED // An admin approved it (including approving into a full shift)
+  AUTO_APPROVED // The auto-approval rules confirmed it on signup
+  WAITLISTED // An admin moved it to the waitlist
+  DECLINED // An admin declined it
 }
 
 model Achievement {
@@ -545,6 +591,7 @@ enum NotificationType {
   FEED_ITEM_COMMENTED // Someone commented on your feed item
   FEED_ITEM_COMMENT_REPLY // Someone commented on a feed item you also commented on (thread participant)
   SHIFT_SIGNUP_REQUEST // Volunteer signed up and needs approval - notify managers for that location
+  LABEL_ASSIGNED // A label this admin watches was added to a volunteer
 }
 
 model RestaurantManager {
@@ -779,34 +826,57 @@ model AdminNote {
 
 // Custom labels for admin use
 model CustomLabel {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  color     String // Tailwind color classes like "bg-purple-50 text-purple-700 border-purple-200"
-  icon      String? // Optional emoji icon
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String   @unique
+  color        String // Tailwind color classes like "bg-purple-50 text-purple-700 border-purple-200"
+  icon         String? // Optional emoji icon
+  isActive     Boolean  @default(true)
+  // Ask for a note whenever this label is added (e.g. "Management Note":
+  // what the volunteer needs, or what the team should address). Admins only.
+  requiresNote Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
-  users UserCustomLabel[]
+  users    UserCustomLabel[]
+  watchers CustomLabelWatcher[]
 
   @@index([isActive])
 }
 
 // Junction table for user custom labels
 model UserCustomLabel {
-  id         String   @id @default(cuid())
-  userId     String
-  labelId    String
-  assignedAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  labelId      String
+  assignedAt   DateTime @default(now())
+  // Why the label was added. Required for labels with `requiresNote`, seen
+  // only by admins.
+  note         String?
+  assignedById String?
 
   // Relations
-  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label CustomLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label      CustomLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  assignedBy User?       @relation("LabelAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
 
   @@unique([userId, labelId])
   @@index([userId])
   @@index([labelId])
+}
+
+// An admin who is told whenever this label is added to a volunteer
+model CustomLabelWatcher {
+  id        String   @id @default(cuid())
+  labelId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  label CustomLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([labelId, userId])
+  @@index([userId])
 }
 
 // Resource hub for document management

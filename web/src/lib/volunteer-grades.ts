@@ -41,7 +41,23 @@ export const FIRST_SHIFT_BADGE: VolunteerGradeInfo = {
   icon: "🌟",
 };
 
-// New Volunteer badge info for volunteers with 1-5 completed shifts
+/**
+ * The "New volunteer" badge covers a volunteer's 2nd and 3rd shifts (1-2
+ * completed). Together with "First shift" that labels exactly their first
+ * three shifts, which is how long the team wants them flagged on the roster.
+ */
+export const NEW_VOLUNTEER_MAX_COMPLETED_SHIFTS = 2;
+
+/**
+ * Is this volunteer still in their first few shifts - showing the "First
+ * shift" or "New volunteer" badge? Admin-waitlisted new volunteers get offered
+ * waitlist places even though the auto-approval rules would not take them.
+ */
+export function isNewVolunteer(completedShifts: number): boolean {
+  return completedShifts <= NEW_VOLUNTEER_MAX_COMPLETED_SHIFTS;
+}
+
+// New Volunteer badge info for volunteers on their 2nd and 3rd shifts
 export const NEW_VOLUNTEER_BADGE: VolunteerGradeInfo = {
   label: "New volunteer",
   color:
@@ -69,8 +85,8 @@ export function getVolunteerGradeInfo(
 /**
  * Get the display grade info for a volunteer based on their completed shifts.
  * - 0 shifts: "First shift" badge
- * - 1-5 shifts: "New volunteer" badge (overrides database grade)
- * - 6+ shifts: Actual volunteer grade (GREEN, YELLOW, PINK)
+ * - 1-2 shifts: "New volunteer" badge (overrides database grade)
+ * - 3+ shifts: Actual volunteer grade (GREEN, YELLOW, PINK)
  */
 export function getDisplayGradeInfo(
   grade: VolunteerGrade,
@@ -81,11 +97,11 @@ export function getDisplayGradeInfo(
     return FIRST_SHIFT_BADGE;
   }
 
-  // Override with "New volunteer" badge for volunteers with 1-5 completed shifts
-  if (completedShifts >= 1 && completedShifts <= 5) {
+  // Override with "New volunteer" badge for their 2nd and 3rd shifts
+  if (isNewVolunteer(completedShifts)) {
     return NEW_VOLUNTEER_BADGE;
   }
 
-  // For 6+ shifts, show actual database grade
+  // From their 4th shift on, show actual database grade
   return VOLUNTEER_GRADE_INFO[grade];
 }

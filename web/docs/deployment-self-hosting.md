@@ -138,6 +138,7 @@ Vercel Cron is gone. Recreate the jobs as **Coolify Scheduled Tasks**
 | `0 3 * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/prune-chat-logs` |
 | `0 * * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/van-open-trip-reminders` |
 | `*/15 * * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/waitlist-offers` |
+| `*/15 * * * *` | `curl -fsS -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/no-show-emails` |
 
 > The first two crons were likely **not running on Vercel** anyway: `CRON_SECRET`
 > was never set in the Vercel env, and `proxy.ts` default-denied `/api/cron/*`.

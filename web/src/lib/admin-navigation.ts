@@ -36,6 +36,7 @@ import {
   Target,
   Ticket,
   Banknote,
+  Inbox,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -129,6 +130,14 @@ export const adminNavCategories: AdminNavCategory[] = [
         description:
           "Shifts run, positions filled, and understaffing by restaurant",
         commandKey: "coverage",
+      },
+      {
+        title: "Shift Applications",
+        href: "/admin/analytics/applications",
+        icon: Inbox,
+        description:
+          "How quickly applications are answered against the 48-hour target, and declines by restaurant",
+        commandKey: "shift-applications",
       },
       {
         title: "Cash Reconciliation",

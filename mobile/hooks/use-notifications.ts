@@ -22,7 +22,8 @@ export type NotificationType =
   | 'SURVEY_ASSIGNED'
   | 'FEED_ITEM_LIKED'
   | 'FEED_ITEM_COMMENTED'
-  | 'FEED_ITEM_COMMENT_REPLY';
+  | 'FEED_ITEM_COMMENT_REPLY'
+  | 'LABEL_ASSIGNED';
 
 export type AppNotification = {
   id: string;

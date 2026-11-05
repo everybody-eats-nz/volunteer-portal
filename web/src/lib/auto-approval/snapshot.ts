@@ -190,6 +190,7 @@ export function buildShiftContext(shift: {
   shiftType?: { name: string } | null;
   location: string | null;
   start: Date;
+  autoApprovalEnabled?: boolean;
 }): ShiftContext {
   return {
     shiftId: shift.id ?? null,
@@ -198,6 +199,7 @@ export function buildShiftContext(shift: {
     location: shift.location,
     start: shift.start,
     daysInAdvance: Math.floor((shift.start.getTime() - Date.now()) / DAY_MS),
+    autoApprovalEnabled: shift.autoApprovalEnabled ?? true,
   };
 }
 

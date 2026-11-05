@@ -20,9 +20,18 @@
  *   4. If they decline, or the window lapses, the offer moves to the next
  *      eligible person.
  *
- * Only auto-approval-eligible volunteers are offered anything. Anyone else on
- * the list is still the team's call, exactly as before - this never confirms
- * someone a human would have wanted to look at first.
+ * Only auto-approval-eligible volunteers are offered anything, with one
+ * exception: a new volunteer (First shift / New volunteer badge) whom an admin
+ * put on the waitlist has already been looked at by a human, so they take
+ * their turn like everyone else rather than missing out for being new. Anyone
+ * else on the list is still the team's call - this never confirms someone a
+ * human would have wanted to look at first, and a BLOCK rule (say a
+ * Management Note) still holds everyone it matches.
+ *
+ * Two things stop offers outright:
+ *   - the shift has auto-approval switched off (a hand-picked event);
+ *   - an admin put the volunteer on the list and they haven't yet said they
+ *     want to stay on it (`waitlistConfirmedAt`).
  *
  * Server-only: uses Prisma. Volunteer-facing copy lives in `@/lib/waitlist`.
  */
@@ -36,6 +45,8 @@ import {
 } from "@/lib/auto-approval";
 import { createWaitlistOfferNotification } from "@/lib/notifications";
 import { formatInNZT } from "@/lib/timezone";
+import { isNewVolunteer } from "@/lib/volunteer-grades";
+import { needsWaitlistConfirmation } from "@/lib/waitlist";
 
 /**
  * How long someone has to answer.
@@ -113,10 +124,13 @@ export async function offerWaitlistPlaces(
         capacity: true,
         location: true,
         shiftTypeId: true,
+        autoApprovalEnabled: true,
         shiftType: { select: { name: true } },
       },
     });
     if (!shift) return result;
+    // Hand-picked shifts fill by hand, waitlist included.
+    if (!shift.autoApprovalEnabled) return result;
 
     const now = new Date();
     // A shift that has started fills itself, by people walking in.
@@ -154,7 +168,13 @@ export async function offerWaitlistPlaces(
         waitlistOfferDeclinedAt: null,
       },
       orderBy: { createdAt: "asc" },
-      select: { id: true, userId: true },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        waitlistAddedByAdminAt: true,
+        waitlistConfirmedAt: true,
+      },
     });
     if (candidates.length === 0) return result;
 
@@ -176,10 +196,12 @@ export async function offerWaitlistPlaces(
       const snapshot = snapshotByUser.get(candidate.userId);
       if (!snapshot) continue;
 
-      // "Provided they are on auto-approval" - the same rules, the same
-      // evaluator, the same answer a fresh signup would have got.
-      const { outcome } = evaluateOutcome(rules, snapshot, shiftContext);
-      if (outcome !== "APPROVED") continue;
+      // Put here by the team and not yet asked to stay: wait for their yes.
+      if (needsWaitlistConfirmation(candidate)) continue;
+
+      if (!isEligibleForOffer(candidate, snapshot, rules, shiftContext)) {
+        continue;
+      }
 
       await prisma.signup.update({
         where: { id: candidate.id },
@@ -210,6 +232,27 @@ export async function offerWaitlistPlaces(
   }
 
   return result;
+}
+
+/**
+ * "Provided they are on auto-approval" - the same rules, the same evaluator,
+ * the same answer a fresh signup would have got. Plus admin-waitlisted new
+ * volunteers, who would otherwise never get a turn: no rule auto-approves
+ * someone on their first shifts.
+ */
+export function isEligibleForOffer(
+  candidate: { waitlistAddedByAdminAt: Date | null },
+  snapshot: Parameters<typeof evaluateOutcome>[1],
+  rules: Parameters<typeof evaluateOutcome>[0],
+  shiftContext: Parameters<typeof evaluateOutcome>[2]
+): boolean {
+  const { outcome } = evaluateOutcome(rules, snapshot, shiftContext);
+  if (outcome === "APPROVED") return true;
+  if (outcome === "BLOCKED") return false;
+  return (
+    candidate.waitlistAddedByAdminAt !== null &&
+    isNewVolunteer(snapshot.completedShifts)
+  );
 }
 
 export class WaitlistOfferError extends Error {
@@ -337,4 +380,37 @@ export function hasLiveWaitlistOffer(signup: {
     signup.waitlistOfferExpiresAt !== null &&
     signup.waitlistOfferExpiresAt > new Date()
   );
+}
+
+/**
+ * The volunteer says yes to a waitlist place an admin put them in. From now
+ * on they're in the queue like anyone who joined it themselves, and if a
+ * place is already free it is offered straight away.
+ *
+ * Idempotent: confirming twice is fine and changes nothing.
+ */
+export async function confirmWaitlistPlace(shiftId: string, userId: string) {
+  const signup = await prisma.signup.findUnique({
+    where: { userId_shiftId: { userId, shiftId } },
+    select: {
+      id: true,
+      status: true,
+      waitlistAddedByAdminAt: true,
+      waitlistConfirmedAt: true,
+    },
+  });
+  if (!signup || signup.status !== "WAITLISTED") {
+    throw new WaitlistOfferError(404, "You're not on the waitlist for this shift");
+  }
+  if (!signup.waitlistAddedByAdminAt || signup.waitlistConfirmedAt) {
+    return { confirmed: true };
+  }
+
+  await prisma.signup.update({
+    where: { id: signup.id },
+    data: { waitlistConfirmedAt: new Date() },
+  });
+  await offerWaitlistPlaces(shiftId);
+
+  return { confirmed: true };
 }

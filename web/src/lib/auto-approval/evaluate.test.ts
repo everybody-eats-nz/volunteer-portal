@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluate, ruleScope, sortRules } from "./evaluate";
+import { evaluate, evaluateOutcome, ruleScope, sortRules } from "./evaluate";
 import { describeRule } from "./criteria";
 import type {
   DescribeContext,
@@ -22,6 +22,7 @@ const shift: ShiftContext = {
   location: "Wellington",
   start: new Date("2026-09-01T18:00:00Z"),
   daysInAdvance: 10,
+  autoApprovalEnabled: true,
 };
 
 function rule(overrides: Partial<RuleConfig> = {}): RuleConfig {
@@ -102,6 +103,26 @@ describe("ruleScope", () => {
 });
 
 describe("evaluate", () => {
+  it("holds everyone on a shift with auto-approval turned off", () => {
+    const off = { ...shift, autoApprovalEnabled: false };
+    const rules = [rule({ minCompletedShifts: 5 })];
+    const decision = evaluate(rules, volunteer(), off, ctx);
+    expect(decision.outcome).toBe("HELD");
+    expect(decision.summary).toBe("Auto-approval is turned off for this shift");
+    // The trace still explains what the rules would have done
+    expect(decision.trace[0].status).toBe("MATCHED");
+    expect(evaluateOutcome(rules, volunteer(), off).outcome).toBe("HELD");
+  });
+
+  it("still reports a block on a shift with auto-approval turned off", () => {
+    const off = { ...shift, autoApprovalEnabled: false };
+    // e.g. a Management Note block: still worth saying why they're held
+    const rules = [rule({ kind: "BLOCK", requiredLabelIds: ["label-watch"] })];
+    const v = volunteer({ labelIds: ["label-watch"] });
+    expect(evaluate(rules, v, off, ctx).outcome).toBe("BLOCKED");
+    expect(evaluateOutcome(rules, v, off).outcome).toBe("BLOCKED");
+  });
+
   it("approves when every AND condition is met", () => {
     const decision = evaluate(
       [rule({ minCompletedShifts: 5, minAttendanceRate: 80 })],

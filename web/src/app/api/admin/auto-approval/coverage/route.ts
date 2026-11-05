@@ -93,6 +93,7 @@ export async function POST(req: Request) {
     location: body.location ?? null,
     start: new Date(Date.now() + body.daysInAdvance * DAY_MS),
     daysInAdvance: body.daysInAdvance,
+    autoApprovalEnabled: true,
   };
 
   if (body.explainUserId) {
