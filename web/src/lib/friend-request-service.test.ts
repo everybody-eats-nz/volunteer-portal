@@ -5,7 +5,7 @@ vi.mock("@/lib/prisma", () => ({
     user: { findUnique: vi.fn(), findFirst: vi.fn() },
     friendship: { findFirst: vi.fn() },
     friendRequest: {
-      findFirst: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -26,7 +26,7 @@ type Mock = ReturnType<typeof vi.fn>;
 const userFind = prisma.user.findUnique as unknown as Mock;
 const userFindFirst = prisma.user.findFirst as unknown as Mock;
 const friendshipFind = prisma.friendship.findFirst as unknown as Mock;
-const requestFind = prisma.friendRequest.findFirst as unknown as Mock;
+const requestFind = prisma.friendRequest.findMany as unknown as Mock;
 const requestCreate = prisma.friendRequest.create as unknown as Mock;
 const requestUpdate = prisma.friendRequest.update as unknown as Mock;
 
@@ -121,11 +121,14 @@ describe("sendFriendRequestFromUserToUser", () => {
     userFind.mockResolvedValueOnce(sender);
     userFind.mockResolvedValueOnce(recipient);
     friendshipFind.mockResolvedValueOnce(null);
-    requestFind.mockResolvedValueOnce({
-      id: "r1",
-      status: "PENDING",
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    });
+    requestFind.mockResolvedValueOnce([
+      {
+        id: "r1",
+        toEmail: recipient.email,
+        status: "PENDING",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    ]);
 
     const result = await sendFriendRequestFromUserToUser(
       sender.id,
@@ -144,11 +147,14 @@ describe("sendFriendRequestFromUserToUser", () => {
     userFind.mockResolvedValueOnce(sender);
     userFind.mockResolvedValueOnce(recipient);
     friendshipFind.mockResolvedValueOnce(null);
-    requestFind.mockResolvedValueOnce({
-      id: "r-old",
-      status: "DECLINED",
-      expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    });
+    requestFind.mockResolvedValueOnce([
+      {
+        id: "r-old",
+        toEmail: recipient.email,
+        status: "DECLINED",
+        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      },
+    ]);
     requestUpdate.mockResolvedValueOnce({ id: "r-old" });
 
     const result = await sendFriendRequestFromUserToUser(
@@ -168,11 +174,92 @@ describe("sendFriendRequestFromUserToUser", () => {
     expect(requestCreate).not.toHaveBeenCalled();
   });
 
+  it("looks up earlier requests case-insensitively", async () => {
+    userFind.mockResolvedValueOnce(sender);
+    userFind.mockResolvedValueOnce(recipient);
+    friendshipFind.mockResolvedValueOnce(null);
+    requestFind.mockResolvedValueOnce([]);
+    requestCreate.mockResolvedValueOnce({ id: "r-new" });
+
+    await sendFriendRequestFromUserToUser(sender.id, recipient.id);
+
+    expect(requestFind).toHaveBeenCalledWith({
+      where: {
+        fromUserId: sender.id,
+        toEmail: { equals: recipient.email, mode: "insensitive" },
+      },
+    });
+  });
+
+  it("re-sends a pending request stored under other casing, fixing its casing", async () => {
+    userFind.mockResolvedValueOnce(sender);
+    userFind.mockResolvedValueOnce(recipient);
+    friendshipFind.mockResolvedValueOnce(null);
+    // A legacy row from the old web form, which kept the typed casing. The
+    // recipient's lookups match toEmail exactly, so they never saw it.
+    requestFind.mockResolvedValueOnce([
+      {
+        id: "r-legacy",
+        toEmail: "Recipient@Example.com",
+        status: "PENDING",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    ]);
+    requestUpdate.mockResolvedValueOnce({ id: "r-legacy" });
+
+    const result = await sendFriendRequestFromUserToUser(
+      sender.id,
+      recipient.id
+    );
+
+    expect(result).toEqual({ ok: true, requestId: "r-legacy" });
+    expect(requestUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "r-legacy" },
+        data: expect.objectContaining({
+          toEmail: recipient.email,
+          status: "PENDING",
+        }),
+      })
+    );
+    expect(requestCreate).not.toHaveBeenCalled();
+  });
+
+  it("prefers the exact-casing request over a legacy one", async () => {
+    userFind.mockResolvedValueOnce(sender);
+    userFind.mockResolvedValueOnce(recipient);
+    friendshipFind.mockResolvedValueOnce(null);
+    requestFind.mockResolvedValueOnce([
+      {
+        id: "r-legacy",
+        toEmail: "RECIPIENT@example.com",
+        status: "DECLINED",
+        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "r-exact",
+        toEmail: recipient.email,
+        status: "PENDING",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    ]);
+
+    const result = await sendFriendRequestFromUserToUser(
+      sender.id,
+      recipient.id
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.status).toBe(409);
+    expect(requestUpdate).not.toHaveBeenCalled();
+  });
+
   it("creates a new request when none exists and returns the new id", async () => {
     userFind.mockResolvedValueOnce(sender);
     userFind.mockResolvedValueOnce(recipient);
     friendshipFind.mockResolvedValueOnce(null);
-    requestFind.mockResolvedValueOnce(null);
+    requestFind.mockResolvedValueOnce([]);
     requestCreate.mockResolvedValueOnce({ id: "r-new" });
 
     const result = await sendFriendRequestFromUserToUser(
@@ -204,7 +291,7 @@ describe("sendFriendRequestFromUserToUser", () => {
     userFind.mockResolvedValueOnce(sender);
     userFind.mockResolvedValueOnce(recipient);
     friendshipFind.mockResolvedValueOnce(null);
-    requestFind.mockResolvedValueOnce(null);
+    requestFind.mockResolvedValueOnce([]);
     requestCreate.mockResolvedValueOnce({ id: "r-new" });
 
     const result = await sendFriendRequestFromUserToUser(
@@ -274,7 +361,7 @@ describe("sendFriendRequestFromUserToEmail", () => {
     userFind.mockResolvedValueOnce(sender);
     userFind.mockResolvedValueOnce(recipient);
     friendshipFind.mockResolvedValueOnce(null);
-    requestFind.mockResolvedValueOnce(null);
+    requestFind.mockResolvedValueOnce([]);
     requestCreate.mockResolvedValueOnce({ id: "r-email" });
 
     const result = await sendFriendRequestFromUserToEmail(

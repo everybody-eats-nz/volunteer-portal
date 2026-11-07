@@ -96,6 +96,38 @@ describe("POST /api/mobile/friends/requests", () => {
     });
   });
 
+  describe("choosing the path", () => {
+    it("treats any body with an email key as an email request", async () => {
+      // An email key wins even beside a toUserId, so a malformed email is
+      // reported rather than silently falling back to the id.
+      const response = await call({ toUserId: "user-2", email: null });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        error: "Enter a valid email address",
+      });
+      expect(mockToUser).not.toHaveBeenCalled();
+      expect(mockToEmail).not.toHaveBeenCalled();
+    });
+
+    it("sends by email when both are given and the email is valid", async () => {
+      mockToEmail.mockResolvedValue({ ok: true, requestId: "req-3" });
+
+      const response = await call({
+        toUserId: "user-2",
+        email: "friend@example.com",
+      });
+
+      expect(response.status).toBe(200);
+      expect(mockToEmail).toHaveBeenCalledWith(
+        "user-1",
+        "friend@example.com",
+        { message: undefined }
+      );
+      expect(mockToUser).not.toHaveBeenCalled();
+    });
+  });
+
   describe("by email (Add a friend)", () => {
     it("sends the request with the trimmed email and message", async () => {
       mockToEmail.mockResolvedValue({ ok: true, requestId: "req-2" });

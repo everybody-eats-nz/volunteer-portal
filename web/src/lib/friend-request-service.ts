@@ -91,13 +91,26 @@ export async function sendFriendRequestFromUserToUser(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + REQUEST_EXPIRY_DAYS);
 
-  const existingRequest = await prisma.friendRequest.findFirst({
-    where: { fromUserId: fromUser.id, toEmail: toUser.email },
+  // Requests are stored against the recipient's stored email, which is what
+  // their pending-requests lookups match exactly. Older rows from the web form
+  // kept the casing the sender typed, so find those too and prefer an exact
+  // match. A row with other casing is invisible to the recipient, so it is
+  // revived under the stored casing rather than counted as already sent.
+  // Picking it only when no exact row exists keeps the rewrite clear of the
+  // (fromUserId, toEmail) unique constraint.
+  const sentRequests = await prisma.friendRequest.findMany({
+    where: {
+      fromUserId: fromUser.id,
+      toEmail: { equals: toUser.email, mode: "insensitive" },
+    },
   });
+  const existingRequest =
+    sentRequests.find((r) => r.toEmail === toUser.email) ?? sentRequests[0];
 
   let friendRequest;
   if (existingRequest) {
     if (
+      existingRequest.toEmail === toUser.email &&
       existingRequest.status === "PENDING" &&
       existingRequest.expiresAt > new Date()
     ) {
@@ -111,6 +124,7 @@ export async function sendFriendRequestFromUserToUser(
     friendRequest = await prisma.friendRequest.update({
       where: { id: existingRequest.id },
       data: {
+        toEmail: toUser.email,
         status: "PENDING",
         message: message || null,
         expiresAt,

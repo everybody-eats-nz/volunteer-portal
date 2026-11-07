@@ -15,7 +15,10 @@ const byUserIdSchema = z.object({
 
 /** Typed in by the volunteer, for someone who isn't suggested. */
 const byEmailSchema = z.object({
-  email: z.string().trim().email("Enter a valid email address"),
+  email: z
+    .string({ error: "Enter a valid email address" })
+    .trim()
+    .email("Enter a valid email address"),
   message: z
     .string()
     .trim()
@@ -34,8 +37,11 @@ const byEmailSchema = z.object({
  * signed up with `email` (Add a friend), with an optional `message`.
  *
  * Email requests share the web's friend-request rate limit: a typed email
- * reveals whether that address has an account, so it must not be cheap to
+ * reveals whether that address has an account (and, if so, their request
+ * setting and whether you are already connected), so it must not be cheap to
  * try many. Tapping Add on a suggestion reveals nothing and isn't limited.
+ * The limiter is in memory, so the budget is per server instance, the same
+ * as on the web route.
  */
 export async function POST(request: Request) {
   const auth = await requireMobileUser(request);
