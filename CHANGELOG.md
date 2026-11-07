@@ -1,3 +1,9 @@
+## [0.202.0] - 2026-11-07
+
+### Changes
+- feat(mobile): add a friend by email, not just from suggestions ([#1412](https://github.com/everybody-eats-nz/volunteer-portal/pull/1412)) by @malinmalliyawadu
+
+
 ## [0.201.0] - 2026-11-07
 
 ### Changes
