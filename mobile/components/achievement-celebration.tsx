@@ -20,23 +20,30 @@ import { Brand, FontFamily, Palette } from '@/constants/theme';
 import { useAchievementCelebrationStore } from '@/hooks/use-achievement-celebration';
 import type { Achievement } from '@/lib/dummy-data';
 
-const CATEGORY_ACCENT: Record<Achievement['category'], string> = {
-  MILESTONE: '#f59e0b',
-  DEDICATION: '#3b82f6',
-  SPECIALIZATION: '#10b981',
-  IMPACT: '#ef4444',
-  COMMUNITY: '#a855f7',
+const CATEGORY_LABEL: Record<Achievement['category'], string> = {
+  MILESTONE: 'Milestone',
+  DEDICATION: 'Dedication',
+  SPECIALIZATION: 'Specialisation',
+  IMPACT: 'Impact',
+  COMMUNITY: 'Community',
 };
 
+/** Brand palette only, so the sheet stays on the forest/sun/cream system. */
 const CONFETTI_COLORS = [
-  Brand.accent,
-  Brand.green,
-  '#f59e0b',
-  '#ef4444',
-  '#3b82f6',
-  '#a855f7',
-  '#10b981',
+  Palette.sun200,
+  Palette.cream50,
+  '#F4D2BE', // peach
+  Palette.forest200,
+  Palette.sun100,
 ];
+
+/** Text and surfaces on the dark forest sheet. */
+const ON_FOREST = {
+  muted: 'rgba(253,248,239,0.68)',
+  card: 'rgba(253,248,239,0.06)',
+  cardBorder: 'rgba(253,248,239,0.10)',
+  iconWell: 'rgba(253,248,239,0.08)',
+};
 
 const PARTICLE_COUNT = 32;
 
@@ -79,11 +86,10 @@ export function AchievementCelebration() {
       animationType="slide"
       onRequestClose={handleClose}>
       <View style={[styles.root, { backgroundColor: Palette.forest700 }]}>
-        {/* Warm sun glow radiating from the top sets a celebratory tone on the
-            dark forest panel without competing with the content. */}
+        {/* A lighter forest glow at the top lifts the hero off the dark sheet. */}
         <LinearGradient
-          colors={['rgba(248,251,105,0.20)', 'rgba(14,42,28,0)']}
-          locations={[0, 0.7]}
+          colors={[Palette.forest500, Palette.forest700]}
+          locations={[0, 0.55]}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
@@ -147,7 +153,8 @@ export function AchievementCelebration() {
             styles.footer,
             {
               paddingBottom: insets.bottom + 16,
-              backgroundColor: 'rgba(14,42,28,0.92)',
+              // Solid, so the list never ghosts through under the button.
+              backgroundColor: Palette.forest700,
               borderTopColor: 'rgba(253,248,239,0.14)',
             },
           ]}>
@@ -199,14 +206,14 @@ function Hero({
         🎉
       </Animated.Text>
 
-      <Text style={[styles.heroEyebrow, { color: Palette.sun200 }]}>
-        Ngā mihi nui
-      </Text>
       <ThemedText
         type="displayLarge"
         style={[styles.heroTitle, { color: Palette.cream50 }]}>
-        {count > 1 ? 'Achievements unlocked!' : 'Achievement unlocked!'}
+        {count > 1 ? 'Achievements unlocked' : 'Achievement unlocked'}
       </ThemedText>
+      <Text style={[styles.heroSubtitle, { color: ON_FOREST.muted }]}>
+        Ngā mihi nui for your mahi.
+      </Text>
 
       {totalPoints > 0 ? (
         <View
@@ -229,15 +236,15 @@ function AchievementCard({
   index: number;
   reduceMotion: boolean;
 }) {
-  const accent = CATEGORY_ACCENT[achievement.category] ?? Brand.green;
+  const category = CATEGORY_LABEL[achievement.category];
 
   return (
     <Animated.View
       style={[
         styles.card,
         {
-          backgroundColor: Palette.forest600,
-          borderColor: 'rgba(253,248,239,0.12)',
+          backgroundColor: ON_FOREST.card,
+          borderColor: ON_FOREST.cardBorder,
         },
         !reduceMotion && {
           animationName: {
@@ -250,40 +257,30 @@ function AchievementCard({
           animationFillMode: 'both' as const,
         },
       ]}>
-      <View style={[styles.cardIconWrap, { backgroundColor: `${accent}1A` }]}>
+      <View
+        style={[styles.cardIconWrap, { backgroundColor: ON_FOREST.iconWell }]}>
         <Text style={styles.cardIcon}>{achievement.icon}</Text>
       </View>
 
       <View style={{ flex: 1 }}>
-        <View style={styles.cardHeader}>
-          <Text
-            style={[styles.cardTitle, { color: Palette.cream50 }]}
-            numberOfLines={2}>
-            {achievement.name}
-          </Text>
-          <View
-            style={[
-              styles.categoryBadge,
-              { backgroundColor: `${accent}1A`, borderColor: `${accent}55` },
-            ]}>
-            <Text style={[styles.categoryText, { color: accent }]}>
-              {achievement.category}
-            </Text>
-          </View>
-        </View>
+        <Text
+          style={[styles.cardTitle, { color: Palette.cream50 }]}
+          numberOfLines={2}>
+          {achievement.name}
+        </Text>
 
         {achievement.description ? (
-          <Text
-            style={[
-              styles.cardDescription,
-              { color: 'rgba(253,248,239,0.7)' },
-            ]}>
+          <Text style={[styles.cardDescription, { color: ON_FOREST.muted }]}>
             {achievement.description}
           </Text>
         ) : null}
 
-        <Text style={[styles.cardPoints, { color: accent }]}>
-          +{achievement.points} {achievement.points === 1 ? 'point' : 'points'}
+        <Text style={[styles.cardMeta, { color: ON_FOREST.muted }]}>
+          <Text style={[styles.cardPoints, { color: Palette.sun200 }]}>
+            +{achievement.points}{' '}
+            {achievement.points === 1 ? 'point' : 'points'}
+          </Text>
+          {category ? `  ·  ${category}` : null}
         </Text>
       </View>
     </Animated.View>
@@ -400,18 +397,18 @@ const styles = StyleSheet.create({
     lineHeight: 80,
     marginBottom: 12,
   },
-  heroEyebrow: {
-    fontFamily: FontFamily.medium,
-    fontSize: 13,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
   heroTitle: {
     fontSize: 34,
-    lineHeight: 38,
+    lineHeight: 40,
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 16,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 18,
   },
   pointsPill: {
     paddingHorizontal: 14,
@@ -427,9 +424,10 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
   },
   cardIconWrap: {
@@ -443,27 +441,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 32,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 4,
-  },
   cardTitle: {
-    flex: 1,
     fontFamily: FontFamily.semiBold,
     fontSize: 17,
-  },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  categoryText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 10,
-    letterSpacing: 0.6,
+    marginBottom: 2,
   },
   cardDescription: {
     fontFamily: FontFamily.regular,
@@ -471,9 +452,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 8,
   },
+  cardMeta: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+  },
   cardPoints: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 13,
   },
   footer: {
     position: 'absolute',
