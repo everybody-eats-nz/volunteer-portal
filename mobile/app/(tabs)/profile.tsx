@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
+import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
@@ -558,6 +559,18 @@ export default function ProfileScreen() {
             isAccepting={isAccepting}
             onAdd={handleSendRequest}
             onAccept={handleAcceptRequest}
+          />
+
+          <Button
+            label="Add a friend by email"
+            variant="ghost"
+            size="sm"
+            icon="person-add-outline"
+            iconLeading
+            fullWidth
+            onPress={() => router.push("/friends/add")}
+            style={styles.addFriendButton}
+            testID="profile-add-friend"
           />
         </View>
 
@@ -2228,6 +2241,9 @@ const styles = StyleSheet.create({
   },
 
   /* Whānau */
+  addFriendButton: {
+    marginTop: 16,
+  },
   friendsRowScroll: {
     marginHorizontal: -20,
   },

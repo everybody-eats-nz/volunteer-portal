@@ -4,11 +4,14 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { friendRequestLimiter, getClientIdentifier } from "@/lib/rate-limit";
-import { createFriendRequestNotification } from "@/lib/notifications";
+import {
+  FRIEND_REQUEST_MESSAGE_MAX_LENGTH,
+  sendFriendRequestFromUserToEmail,
+} from "@/lib/friend-request-service";
 
 const sendFriendRequestSchema = z.object({
-  email: z.string().email("Invalid email format"),
-  message: z.string().optional(),
+  email: z.string().trim().email("Invalid email format"),
+  message: z.string().trim().max(FRIEND_REQUEST_MESSAGE_MAX_LENGTH).optional(),
 });
 
 export async function GET() {
@@ -149,154 +152,42 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let body: unknown;
   try {
-    const body = await req.json();
-    const { email, message } = sendFriendRequestSchema.parse(body);
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-    // Check if trying to add themselves
-    if (email === user.email) {
+  const parsed = sendFriendRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.issues },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const result = await sendFriendRequestFromUserToEmail(
+      user.id,
+      parsed.data.email,
+      { message: parsed.data.message }
+    );
+    if (!result.ok) {
       return NextResponse.json(
-        { error: "Cannot send friend request to yourself" },
-        { status: 400 }
+        { error: result.error },
+        { status: result.status }
       );
-    }
-
-    // Check if user allows friend requests
-    const targetUser = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, allowFriendRequests: true, name: true, firstName: true, lastName: true },
-    });
-
-    if (!targetUser) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    if (!targetUser.allowFriendRequests) {
-      return NextResponse.json(
-        { error: "User is not accepting friend requests" },
-        { status: 400 }
-      );
-    }
-
-    // Check if friendship already exists
-    const existingFriendship = await prisma.friendship.findFirst({
-      where: {
-        OR: [
-          { userId: user.id, friendId: targetUser.id },
-          { userId: targetUser.id, friendId: user.id },
-        ],
-      },
-    });
-
-    if (existingFriendship) {
-      return NextResponse.json(
-        { error: "Friendship already exists or is pending" },
-        { status: 400 }
-      );
-    }
-
-    // Check if friend request already exists (any status)
-    const existingRequest = await prisma.friendRequest.findFirst({
-      where: {
-        fromUserId: user.id,
-        toEmail: email,
-      },
-    });
-
-    // Calculate new expiry date
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
-
-    let friendRequest;
-
-    if (existingRequest) {
-      // If there's a pending request that hasn't expired, don't allow resending
-      if (existingRequest.status === "PENDING" && existingRequest.expiresAt > new Date()) {
-        return NextResponse.json(
-          { error: "Friend request already sent" },
-          { status: 400 }
-        );
-      }
-
-      // If request was previously accepted, declined, expired, or canceled, update it
-      // This handles the case where users removed each other as friends and want to reconnect
-      friendRequest = await prisma.friendRequest.update({
-        where: { id: existingRequest.id },
-        data: {
-          status: "PENDING",
-          message: message || null,
-          expiresAt,
-          updatedAt: new Date(),
-        },
-        include: {
-          fromUser: {
-            select: {
-              name: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
-      });
-    } else {
-      // Create new friend request
-      friendRequest = await prisma.friendRequest.create({
-        data: {
-          fromUserId: user.id,
-          toEmail: email,
-          message: message || null,
-          expiresAt,
-        },
-        include: {
-          fromUser: {
-            select: {
-              name: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
-      });
-    }
-
-    // Create notification for the target user
-    try {
-      const senderName = friendRequest.fromUser.name || 
-        (friendRequest.fromUser.firstName && friendRequest.fromUser.lastName 
-          ? `${friendRequest.fromUser.firstName} ${friendRequest.fromUser.lastName}`
-          : friendRequest.fromUser.email);
-
-      await createFriendRequestNotification(
-        targetUser.id,
-        senderName,
-        friendRequest.id,
-        user.id
-      );
-    } catch (notificationError) {
-      // Don't fail the friend request if notification creation fails
-      console.error("Error creating friend request notification:", notificationError);
     }
 
     return NextResponse.json(
       {
         message: "Friend request sent successfully",
-        requestId: friendRequest.id,
+        requestId: result.requestId,
       },
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
-        { status: 400 }
-      );
-    }
-
     console.error("Error sending friend request:", error);
     return NextResponse.json(
       { error: "Internal server error" },
