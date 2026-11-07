@@ -1,3 +1,9 @@
+## [0.201.0] - 2026-11-07
+
+### Changes
+- Label notes and alerts, 48h application report, waitlist keep-place, no-show email ([#1406](https://github.com/everybody-eats-nz/volunteer-portal/pull/1406)) by @malinmalliyawadu
+
+
 ## [0.200.4] - 2026-11-02
 
 ### Changes
