@@ -8,13 +8,14 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { WebView } from "react-native-webview";
 
+import { YearInReviewPlayer } from "@/components/load-year-in-review-player";
 import { Button } from "@/components/ui/button";
 import { FontFamily, Palette } from "@/constants/theme";
 import {
@@ -25,6 +26,11 @@ import { API_URL } from "@/lib/api";
 import { posthog } from "@/lib/posthog";
 
 const EMBED_URL = `${API_URL}/embed/year-in-review`;
+
+const STORE_URL =
+  Platform.OS === "android"
+    ? "https://play.google.com/store/apps/details?id=com.everybodyeats.app"
+    : "https://apps.apple.com/app/id6760931588";
 
 /**
  * The volunteer's Year in mahi video.
@@ -45,21 +51,13 @@ export default function YearInReviewScreen() {
     SecureStore.getItemAsync("auth_token").then((value) => setToken(value ?? ""));
   }, []);
 
-  // Stay on the video page; anything else opens in the browser.
-  const onShouldStartLoadWithRequest = useCallback(
-    ({ url }: { url: string }) => {
-      if (url.startsWith(EMBED_URL) || url === "about:blank") return true;
-      Linking.openURL(url);
-      return false;
-    },
-    []
-  );
-
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
       <View style={styles.player}>
-        {token === null ? (
+        {!YearInReviewPlayer ? (
+          <UpdateToWatch />
+        ) : token === null ? (
           <Loading />
         ) : loadFailed ? (
           <View style={styles.centered}>
@@ -70,6 +68,7 @@ export default function YearInReviewScreen() {
             <Button
               label="Try again"
               variant="accent"
+              style={styles.centeredButton}
               onPress={() => {
                 setLoadFailed(false);
                 setReloadKey((key) => key + 1);
@@ -77,25 +76,12 @@ export default function YearInReviewScreen() {
             />
           </View>
         ) : (
-          <WebView
+          <YearInReviewPlayer
             key={reloadKey}
-            source={{
-              uri: EMBED_URL,
-              headers: { Authorization: `Bearer ${token}` },
-            }}
-            style={styles.webview}
-            containerStyle={styles.webview}
-            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-            onError={() => setLoadFailed(true)}
-            onHttpError={() => setLoadFailed(true)}
-            startInLoadingState
+            uri={EMBED_URL}
+            token={token}
+            onLoadFailed={() => setLoadFailed(true)}
             renderLoading={() => <Loading />}
-            allowsInlineMediaPlayback
-            allowsBackForwardNavigationGestures={false}
-            setSupportMultipleWindows={false}
-            overScrollMode="never"
-            scrollEnabled={false}
-            testID="year-in-review-webview"
           />
         )}
       </View>
@@ -236,6 +222,32 @@ function ShareBar({ token, bottomInset }: { token: string; bottomInset: number }
   );
 }
 
+/**
+ * This install was built before the player's native module was added (it
+ * took the screen in an over-the-air update). The MP4 below still works, so
+ * that stays the main action; updating the app brings the player.
+ */
+function UpdateToWatch() {
+  return (
+    <View style={styles.centered} testID="year-in-review-update">
+      <Text style={styles.updateTitle} accessibilityRole="header">
+        Your video is ready
+      </Text>
+      <Text style={styles.message}>
+        Update the app to play it here, or save it below to watch it now.
+      </Text>
+      <Button
+        label="Update the app"
+        variant="ghost"
+        onPanel
+        onPress={() => Linking.openURL(STORE_URL)}
+        style={styles.centeredButton}
+        testID="year-in-review-update-app"
+      />
+    </View>
+  );
+}
+
 function Loading() {
   return (
     <View style={[StyleSheet.absoluteFill, styles.centered]}>
@@ -247,7 +259,6 @@ function Loading() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Palette.forest700 },
   player: { flex: 1 },
-  webview: { flex: 1, backgroundColor: Palette.forest700 },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -256,6 +267,15 @@ const styles = StyleSheet.create({
     padding: 32,
     backgroundColor: Palette.forest700,
   },
+  updateTitle: {
+    fontFamily: FontFamily.displayMedium,
+    fontSize: 26,
+    lineHeight: 31,
+    letterSpacing: -0.4,
+    textAlign: "center",
+    color: Palette.sun200,
+  },
+  centeredButton: { alignSelf: "center" },
   message: {
     fontFamily: FontFamily.regular,
     fontSize: 16,
