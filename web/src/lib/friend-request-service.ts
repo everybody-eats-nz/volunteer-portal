@@ -1,22 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { createFriendRequestNotification } from "@/lib/notifications";
+import { emailMatches } from "@/lib/utils/email";
 
-type SendResult =
+export type SendFriendRequestResult =
   | { ok: true; requestId: string }
   | { ok: false; error: string; status: number };
 
+type SendOptions = {
+  /** Optional personal note shown with the request. */
+  message?: string | null;
+};
+
 const REQUEST_EXPIRY_DAYS = 30;
 
+/** Longest personal message a friend request may carry. */
+export const FRIEND_REQUEST_MESSAGE_MAX_LENGTH = 500;
+
 /**
- * Shared core for "send friend request by userId" — used by both the web
- * server action (`sendFriendRequestByUserId`) and the mobile API route
- * (`POST /api/mobile/friends/requests`). Auth-agnostic: callers are
- * responsible for resolving the authenticated `fromUserId`.
+ * Shared core for sending a friend request to a known user. Used by the web
+ * server actions, the web and mobile API routes, and the email variant below.
+ * Auth-agnostic: callers are responsible for resolving the authenticated
+ * `fromUserId`.
  */
 export async function sendFriendRequestFromUserToUser(
   fromUserId: string,
-  toUserId: string
-): Promise<SendResult> {
+  toUserId: string,
+  { message }: SendOptions = {}
+): Promise<SendFriendRequestResult> {
   if (fromUserId === toUserId) {
     return {
       ok: false,
@@ -102,7 +112,7 @@ export async function sendFriendRequestFromUserToUser(
       where: { id: existingRequest.id },
       data: {
         status: "PENDING",
-        message: null,
+        message: message || null,
         expiresAt,
         updatedAt: new Date(),
       },
@@ -112,7 +122,7 @@ export async function sendFriendRequestFromUserToUser(
       data: {
         fromUserId: fromUser.id,
         toEmail: toUser.email,
-        message: null,
+        message: message || null,
         expiresAt,
       },
     });
@@ -139,4 +149,32 @@ export async function sendFriendRequestFromUserToUser(
   }
 
   return { ok: true, requestId: friendRequest.id };
+}
+
+/**
+ * Send a friend request to whoever signed up with `email`, for adding a
+ * volunteer who isn't among your suggestions. Stored emails are mixed-case,
+ * so the match is case-insensitive; if two accounts differ only by case the
+ * oldest wins, the same account sign-in picks.
+ */
+export async function sendFriendRequestFromUserToEmail(
+  fromUserId: string,
+  email: string,
+  options: SendOptions = {}
+): Promise<SendFriendRequestResult> {
+  const toUser = await prisma.user.findFirst({
+    where: emailMatches(email),
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+
+  if (!toUser) {
+    return {
+      ok: false,
+      error: "No volunteer has signed up with that email",
+      status: 404,
+    };
+  }
+
+  return sendFriendRequestFromUserToUser(fromUserId, toUser.id, options);
 }

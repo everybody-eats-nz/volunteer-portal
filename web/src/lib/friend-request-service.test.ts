@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    user: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn(), findFirst: vi.fn() },
     friendship: { findFirst: vi.fn() },
     friendRequest: {
       findFirst: vi.fn(),
@@ -16,11 +16,15 @@ vi.mock("@/lib/notifications", () => ({
   createFriendRequestNotification: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { sendFriendRequestFromUserToUser } from "./friend-request-service";
+import {
+  sendFriendRequestFromUserToEmail,
+  sendFriendRequestFromUserToUser,
+} from "./friend-request-service";
 import { prisma } from "./prisma";
 
 type Mock = ReturnType<typeof vi.fn>;
 const userFind = prisma.user.findUnique as unknown as Mock;
+const userFindFirst = prisma.user.findFirst as unknown as Mock;
 const friendshipFind = prisma.friendship.findFirst as unknown as Mock;
 const requestFind = prisma.friendRequest.findFirst as unknown as Mock;
 const requestCreate = prisma.friendRequest.create as unknown as Mock;
@@ -209,5 +213,87 @@ describe("sendFriendRequestFromUserToUser", () => {
     );
 
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("sendFriendRequestFromUserToEmail", () => {
+  beforeEach(() => {
+    userFind.mockReset();
+    userFindFirst.mockReset();
+    friendshipFind.mockReset();
+    requestFind.mockReset();
+    requestCreate.mockReset();
+    requestUpdate.mockReset();
+  });
+
+  it("matches the email case-insensitively, oldest account first", async () => {
+    userFindFirst.mockResolvedValueOnce(null);
+
+    await sendFriendRequestFromUserToEmail(sender.id, "  Recipient@Example.COM ");
+
+    expect(userFindFirst).toHaveBeenCalledWith({
+      where: {
+        email: { equals: "recipient@example.com", mode: "insensitive" },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+  });
+
+  it("returns 404 when nobody has signed up with the email", async () => {
+    userFindFirst.mockResolvedValueOnce(null);
+
+    const result = await sendFriendRequestFromUserToEmail(
+      sender.id,
+      "nobody@example.com"
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: "No volunteer has signed up with that email",
+      status: 404,
+    });
+    expect(requestCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects the sender's own email", async () => {
+    userFindFirst.mockResolvedValueOnce({ id: sender.id });
+
+    const result = await sendFriendRequestFromUserToEmail(
+      sender.id,
+      sender.email
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toBe("Cannot send friend request to yourself");
+  });
+
+  it("sends to the matched user with the stored email and the message", async () => {
+    userFindFirst.mockResolvedValueOnce({ id: recipient.id });
+    userFind.mockResolvedValueOnce(sender);
+    userFind.mockResolvedValueOnce(recipient);
+    friendshipFind.mockResolvedValueOnce(null);
+    requestFind.mockResolvedValueOnce(null);
+    requestCreate.mockResolvedValueOnce({ id: "r-email" });
+
+    const result = await sendFriendRequestFromUserToEmail(
+      sender.id,
+      "RECIPIENT@example.com",
+      { message: "Kia ora!" }
+    );
+
+    expect(result).toEqual({ ok: true, requestId: "r-email" });
+    expect(requestCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          fromUserId: sender.id,
+          // The recipient's stored email, so their pending-requests lookup
+          // (exact match on toEmail) finds it whatever casing was typed.
+          toEmail: recipient.email,
+          message: "Kia ora!",
+        }),
+      })
+    );
   });
 });

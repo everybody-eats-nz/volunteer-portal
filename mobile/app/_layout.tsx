@@ -206,6 +206,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="friends/add"
+            options={{
+              headerShown: true,
+              headerTransparent: true,
+              headerBackTitle: 'Profile',
+              title: '',
+            }}
+          />
+          <Stack.Screen
             name="notifications"
             options={{
               headerShown: true,
