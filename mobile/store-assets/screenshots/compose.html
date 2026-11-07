@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Store screenshot</title>
+<!--
+  One store screenshot: a real simulator capture (source/*.png) set in a
+  phone frame under a headline. render.mjs opens this page once per shot and
+  size, e.g. compose.html?shot=home&w=1320&h=2868&frame=ios, and saves a PNG.
+  Open it in a browser with the same query to preview a single shot.
+-->
+<style>
+  @font-face {
+    font-family: "Fraunces";
+    font-weight: 300;
+    font-style: normal;
+    src: url("fonts/Fraunces-Light.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Fraunces";
+    font-weight: 300;
+    font-style: italic;
+    src: url("fonts/Fraunces-Light-Italic.woff2") format("woff2");
+  }
+
+  :root {
+    /* Brand tokens (mobile/constants/theme.ts + everybodyeats.nz) */
+    --cream: #fdf8ef;
+    --paper: #f5e9d2;
+    --forest: #0e2a1c;
+    --forest-mid: #1d5337;
+    --sun: #f8fb69;
+    --peach: #f4d2be;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow: hidden; }
+
+  body {
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+
+  /* Panels: background and headline colour */
+  body.forest { background: var(--forest); --ink: var(--cream); }
+  body.paper  { background: var(--paper);  --ink: var(--forest); }
+  body.peach  { background: var(--peach);  --ink: var(--forest); }
+
+  .copy {
+    position: absolute;
+    color: var(--ink);
+  }
+
+  h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 300;
+    letter-spacing: -0.035em;
+    font-optical-sizing: auto;
+  }
+  h1 em { font-style: italic; letter-spacing: -0.02em; }
+
+  /* Phone */
+  .phone {
+    position: absolute;
+    background:
+      linear-gradient(145deg, #5d625f 0%, #2a2d2b 18%, #4b4f4c 50%, #232624 82%, #555a57 100%);
+  }
+  .phone .bezel {
+    position: absolute;
+    background: #050605;
+  }
+  .phone .screen {
+    position: absolute;
+    overflow: hidden;
+    background: #000;
+  }
+  .phone .screen img {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .phone .island {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #000;
+  }
+</style>
+</head>
+<body>
+  <div class="phone" id="phone">
+    <div class="bezel" id="bezel"></div>
+    <div class="screen" id="screen"><img id="shot" alt="" /></div>
+    <div class="island" id="island"></div>
+  </div>
+  <div class="copy" id="copy">
+    <h1 id="title"></h1>
+  </div>
+
+<script>
+  /*
+   * The story, in store order. `title` marks its italic phrase with *...*
+   * and breaks lines at \n, so every headline is two deliberate lines.
+   * `panel` is the background: forest, paper or peach.
+   */
+  const SHOTS = {
+    home: {
+      panel: "forest",
+      title: "Your mahi,\n*all in one place*",
+    },
+    shifts: {
+      panel: "paper",
+      title: "Find a shift that\n*fits your week*",
+    },
+    "shift-detail": {
+      panel: "peach",
+      title: "See *who’s on*\nbefore you arrive",
+    },
+    messages: {
+      panel: "forest",
+      title: "Bringing a friend?\n*Just ask the team*",
+    },
+    whanau: {
+      panel: "paper",
+      title: "Grow your\n*whānau*",
+    },
+    celebration: {
+      panel: "peach",
+      title: "Every milestone,\n*celebrated*",
+    },
+  };
+
+  const params = new URLSearchParams(location.search);
+  const id = params.get("shot") ?? "home";
+  const W = Number(params.get("w") ?? 1320);
+  const H = Number(params.get("h") ?? 2868);
+  // "ios" draws a Dynamic Island; "android" a centred camera hole.
+  const frame = params.get("frame") ?? "ios";
+  const shot = SHOTS[id];
+
+  document.body.classList.add(shot.panel);
+  document.documentElement.style.width = `${W}px`;
+  document.documentElement.style.height = `${H}px`;
+  document.body.style.width = `${W}px`;
+  document.body.style.height = `${H}px`;
+
+  // Everything is laid out on a 1320-wide grid and scaled, so every size
+  // shares one set of proportions; only the phone shrinks on shorter canvases.
+  const u = W / 1320;
+  const px = (n) => `${n * u}px`;
+  const side = 104;
+
+  // Copy block
+  const copy = document.getElementById("copy");
+  copy.style.left = px(side);
+  copy.style.right = px(side);
+  // Shorter canvases (Google Play's 9:16) get a tighter headline so the
+  // phone keeps as much room as it can.
+  const compact = H / W < 2;
+  const COPY_TOP = compact ? 150 : 190;
+  copy.style.top = px(COPY_TOP);
+
+  const title = document.getElementById("title");
+  const escape = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  title.innerHTML = escape(shot.title)
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/\n/g, "<br />");
+  const TITLE_SIZE = compact ? 124 : 148;
+  const LINE_HEIGHT = 1.02;
+  title.style.fontSize = px(TITLE_SIZE);
+  title.style.lineHeight = String(LINE_HEIGHT);
+
+  // Phone: as big as fits between the copy and the bottom margin
+  const SCREEN_RATIO = 1320 / 2868;
+  const metalR = 0.0095; // metal edge, as a share of screen width
+  const bezelR = 0.034; // black border
+  const radiusR = 0.128; // screen corner radius
+
+  function layoutPhone() {
+    // Fixed, not measured, so the phone sits at the same height on every shot
+    const top = COPY_TOP + 2 * TITLE_SIZE * LINE_HEIGHT + (compact ? 80 : 96);
+    const bottom = compact ? 88 : 104;
+    const maxH = (1320 * H) / W - top - bottom; // canvas height in grid units
+    const maxW = 1320 - 2 * 150;
+    // Outer size = screen + 2 * (bezel + metal), both proportional to sw
+    const k = 2 * (bezelR + metalR);
+    let sw = maxW / (1 + k);
+    if (sw / SCREEN_RATIO + k * sw > maxH) sw = maxH / (1 / SCREEN_RATIO + k);
+    const sh = sw / SCREEN_RATIO;
+    const metal = metalR * sw;
+    const bezel = bezelR * sw;
+    const ow = sw + 2 * (bezel + metal);
+    const oh = sh + 2 * (bezel + metal);
+    const left = (1320 - ow) / 2;
+    const screenRadius = radiusR * sw;
+
+    const phone = document.getElementById("phone");
+    Object.assign(phone.style, {
+      left: px(left),
+      top: px(top),
+      width: px(ow),
+      height: px(oh),
+      borderRadius: px(screenRadius + bezel + metal),
+      boxShadow:
+        shot.panel === "forest"
+          ? `0 ${px(60)} ${px(140)} rgba(0, 0, 0, 0.45)`
+          : `0 ${px(70)} ${px(150)} rgba(14, 42, 28, 0.28), 0 ${px(12)} ${px(30)} rgba(14, 42, 28, 0.16)`,
+    });
+    Object.assign(document.getElementById("bezel").style, {
+      inset: px(metal),
+      borderRadius: px(screenRadius + bezel),
+    });
+    Object.assign(document.getElementById("screen").style, {
+      left: px(metal + bezel),
+      top: px(metal + bezel),
+      width: px(sw),
+      height: px(sh),
+      borderRadius: px(screenRadius),
+    });
+
+    const island = document.getElementById("island");
+    if (frame === "ios") {
+      Object.assign(island.style, {
+        top: px(metal + bezel + 0.025 * sw),
+        width: px(0.286 * sw),
+        height: px(0.084 * sw),
+        borderRadius: px(0.042 * sw),
+      });
+    } else {
+      const d = 0.06 * sw;
+      Object.assign(island.style, {
+        top: px(metal + bezel + 0.03 * sw),
+        width: px(d),
+        height: px(d),
+        borderRadius: "50%",
+      });
+    }
+
+  }
+
+  const img = document.getElementById("shot");
+  img.src = `source/${id}.png`;
+
+  Promise.all([
+    document.fonts.load('300 100px "Fraunces"'),
+    document.fonts.load('italic 300 100px "Fraunces"'),
+    img.decode().catch(() => {}),
+  ]).then(() => {
+    layoutPhone();
+    document.body.dataset.ready = "true";
+  });
+</script>
+</body>
+</html>
