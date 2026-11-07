@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const get = vi.fn();
 let os = 'ios';
@@ -12,29 +12,59 @@ vi.mock('react-native', () => ({
   TurboModuleRegistry: { get: (name: string) => get(name) },
 }));
 
-const load = async () =>
-  (await import('@/components/load-year-in-review-player')).YearInReviewPlayer;
+// The module evaluates the real loader on import; with no WebView module it
+// returns null without requiring the player, so importing it here is safe.
+const loader = async () => {
+  get.mockReturnValue(null);
+  const mod = await import('@/components/load-year-in-review-player');
+  get.mockReset();
+  return mod;
+};
 
-describe('YearInReviewPlayer loader', () => {
-  afterEach(() => {
+describe('Year in mahi player loader', () => {
+  beforeEach(() => {
     vi.resetModules();
+  });
+
+  afterEach(() => {
     get.mockReset();
     os = 'ios';
   });
 
   // App Store 1.0.10 (52) took the screen over the air without the native
   // module, and importing react-native-webview there closed the app.
-  it('is null when the binary has no WebView module, without loading the player', async () => {
+  it('is null without the WebView module, and never loads the player', async () => {
+    const { chooseYearInReviewPlayer } = await loader();
+    const load = vi.fn(() => 'player');
     get.mockReturnValue(null);
 
-    expect(await load()).toBeNull();
+    expect(chooseYearInReviewPlayer(load)).toBeNull();
+    expect(load).not.toHaveBeenCalled();
     expect(get).toHaveBeenCalledWith('RNCWebViewModule');
   });
 
+  it('loads the player when the binary has the WebView module', async () => {
+    const { chooseYearInReviewPlayer } = await loader();
+    const load = vi.fn(() => 'player');
+    get.mockReturnValue({});
+
+    expect(chooseYearInReviewPlayer(load)).toBe('player');
+    expect(load).toHaveBeenCalledOnce();
+  });
+
   it('is null on web, where there is no native WebView', async () => {
+    const { chooseYearInReviewPlayer } = await loader();
+    const load = vi.fn(() => 'player');
     os = 'web';
     get.mockReturnValue({});
 
-    expect(await load()).toBeNull();
+    expect(chooseYearInReviewPlayer(load)).toBeNull();
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('exports no player when imported on a binary without the module', async () => {
+    const { YearInReviewPlayer } = await loader();
+
+    expect(YearInReviewPlayer).toBeNull();
   });
 });
