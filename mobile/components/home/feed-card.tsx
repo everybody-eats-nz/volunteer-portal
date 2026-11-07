@@ -409,7 +409,9 @@ export function FeedCard({
               Ka pai! {item.userName} earned &quot;{item.achievementName}&quot;
             </Text>
             <RichText style={markdownStyle}>{item.description}</RichText>
-            {item.criteria ? (
+            {/* Many achievements describe themselves by their criteria; don't
+                say the same thing twice. */}
+            {item.criteria && item.criteria.trim() !== item.description?.trim() ? (
               <View
                 style={[
                   styles.feedAchievementCriteria,

@@ -79,7 +79,8 @@ export default function HelpScreen() {
           setHoursLabel("Online · usually replies quickly");
         } else if (data.hours.nextOpenLabel) {
           setHoursLabel(
-            `Currently offline · ${data.hours.nextOpenLabel.toLowerCase()}`
+            // Lower-case only the leading "Opens" so day names keep their capital.
+            `Currently offline · ${data.hours.nextOpenLabel.charAt(0).toLowerCase()}${data.hours.nextOpenLabel.slice(1)}`
           );
         } else {
           setHoursLabel("Currently offline · we'll reply when we're around");

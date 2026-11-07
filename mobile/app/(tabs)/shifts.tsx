@@ -132,9 +132,16 @@ function relativeDayLabel(date: Date): string {
   const today = startOfDay(new Date());
   const target = startOfDay(date);
   const diff = differenceInDays(target, today);
-  if (diff > 0 && diff < 7) return `In ${diff} days`;
-  if (diff < 0 && diff > -7) return `${Math.abs(diff)} days ago`;
-  return formatNZT(date, "d MMMM");
+  // The full date sits right above this pill, so always say something
+  // relative here rather than repeating the date.
+  const days = Math.abs(diff);
+  const span =
+    days < 14
+      ? `${days} days`
+      : days < 63
+      ? `${Math.round(days / 7)} weeks`
+      : `${Math.round(days / 30.44)} months`;
+  return diff > 0 ? `In ${span}` : `${span} ago`;
 }
 
 /* ── Status Config ── */

@@ -496,52 +496,6 @@ export default function ProfileScreen() {
             colors={colors}
           />
 
-          {recommended.length > 0 && (
-            <View style={styles.suggestedBlock}>
-              <View style={styles.suggestedHeaderRow}>
-                <Ionicons
-                  name="sparkles"
-                  size={14}
-                  color={isDark ? Palette.sun200 : Brand.green}
-                />
-                <Text
-                  style={[
-                    styles.suggestedHeader,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  Volunteers you’ve worked alongside
-                </Text>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.friendsScroll}
-              >
-                {recommended.map((suggestion) => (
-                  <SuggestedFriendCard
-                    key={suggestion.id}
-                    suggestion={suggestion}
-                    colors={colors}
-                    isDark={isDark}
-                    isSending={isSending(suggestion.id)}
-                    isAccepting={isAccepting(suggestion.id)}
-                    onAdd={() => handleSendRequest(suggestion.id)}
-                    onAccept={
-                      suggestion.requestId
-                        ? () =>
-                            handleAcceptRequest(
-                              suggestion.requestId!,
-                              suggestion.id
-                            )
-                        : undefined
-                    }
-                  />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
           {friends.length === 0 ? (
             <View
               style={[
@@ -566,10 +520,11 @@ export default function ProfileScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.friendsScroll}
+              style={styles.friendsRowScroll}
+              contentContainerStyle={styles.friendsRow}
             >
               {friends.map((friend) => (
-                <FriendCard
+                <FriendTile
                   key={friend.id}
                   friend={friend}
                   colors={colors}
@@ -579,6 +534,31 @@ export default function ProfileScreen() {
               ))}
             </ScrollView>
           )}
+
+          <PeopleGroup
+            title="Friend requests"
+            people={recommended.filter(
+              (r) => r.isPendingRequest && !!r.requestId
+            )}
+            colors={colors}
+            isDark={isDark}
+            isSending={isSending}
+            isAccepting={isAccepting}
+            onAdd={handleSendRequest}
+            onAccept={handleAcceptRequest}
+          />
+          <PeopleGroup
+            title="Volunteers you’ve served alongside"
+            people={recommended.filter(
+              (r) => !(r.isPendingRequest && !!r.requestId)
+            )}
+            colors={colors}
+            isDark={isDark}
+            isSending={isSending}
+            isAccepting={isAccepting}
+            onAdd={handleSendRequest}
+            onAccept={handleAcceptRequest}
+          />
         </View>
 
         {/* ── Achievements ── */}
@@ -1645,9 +1625,42 @@ function AchievementSheet({
   );
 }
 
-/* ── Friend Card ── */
+/* ── Friend tile (Whānau row) ── */
 
-function FriendCard({
+function pluralShifts(count: number) {
+  return `${count} ${count === 1 ? "shift" : "shifts"}`;
+}
+
+function Avatar({
+  name,
+  photoUrl,
+  size,
+}: {
+  name: string;
+  photoUrl?: string | null;
+  size: number;
+}) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const shape = { width: size, height: size, borderRadius: size / 2 };
+  if (photoUrl && !photoFailed) {
+    return (
+      <Image
+        source={{ uri: photoUrl }}
+        style={shape}
+        onError={() => setPhotoFailed(true)}
+      />
+    );
+  }
+  return (
+    <View style={[styles.personFallback, shape]}>
+      <Text style={[styles.personInitial, { fontSize: size * 0.4 }]}>
+        {name.charAt(0).toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+function FriendTile({
   friend,
   colors,
   isDark,
@@ -1658,6 +1671,11 @@ function FriendCard({
   isDark: boolean;
   router: ReturnType<typeof useRouter>;
 }) {
+  const firstName = friend.name.split(" ")[0];
+  const meta =
+    friend.shiftsTogether > 0
+      ? `${pluralShifts(friend.shiftsTogether)} together`
+      : "New friend";
   return (
     <Pressable
       onPress={() => {
@@ -1665,77 +1683,43 @@ function FriendCard({
         router.push(`/user/${friend.id}`);
       }}
       style={({ pressed }) => [
-        styles.friendCard,
-        {
-          backgroundColor: colors.card,
-          opacity: pressed ? 0.92 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
-          borderColor: isDark
-            ? "rgba(253,248,239,0.05)"
-            : "rgba(29,83,55,0.06)",
-          shadowColor: Palette.forest700,
-          shadowOpacity: isDark ? 0.06 : 0,
-          elevation: isDark ? 2 : 0,
-        },
+        styles.friendTile,
+        { opacity: pressed ? 0.7 : 1 },
       ]}
-      accessibilityLabel={`${friend.name}, ${
-        friend.shiftsTogether
-      } shifts together, last shift ${friend.lastActive.toLowerCase()}`}
+      accessibilityLabel={`${friend.name}, ${meta}`}
       accessibilityRole="button"
     >
-      {friend.profilePhotoUrl ? (
-        <Image
-          source={{ uri: friend.profilePhotoUrl }}
-          style={styles.friendAvatar}
-        />
-      ) : (
-        <View
-          style={[
-            styles.friendAvatarFallback,
-            { backgroundColor: Brand.green },
-          ]}
-        >
-          <Text style={styles.friendAvatarInitial}>
-            {friend.name.charAt(0)}
-          </Text>
-        </View>
-      )}
-
+      <View
+        style={[
+          styles.friendAvatarRing,
+          {
+            borderColor: isDark
+              ? "rgba(253,248,239,0.14)"
+              : "rgba(29,83,55,0.12)",
+          },
+        ]}
+      >
+        <Avatar name={friend.name} photoUrl={friend.profilePhotoUrl} size={64} />
+      </View>
       <Text
         style={[styles.friendName, { color: colors.text }]}
         numberOfLines={1}
       >
-        {friend.name.split(" ")[0]}
+        {firstName}
       </Text>
-
-      <View style={styles.friendMetaRow}>
-        <Ionicons
-          name="people-outline"
-          size={12}
-          color={colors.textSecondary}
-        />
-        <Text
-          style={[styles.friendMeta, { color: colors.textSecondary }]}
-          numberOfLines={1}
-        >
-          {friend.shiftsTogether} shifts
-        </Text>
-      </View>
-
-      <View style={styles.friendMetaRow}>
-        <Ionicons name="time-outline" size={11} color={colors.textSecondary} />
-        <Text
-          style={[styles.friendMeta, { color: colors.textSecondary }]}
-          numberOfLines={1}
-        >
-          {friend.lastActive}
-        </Text>
-      </View>
+      <Text
+        style={[styles.friendMeta, { color: colors.textSecondary }]}
+        numberOfLines={1}
+      >
+        {meta}
+      </Text>
     </Pressable>
   );
 }
 
-/* ── Suggested friend card (slot-matched volunteers) ── */
+/* ── Suggested friend row (slot-matched volunteers + pending requests) ── */
+
+const SUGGESTIONS_PREVIEW_COUNT = 3;
 
 function getSuggestedDisplayName(s: RecommendedFriend) {
   if (s.firstName) return s.firstName;
@@ -1743,15 +1727,86 @@ function getSuggestedDisplayName(s: RecommendedFriend) {
   return "Volunteer";
 }
 
-function getSuggestedInitial(s: RecommendedFriend) {
-  const name = getSuggestedDisplayName(s);
-  return name.charAt(0).toUpperCase();
+function PeopleGroup({
+  title,
+  people,
+  colors,
+  isDark,
+  isSending,
+  isAccepting,
+  onAdd,
+  onAccept,
+}: {
+  title: string;
+  people: RecommendedFriend[];
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  isSending: (userId: string) => boolean;
+  isAccepting: (userId: string) => boolean;
+  onAdd: (userId: string) => void;
+  onAccept: (requestId: string, userId: string) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  if (people.length === 0) return null;
+  const visible = showAll ? people : people.slice(0, SUGGESTIONS_PREVIEW_COUNT);
+  const hiddenCount = people.length - visible.length;
+
+  return (
+    <View style={styles.suggestedBlock}>
+      <Text style={[styles.suggestedHeader, { color: colors.text }]}>
+        {title}
+      </Text>
+      <View
+        style={[
+          styles.suggestedList,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        {visible.map((person, index) => (
+          <SuggestedFriendRow
+            key={person.id}
+            suggestion={person}
+            colors={colors}
+            isDark={isDark}
+            showDivider={index > 0}
+            isSending={isSending(person.id)}
+            isAccepting={isAccepting(person.id)}
+            onAdd={() => onAdd(person.id)}
+            onAccept={
+              person.requestId
+                ? () => onAccept(person.requestId!, person.id)
+                : undefined
+            }
+          />
+        ))}
+        {hiddenCount > 0 && (
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setShowAll(true);
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.suggestedMore,
+              { borderTopColor: colors.border, opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <Text style={[styles.suggestedMoreText, { color: colors.tint }]}>
+              Show {hiddenCount} more
+            </Text>
+            <Ionicons name="chevron-down" size={14} color={colors.tint} />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
 }
 
-function SuggestedFriendCard({
+function SuggestedFriendRow({
   suggestion,
   colors,
   isDark,
+  showDivider,
   isSending,
   isAccepting,
   onAdd,
@@ -1760,6 +1815,7 @@ function SuggestedFriendCard({
   suggestion: RecommendedFriend;
   colors: (typeof Colors)["light"];
   isDark: boolean;
+  showDivider: boolean;
   isSending: boolean;
   isAccepting: boolean;
   onAdd: () => void;
@@ -1769,127 +1825,57 @@ function SuggestedFriendCard({
   const isPending = suggestion.isPendingRequest && !!onAccept;
   const handlePress = isPending ? onAccept! : onAdd;
   const isBusy = isPending ? isAccepting : isSending;
-  const buttonLabel = isPending
-    ? isBusy
-      ? "Accepting…"
-      : "Accept"
-    : isBusy
-    ? "Sending…"
-    : "Add friend";
   const recentSharedType = suggestion.recentSharedShifts?.[0]?.shiftTypeName;
-  const [photoFailed, setPhotoFailed] = useState(false);
-  const showPhoto = !!suggestion.profilePhotoUrl && !photoFailed;
+  const together =
+    suggestion.sharedShiftsCount > 0
+      ? `${pluralShifts(suggestion.sharedShiftsCount)} together`
+      : null;
+  const meta = isPending
+    ? together ?? "Wants to connect"
+    : [together, recentSharedType].filter(Boolean).join(" · ");
 
-  // Theme-aware, token-driven palette — designed for both modes together.
-  const ringColor = isDark ? Palette.sun200 : Brand.accent;
-  const cardBorder = isDark
-    ? "rgba(253,248,239,0.12)"
-    : "rgba(29,83,55,0.10)";
-  const chipBg = isDark
-    ? "rgba(248,251,105,0.14)"
-    : "rgba(29,83,55,0.07)";
-  const chipFg = isDark ? Palette.sun200 : Brand.green;
-  const ribbonBg = isDark
-    ? "rgba(251,191,36,0.18)"
-    : "rgba(251,191,36,0.16)";
-  const ribbonFg = isDark ? "#fcd9a3" : "#9a5b14";
-  // CTA mirrors the app's established primary convention:
-  // deep forest on light, bright sun on dark — high contrast in both.
-  const ctaBg = isDark ? Brand.accent : Brand.green;
-  const ctaFg = isDark ? Palette.ink : Brand.warmWhite;
+  // Accept is the primary action (filled); Add is quieter (outline).
+  const filledBg = isDark ? Brand.accent : Brand.green;
+  const filledFg = isDark ? Palette.ink : Brand.warmWhite;
+  const outlineFg = isDark ? Palette.sun200 : Brand.green;
+  const outlineBorder = isDark
+    ? "rgba(248,251,105,0.4)"
+    : "rgba(29,83,55,0.28)";
 
   return (
     <View
       style={[
-        styles.sgCard,
-        {
-          backgroundColor: colors.card,
-          borderColor: cardBorder,
-          shadowColor: isDark ? Palette.forest800 : Palette.forest700,
-          shadowOpacity: isDark ? 0.35 : 0.06,
-          shadowRadius: isDark ? 10 : 12,
-          shadowOffset: { width: 0, height: isDark ? 4 : 6 },
-          elevation: isDark ? 4 : 2,
+        styles.sgRow,
+        showDivider && {
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border,
         },
       ]}
-      accessible
-      accessibilityRole={isPending ? "button" : "summary"}
-      accessibilityLabel={`${displayName}, ${suggestion.sharedShiftsCount} ${
-        suggestion.sharedShiftsCount === 1 ? "shift" : "shifts"
-      } together.${
-        recentSharedType ? ` Most recently ${recentSharedType}.` : ""
-      } ${isPending ? "Wants to connect with you." : "Suggested friend."}`}
     >
-      {isPending && (
-        <View style={[styles.sgRibbon, { backgroundColor: ribbonBg }]}>
-          <Ionicons name="sparkles" size={10} color={ribbonFg} />
-          <Text style={[styles.sgRibbonText, { color: ribbonFg }]}>
-            Wants to connect
-          </Text>
-        </View>
-      )}
-
       <View
-        style={[styles.sgBody, isPending && { paddingTop: 32 }]}
-        pointerEvents="none"
+        style={styles.sgIdentity}
+        accessible
+        accessibilityLabel={`${displayName}. ${meta}.`}
       >
-        <View style={styles.sgAvatarWrap}>
-          <View style={[styles.sgRing, { borderColor: ringColor }]}>
-            {showPhoto ? (
-              <Image
-                source={{ uri: suggestion.profilePhotoUrl! }}
-                style={styles.sgAvatar}
-                onError={() => setPhotoFailed(true)}
-              />
-            ) : (
-              <LinearGradient
-                colors={[Brand.greenHover, Brand.green]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sgAvatar}
-              >
-                <Text style={styles.sgInitial}>
-                  {getSuggestedInitial(suggestion)}
-                </Text>
-              </LinearGradient>
-            )}
-          </View>
-          <View
-            style={[
-              styles.sgSparkle,
-              { backgroundColor: ringColor, borderColor: colors.card },
-            ]}
-          >
-            <Ionicons name="sparkles" size={10} color={Brand.green} />
-          </View>
-        </View>
-
-        <Text
-          style={[styles.sgName, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          {displayName}
-        </Text>
-
-        <View style={[styles.sgChip, { backgroundColor: chipBg }]}>
-          <Ionicons name="people" size={11} color={chipFg} />
+        <Avatar
+          name={displayName}
+          photoUrl={suggestion.profilePhotoUrl}
+          size={46}
+        />
+        <View style={styles.sgText}>
           <Text
-            style={[styles.sgChipText, { color: chipFg }]}
+            style={[styles.sgName, { color: colors.text }]}
             numberOfLines={1}
           >
-            {suggestion.sharedShiftsCount}{" "}
-            {suggestion.sharedShiftsCount === 1 ? "shift" : "shifts"} together
+            {displayName}
           </Text>
-        </View>
-
-        {recentSharedType ? (
           <Text
-            style={[styles.sgContext, { color: colors.textSecondary }]}
+            style={[styles.sgMeta, { color: colors.textSecondary }]}
             numberOfLines={1}
           >
-            Last: {recentSharedType}
+            {meta}
           </Text>
-        ) : null}
+        </View>
       </View>
 
       <Pressable
@@ -1901,29 +1887,29 @@ function SuggestedFriendCard({
             ? `Accept friend request from ${displayName}`
             : `Send friend request to ${displayName}`
         }
-        hitSlop={8}
+        hitSlop={6}
         style={({ pressed }) => [
           styles.sgCta,
-          {
-            backgroundColor: ctaBg,
-            opacity: isBusy ? 0.65 : pressed ? 0.9 : 1,
-            transform: [{ scale: pressed && !isBusy ? 0.97 : 1 }],
-          },
+          isPending
+            ? { backgroundColor: filledBg, borderColor: filledBg }
+            : { backgroundColor: "transparent", borderColor: outlineBorder },
+          { opacity: isBusy ? 0.6 : pressed ? 0.8 : 1 },
         ]}
       >
         {isBusy ? (
-          <ActivityIndicator size="small" color={ctaFg} />
+          <ActivityIndicator
+            size="small"
+            color={isPending ? filledFg : outlineFg}
+          />
         ) : (
-          <>
-            <Ionicons
-              name={isPending ? "checkmark" : "person-add"}
-              size={14}
-              color={ctaFg}
-            />
-            <Text style={[styles.sgCtaText, { color: ctaFg }]}>
-              {buttonLabel}
-            </Text>
-          </>
+          <Text
+            style={[
+              styles.sgCtaText,
+              { color: isPending ? filledFg : outlineFg },
+            ]}
+          >
+            {isPending ? "Accept" : "Add"}
+          </Text>
         )}
       </Pressable>
     </View>
@@ -2242,189 +2228,106 @@ const styles = StyleSheet.create({
   },
 
   /* Whānau */
-  friendsScroll: {
-    gap: 12,
-    paddingRight: 4,
-    paddingVertical: 4,
+  friendsRowScroll: {
+    marginHorizontal: -20,
   },
-  friendCard: {
-    width: 134,
+  friendsRow: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  friendTile: {
+    width: 104,
     alignItems: "center",
-    paddingTop: 14,
-    paddingBottom: 12,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    gap: 2,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
   },
-  friendAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 8,
+  friendAvatarRing: {
+    padding: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 10,
   },
-  friendAvatarFallback: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  personFallback: {
+    backgroundColor: Brand.green,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
   },
-  friendAvatarInitial: {
+  personInitial: {
     color: Palette.cream50,
-    fontSize: 22,
-    fontFamily: FontFamily.headingBold,
+    fontFamily: FontFamily.heading,
   },
   friendName: {
     fontSize: 15,
-    fontFamily: FontFamily.heading,
+    fontFamily: FontFamily.semiBold,
     textAlign: "center",
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-  friendMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
   },
   friendMeta: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-    letterSpacing: 0.1,
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    textAlign: "center",
+    marginTop: 2,
   },
   suggestedBlock: {
-    marginBottom: 16,
-  },
-  suggestedHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 8,
-    paddingHorizontal: 2,
+    marginTop: 24,
   },
   suggestedHeader: {
-    fontSize: 12,
+    fontSize: 15,
     fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.2,
-    textTransform: "uppercase",
+    marginBottom: 10,
+    paddingHorizontal: 2,
   },
-  /* Suggested friend card — distinctive rework */
-  sgCard: {
-    width: 158,
-    minHeight: 244,
-    borderRadius: 22,
-    borderWidth: 1,
+  suggestedList: {
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
-    position: "relative",
   },
-  sgRibbon: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 26,
+  sgRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
-  sgRibbonText: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.3,
-  },
-  sgBody: {
+  sgIdentity: {
     flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    paddingTop: 16,
-    paddingHorizontal: 12,
-    gap: 7,
+    gap: 12,
   },
-  sgAvatarWrap: {
-    width: 70,
-    height: 70,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 1,
-  },
-  sgRing: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 2.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sgAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  sgInitial: {
-    color: Brand.warmWhite,
-    fontSize: 22,
-    fontFamily: FontFamily.headingBold,
-  },
-  sgSparkle: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+  sgText: {
+    flex: 1,
+    gap: 2,
   },
   sgName: {
-    fontSize: 15,
-    fontFamily: FontFamily.heading,
-    letterSpacing: -0.3,
-    textAlign: "center",
-  },
-  sgChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
-    maxWidth: "100%",
-  },
-  sgChipText: {
-    fontSize: 11,
+    fontSize: 16,
     fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.1,
   },
-  sgContext: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-    letterSpacing: 0.1,
-    textAlign: "center",
+  sgMeta: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
   },
   sgCta: {
-    marginHorizontal: 12,
-    marginBottom: 12,
-    marginTop: 10,
-    minHeight: 44,
-    borderRadius: 14,
+    minWidth: 80,
+    height: 38,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  sgCtaText: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+  },
+  suggestedMore: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingHorizontal: 12,
+    minHeight: 48,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  sgCtaText: {
-    fontSize: 13,
+  suggestedMoreText: {
+    fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.2,
   },
   emptyFriendsCard: {
     borderRadius: 18,
