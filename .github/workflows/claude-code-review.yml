@@ -3,12 +3,6 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,9 +15,10 @@ jobs:
     if: github.event.pull_request.user.login != 'dependabot[bot]'
 
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
 
@@ -35,16 +30,22 @@ jobs:
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-          # Pin an explicit model — the action's old default (claude-sonnet-4-20250514)
-          # has been retired and now 404s, failing the review on every PR.
-          model: "claude-sonnet-4-5"
+          # Passing `prompt` runs the action in automation (agent) mode: no
+          # "Claude Code is working..." progress comment and no download of
+          # images from PR comments. Do not add `track_progress: true` - it
+          # brings back the progress comment and its spinner GIF.
+          #
+          # `use_sticky_comment` only applies to that progress comment, so the
+          # single updating review comment is done with `gh pr comment
+          # --edit-last --create-if-none` instead.
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
 
-          # Direct prompt for automated review (no @claude mention needed)
-          direct_prompt: |
             Please review this pull request and provide feedback on:
             - Code quality and best practices
             - Potential bugs or issues
@@ -54,27 +55,18 @@ jobs:
 
             Be constructive and helpful in your feedback.
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
-          use_sticky_comment: true
+            The PR branch is already checked out in the current working directory.
+            Use `gh pr view` and `gh pr diff` to see the PR description and changes,
+            and read the repository's CLAUDE.md for project conventions.
 
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
+            Post your review as a single PR comment with:
+            gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "<your review>"
+            This updates your previous review on later pushes instead of adding a new
+            comment each time. Do not post any other comments.
 
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' &&
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-
-          # Optional: Add specific tools for running tests or linting
-          # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
-
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+          # Sonnet 4.5 is deprecated and retires 2026-11-30; claude-sonnet-5-5 is
+          # the documented replacement. Pin explicitly so a retired default can't
+          # 404 the review on every PR again.
+          claude_args: |
+            --model claude-sonnet-5-5
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
