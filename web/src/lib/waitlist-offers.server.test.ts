@@ -55,6 +55,7 @@ function futureShift(overrides: Record<string, unknown> = {}) {
     capacity: 3,
     location: "Wellington",
     shiftTypeId: "type-1",
+    autoApprovalEnabled: true,
     shiftType: { name: "Kitchen Prep" },
     ...overrides,
   };
@@ -70,12 +71,22 @@ function setCounts(confirmed: number, liveOffers: number) {
     .mockResolvedValueOnce(liveOffers as never);
 }
 
-function waitlisted(ids: string[]) {
-  return ids.map((id) => ({ id: `signup-${id}`, userId: `user-${id}` }));
+function waitlisted(
+  ids: string[],
+  overrides: Record<string, unknown> = {}
+) {
+  return ids.map((id) => ({
+    id: `signup-${id}`,
+    userId: `user-${id}`,
+    status: "WAITLISTED",
+    waitlistAddedByAdminAt: null,
+    waitlistConfirmedAt: null,
+    ...overrides,
+  }));
 }
 
-function snapshotsFor(ids: string[]) {
-  return ids.map((id) => ({ userId: `user-${id}` }));
+function snapshotsFor(ids: string[], completedShifts = 20) {
+  return ids.map((id) => ({ userId: `user-${id}`, completedShifts }));
 }
 
 beforeEach(() => {
@@ -87,6 +98,95 @@ beforeEach(() => {
 });
 
 describe("offerWaitlistPlaces", () => {
+  it("offers nothing on a shift with auto-approval turned off", async () => {
+    shiftFindUnique.mockResolvedValue(
+      futureShift({ autoApprovalEnabled: false }) as never
+    );
+
+    const result = await offerWaitlistPlaces("shift-1");
+
+    expect(result.offered).toBe(0);
+    expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it("waits for an admin-added volunteer to keep their place", async () => {
+    shiftFindUnique.mockResolvedValue(futureShift() as never);
+    setCounts(2, 0);
+    findMany.mockResolvedValue([
+      ...waitlisted(["a"], { waitlistAddedByAdminAt: new Date() }),
+      ...waitlisted(["b"]),
+    ] as never);
+    autoApproval.getVolunteerSnapshots.mockResolvedValue(
+      snapshotsFor(["a", "b"])
+    );
+    autoApproval.evaluateOutcome.mockReturnValue({ outcome: "APPROVED" });
+
+    await offerWaitlistPlaces("shift-1");
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "signup-b" } })
+    );
+  });
+
+  it("gives an admin-waitlisted new volunteer their turn", async () => {
+    shiftFindUnique.mockResolvedValue(futureShift() as never);
+    setCounts(2, 0);
+    findMany.mockResolvedValue(
+      waitlisted(["a"], {
+        waitlistAddedByAdminAt: new Date(),
+        waitlistConfirmedAt: new Date(),
+      }) as never
+    );
+    autoApproval.getVolunteerSnapshots.mockResolvedValue(snapshotsFor(["a"], 1));
+    // No rule approves someone on their second shift
+    autoApproval.evaluateOutcome.mockReturnValue({ outcome: "HELD" });
+
+    const result = await offerWaitlistPlaces("shift-1");
+
+    expect(result.offered).toBe(1);
+  });
+
+  it("still skips new volunteers who joined the waitlist themselves", async () => {
+    shiftFindUnique.mockResolvedValue(futureShift() as never);
+    setCounts(2, 0);
+    findMany.mockResolvedValue(waitlisted(["a"]) as never);
+    autoApproval.getVolunteerSnapshots.mockResolvedValue(snapshotsFor(["a"], 0));
+    autoApproval.evaluateOutcome.mockReturnValue({ outcome: "HELD" });
+
+    expect((await offerWaitlistPlaces("shift-1")).offered).toBe(0);
+  });
+
+  it("never offers past a block rule, even to an admin-added new volunteer", async () => {
+    shiftFindUnique.mockResolvedValue(futureShift() as never);
+    setCounts(2, 0);
+    findMany.mockResolvedValue(
+      waitlisted(["a"], {
+        waitlistAddedByAdminAt: new Date(),
+        waitlistConfirmedAt: new Date(),
+      }) as never
+    );
+    autoApproval.getVolunteerSnapshots.mockResolvedValue(snapshotsFor(["a"], 0));
+    autoApproval.evaluateOutcome.mockReturnValue({ outcome: "BLOCKED" });
+
+    expect((await offerWaitlistPlaces("shift-1")).offered).toBe(0);
+  });
+
+  it("leaves new volunteers past their third shift to the rules", async () => {
+    shiftFindUnique.mockResolvedValue(futureShift() as never);
+    setCounts(2, 0);
+    findMany.mockResolvedValue(
+      waitlisted(["a"], {
+        waitlistAddedByAdminAt: new Date(),
+        waitlistConfirmedAt: new Date(),
+      }) as never
+    );
+    autoApproval.getVolunteerSnapshots.mockResolvedValue(snapshotsFor(["a"], 3));
+    autoApproval.evaluateOutcome.mockReturnValue({ outcome: "HELD" });
+
+    expect((await offerWaitlistPlaces("shift-1")).offered).toBe(0);
+  });
+
   it("offers the freed place to the longest-waiting eligible volunteer", async () => {
     shiftFindUnique.mockResolvedValue(futureShift() as never);
     setCounts(2, 0); // one place free

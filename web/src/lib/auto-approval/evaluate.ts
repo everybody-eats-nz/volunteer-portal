@@ -93,6 +93,8 @@ export function evaluateOutcome(
   const blocked = sortRules(rules.filter((r) => r.kind === "BLOCK")).find(matches);
   if (blocked) return { outcome: "BLOCKED", rule: blocked };
 
+  if (!shift.autoApprovalEnabled) return { outcome: "HELD", rule: null };
+
   const approved = sortRules(rules.filter((r) => r.kind === "APPROVE")).find(matches);
   if (approved) return { outcome: "APPROVED", rule: approved };
 
@@ -128,6 +130,19 @@ export function evaluate(
       outcome: "BLOCKED",
       rule: { id: blocked.ruleId, name: blocked.ruleName, kind: "BLOCK" },
       summary: `Held for review by "${blocked.ruleName}"`,
+      trace,
+      snapshot,
+      shift,
+    };
+  }
+
+  // Switched off for this shift: the trace still shows what the rules would
+  // have done, but nobody is approved by them.
+  if (!shift.autoApprovalEnabled) {
+    return {
+      outcome: "HELD",
+      rule: null,
+      summary: "Auto-approval is turned off for this shift",
       trace,
       snapshot,
       shift,

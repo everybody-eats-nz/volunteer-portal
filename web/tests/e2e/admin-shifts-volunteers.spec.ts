@@ -76,7 +76,7 @@ test.describe("Admin Shifts - Volunteer Management", () => {
     }
 
     // Create past completed shifts for volunteers to show their actual grades
-    // Volunteers need 6+ completed shifts to show their database grade instead of "New volunteer" badge
+    // Volunteers need 3+ completed shifts to show their database grade instead of "New volunteer" badge
     for (let i = 0; i < 7; i++) {
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - (30 + i)); // 30+ days ago

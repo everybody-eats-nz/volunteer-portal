@@ -42,6 +42,7 @@ import {
   VOLUNTEER_GRADE_INFO,
   FIRST_SHIFT_BADGE,
   NEW_VOLUNTEER_BADGE,
+  isNewVolunteer,
 } from "@/lib/volunteer-grades";
 import { type VolunteerGrade } from "@/generated/client";
 import type {
@@ -114,7 +115,7 @@ function getGradeBadge(grade: VolunteerGrade, totalShifts: number) {
   let info;
   if (totalShifts === 0) {
     info = FIRST_SHIFT_BADGE;
-  } else if (totalShifts <= 5) {
+  } else if (isNewVolunteer(totalShifts)) {
     info = NEW_VOLUNTEER_BADGE;
   } else {
     info = VOLUNTEER_GRADE_INFO[grade];

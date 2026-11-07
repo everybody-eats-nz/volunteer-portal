@@ -134,6 +134,45 @@ interface SendVolunteerNotNeededParams {
   location: string;
 }
 
+interface NoShowEmailData {
+  firstName: string;
+  shiftType: string;
+  shiftDate: string;
+  shiftTime: string;
+  location: string;
+  browseShiftsLink: string;
+}
+
+interface SendNoShowParams {
+  to: string;
+  volunteerName: string;
+  shiftName: string;
+  shiftDate: string;
+  shiftTime: string;
+  location: string;
+}
+
+interface LabelAssignedEmailData {
+  firstName: string;
+  volunteerName: string;
+  labelName: string;
+  /** The note left with the label, or "" when the label takes none. */
+  note: string;
+  assignedBy: string;
+  profileLink: string;
+}
+
+interface SendLabelAssignedParams {
+  to: string;
+  /** The admin being told. */
+  recipientName: string;
+  volunteerName: string;
+  labelName: string;
+  note: string | null;
+  assignedBy: string;
+  volunteerId: string;
+}
+
 interface EmailVerificationData {
   firstName: string;
   verificationLink: string;
@@ -259,6 +298,8 @@ class EmailService {
   private archivedConfirmationSmartEmailID: string;
   private firstShiftNudgeSmartEmailID: string;
   private announcementSmartEmailID: string;
+  private noShowSmartEmailID: string;
+  private labelAssignedSmartEmailID: string;
 
   constructor() {
     const apiKey = process.env.CAMPAIGN_MONITOR_API_KEY;
@@ -554,6 +595,87 @@ class EmailService {
         "[EMAIL SERVICE] CAMPAIGN_MONITOR_ANNOUNCEMENT_EMAIL_ID is not configured - announcement emails will not be sent"
       );
     }
+
+    // Smart email ID for the no-show follow-up sent to volunteers
+    this.noShowSmartEmailID =
+      process.env.CAMPAIGN_MONITOR_NO_SHOW_EMAIL_ID || "dummy-no-show-id";
+    if (this.noShowSmartEmailID === "dummy-no-show-id" && !isDevelopment) {
+      console.warn(
+        "[EMAIL SERVICE] CAMPAIGN_MONITOR_NO_SHOW_EMAIL_ID is not configured - no-show emails will not be sent"
+      );
+    }
+
+    // Smart email ID for telling admins a label they watch was added
+    this.labelAssignedSmartEmailID =
+      process.env.CAMPAIGN_MONITOR_LABEL_ASSIGNED_EMAIL_ID ||
+      "dummy-label-assigned-id";
+    if (
+      this.labelAssignedSmartEmailID === "dummy-label-assigned-id" &&
+      !isDevelopment
+    ) {
+      console.warn(
+        "[EMAIL SERVICE] CAMPAIGN_MONITOR_LABEL_ASSIGNED_EMAIL_ID is not configured - label alert emails will not be sent"
+      );
+    }
+  }
+
+  /** Is the no-show template set up? The sweep holds emails until it is. */
+  isNoShowEmailConfigured(): boolean {
+    return this.noShowSmartEmailID !== "dummy-no-show-id";
+  }
+
+  /**
+   * Sent after a shift to a volunteer the team marked as a no-show. The copy
+   * lives in the Campaign Monitor template; see web/README.md.
+   */
+  async sendNoShowNotification(params: SendNoShowParams): Promise<void> {
+    if (!this.isNoShowEmailConfigured()) {
+      throw new Error("CAMPAIGN_MONITOR_NO_SHOW_EMAIL_ID is not configured");
+    }
+
+    const firstName =
+      params.volunteerName.split(" ")[0] || params.volunteerName;
+    const data: NoShowEmailData = {
+      firstName,
+      shiftType: params.shiftName,
+      shiftDate: params.shiftDate,
+      shiftTime: params.shiftTime,
+      location: params.location,
+      browseShiftsLink: `${getBaseUrl()}/shifts`,
+    };
+
+    await this.sendSmartEmail(
+      this.noShowSmartEmailID,
+      `${params.volunteerName} <${params.to}>`,
+      { ...data }
+    );
+  }
+
+  /** Tells an admin that a label they watch was just added to a volunteer. */
+  async sendLabelAssignedNotification(
+    params: SendLabelAssignedParams
+  ): Promise<void> {
+    if (this.labelAssignedSmartEmailID === "dummy-label-assigned-id") {
+      console.log(
+        `[EMAIL SERVICE] Would send label alert (${params.labelName}) to ${params.to} (skipped - no template configured)`
+      );
+      return;
+    }
+
+    const data: LabelAssignedEmailData = {
+      firstName: params.recipientName.split(" ")[0] || params.recipientName,
+      volunteerName: params.volunteerName,
+      labelName: params.labelName,
+      note: params.note ?? "",
+      assignedBy: params.assignedBy,
+      profileLink: `${getBaseUrl()}/admin/volunteers/${params.volunteerId}`,
+    };
+
+    await this.sendSmartEmail(
+      this.labelAssignedSmartEmailID,
+      `${params.recipientName} <${params.to}>`,
+      { ...data }
+    );
   }
 
   async sendAnnouncement(params: SendAnnouncementParams): Promise<void> {
@@ -1370,6 +1492,7 @@ class EmailService {
       | "userInvitation"
       | "profileCompletion"
       | "surveyNotification"
+      | "noShow"
   ): { id: string; name: string } {
     const emailTemplates = {
       shortage: {
@@ -1420,6 +1543,10 @@ class EmailService {
         id: this.surveyNotificationSmartEmailID,
         name: "Survey Notification",
       },
+      noShow: {
+        id: this.noShowSmartEmailID,
+        name: "No-show Follow-up",
+      },
     };
 
     return emailTemplates[emailType];
@@ -1442,6 +1569,7 @@ class EmailService {
       | "userInvitation"
       | "profileCompletion"
       | "surveyNotification"
+      | "noShow"
   ): Promise<{
     success: boolean;
     data?: {
@@ -1567,4 +1695,8 @@ export type {
   SurveyNotificationEmailData,
   SendAnnouncementParams,
   AnnouncementEmailData,
+  SendNoShowParams,
+  NoShowEmailData,
+  SendLabelAssignedParams,
+  LabelAssignedEmailData,
 };

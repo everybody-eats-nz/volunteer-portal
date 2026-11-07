@@ -412,6 +412,29 @@ export async function createShiftWaitlistedNotification(
 }
 
 /**
+ * An admin put this volunteer on the waitlist. They never said they wanted to
+ * wait, so they are asked to keep the place: no place is offered to them until
+ * they do.
+ */
+export async function createWaitlistConfirmRequestNotification(
+  userId: string,
+  shiftName: string,
+  shiftDate: string,
+  shiftId: string
+) {
+  return createNotification({
+    userId,
+    type: "SHIFT_WAITLISTED",
+    title: "Keep your waitlist place?",
+    message: `The team has put you on the waitlist for ${shiftName} on ${shiftDate}. Let us know you'd still like a place, and we'll offer you one if it opens up.`,
+    // Web shows the question on /shifts/mine; mobile opens that shift, where
+    // the keep/leave buttons live.
+    actionUrl: `/shifts/mine?confirmWaitlist=${shiftId}`,
+    relatedId: shiftId,
+  });
+}
+
+/**
  * Tell a waitlisted volunteer that a place has opened up and is theirs if they
  * take it.
  *

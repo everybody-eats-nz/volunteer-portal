@@ -43,6 +43,7 @@ export async function PATCH(
       action,
       sendEmail,
       skipNotification,
+      actorId: user.id,
     });
 
     return NextResponse.json({ ...result.signup, message: result.message });

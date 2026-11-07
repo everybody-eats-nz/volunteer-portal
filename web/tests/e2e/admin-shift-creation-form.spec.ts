@@ -40,7 +40,14 @@ test.describe("Admin Shift Creation Form", () => {
       await expect(page.getByText("Quick start from a template")).toBeVisible();
       await expect(page.getByRole("heading", { name: "Role and location" })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Date and time" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Capacity and notes" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Capacity, notes and approval" })
+      ).toBeVisible();
+      // Shifts auto-approve unless an admin turns it off (special events)
+      await expect(page.getByTestId("shift-auto-approval-switch")).toHaveAttribute(
+        "data-state",
+        "checked"
+      );
     });
 
     test("should have create shift type functionality", async ({ page }) => {

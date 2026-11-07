@@ -50,6 +50,7 @@ export interface LabelMember {
   profilePhotoUrl: string | null;
   volunteerGrade: "GREEN" | "YELLOW" | "PINK";
   assignedAt: string;
+  note?: string | null;
 }
 
 interface LabelMembersDialogProps {
@@ -323,6 +324,15 @@ function LabelMembersPanel({
                   <p className="truncate text-xs text-muted-foreground">
                     {member.email}
                   </p>
+                  {member.note && (
+                    <p
+                      className="mt-1 line-clamp-2 text-xs text-foreground/80"
+                      title={member.note}
+                      data-testid={`member-note-${member.id}`}
+                    >
+                      {member.note}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex shrink-0 items-center gap-0.5">

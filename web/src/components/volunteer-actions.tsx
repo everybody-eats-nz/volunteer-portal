@@ -526,7 +526,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       case "waitlist":
         return {
           title: "Move to Waitlist",
-          description: "Park this volunteer on the waitlist instead of confirming or declining them. They will be told they are on the waitlist, and you can confirm them later if you need them.",
+          description: "Park this volunteer on the waitlist instead of confirming or declining them. They'll be asked to keep their place, and are offered one if it opens up once they do. You can still confirm them yourself later.",
           actionText: "Move to Waitlist",
           variant: "default" as const,
         };
@@ -540,7 +540,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       case "mark_absent":
         return {
           title: "Mark Volunteer as No Show",
-          description: "Mark this volunteer as a no-show for this shift. This will change their status to 'No Show'. You can undo it if they turn up late.",
+          description: "Mark this volunteer as a no-show for this shift. Once the shift ends they'll get the no-show email asking them to cancel next time. If they turn up late, mark them present before then and no email is sent.",
           actionText: "Mark No Show",
           variant: "destructive" as const,
         };
@@ -646,7 +646,14 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
               {markAbsentDialogContent.description}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex-1">
+              <EmailPreviewDialog
+                emailType="noShow"
+                triggerLabel="Preview Email"
+                triggerVariant="outline"
+              />
+            </div>
             <Button
               variant="outline"
               onClick={() => setDialogOpen(null)}

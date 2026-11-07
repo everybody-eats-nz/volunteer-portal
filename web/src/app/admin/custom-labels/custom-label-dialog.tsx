@@ -11,8 +11,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
-import { Check, Ban } from "lucide-react";
+import { Check, Ban, BellRing, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CustomLabel } from "@/generated/client";
 import {
@@ -22,31 +36,45 @@ import {
   firstGrapheme,
 } from "./label-colors";
 
+/** An admin who can be told when a label goes on someone. */
+export interface AdminOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface LabelFormData {
+  name: string;
+  color: string;
+  icon?: string;
+  requiresNote: boolean;
+  watcherIds: string[];
+}
+
 interface CustomLabelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  label?: CustomLabel | null;
-  onSave: (data: {
-    name: string;
-    color: string;
-    icon?: string;
-  }) => Promise<void>;
+  label?: (CustomLabel & { watchers?: { userId: string }[] }) | null;
+  admins: AdminOption[];
+  onSave: (data: LabelFormData) => Promise<void>;
 }
 
 export function CustomLabelDialog({
   open,
   onOpenChange,
   label,
+  admins,
   onSave,
 }: CustomLabelDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[460px]">
         {/* Mounted per open, so the form always starts from the label being
             edited (or a blank one). */}
         <CustomLabelForm
           key={label?.id ?? "new"}
           label={label}
+          admins={admins}
           onSave={onSave}
           onCancel={() => onOpenChange(false)}
         />
@@ -57,6 +85,7 @@ export function CustomLabelDialog({
 
 function CustomLabelForm({
   label,
+  admins,
   onSave,
   onCancel,
 }: Omit<CustomLabelDialogProps, "open" | "onOpenChange"> & {
@@ -65,6 +94,10 @@ function CustomLabelForm({
   const [name, setName] = useState(label?.name ?? "");
   const [color, setColor] = useState(label?.color ?? COLOR_OPTIONS[0].value);
   const [icon, setIcon] = useState(label?.icon ?? "");
+  const [requiresNote, setRequiresNote] = useState(label?.requiresNote ?? false);
+  const [watcherIds, setWatcherIds] = useState<string[]>(
+    label?.watchers?.map((w) => w.userId) ?? []
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +109,8 @@ function CustomLabelForm({
         name: name.trim(),
         color,
         icon: icon.trim() || undefined,
+        requiresNote,
+        watcherIds,
       });
     } finally {
       setIsSubmitting(false);
@@ -88,6 +123,7 @@ function CustomLabelForm({
     color,
     icon: icon.trim() || null,
     isActive: true,
+    requiresNote,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -217,6 +253,30 @@ function CustomLabelForm({
           />
         </div>
 
+        <div className="space-y-4 rounded-xl border border-border p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="label-requires-note">Ask for a note</Label>
+              <p className="text-xs text-muted-foreground">
+                Whoever adds this label has to say why. Only admins see the
+                note, on the volunteer&apos;s profile and on shift rosters.
+              </p>
+            </div>
+            <Switch
+              id="label-requires-note"
+              checked={requiresNote}
+              onCheckedChange={setRequiresNote}
+              data-testid="label-requires-note-switch"
+            />
+          </div>
+
+          <WatcherPicker
+            admins={admins}
+            selected={watcherIds}
+            onChange={setWatcherIds}
+          />
+        </div>
+
         <div className="flex justify-end gap-3 pt-2">
           <Button
             type="button"
@@ -240,5 +300,101 @@ function CustomLabelForm({
         </div>
       </form>
     </>
+  );
+}
+
+function WatcherPicker({
+  admins,
+  selected,
+  onChange,
+}: {
+  admins: AdminOption[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const byId = new Map(admins.map((a) => [a.id, a]));
+  const chosen = selected
+    .map((id) => byId.get(id))
+    .filter((a): a is AdminOption => Boolean(a));
+  const available = admins.filter((a) => !selected.includes(a.id));
+
+  return (
+    <div className="space-y-2" data-testid="label-watchers">
+      <div className="space-y-1">
+        <Label id="label-watchers-heading">Tell these people when it&apos;s added</Label>
+        <p className="text-xs text-muted-foreground">
+          They get a notification and an email each time this label goes on a
+          volunteer.
+        </p>
+      </div>
+
+      {chosen.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5" aria-labelledby="label-watchers-heading">
+          {chosen.map((admin) => (
+            <li
+              key={admin.id}
+              className="flex items-center gap-1 rounded-full border border-border bg-muted/50 py-0.5 pl-2.5 pr-0.5 text-xs font-medium"
+              title={admin.email}
+              data-testid={`label-watcher-${admin.id}`}
+            >
+              <BellRing className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+              {admin.name}
+              <button
+                type="button"
+                onClick={() => onChange(selected.filter((id) => id !== admin.id))}
+                aria-label={`Stop telling ${admin.name}`}
+                className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-3 w-3" aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={available.length === 0}
+            data-testid="add-label-watcher-button"
+          >
+            <UserPlus className="mr-1.5 h-4 w-4" aria-hidden="true" />
+            {chosen.length === 0 ? "Choose people" : "Add someone"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Search admins…" />
+            <CommandList>
+              <CommandEmpty>No admins found.</CommandEmpty>
+              <CommandGroup>
+                {available.map((admin) => (
+                  <CommandItem
+                    key={admin.id}
+                    value={`${admin.name} ${admin.email}`}
+                    onSelect={() => {
+                      onChange([...selected, admin.id]);
+                      setOpen(false);
+                    }}
+                    data-testid={`watcher-option-${admin.id}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm">{admin.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {admin.email}
+                      </p>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }

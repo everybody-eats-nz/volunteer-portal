@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmailPreviewDialog } from "@/components/email-preview-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AssignVolunteerDialogProps {
   shift: {
@@ -74,6 +75,11 @@ export function AssignVolunteerDialog({
     null
   );
   const [note, setNote] = useState("");
+  // Only offered when the shift is full: confirm over capacity, or put them on
+  // the waitlist (they're asked to keep the place).
+  const [assignAs, setAssignAs] = useState<"CONFIRMED" | "WAITLISTED">(
+    "CONFIRMED"
+  );
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -89,6 +95,7 @@ export function AssignVolunteerDialog({
       setSearchQuery("");
       setSelectedVolunteer(null);
       setNote("");
+      setAssignAs("CONFIRMED");
     }
     setOpen(nextOpen);
   };
@@ -124,7 +131,7 @@ export function AssignVolunteerDialog({
         },
         body: JSON.stringify({
           volunteerId: selectedVolunteer.id,
-          status: "CONFIRMED",
+          status: isOverCapacity ? assignAs : "CONFIRMED",
           note: note.trim() || null,
         }),
       });
@@ -271,10 +278,47 @@ export function AssignVolunteerDialog({
                 className="mt-3"
               >
                 <p className="text-sm">
-                  This shift is currently full. Assigning another volunteer will
-                  exceed the capacity.
+                  This shift is currently full. Confirming another volunteer
+                  will exceed the capacity, or you can add them to the waitlist
+                  instead.
                 </p>
               </InfoBox>
+            )}
+
+            {isOverCapacity && (
+              <RadioGroup
+                value={assignAs}
+                onValueChange={(v) => setAssignAs(v as typeof assignAs)}
+                className="mt-3 gap-2"
+                aria-label="Add them as"
+                data-testid="assign-as-group"
+              >
+                <Label
+                  htmlFor="assign-as-confirmed"
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border bg-background p-3 font-normal"
+                >
+                  <RadioGroupItem value="CONFIRMED" id="assign-as-confirmed" className="mt-0.5" />
+                  <span>
+                    <span className="block text-sm font-medium">Confirm them anyway</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Goes over capacity. They get the confirmation email.
+                    </span>
+                  </span>
+                </Label>
+                <Label
+                  htmlFor="assign-as-waitlisted"
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border bg-background p-3 font-normal"
+                >
+                  <RadioGroupItem value="WAITLISTED" id="assign-as-waitlisted" className="mt-0.5" data-testid="assign-as-waitlisted" />
+                  <span>
+                    <span className="block text-sm font-medium">Add to the waitlist</span>
+                    <span className="block text-xs text-muted-foreground">
+                      They&apos;re asked to keep their place, then offered one
+                      if it opens up.
+                    </span>
+                  </span>
+                </Label>
+              </RadioGroup>
             )}
           </div>
 
@@ -456,6 +500,8 @@ export function AssignVolunteerDialog({
                   <MotionSpinner className="w-4 h-4" />
                   Assigning...
                 </span>
+              ) : isOverCapacity && assignAs === "WAITLISTED" ? (
+                "Add to waitlist"
               ) : (
                 "👥 Assign Volunteer"
               )}

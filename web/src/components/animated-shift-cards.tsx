@@ -78,13 +78,16 @@ import {
   Pencil,
   PartyPopper,
   Sparkles,
+  ShieldOff,
+  Hourglass,
 } from "lucide-react";
+import { needsWaitlistConfirmation } from "@/lib/waitlist";
 import { getMilestoneStatus } from "@/lib/milestone-thresholds";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { isShiftCompleted } from "@/lib/shift-utils";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
-import { CustomLabelBadge } from "@/components/custom-label-badge";
+import { LabelNoteBadge } from "@/components/label-note-badge";
 import { AdminNotesDialog } from "@/components/admin-notes-dialog";
 import { calculateAge } from "@/lib/utils";
 import { AssignVolunteerDialog } from "@/components/assign-volunteer-dialog";
@@ -109,6 +112,8 @@ interface Shift {
   location: string | null;
   capacity: number;
   notes: string | null;
+  /** Off for hand-picked special events. Missing means on. */
+  autoApprovalEnabled?: boolean;
   placeholders: Array<{
     id: string;
     name: string;
@@ -122,6 +127,9 @@ interface Shift {
     id: string;
     status: string;
     note: string | null;
+    /** Waitlisted by an admin, and whether the volunteer has kept the place. */
+    waitlistAddedByAdminAt?: Date | null;
+    waitlistConfirmedAt?: Date | null;
     backupForShiftIds: string[];
     user: {
       id: string;
@@ -153,6 +161,13 @@ interface Shift {
           color: string;
           icon: string | null;
         };
+        note?: string | null;
+        assignedAt?: Date;
+        assignedBy?: {
+          name: string | null;
+          firstName: string | null;
+          lastName: string | null;
+        } | null;
       }>;
     };
   }>;
@@ -459,14 +474,12 @@ function VolunteerStatusGroups({
                           {gradeInfo.label}
                         </div>
                         {signup.user.customLabels.map((userLabel) => (
-                          <CustomLabelBadge
+                          <LabelNoteBadge
                             key={userLabel.label.id}
-                            label={{
-                              ...userLabel.label,
-                              isActive: true,
-                              createdAt: new Date(),
-                              updatedAt: new Date(),
-                            }}
+                            label={userLabel.label}
+                            note={userLabel.note}
+                            assignedAt={userLabel.assignedAt}
+                            assignedBy={userLabel.assignedBy}
                             size="sm"
                             data-testid={`volunteer-label-${signup.id}-${userLabel.label.id}`}
                           />
@@ -535,6 +548,15 @@ function VolunteerStatusGroups({
                         <div className="text-xs text-foreground/80 mt-1 p-3 bg-muted/50 border-l-2 border-primary-text/40 rounded">
                           <span className="font-semibold text-primary-text">Note: </span>
                           {signup.note}
+                        </div>
+                      )}
+                      {needsWaitlistConfirmation(signup) && (
+                        <div
+                          className="flex items-start gap-1 mt-1.5 text-xs text-muted-foreground"
+                          data-testid={`waitlist-awaiting-confirm-${signup.id}`}
+                        >
+                          <Hourglass className="mt-0.5 h-3 w-3 flex-shrink-0" aria-hidden="true" />
+                          <span>Asked to keep their place - no reply yet</span>
                         </div>
                       )}
                       {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
@@ -728,6 +750,15 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                                 {formatInNZT(shift.start, "h:mm a")} - {formatInNZT(shift.end, "h:mm a")}
                               </span>
                             </div>
+                            {shift.autoApprovalEnabled === false && (
+                              <div
+                                className="mt-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+                                data-testid={`shift-auto-approval-off-${shift.id}`}
+                              >
+                                <ShieldOff className="h-3.5 w-3.5" aria-hidden="true" />
+                                Auto-approval off
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">

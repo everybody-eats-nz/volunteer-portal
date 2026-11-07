@@ -13,6 +13,8 @@ interface Shift {
   location: string | null;
   capacity: number;
   notes: string | null;
+  /** Off for hand-picked special events. Missing means on. */
+  autoApprovalEnabled?: boolean;
   placeholders: Array<{
     id: string;
     name: string;
@@ -26,6 +28,9 @@ interface Shift {
     id: string;
     status: string;
     note: string | null;
+    /** Waitlisted by an admin, and whether the volunteer has kept the place. */
+    waitlistAddedByAdminAt?: Date | null;
+    waitlistConfirmedAt?: Date | null;
     backupForShiftIds: string[];
     user: {
       id: string;
@@ -52,6 +57,13 @@ interface Shift {
           color: string;
           icon: string | null;
         };
+        note?: string | null;
+        assignedAt?: Date;
+        assignedBy?: {
+          name: string | null;
+          firstName: string | null;
+          lastName: string | null;
+        } | null;
       }>;
     };
   }>;

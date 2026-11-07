@@ -161,6 +161,9 @@ export default async function AdminShiftsPage({
               customLabels: {
                 include: {
                   label: true,
+                  assignedBy: {
+                    select: { name: true, firstName: true, lastName: true },
+                  },
                 },
                 orderBy: {
                   assignedAt: "desc",

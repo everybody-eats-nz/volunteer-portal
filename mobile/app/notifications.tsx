@@ -77,6 +77,8 @@ function buildIconMap(scheme: Scheme): Record<NotificationType, IconSpec> {
     FEED_ITEM_LIKED: spec("heart", tones.pink),
     FEED_ITEM_COMMENTED: spec("chatbubble", tones.blue),
     FEED_ITEM_COMMENT_REPLY: spec("chatbubbles", tones.violet),
+    // Admins only: a label they watch went on a volunteer
+    LABEL_ASSIGNED: spec("pricetag", tones.sun),
   };
 }
 

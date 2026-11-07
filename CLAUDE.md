@@ -218,8 +218,8 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 **Core**:
 - **User** — Volunteer profiles with emergency contacts, role (`VOLUNTEER`/`ADMIN`), volunteer grade
 - **Passkey** / **WebAuthnChallenge** — WebAuthn authentication
-- **Shift** / **ShiftType** / **ShiftTemplate** — Shift scheduling with templates
-- **Signup** — Shift registrations with status tracking (`SignupStatus` enum)
+- **Shift** / **ShiftType** / **ShiftTemplate** — Shift scheduling with templates. `Shift.autoApprovalEnabled` false = hand-picked (special events): no auto-approval and no automatic waitlist offers
+- **Signup** — Shift registrations with status tracking (`SignupStatus` enum). `appliedAt` / `respondedAt` / `response` (`SignupResponse`) feed the 48-hour response report at `/admin/analytics/applications`; `waitlistAddedByAdminAt` / `waitlistConfirmedAt` mean an admin-placed waitlist spot the volunteer must keep before being offered places; `noShowMarkedAt` queues the no-show email sent by `/api/cron/no-show-emails` after the shift
 - **Location** — Restaurant locations
 - **LocationBudget** - Annual koha budget per location per year (annual target + planned service nights); drives nightly targets and `/admin/analytics/budget`
 
@@ -228,7 +228,7 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 - **Friendship** / **FriendRequest** — Friends system with privacy controls (`FriendVisibility`)
 **Admin & Management**:
 - **AdminNote** — Notes on volunteers
-- **CustomLabel** / **UserCustomLabel** — Custom volunteer labels/tags
+- **CustomLabel** / **UserCustomLabel** / **CustomLabelWatcher** — Custom volunteer labels/tags. `requiresNote` labels (e.g. Management Note) take an admin-only note on the assignment; watchers get notification + push + email when the label is added (`src/lib/custom-labels.server.ts`)
 - **AutoAcceptRule** / **AutoApproval** — Automatic shift approval rules
 - **RegularVolunteer** / **RegularSignup** — Regular volunteer scheduling
 - **RestaurantManager** — Manager assignments

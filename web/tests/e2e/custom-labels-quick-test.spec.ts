@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 
 test.describe("Custom Labels - Quick Verification Tests", () => {
   test.describe("Admin Access", () => {
@@ -8,8 +9,8 @@ test.describe("Custom Labels - Quick Verification Tests", () => {
     });
 
     test("should load custom labels page successfully", async ({ page }) => {
-      await page.goto("/admin/custom-labels");
-      await page.waitForLoadState("domcontentloaded");
+      // Settled: React's streaming staging copy otherwise doubles every testid
+      await gotoSettled(page, "/admin/custom-labels");
 
       // Check page loads successfully
       await expect(page).toHaveURL("/admin/custom-labels");
@@ -25,8 +26,8 @@ test.describe("Custom Labels - Quick Verification Tests", () => {
     });
 
     test("should display seed data labels", async ({ page }) => {
-      await page.goto("/admin/custom-labels");
-      await page.waitForLoadState("domcontentloaded");
+      // Settled: React's streaming staging copy otherwise doubles every testid
+      await gotoSettled(page, "/admin/custom-labels");
 
       // Look for some expected seed labels
       const expectedLabels = ["Under 16", "New Volunteer", "Team Leader"];
@@ -42,8 +43,8 @@ test.describe("Custom Labels - Quick Verification Tests", () => {
     });
 
     test("should open create label dialog", async ({ page }) => {
-      await page.goto("/admin/custom-labels");
-      await page.waitForLoadState("domcontentloaded");
+      // Settled: React's streaming staging copy otherwise doubles every testid
+      await gotoSettled(page, "/admin/custom-labels");
 
       // Click add label button
       await page.getByTestId("create-label-button").click();

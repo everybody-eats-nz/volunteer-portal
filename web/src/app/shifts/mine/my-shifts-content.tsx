@@ -14,6 +14,10 @@ import {
   WaitlistOfferBanner,
   type WaitlistOffer,
 } from "./waitlist-offer-banner";
+import {
+  WaitlistConfirmBanner,
+  type WaitlistConfirmRequest,
+} from "./waitlist-confirm-banner";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { getWaitlistCounts } from "@/lib/waitlist.server";
 import { offerDeadlineLabel, waitlistCountLabel } from "@/lib/waitlist";
@@ -93,6 +97,46 @@ async function fetchMonthShifts(
       },
     },
   });
+}
+
+/**
+ * Waitlist places the team put this volunteer in that they haven't kept yet.
+ * Like offers, not scoped to the month being viewed.
+ */
+async function fetchWaitlistConfirmRequests(
+  userId: string
+): Promise<WaitlistConfirmRequest[]> {
+  const requests = await prisma.signup.findMany({
+    where: {
+      userId,
+      status: "WAITLISTED",
+      waitlistAddedByAdminAt: { not: null },
+      waitlistConfirmedAt: null,
+      shift: { start: { gt: new Date() } },
+    },
+    orderBy: { shift: { start: "asc" } },
+    select: {
+      shiftId: true,
+      shift: {
+        select: {
+          start: true,
+          end: true,
+          location: true,
+          shiftType: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  return requests.map((r) => ({
+    shiftId: r.shiftId,
+    shiftName: r.shift.shiftType.name,
+    shiftWhen: `${formatInNZT(r.shift.start, "EEEE d MMMM")} · ${formatInNZT(
+      r.shift.start,
+      "h:mma"
+    )}–${formatInNZT(r.shift.end, "h:mma")}`,
+    location: r.shift.location,
+  }));
 }
 
 /**
@@ -281,11 +325,13 @@ export async function MyShiftsContent({
 
   // Waitlist sizes for the shifts this volunteer is waiting on. Standby is only
   // a real decision if you can see how many people are already waiting.
-  const [waitlistCounts, waitlistOffers] = await Promise.all([
+  const [waitlistCounts, waitlistOffers, waitlistConfirmRequests] =
+    await Promise.all([
     getWaitlistCounts(
       upcoming.filter((s) => s.status === "WAITLISTED").map((s) => s.shift.id)
     ),
     fetchLiveWaitlistOffers(userId),
+    fetchWaitlistConfirmRequests(userId),
   ]);
 
   // Group open shifts (spots available, preferred locations) by day for the
@@ -371,6 +417,7 @@ export async function MyShiftsContent({
     <>
       {/* An offer has a deadline, so it goes above everything else. */}
       <WaitlistOfferBanner offers={waitlistOffers} />
+      <WaitlistConfirmBanner requests={waitlistConfirmRequests} />
 
       {/* Stats overview — editorial hairline band, matching the landing
           page's "mahi in numbers" treatment. */}

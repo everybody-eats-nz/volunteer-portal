@@ -62,12 +62,22 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
   // the accept/decline for a waitlist offer lives on mobile. The web banner
   // sits on /shifts/mine; mobile has no equivalent page, and dropping someone
   // on the shifts tab with a ticking offer would be a good way to lose it.
+  // /shifts/mine?confirmWaitlist=:shiftId -> the same screen, where the team
+  // asked them to keep (or leave) a waitlist place they were put in.
   if (pathname === "/shifts/mine") {
-    const offerShiftId = query.get("offer");
+    const offerShiftId = query.get("offer") ?? query.get("confirmWaitlist");
     if (offerShiftId) {
       router.push({ pathname: "/shift/[id]", params: { id: offerShiftId } });
       return;
     }
+  }
+
+  // /admin/volunteers/:id -> that volunteer's profile. Label alerts for
+  // admins link here.
+  const adminVolunteer = pathname.match(/^\/admin\/volunteers\/([^/]+)$/);
+  if (adminVolunteer) {
+    router.push({ pathname: "/user/[id]", params: { id: adminVolunteer[1] } });
+    return;
   }
 
   // /shifts/details?date=YYYY-MM-DD&location=X -> shifts tab focused on that

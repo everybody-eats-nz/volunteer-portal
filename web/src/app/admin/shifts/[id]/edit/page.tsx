@@ -30,6 +30,8 @@ import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { PageContainer } from "@/components/page-container";
 import { createNZDate, formatInNZT } from "@/lib/timezone";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
+import { parseAutoApprovalEnabled } from "@/lib/services/shift-service";
+import { AutoApprovalToggle } from "@/components/shift-creation/auto-approval-toggle";
 
 export const metadata: Metadata = {
   title: "Edit shift",
@@ -165,6 +167,9 @@ export default async function EditShiftPage({
           location,
           capacity,
           notes: notes ?? null,
+          autoApprovalEnabled: parseAutoApprovalEnabled(
+            formData.get("autoApprovalEnabled")
+          ),
         },
       });
     } catch {
@@ -535,6 +540,10 @@ export default async function EditShiftPage({
                     </p>
                   )}
                 </div>
+
+                <AutoApprovalToggle
+                  defaultEnabled={shift.autoApprovalEnabled}
+                />
               </div>
 
               {/* Signup Summary */}

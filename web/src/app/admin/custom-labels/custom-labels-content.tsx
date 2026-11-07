@@ -35,11 +35,17 @@ import {
   Search,
   ArrowUpDown,
   ChevronRight,
+  NotebookPen,
+  BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { type CustomLabel } from "@/generated/client";
-import { CustomLabelDialog } from "./custom-label-dialog";
+import {
+  CustomLabelDialog,
+  type AdminOption,
+  type LabelFormData,
+} from "./custom-label-dialog";
 import { LabelMembersDialog } from "./label-members-dialog";
 import { getLabelTheme } from "./label-colors";
 import { KpiTile } from "@/components/admin/kpi-tile";
@@ -58,11 +64,15 @@ export interface PreviewUser {
 export type LabelWithMeta = CustomLabel & {
   _count: { users: number };
   previewUsers: PreviewUser[];
+  watchers: { userId: string }[];
 };
+
+type SavedLabel = CustomLabel & { watchers: { userId: string }[] };
 
 interface CustomLabelsContentProps {
   initialLabels: LabelWithMeta[];
   taggedVolunteers: number;
+  admins: AdminOption[];
 }
 
 type SortKey = "most" | "newest" | "az";
@@ -76,6 +86,7 @@ const SORTS: { key: SortKey; label: string }[] = [
 export function CustomLabelsContent({
   initialLabels,
   taggedVolunteers,
+  admins,
 }: CustomLabelsContentProps) {
   const [labels, setLabels] = useState<LabelWithMeta[]>(initialLabels);
   const [query, setQuery] = useState("");
@@ -126,11 +137,7 @@ export function CustomLabelsContent({
   }, [labels, query, sort]);
 
   // ----- CRUD -----
-  const handleCreateLabel = async (data: {
-    name: string;
-    color: string;
-    icon?: string;
-  }) => {
+  const handleCreateLabel = async (data: LabelFormData) => {
     try {
       const response = await fetch("/api/admin/custom-labels", {
         method: "POST",
@@ -141,7 +148,7 @@ export function CustomLabelsContent({
         const error = await response.json();
         throw new Error(error.error || "Failed to create label");
       }
-      const newLabel: CustomLabel = await response.json();
+      const newLabel: SavedLabel = await response.json();
       setLabels((prev) => [
         { ...newLabel, _count: { users: 0 }, previewUsers: [] },
         ...prev,
@@ -160,7 +167,7 @@ export function CustomLabelsContent({
 
   const handleUpdateLabel = async (
     id: string,
-    data: { name: string; color: string; icon?: string }
+    data: LabelFormData
   ) => {
     try {
       const response = await fetch(`/api/admin/custom-labels/${id}`, {
@@ -172,7 +179,7 @@ export function CustomLabelsContent({
         const error = await response.json();
         throw new Error(error.error || "Failed to update label");
       }
-      const updatedLabel: CustomLabel = await response.json();
+      const updatedLabel: SavedLabel = await response.json();
       setLabels((prev) =>
         prev.map((label) =>
           label.id === id
@@ -397,6 +404,7 @@ export function CustomLabelsContent({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         label={editingLabel}
+        admins={admins}
         onSave={
           editingLabel
             ? (data) => handleUpdateLabel(editingLabel.id, data)
@@ -502,6 +510,29 @@ function LabelCard({
             <p className="mt-1.5 text-xs text-muted-foreground">
               Created {created}
             </p>
+            {(label.requiresNote || label.watchers.length > 0) && (
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {label.requiresNote && (
+                  <span
+                    className="flex items-center gap-1"
+                    data-testid={`label-requires-note-${label.id}`}
+                  >
+                    <NotebookPen className="h-3.5 w-3.5" aria-hidden="true" />
+                    Asks for a note
+                  </span>
+                )}
+                {label.watchers.length > 0 && (
+                  <span
+                    className="flex items-center gap-1"
+                    data-testid={`label-watcher-count-${label.id}`}
+                  >
+                    <BellRing className="h-3.5 w-3.5" aria-hidden="true" />
+                    Tells {label.watchers.length}{" "}
+                    {label.watchers.length === 1 ? "person" : "people"}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <TooltipProvider delayDuration={200}>

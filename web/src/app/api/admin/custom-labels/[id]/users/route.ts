@@ -31,6 +31,10 @@ export async function GET(
       orderBy: { assignedAt: "desc" },
       select: {
         assignedAt: true,
+        note: true,
+        assignedBy: {
+          select: { id: true, name: true, firstName: true, lastName: true },
+        },
         user: {
           select: {
             id: true,
@@ -48,6 +52,8 @@ export async function GET(
     const members = assignments.map((a) => ({
       ...a.user,
       assignedAt: a.assignedAt,
+      note: a.note,
+      assignedBy: a.assignedBy,
     }));
 
     return NextResponse.json({ label, members });

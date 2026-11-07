@@ -233,6 +233,8 @@ export async function POST(
         userId: user.id,
         shiftId: shift.id,
         status: "PENDING",
+        // An application: the response-time report counts from here
+        appliedAt: new Date(),
         note,
         backupForShiftIds: backupShiftIds,
         waitlistIfFull,

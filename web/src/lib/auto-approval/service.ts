@@ -288,7 +288,11 @@ export async function processAutoApproval(
 
   await prisma.signup.update({
     where: { id: signupId },
-    data: { status: "CONFIRMED" },
+    data: {
+      status: "CONFIRMED",
+      respondedAt: new Date(),
+      response: "AUTO_APPROVED",
+    },
   });
 
   await prisma.autoApproval.create({

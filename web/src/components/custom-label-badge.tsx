@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { type CustomLabel } from "@/generated/client";
 
 interface CustomLabelBadgeProps {
-  label: CustomLabel;
+  label: Pick<CustomLabel, "name" | "color" | "icon">;
   size?: "sm" | "default" | "lg";
   showIcon?: boolean;
   className?: string;

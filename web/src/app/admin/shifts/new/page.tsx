@@ -24,7 +24,10 @@ import {
   toUTC,
 } from "@/lib/timezone";
 import { getActiveLocationNames, normalizeLocationName } from "@/lib/locations";
-import { createShiftRecord } from "@/lib/services/shift-service";
+import {
+  createShiftRecord,
+  parseAutoApprovalEnabled,
+} from "@/lib/services/shift-service";
 import {
   applyTemplateNotesToUpcomingShifts,
   countUpcomingShiftsByTemplate,
@@ -129,6 +132,9 @@ export default async function NewShiftPage({
         capacity,
         notes: notes ?? null,
         templateId,
+        autoApprovalEnabled: parseAutoApprovalEnabled(
+          formData.get("autoApprovalEnabled")
+        ),
       });
 
       // Auto-assign matching regular volunteers

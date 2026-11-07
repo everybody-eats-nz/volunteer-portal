@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { hasLiveWaitlistOffer } from "@/lib/waitlist-offers.server";
-import { offerDeadlineLabel } from "@/lib/waitlist";
+import { needsWaitlistConfirmation, offerDeadlineLabel } from "@/lib/waitlist";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
@@ -145,6 +145,12 @@ export async function GET(
     ? offerDeadlineLabel(userSignup!.waitlistOfferExpiresAt!)
     : null;
 
+  // Put on the waitlist by the team and not yet kept: the screen asks them to
+  // keep their place or leave, and no place is offered until they keep it.
+  const waitlistNeedsConfirmation = Boolean(
+    userSignup && needsWaitlistConfirmation(userSignup)
+  );
+
   // Count confirmed signups + unregistered placeholders
   const signedUpCount = getShiftEffectiveCount(shift);
 
@@ -195,6 +201,7 @@ export async function GET(
     status: userStatus,
     waitlistOfferExpiresAt,
     waitlistOfferExpiresLabel,
+    waitlistNeedsConfirmation,
     notes: shift.notes,
     signups,
     dayLeads,

@@ -33,6 +33,11 @@ type ShiftDetailResponse = {
   waitlistOfferExpiresAt?: string | null;
   /** Server-formatted NZ deadline, e.g. "3:34PM today". */
   waitlistOfferExpiresLabel?: string | null;
+  /**
+   * The team put this volunteer on the waitlist and they haven't said they
+   * want to stay. Missing from older servers, which never ask.
+   */
+  waitlistNeedsConfirmation?: boolean;
   notes: string | null;
   /**
    * Every active signup, for counting. Volunteers the viewer may not see are
@@ -130,6 +135,8 @@ type UseShiftDetailReturn = {
   waitlistOfferExpiresAt: string | null;
   /** How that deadline reads, worded server-side in NZ time. */
   waitlistOfferExpiresLabel: string | null;
+  /** Asked to keep a waitlist place the team put them in. */
+  waitlistNeedsConfirmation: boolean;
   /** Marketing CMS events at this restaurant on the shift's day */
   events: ShiftEvent[];
   /** The Chef and FOH Manager running the shift's day, by first name */
@@ -209,6 +216,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
     waitlistCount: data?.waitlistCount ?? 0,
     waitlistOfferExpiresAt: data?.waitlistOfferExpiresAt ?? null,
     waitlistOfferExpiresLabel: data?.waitlistOfferExpiresLabel ?? null,
+    waitlistNeedsConfirmation: data?.waitlistNeedsConfirmation ?? false,
     events: data?.events ?? [],
     dayLeads: data?.dayLeads ?? null,
     periodFriends,
