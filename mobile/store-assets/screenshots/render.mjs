@@ -34,6 +34,8 @@ const SIZES = [
   // App Store: 6.9" (iPhone 16/17 Pro Max) is required; 6.5" covers older phones.
   { dir: "ios-6.9", width: 1320, height: 2868, frame: "ios" },
   { dir: "ios-6.5", width: 1284, height: 2778, frame: "ios" },
+  // 6.1" / 6.3" (iPhone 16/17), for when App Store Connect asks for its own set.
+  { dir: "ios-6.3", width: 1206, height: 2622, frame: "ios" },
   // Google Play phone: 9:16 (Play caps the long side at twice the short one).
   { dir: "android", width: 1080, height: 1920, frame: "android" },
 ];

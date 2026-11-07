@@ -19,6 +19,7 @@ panel under a Fraunces headline.
 |--------|------|-----|
 | `ios-6.9/` | 1320 x 2868 | App Store, iPhone 6.9" (required) |
 | `ios-6.5/` | 1284 x 2778 | App Store, iPhone 6.5" |
+| `ios-6.3/` | 1206 x 2622 | App Store, iPhone 6.1" / 6.3" |
 | `android/` | 1080 x 1920 | Google Play, phone (9:16; Play caps the long side at 2x the short) |
 
 PNGs are RGB with no alpha channel, which App Store Connect requires.
