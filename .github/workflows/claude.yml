@@ -32,34 +32,38 @@ jobs:
 
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
-          
-          # Pin an explicit model — the action's old default (claude-sonnet-4-20250514)
-          # has been retired and now 404s.
-          model: "claude-sonnet-4-5"
+
+          # No `prompt` here, so the action runs in interactive (tag) mode and
+          # answers @claude mentions.
+          #
+          # Sonnet 4.5 is deprecated and retires 2026-11-30; claude-sonnet-5-5 is
+          # the documented replacement. Pin explicitly so a retired default can't
+          # 404 the job.
+          claude_args: |
+            --model claude-sonnet-5-5
 
           # Optional: Customize the trigger phrase (default: @claude)
           # trigger_phrase: "/claude"
-          
+
           # Optional: Trigger when specific user is assigned to an issue
           # assignee_trigger: "claude-bot"
-          
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
-          
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
-          
-          # Optional: Custom environment variables for Claude
-          # claude_env: |
-          #   NODE_ENV: test
 
+          # Optional: More CLI arguments go in claude_args above, e.g.
+          #   --max-turns 10
+          #   --allowedTools "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
+          #   --append-system-prompt "Follow our coding standards. Ensure all new code has tests."
+
+          # Optional: Custom environment variables for Claude
+          # settings: |
+          #   {
+          #     "env": {
+          #       "NODE_ENV": "test"
+          #     }
+          #   }
