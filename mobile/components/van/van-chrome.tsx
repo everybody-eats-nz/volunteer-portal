@@ -1,5 +1,12 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  type ScrollViewProps,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -86,6 +93,16 @@ export function DriveFlowScreen({
       </View>
     </FlowHeaderContext.Provider>
   );
+}
+
+/**
+ * A list in a flow screen (trip history, a step's choices). Where the header
+ * floats it runs up underneath it, inset so pull to refresh and the scroll
+ * indicator stay below the header; otherwise it is a plain `ScrollView`.
+ */
+export function FlowScrollView({ style, ...props }: ScrollViewProps) {
+  const flowScroll = useFlowScroll();
+  return <ScrollView {...props} {...flowScroll.scrollProps} style={[style, flowScroll.style]} />;
 }
 
 /**

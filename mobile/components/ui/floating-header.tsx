@@ -10,15 +10,6 @@ import {
 
 import { NativeScrollEdgeEffectView } from "@/modules/scroll-edge-effect";
 
-/**
- * Where the native scroll edge effect exists (iOS 26), a hand-built header
- * floats over the screen's scroll view the way a navigation bar does: the
- * list runs underneath it, and content blurs and fades as it slides under the
- * header's controls. Elsewhere the header stays a solid band in the layout,
- * above the list, as it always has.
- */
-export const HEADER_FLOATS = NativeScrollEdgeEffectView != null;
-
 export type FloatingHeaderState = {
   /** The header sits over the scroll view instead of above it. */
   floats: boolean;
@@ -45,6 +36,12 @@ export type FloatingHeaderState = {
 const NO_SCROLL_PROPS: FloatingHeaderState["scrollProps"] = {};
 
 /**
+ * Where the native scroll edge effect exists (iOS 26), a hand-built header
+ * floats over the screen's scroll view the way a navigation bar does: the
+ * list runs underneath it, and content blurs and fades as it slides under the
+ * header's controls. Elsewhere the header stays a solid band in the layout,
+ * above the list, as it always has.
+ *
  * Pass `estimatedHeight` when the header's height is known up front: the
  * screen can then lay out (and mount its scroll view) at once, and only
  * adjusts if the measurement disagrees.
@@ -53,23 +50,30 @@ export function useFloatingHeader({
   estimatedHeight,
 }: { estimatedHeight?: number } = {}): FloatingHeaderState {
   const [height, setHeight] = useState<number | null>(null);
+  // The inset the scroll view mounts with. `contentOffset` is a controlled
+  // prop that React Native applies whenever its value changes, so it keeps
+  // this first value: a header that grows later (Dynamic Type, a subtitle
+  // arriving) updates the inset without throwing the reader back to the top.
+  const [mountInset, setMountInset] = useState<number | null>(estimatedHeight ?? null);
   const onLayout = useCallback((event: LayoutChangeEvent) => {
-    setHeight(Math.round(event.nativeEvent.layout.height));
+    const measured = Math.round(event.nativeEvent.layout.height);
+    setHeight(measured);
+    setMountInset((current) => current ?? measured);
   }, []);
 
-  if (!HEADER_FLOATS) {
+  if (NativeScrollEdgeEffectView == null) {
     return { floats: false, ready: true, inset: 0, onLayout, scrollProps: NO_SCROLL_PROPS };
   }
 
   const inset = height ?? estimatedHeight ?? 0;
   return {
     floats: true,
-    ready: height != null || estimatedHeight != null,
+    ready: mountInset != null,
     inset,
     onLayout,
     scrollProps: {
       contentInset: { top: inset },
-      contentOffset: { x: 0, y: -inset },
+      contentOffset: { x: 0, y: -(mountInset ?? inset) },
       scrollIndicatorInsets: { top: inset },
     },
   };

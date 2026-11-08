@@ -254,7 +254,15 @@ export default function AdminConversationScreen() {
 
         {/* Context strip */}
         {detail && (
-          <View style={[styles.contextStrip, { backgroundColor: colors.surfaceSoft, borderBottomColor: rule }]}>
+          <View
+            style={[
+              styles.contextStrip,
+              // Floating, the strip is part of the header the edge effect
+              // blurs behind; in flow it is its own tinted band.
+              !header.floats && { backgroundColor: colors.surfaceSoft, borderBottomColor: rule },
+              header.floats && styles.contextStripFloating,
+            ]}
+          >
             <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
             <Text style={[styles.contextText, { color: colors.textSecondary }]}>
               {detail.upcomingShiftCount > 0
@@ -457,6 +465,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  contextStripFloating: { borderBottomWidth: 0 },
   contextText: { fontFamily: FontFamily.medium, fontSize: 13 },
   resolvedBadge: {
     marginLeft: "auto",

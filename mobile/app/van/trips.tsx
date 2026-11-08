@@ -4,13 +4,12 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
-import { DriveFlowScreen, FlowHeader } from "@/components/van/van-chrome";
+import { DriveFlowScreen, FlowHeader, FlowScrollView } from "@/components/van/van-chrome";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { EmptyState, ErrorState } from "@/components/ui/state-view";
@@ -58,7 +57,7 @@ export default function TripHistoryScreen() {
   return (
     <DriveFlowScreen testID="van-trip-history">
       <FlowHeader title="Your trips" onBack={() => router.back()} />
-      <ScrollView
+      <FlowScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -160,7 +159,7 @@ export default function TripHistoryScreen() {
             style={styles.more}
           />
         ) : null}
-      </ScrollView>
+      </FlowScrollView>
     </DriveFlowScreen>
   );
 }

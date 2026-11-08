@@ -19,19 +19,31 @@ final class ScrollEdgeEffectView: ExpoView {
 
   private weak var attachedScrollView: UIScrollView?
   private var interaction: UIInteraction?
+  /// What the scroll view's edge effect was before this view took it over,
+  /// put back on detach in case the scroll view outlives this view.
+  private var previousEffect: (isHidden: Bool, style: AnyObject)?
+  /// Rides inside the attached scroll view to report when it leaves the
+  /// window (unmounted, or swapped for another), so this view can look again.
+  private let windowWatcher = WindowWatcherView()
 
-  /// Screens swap their scroll view out (a loading state, then the list; a
-  /// welcome page, then the chat) without this view laying out again, so it
-  /// re-checks on a slow timer while on screen: a pointer comparison when
-  /// attached, a search of its siblings when not.
-  private var recheckTimer: Timer?
+  /// Screens mount their scroll view after their header (a loading state,
+  /// then the list), and nothing tells this view when it appears. So while it
+  /// has no scroll view it looks again on a timer that backs off; once
+  /// attached it stops, and the watcher restarts it.
+  private var searchTimer: Timer?
+  private var searchInterval: TimeInterval = SearchBackoff.first
+
+  private enum SearchBackoff {
+    static let first: TimeInterval = 0.1
+    static let longest: TimeInterval = 2
+  }
 
   /// UIKit shapes the effect around the container's visible descendants
   /// (labels, images, controls). An empty view yields no effect at all, so a
   /// clear label spans the frame: nothing is drawn, but the effect covers it.
   private let shapeLabel: UILabel = {
     let label = UILabel()
-    label.text = "Status bar"
+    label.text = "Scroll edge"
     label.textColor = .clear
     label.textAlignment = .center
     label.isAccessibilityElement = false
@@ -41,60 +53,54 @@ final class ScrollEdgeEffectView: ExpoView {
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     insertSubview(shapeLabel, at: 0)
+    windowWatcher.onLeaveWindow = { [weak self] in
+      self?.reattach()
+    }
   }
 
   deinit {
-    recheckTimer?.invalidate()
+    searchTimer?.invalidate()
   }
 
   /// Touches pass through the view itself to the content scrolling beneath,
   /// while React children laid on top of it (a header's back button) still
-  /// receive them.
+  /// receive them. (The label never takes touches: UILabel has interaction
+  /// off.)
   override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
     let hit = super.hitTest(point, with: event)
-    return hit === self || hit === shapeLabel ? nil : hit
+    return hit === self ? nil : hit
   }
 
   override func layoutSubviews() {
     super.layoutSubviews()
     shapeLabel.frame = bounds
-    attachIfNeeded()
+    if attachedScrollView == nil { attachIfPossible() }
   }
 
   override func didMoveToWindow() {
     super.didMoveToWindow()
     if window == nil {
-      recheckTimer?.invalidate()
-      recheckTimer = nil
+      stopSearching()
       detach()
     } else {
-      attachIfNeeded()
-      startRechecking()
+      reattach()
     }
-  }
-
-  private func startRechecking() {
-    guard #available(iOS 26.0, *), recheckTimer == nil else { return }
-    let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
-      self?.attachIfNeeded()
-    }
-    RunLoop.main.add(timer, forMode: .common)
-    recheckTimer = timer
   }
 
   private func reattach() {
     detach()
-    attachIfNeeded()
+    searchInterval = SearchBackoff.first
+    attachIfPossible()
   }
 
-  private func attachIfNeeded() {
+  /// Attaches to the scroll view if one is there, else schedules another look.
+  private func attachIfPossible() {
     guard #available(iOS 26.0, *), window != nil else { return }
-    if let scrollView = attachedScrollView, scrollView.window === window,
-       scrollView.superview != nil {
+    guard let scrollView = findScrollView() else {
+      scheduleSearch()
       return
     }
-    detach()
-    guard let scrollView = findScrollView() else { return }
+    stopSearching()
 
     let interaction = UIScrollEdgeElementContainerInteraction()
     interaction.scrollView = scrollView
@@ -102,9 +108,11 @@ final class ScrollEdgeEffectView: ExpoView {
     addInteraction(interaction)
 
     let effect = edge == .bottom ? scrollView.bottomEdgeEffect : scrollView.topEdgeEffect
+    previousEffect = (effect.isHidden, effect.style)
     effect.isHidden = false
     effect.style = .soft
 
+    scrollView.addSubview(windowWatcher)
     self.interaction = interaction
     attachedScrollView = scrollView
   }
@@ -113,14 +121,43 @@ final class ScrollEdgeEffectView: ExpoView {
     if let interaction {
       removeInteraction(interaction)
     }
+    if #available(iOS 26.0, *), let scrollView = attachedScrollView, let previousEffect,
+       let style = previousEffect.style as? UIScrollEdgeEffect.Style {
+      let effect = edge == .bottom ? scrollView.bottomEdgeEffect : scrollView.topEdgeEffect
+      effect.isHidden = previousEffect.isHidden
+      effect.style = style
+    }
+    // Detach the watcher quietly: it is leaving because this view chose to.
+    windowWatcher.onLeaveWindowEnabled = false
+    windowWatcher.removeFromSuperview()
+    windowWatcher.onLeaveWindowEnabled = true
     interaction = nil
+    previousEffect = nil
     attachedScrollView = nil
   }
 
-  /// The scroll view this view floats over: the shallowest one among its
-  /// siblings' subtrees that reaches up to this view's top edge, so a
-  /// horizontal carousel further down the screen is never picked. It may be
-  /// narrower than this view (the driver flows inset their content).
+  private func scheduleSearch() {
+    guard searchTimer == nil else { return }
+    let timer = Timer(timeInterval: searchInterval, repeats: false) { [weak self] _ in
+      guard let self else { return }
+      self.searchTimer = nil
+      self.searchInterval = min(self.searchInterval * 2, SearchBackoff.longest)
+      self.attachIfPossible()
+    }
+    RunLoop.main.add(timer, forMode: .default)
+    searchTimer = timer
+  }
+
+  private func stopSearching() {
+    searchTimer?.invalidate()
+    searchTimer = nil
+  }
+
+  /// The scroll view this view floats over: the shallowest vertical one among
+  /// its siblings' subtrees that reaches up to this view's top edge. A
+  /// horizontal carousel (one React Native set to bounce only sideways) is
+  /// skipped, and so is anything further down the screen. It may be narrower
+  /// than this view (the driver flows inset their content).
   private func findScrollView() -> UIScrollView? {
     guard let superview, let window else { return nil }
     let ownFrame = convert(bounds, to: window)
@@ -131,12 +168,41 @@ final class ScrollEdgeEffectView: ExpoView {
       index += 1
       if let scrollView = candidate as? UIScrollView {
         let frame = scrollView.convert(scrollView.bounds, to: window)
-        if frame.minY <= ownFrame.minY + 1, frame.width >= ownFrame.width / 2 {
+        let horizontalOnly = scrollView.alwaysBounceHorizontal && !scrollView.alwaysBounceVertical
+        if !horizontalOnly, frame.minY <= ownFrame.minY + 1, frame.width >= ownFrame.width / 2 {
           return scrollView
         }
       }
       queue.append(contentsOf: candidate.subviews)
     }
     return nil
+  }
+}
+
+/// A zero-size, invisible view that calls back when it leaves the window.
+private final class WindowWatcherView: UIView {
+  var onLeaveWindow: (() -> Void)?
+  var onLeaveWindowEnabled = true
+
+  override init(frame: CGRect) {
+    super.init(frame: .zero)
+    isHidden = true
+    isUserInteractionEnabled = false
+    isAccessibilityElement = false
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) is not supported")
+  }
+
+  override func didMoveToWindow() {
+    super.didMoveToWindow()
+    if window == nil, onLeaveWindowEnabled {
+      // Let the unmount finish before looking for a replacement.
+      DispatchQueue.main.async { [weak self] in
+        self?.onLeaveWindow?()
+      }
+    }
   }
 }

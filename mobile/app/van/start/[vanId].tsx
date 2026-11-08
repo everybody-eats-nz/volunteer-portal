@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -20,7 +19,7 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { OdometerCapture } from "@/components/van/odometer-capture";
-import { DriveFlowScreen, FlowHeader, FlowScroll } from "@/components/van/van-chrome";
+import { DriveFlowScreen, FlowHeader, FlowScroll, FlowScrollView } from "@/components/van/van-chrome";
 import { Button } from "@/components/ui/button";
 import { Brand, Colors, FontFamily, Palette, Radius } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -249,7 +248,7 @@ export default function StartTripScreen() {
     return (
       <DriveFlowScreen testID="van-start-org">
         {header}
-        <ScrollView
+        <FlowScrollView
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
@@ -324,7 +323,7 @@ export default function StartTripScreen() {
           {error ? (
             <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
           ) : null}
-        </ScrollView>
+        </FlowScrollView>
       </DriveFlowScreen>
     );
   }
@@ -385,7 +384,7 @@ export default function StartTripScreen() {
     return (
       <DriveFlowScreen testID="van-start-purpose">
         {header}
-        <ScrollView
+        <FlowScrollView
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
@@ -419,7 +418,7 @@ export default function StartTripScreen() {
           {error ? (
             <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
           ) : null}
-        </ScrollView>
+        </FlowScrollView>
       </DriveFlowScreen>
     );
   }
