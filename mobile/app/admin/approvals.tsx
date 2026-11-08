@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { Button } from "@/components/ui/button";
+import { FloatingHeader, useFloatingHeader } from "@/components/ui/floating-header";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { EmptyState, ErrorState } from "@/components/ui/state-view";
 import { Colors, FontFamily, MaxFontScale, Radius } from "@/constants/theme";
@@ -33,6 +34,7 @@ export default function ApprovalsScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const header = useFloatingHeader();
 
   const selectedLocation = useAdminLocationFilter((s) => s.selected);
   const { data, isPending, isError, error, refetch, isRefetching } =
@@ -113,14 +115,16 @@ export default function ApprovalsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScreenHeader title="Approvals" borderColor={rule} />
+      <FloatingHeader header={header}>
+        <ScreenHeader title="Approvals" borderColor={rule} bordered={!header.floats} />
 
-      <View style={styles.filterRow}>
-        <AdminLocationFilter />
-      </View>
+        <View style={styles.filterRow}>
+          <AdminLocationFilter />
+        </View>
+      </FloatingHeader>
 
       {isPending ? (
-        <View style={styles.center}>
+        <View style={[styles.center, { paddingTop: header.inset }]}>
           <ActivityIndicator color={colors.tint} />
         </View>
       ) : isError ? (
@@ -129,6 +133,7 @@ export default function ApprovalsScreen() {
           title={offline ? undefined : "Couldn't load approvals"}
           onRetry={() => refetch()}
           retrying={isRefetching}
+          style={{ paddingTop: header.inset }}
         />
       ) : (data?.length ?? 0) === 0 ? (
         <EmptyState
@@ -139,9 +144,11 @@ export default function ApprovalsScreen() {
               ? `No signups waiting at ${selectedLocation}. Ka pai!`
               : "No signups waiting on approval. Ka pai!"
           }
+          style={{ paddingTop: header.inset }}
         />
-      ) : (
+      ) : !header.ready ? null : (
         <FlatList
+          {...header.scrollProps}
           data={data}
           keyExtractor={(s) => s.id}
           renderItem={({ item }) => (

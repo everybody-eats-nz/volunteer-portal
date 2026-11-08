@@ -20,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { FloatingHeader, useFloatingHeader } from "@/components/ui/floating-header";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { EmptyState, ErrorState } from "@/components/ui/state-view";
 import { Brand, Colors, FontFamily, MaxFontScale } from "@/constants/theme";
@@ -48,6 +49,7 @@ export default function AdminConversationScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const header = useFloatingHeader();
   const router = useRouter();
 
   const [detail, setDetail] = useState<AdminThreadDetail | null>(null);
@@ -188,91 +190,94 @@ export default function AdminConversationScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <ScreenHeader
-        borderColor={rule}
-        center={
-          <Pressable
-            style={styles.headerCenter}
-            onPress={() => volunteer && router.push(`/user/${volunteer.id}` as Href)}
-            disabled={!volunteer}
-            accessibilityRole="button"
-            accessibilityLabel={`${volunteerName} profile`}
-          >
-            {volunteer?.profilePhotoUrl ? (
-              <Image source={{ uri: volunteer.profilePhotoUrl }} style={styles.headerAvatar} />
-            ) : (
-              <View style={[styles.headerAvatar, styles.headerAvatarFallback, { backgroundColor: colors.primaryLight }]}>
-                <Text style={[styles.headerAvatarInitial, { color: colors.tint }]}>
-                  {initialOf(volunteerName)}
+      <FloatingHeader header={header}>
+        <ScreenHeader
+          borderColor={rule}
+          bordered={!header.floats}
+          center={
+            <Pressable
+              style={styles.headerCenter}
+              onPress={() => volunteer && router.push(`/user/${volunteer.id}` as Href)}
+              disabled={!volunteer}
+              accessibilityRole="button"
+              accessibilityLabel={`${volunteerName} profile`}
+            >
+              {volunteer?.profilePhotoUrl ? (
+                <Image source={{ uri: volunteer.profilePhotoUrl }} style={styles.headerAvatar} />
+              ) : (
+                <View style={[styles.headerAvatar, styles.headerAvatarFallback, { backgroundColor: colors.primaryLight }]}>
+                  <Text style={[styles.headerAvatarInitial, { color: colors.tint }]}>
+                    {initialOf(volunteerName)}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.headerText}>
+                <Text
+                  style={[styles.headerName, { color: colors.text }]}
+                  numberOfLines={1}
+                  accessibilityRole="header"
+                >
+                  {volunteerName}
+                </Text>
+                <Text style={[styles.headerSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {[volunteer?.defaultLocation, grade ? `${grade.label} grade` : null]
+                    .filter(Boolean)
+                    .join(" · ") || "Volunteer"}
+                </Text>
+              </View>
+            </Pressable>
+          }
+          right={
+            detail ? (
+              <Pressable
+                onPress={toggleResolve}
+                hitSlop={4}
+                android_ripple={{ color: rule, borderless: true, radius: 22 }}
+                style={({ pressed }) => [styles.headerAction, { opacity: pressed ? 0.6 : 1 }]}
+                accessibilityLabel={isResolved ? "Reopen conversation" : "Mark resolved"}
+                accessibilityRole="button"
+                accessibilityState={{ busy: resolving }}
+              >
+                {resolving ? (
+                  <ActivityIndicator size="small" color={colors.tint} />
+                ) : (
+                  <Ionicons
+                    name={isResolved ? "lock-open-outline" : "checkmark-done-outline"}
+                    size={22}
+                    color={isResolved ? colors.textSecondary : colors.tint}
+                  />
+                )}
+              </Pressable>
+            ) : null
+          }
+        />
+
+        {/* Context strip */}
+        {detail && (
+          <View style={[styles.contextStrip, { backgroundColor: colors.surfaceSoft, borderBottomColor: rule }]}>
+            <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.contextText, { color: colors.textSecondary }]}>
+              {detail.upcomingShiftCount > 0
+                ? `${detail.upcomingShiftCount} upcoming shift${detail.upcomingShiftCount === 1 ? "" : "s"}`
+                : "No upcoming shifts"}
+            </Text>
+            {isResolved && (
+              <View style={[styles.resolvedBadge, { borderColor: rule }]}>
+                <Text
+                  style={[styles.resolvedBadgeText, { color: colors.textSecondary }]}
+                  maxFontSizeMultiplier={MaxFontScale.compact}
+                >
+                  Resolved
                 </Text>
               </View>
             )}
-            <View style={styles.headerText}>
-              <Text
-                style={[styles.headerName, { color: colors.text }]}
-                numberOfLines={1}
-                accessibilityRole="header"
-              >
-                {volunteerName}
-              </Text>
-              <Text style={[styles.headerSub, { color: colors.textSecondary }]} numberOfLines={1}>
-                {[volunteer?.defaultLocation, grade ? `${grade.label} grade` : null]
-                  .filter(Boolean)
-                  .join(" · ") || "Volunteer"}
-              </Text>
-            </View>
-          </Pressable>
-        }
-        right={
-          detail ? (
-            <Pressable
-              onPress={toggleResolve}
-              hitSlop={4}
-              android_ripple={{ color: rule, borderless: true, radius: 22 }}
-              style={({ pressed }) => [styles.headerAction, { opacity: pressed ? 0.6 : 1 }]}
-              accessibilityLabel={isResolved ? "Reopen conversation" : "Mark resolved"}
-              accessibilityRole="button"
-              accessibilityState={{ busy: resolving }}
-            >
-              {resolving ? (
-                <ActivityIndicator size="small" color={colors.tint} />
-              ) : (
-                <Ionicons
-                  name={isResolved ? "lock-open-outline" : "checkmark-done-outline"}
-                  size={22}
-                  color={isResolved ? colors.textSecondary : colors.tint}
-                />
-              )}
-            </Pressable>
-          ) : null
-        }
-      />
-
-      {/* Context strip */}
-      {detail && (
-        <View style={[styles.contextStrip, { backgroundColor: colors.surfaceSoft, borderBottomColor: rule }]}>
-          <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
-          <Text style={[styles.contextText, { color: colors.textSecondary }]}>
-            {detail.upcomingShiftCount > 0
-              ? `${detail.upcomingShiftCount} upcoming shift${detail.upcomingShiftCount === 1 ? "" : "s"}`
-              : "No upcoming shifts"}
-          </Text>
-          {isResolved && (
-            <View style={[styles.resolvedBadge, { borderColor: rule }]}>
-              <Text
-                style={[styles.resolvedBadgeText, { color: colors.textSecondary }]}
-                maxFontSizeMultiplier={MaxFontScale.compact}
-              >
-                Resolved
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
+          </View>
+        )}
+      </FloatingHeader>
 
       {/* Messages */}
       {loading ? (
-        <View style={styles.center}>
+        <View style={[styles.center, { paddingTop: header.inset }]}>
           <ActivityIndicator color={colors.tint} />
         </View>
       ) : !detail && loadError ? (
@@ -282,6 +287,7 @@ export default function AdminConversationScreen() {
             title="Conversation not found"
             body="It may have been removed. Head back to the inbox to pick another."
             action={{ label: "Back to inbox", icon: "arrow-back", onPress: () => goBackOrHome() }}
+            style={{ paddingTop: header.inset }}
           />
         ) : (
           <ErrorState
@@ -291,6 +297,7 @@ export default function AdminConversationScreen() {
               setLoading(true);
               void load();
             }}
+            style={{ paddingTop: header.inset }}
           />
         )
       ) : messages.length === 0 ? (
@@ -298,9 +305,11 @@ export default function AdminConversationScreen() {
           emoji="💬"
           title="No messages yet"
           body={`Say kia ora - your reply reaches ${volunteerName.split(" ")[0]} in the app.`}
+          style={{ paddingTop: header.inset }}
         />
-      ) : (
+      ) : !header.ready ? null : (
         <FlatList
+          {...header.scrollProps}
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}

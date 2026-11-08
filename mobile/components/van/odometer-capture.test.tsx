@@ -82,6 +82,9 @@ vi.mock("expo-image-picker", () => ({
   launchCameraAsync: vi.fn(),
 }));
 vi.mock("@/lib/van", () => ({ uploadOdometerPhoto: vi.fn() }));
+// The flow chrome floats its header where the iOS 26 edge effect exists;
+// this test covers the in-flow layout.
+vi.mock("@/modules/scroll-edge-effect", () => ({ NativeScrollEdgeEffectView: null }));
 
 const photo = {
   uri: "file:///odometer.jpg",

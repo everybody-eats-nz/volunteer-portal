@@ -192,7 +192,7 @@ const insets = useSafeAreaInsets();
 Tab screens scroll edge to edge, so without protection their content slides
 straight under the clock, wifi and battery glyphs. Every screen whose scroll
 view reaches the top of the display renders `StatusBarScrim` **after the scroll
-view**, so it paints on top:
+view**:
 
 ```tsx
 import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
@@ -205,24 +205,63 @@ import { StatusBarScrim } from "@/components/ui/status-bar-scrim";
 </>
 ```
 
-- It is solid page background over the status bar glyphs and fades out over the
-  last few points, finishing exactly at the safe-area edge. Content at rest is
-  never tinted, and because it matches the page it is invisible until
-  something scrolls beneath it.
-- It follows the theme (`colors.background`). Pass `color` only when the screen
-  sits on a different paper colour.
+- On iOS 26 it is the system's own scroll edge effect, the soft progressive
+  blur a navigation bar gets: content blurs and fades as it slides under the
+  status bar and the page shows through. It comes from the local native module
+  in `modules/scroll-edge-effect`, which attaches
+  `UIScrollEdgeElementContainerInteraction` to a view over the top inset; that
+  view finds the scroll view among its siblings.
+- Elsewhere (Android, iOS 18 and earlier, and store builds from before the
+  module) it falls back to a paper-coloured fade: solid page background over
+  the glyphs, fading out by the safe-area edge. Pass `color` only when the
+  screen sits on a different paper colour; the native effect ignores it.
+- Either way it covers only the top inset, so content at rest is untouched.
 - Home and Shifts get their top inset from the native tabs, which adjust the
   scroll view only when it is the screen's root element. Use a fragment there,
   as above. Wrapping the scroll view in a `View` makes the screen open with its
   header already under the status bar.
 - Screens that pad their own content with `insets.top` (Help, Drive, Admin,
   Profile) can keep their wrapping `View` and add the scrim as its last child.
-- Skip it on screens with a navigation header, and on screens with a full-bleed
-  hero image or panel behind the status bar.
+- Screens with a native stack header (transparent, with a back button or
+  title) already get the same effect from the navigation bar.
 
-The iOS 26 native scroll edge effect is not an option here. Set to `hard` on a
-tab screen it drew nothing, because these screens have no navigation bar for it
-to sit under, and it does not exist on Android or older iOS.
+Why not a native header on every tab: iOS 26 draws the bar's effect over the
+whole bar (status bar plus 44pt), so each tab's own heading would sit under it
+and blur at rest, and an empty bar (no title or buttons) draws nothing at all.
+
+### Floating headers
+
+Screens with a hand-built `ScreenHeader` (Admin messages, approvals and
+tonight's shifts, the Help chats) and the driver flows float their header over
+the list the way a navigation bar does, so content blurs under the header
+instead of being cut off below a solid band:
+
+```tsx
+const header = useFloatingHeader();
+
+<View style={styles.container}>
+  <FloatingHeader header={header}>
+    <ScreenHeader title="Approvals" bordered={!header.floats} />
+    {/* controls that stay put: search, filters, a day stepper */}
+  </FloatingHeader>
+  {header.ready && <FlatList {...header.scrollProps} />}
+</View>
+```
+
+- `scrollProps` insets the list (rather than padding it), so pull to refresh
+  and the scroll indicator sit below the header. Hold the list back until
+  `header.ready` so it mounts already inset; pad loading, empty and error
+  states by `header.inset`.
+- A keyboard-aware form needs its scroll offset to start at 0: pad its content
+  by `header.inset` instead of spreading `scrollProps` (see `FlowScroll`).
+- Where the native effect is unavailable the header stays in flow with its
+  hairline, exactly as before, and `inset` is 0.
+- The driver flows get this from `DriveFlowScreen` and `FlowHeader`; a raw
+  scroll view in a flow screen uses `useFlowScroll()`.
+
+The native module is new in the binary. Its JS is gated
+(`requireOptionalNativeModule`), so over-the-air updates reaching older store
+builds fall back to the paper fade instead of crashing.
 
 ### Keyboard and scrolling forms
 

@@ -11,6 +11,15 @@ import { flatten } from '@/test-utils/style';
 vi.mock('react-native', () => import('@/test-utils/react-native'));
 vi.mock('expo-linear-gradient', () => ({ LinearGradient: () => null }));
 
+// The native edge effect view, or null as on Android, older iOS and store
+// builds without the module. Most tests cover that fallback.
+const native = vi.hoisted(() => ({ view: null as null | (() => null) }));
+vi.mock('@/modules/scroll-edge-effect', () => ({
+  get NativeScrollEdgeEffectView() {
+    return native.view;
+  },
+}));
+
 const insets = vi.hoisted(() => ({ top: 62, bottom: 34, left: 0, right: 0 }));
 vi.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => insets,
@@ -22,6 +31,7 @@ const gradient = (tree: ReturnType<typeof render>) =>
 describe('StatusBarScrim', () => {
   afterEach(() => {
     insets.top = 62;
+    native.view = null;
     __resetColorScheme();
   });
 
@@ -87,5 +97,33 @@ describe('StatusBarScrim', () => {
     expect(props.pointerEvents).toBe('none');
     expect(props.accessibilityElementsHidden).toBe(true);
     expect(props.importantForAccessibility).toBe('no-hide-descendants');
+  });
+
+  describe('with the native scroll edge effect', () => {
+    const NativeView = () => null;
+
+    it('draws the system effect over exactly the top inset instead of paper', () => {
+      native.view = NativeView;
+      const tree = render(<StatusBarScrim />);
+
+      expect(tree.root.findAllByType(LinearGradient)).toHaveLength(0);
+      const props = tree.root.findByType(NativeView).props;
+      expect(flatten(props.style)).toMatchObject({
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 62,
+      });
+      expect(props.pointerEvents).toBe('none');
+      expect(props.accessibilityElementsHidden).toBe(true);
+    });
+
+    it('still renders nothing when there is no top inset', () => {
+      native.view = NativeView;
+      insets.top = 0;
+
+      expect(render(<StatusBarScrim />).toJSON()).toBeNull();
+    });
   });
 });

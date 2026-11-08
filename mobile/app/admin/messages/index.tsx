@@ -13,9 +13,12 @@ import {
   Text,
   TextInput,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { FloatingHeader, useFloatingHeader } from "@/components/ui/floating-header";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { EmptyState, ErrorState } from "@/components/ui/state-view";
 import { Brand, Colors, FontFamily, MaxFontScale } from "@/constants/theme";
@@ -43,6 +46,7 @@ export default function AdminInboxScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const header = useFloatingHeader();
   const router = useRouter();
 
   const [filter, setFilter] = useState<Filter>("OPEN");
@@ -107,102 +111,105 @@ export default function AdminInboxScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScreenHeader
-        title="Messages"
-        borderColor={rule}
-        right={
-          <Pressable
-            onPress={toggleNotify}
-            hitSlop={4}
-            disabled={notifyPref.isLoading || notifyPref.isSaving}
-            android_ripple={{ color: rule, borderless: true, radius: 22 }}
-            style={({ pressed }) => [styles.notifyBtn, { opacity: pressed ? 0.6 : 1 }]}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: notifyPref.enabled }}
-            accessibilityLabel={
-              notifyPref.enabled
-                ? "Turn off new-message notifications"
-                : "Turn on new-message notifications"
-            }
-          >
-            <Ionicons
-              name={notifyPref.enabled ? "notifications" : "notifications-off-outline"}
-              size={22}
-              color={notifyPref.enabled ? colors.tint : colors.textSecondary}
-            />
-          </Pressable>
-        }
-      />
-
-      {/* Search */}
-      <View style={styles.controls}>
-        <View style={[styles.searchField, { backgroundColor: colors.surfaceSunk, borderColor: rule }]}>
-          <Ionicons name="search" size={16} color={colors.textSecondary} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            value={searchInput}
-            onChangeText={setSearchInput}
-            placeholder="Search by name or email"
-            placeholderTextColor={colors.textSecondary}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            accessibilityLabel="Search conversations"
-          />
-          {searchInput.length > 0 && (
+      <FloatingHeader header={header}>
+        <ScreenHeader
+          title="Messages"
+          borderColor={rule}
+          bordered={!header.floats}
+          right={
             <Pressable
-              onPress={() => setSearchInput("")}
-              hitSlop={14}
+              onPress={toggleNotify}
+              hitSlop={4}
+              disabled={notifyPref.isLoading || notifyPref.isSaving}
               android_ripple={{ color: rule, borderless: true, radius: 22 }}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
+              style={({ pressed }) => [styles.notifyBtn, { opacity: pressed ? 0.6 : 1 }]}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: notifyPref.enabled }}
+              accessibilityLabel={
+                notifyPref.enabled
+                  ? "Turn off new-message notifications"
+                  : "Turn on new-message notifications"
+              }
             >
-              <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+              <Ionicons
+                name={notifyPref.enabled ? "notifications" : "notifications-off-outline"}
+                size={22}
+                color={notifyPref.enabled ? colors.tint : colors.textSecondary}
+              />
             </Pressable>
-          )}
-        </View>
+          }
+        />
 
-        {/* Filter segmented control */}
-        <View style={styles.filterRow}>
-          {FILTERS.map((f) => {
-            const active = filter === f.key;
-            return (
+        {/* Search */}
+        <View style={styles.controls}>
+          <View style={[styles.searchField, { backgroundColor: colors.surfaceSunk, borderColor: rule }]}>
+            <Ionicons name="search" size={16} color={colors.textSecondary} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              value={searchInput}
+              onChangeText={setSearchInput}
+              placeholder="Search by name or email"
+              placeholderTextColor={colors.textSecondary}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              accessibilityLabel="Search conversations"
+            />
+            {searchInput.length > 0 && (
               <Pressable
-                key={f.key}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setFilter(f.key);
-                }}
-                hitSlop={{ top: 5, bottom: 5 }}
-                android_ripple={{ color: rule }}
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: active ? Brand.green : "transparent",
-                    borderColor: active ? Brand.green : rule,
-                  },
-                ]}
+                onPress={() => setSearchInput("")}
+                hitSlop={14}
+                android_ripple={{ color: rule, borderless: true, radius: 22 }}
                 accessibilityRole="button"
-                accessibilityState={{ selected: active }}
+                accessibilityLabel="Clear search"
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    { color: active ? colors.panelText : colors.textSecondary },
-                  ]}
-                  maxFontSizeMultiplier={MaxFontScale.compact}
-                >
-                  {f.label}
-                </Text>
+                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
               </Pressable>
-            );
-          })}
+            )}
+          </View>
+
+          {/* Filter segmented control */}
+          <View style={styles.filterRow}>
+            {FILTERS.map((f) => {
+              const active = filter === f.key;
+              return (
+                <Pressable
+                  key={f.key}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setFilter(f.key);
+                  }}
+                  hitSlop={{ top: 5, bottom: 5 }}
+                  android_ripple={{ color: rule }}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: active ? Brand.green : "transparent",
+                      borderColor: active ? Brand.green : rule,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      { color: active ? colors.panelText : colors.textSecondary },
+                    ]}
+                    maxFontSizeMultiplier={MaxFontScale.compact}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
-      </View>
+      </FloatingHeader>
 
       {/* List */}
       {isPending ? (
-        <View style={styles.center}>
+        <View style={[styles.center, { paddingTop: header.inset }]}>
           <ActivityIndicator color={colors.tint} />
         </View>
       ) : isError ? (
@@ -211,11 +218,13 @@ export default function AdminInboxScreen() {
           title={offline ? undefined : "Couldn't load messages"}
           onRetry={() => refetch()}
           retrying={isRefetching}
+          style={{ paddingTop: header.inset }}
         />
       ) : (data?.length ?? 0) === 0 ? (
-        <InboxEmpty filter={filter} search={search} />
-      ) : (
+        <InboxEmpty filter={filter} search={search} style={{ paddingTop: header.inset }} />
+      ) : !header.ready ? null : (
         <FlatList
+          {...header.scrollProps}
           data={data}
           renderItem={renderItem}
           keyExtractor={(t) => t.id}
@@ -315,7 +324,15 @@ const ThreadRow = React.memo(function ThreadRow({
 
 /* ─── Empty state ───────────────────────────────────────────── */
 
-function InboxEmpty({ filter, search }: { filter: Filter; search: string }) {
+function InboxEmpty({
+  filter,
+  search,
+  style,
+}: {
+  filter: Filter;
+  search: string;
+  style?: StyleProp<ViewStyle>;
+}) {
   const message = search
     ? "No conversations match your search."
     : filter === "OPEN"
@@ -323,7 +340,7 @@ function InboxEmpty({ filter, search }: { filter: Filter; search: string }) {
       : filter === "RESOLVED"
         ? "No resolved conversations yet."
         : "No conversations yet.";
-  return <EmptyState emoji="📭" title="Inbox zero" body={message} />;
+  return <EmptyState emoji="📭" title="Inbox zero" body={message} style={style} />;
 }
 
 /* ─── Styles ────────────────────────────────────────────────── */

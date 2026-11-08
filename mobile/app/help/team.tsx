@@ -22,6 +22,7 @@ import ReAnimated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
+import { FloatingHeader, useFloatingHeader } from "@/components/ui/floating-header";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { EmptyState, ErrorState } from "@/components/ui/state-view";
 import { Brand, Colors, FontFamily, MaxFontScale, Palette } from "@/constants/theme";
@@ -162,6 +163,7 @@ export default function TeamThreadScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const header = useFloatingHeader();
   const paperTint = usePaperTint(isDark, colors);
 
   const [messages, setMessages] = useState<TeamMessage[]>([]);
@@ -339,32 +341,35 @@ export default function TeamThreadScreen() {
       keyboardVerticalOffset={0}
       style={[styles.container, { backgroundColor: paperTint.paper }]}
     >
-      <ScreenHeader
-        tint={paperTint.eyebrow}
-        borderColor={paperTint.rule}
-        style={styles.header}
-        center={
-          <>
-            <Text
-              style={[styles.headerTitle, { color: paperTint.eyebrow }]}
-              accessibilityRole="header"
-              accessibilityLabel="EE Team"
-            >
-              EE TEAM
-            </Text>
-            <Text
-              style={[styles.headerSubtitle, { color: paperTint.inkSoft }]}
-              numberOfLines={1}
-            >
-              {hoursSubtitle(hours)}
-            </Text>
-          </>
-        }
-      />
+      <FloatingHeader header={header}>
+        <ScreenHeader
+          tint={paperTint.eyebrow}
+          borderColor={paperTint.rule}
+          bordered={!header.floats}
+          style={styles.header}
+          center={
+            <>
+              <Text
+                style={[styles.headerTitle, { color: paperTint.eyebrow }]}
+                accessibilityRole="header"
+                accessibilityLabel="EE Team"
+              >
+                EE TEAM
+              </Text>
+              <Text
+                style={[styles.headerSubtitle, { color: paperTint.inkSoft }]}
+                numberOfLines={1}
+              >
+                {hoursSubtitle(hours)}
+              </Text>
+            </>
+          }
+        />
+      </FloatingHeader>
 
       {/* Messages */}
       {loading ? (
-        <View style={styles.loadingState}>
+        <View style={[styles.loadingState, { paddingTop: header.inset }]}>
           <ActivityIndicator color={paperTint.eyebrow} />
         </View>
       ) : messages.length === 0 && loadError ? (
@@ -375,17 +380,18 @@ export default function TeamThreadScreen() {
             setLoading(true);
             void refresh();
           }}
-          style={styles.stateInset}
+          style={[styles.stateInset, { paddingTop: header.inset }]}
         />
       ) : messages.length === 0 ? (
         <EmptyState
           emoji="💬"
           title="Say kia ora to the team"
           body="Tell us what's up: running late, swapping a shift, a question, anything. We'll get back as soon as we can."
-          style={styles.stateInset}
+          style={[styles.stateInset, { paddingTop: header.inset }]}
         />
-      ) : (
+      ) : !header.ready ? null : (
         <FlatList
+          {...header.scrollProps}
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}

@@ -8,7 +8,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["lib/**/*.test.ts", "components/**/*.test.tsx"],
+    include: [
+      "lib/**/*.test.ts",
+      "components/**/*.test.tsx",
+      "modules/**/*.test.ts",
+    ],
     exclude: [
       "**/node_modules/**",
       "**/.expo/**",
