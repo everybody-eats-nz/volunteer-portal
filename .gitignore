@@ -3,3 +3,8 @@ node_modules
 mobile/build
 everybody-eats-play.json
 .vercel
+
+# Claude Code worktrees. EAS Build only honours .gitignore (not .git/info/exclude),
+# so without this every worktree is packed into the build archive.
+.claude/worktrees
+.claude/settings.local.json
