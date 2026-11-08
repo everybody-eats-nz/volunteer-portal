@@ -24,6 +24,7 @@ import ReAnimated, {
 } from "react-native-reanimated";
 import MarkdownDisplay from "react-native-markdown-display";
 
+import { FloatingHeader, useFloatingHeader } from "@/components/ui/floating-header";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { Brand, Colors, FontFamily, MaxFontScale, Palette, StatusColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -411,6 +412,7 @@ export default function ChatScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const header = useFloatingHeader();
   const paperTint = usePaperTint(isDark, colors);
 
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
@@ -623,9 +625,10 @@ export default function ChatScreen() {
     const { offset, contentHeight, layoutHeight } = scrollMetricsRef.current;
     if (layoutHeight === 0) return;
     const distanceFromBottom = contentHeight - (offset + layoutHeight);
-    const scrollable = contentHeight > layoutHeight + 20;
+    // A floating header covers the top of the list's frame.
+    const scrollable = contentHeight + header.inset > layoutHeight + 20;
     setShowScrollToBottom(scrollable && distanceFromBottom > 40);
-  }, []);
+  }, [header.inset]);
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -649,6 +652,8 @@ export default function ChatScreen() {
           flatListRef.current?.scrollToIndex({
             index: idx,
             viewPosition: 0,
+            // Land below a floating header, not under it.
+            viewOffset: header.inset,
             animated: true,
           });
         });
@@ -656,7 +661,7 @@ export default function ChatScreen() {
       }
       updateScrollButton();
     },
-    [updateScrollButton]
+    [updateScrollButton, header.inset]
   );
 
   const scrollToBottom = useCallback(() => {
@@ -760,57 +765,60 @@ export default function ChatScreen() {
       style={[styles.container, { backgroundColor: paperTint.paper }]}
     >
       {/* ── Persistent header with back button ── */}
-      <ScreenHeader
-        backLabel="Back to Help"
-        tint={paperTint.eyebrow}
-        borderColor={showWelcome ? "transparent" : paperTint.rule}
-        style={styles.header}
-        center={
-          <View style={styles.headerCenterRow}>
-            <LeafSeal size={20} isDark={isDark} />
-            <Text
-              style={[styles.headerTitle, { color: paperTint.eyebrow }]}
-              accessibilityRole="header"
-              accessibilityLabel="EE Assistant"
-              maxFontSizeMultiplier={MaxFontScale.compact}
-            >
-              EE ASSISTANT
-            </Text>
-            <View
-              style={[
-                styles.statusDot,
-                { backgroundColor: StatusColors[colorScheme].confirmed.fg },
-              ]}
-            />
-          </View>
-        }
-        right={
-          !showWelcome ? (
-            <Pressable
-              onPress={resetChat}
-              android_ripple={{ color: paperTint.rule, borderless: true, radius: 24 }}
-              style={({ pressed }) => [
-                styles.newChatBtn,
-                { opacity: pressed ? 0.55 : 1 },
-              ]}
-              accessibilityLabel="Start new conversation"
-              accessibilityRole="button"
-            >
-              <Ionicons
-                name="create-outline"
-                size={16}
-                color={paperTint.eyebrow}
-              />
+      <FloatingHeader header={header} style={styles.header}>
+        <ScreenHeader
+          backLabel="Back to Help"
+          tint={paperTint.eyebrow}
+          borderColor={showWelcome ? "transparent" : paperTint.rule}
+          bordered={!header.floats}
+          style={styles.headerBar}
+          center={
+            <View style={styles.headerCenterRow}>
+              <LeafSeal size={20} isDark={isDark} />
               <Text
-                style={[styles.newChatLabel, { color: paperTint.eyebrow }]}
+                style={[styles.headerTitle, { color: paperTint.eyebrow }]}
+                accessibilityRole="header"
+                accessibilityLabel="EE Assistant"
                 maxFontSizeMultiplier={MaxFontScale.compact}
               >
-                NEW
+                EE ASSISTANT
               </Text>
-            </Pressable>
-          ) : null
-        }
-      />
+              <View
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: StatusColors[colorScheme].confirmed.fg },
+                ]}
+              />
+            </View>
+          }
+          right={
+            !showWelcome ? (
+              <Pressable
+                onPress={resetChat}
+                android_ripple={{ color: paperTint.rule, borderless: true, radius: 24 }}
+                style={({ pressed }) => [
+                  styles.newChatBtn,
+                  { opacity: pressed ? 0.55 : 1 },
+                ]}
+                accessibilityLabel="Start new conversation"
+                accessibilityRole="button"
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={16}
+                  color={paperTint.eyebrow}
+                />
+                <Text
+                  style={[styles.newChatLabel, { color: paperTint.eyebrow }]}
+                  maxFontSizeMultiplier={MaxFontScale.compact}
+                >
+                  NEW
+                </Text>
+              </Pressable>
+            ) : null
+          }
+        />
+      </FloatingHeader>
 
       {/* ── Content area ── */}
       {showWelcome ? (
@@ -820,10 +828,11 @@ export default function ChatScreen() {
           onSuggestionPress={sendMessage}
           questions={suggestedQuestions}
           paperTint={paperTint}
-          topInset={0}
+          topInset={header.inset}
         />
-      ) : (
+      ) : !header.ready ? null : (
         <FlatList
+          {...header.scrollProps}
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
@@ -845,6 +854,7 @@ export default function ChatScreen() {
               flatListRef.current?.scrollToIndex({
                 index: Math.min(info.index, info.highestMeasuredFrameIndex),
                 viewPosition: 0,
+                viewOffset: header.inset,
                 animated: true,
               });
             }, 80);
@@ -979,7 +989,8 @@ const styles = StyleSheet.create({
 
   /* Persistent header */
   // Sits above the welcome scroll view's content.
-  header: { paddingBottom: 10, zIndex: 2 },
+  header: { zIndex: 2 },
+  headerBar: { paddingBottom: 10 },
   headerCenterRow: {
     flexDirection: "row",
     alignItems: "center",

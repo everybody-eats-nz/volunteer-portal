@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { AttendanceSheet } from "@/components/admin/attendance-sheet";
+import { FloatingHeader, useFloatingHeader } from "@/components/ui/floating-header";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { EmptyState, ErrorState } from "@/components/ui/state-view";
 import { Colors, FontFamily, MaxFontScale, Radius, StatusColors } from "@/constants/theme";
@@ -53,6 +54,7 @@ export default function TonightShiftsScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const header = useFloatingHeader();
 
   const [offset, setOffset] = useState(0);
   const dateParam = useMemo(() => dateParamForOffset(offset), [offset]);
@@ -72,43 +74,45 @@ export default function TonightShiftsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScreenHeader title="Shifts" borderColor={rule} />
+      <FloatingHeader header={header}>
+        <ScreenHeader title="Shifts" borderColor={rule} bordered={!header.floats} />
 
-      {/* Day stepper */}
-      <View style={styles.stepper}>
-        <Pressable
-          onPress={() => step(-1)}
-          android_ripple={{ color: rule }}
-          style={({ pressed }) => [styles.stepBtn, { borderColor: rule, opacity: pressed ? 0.6 : 1 }]}
-          accessibilityRole="button"
-          accessibilityLabel="Previous day"
-        >
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-        </Pressable>
-        <Text
-          style={[styles.stepLabel, { color: colors.text }]}
-          accessibilityRole="header"
-          accessibilityLiveRegion="polite"
-        >
-          {dayLabel(offset, dateParam)}
-        </Text>
-        <Pressable
-          onPress={() => step(1)}
-          android_ripple={{ color: rule }}
-          style={({ pressed }) => [styles.stepBtn, { borderColor: rule, opacity: pressed ? 0.6 : 1 }]}
-          accessibilityRole="button"
-          accessibilityLabel="Next day"
-        >
-          <Ionicons name="chevron-forward" size={18} color={colors.text} />
-        </Pressable>
-      </View>
+        {/* Day stepper */}
+        <View style={styles.stepper}>
+          <Pressable
+            onPress={() => step(-1)}
+            android_ripple={{ color: rule }}
+            style={({ pressed }) => [styles.stepBtn, { borderColor: rule, opacity: pressed ? 0.6 : 1 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Previous day"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+          </Pressable>
+          <Text
+            style={[styles.stepLabel, { color: colors.text }]}
+            accessibilityRole="header"
+            accessibilityLiveRegion="polite"
+          >
+            {dayLabel(offset, dateParam)}
+          </Text>
+          <Pressable
+            onPress={() => step(1)}
+            android_ripple={{ color: rule }}
+            style={({ pressed }) => [styles.stepBtn, { borderColor: rule, opacity: pressed ? 0.6 : 1 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Next day"
+          >
+            <Ionicons name="chevron-forward" size={18} color={colors.text} />
+          </Pressable>
+        </View>
 
-      <View style={styles.filterRow}>
-        <AdminLocationFilter />
-      </View>
+        <View style={styles.filterRow}>
+          <AdminLocationFilter />
+        </View>
+      </FloatingHeader>
 
       {isPending ? (
-        <View style={styles.center}>
+        <View style={[styles.center, { paddingTop: header.inset }]}>
           <ActivityIndicator color={colors.tint} />
         </View>
       ) : isError ? (
@@ -117,6 +121,7 @@ export default function TonightShiftsScreen() {
           title={offline ? undefined : "Couldn't load shifts"}
           onRetry={() => refetch()}
           retrying={isRefetching}
+          style={{ paddingTop: header.inset }}
         />
       ) : (data?.length ?? 0) === 0 ? (
         <EmptyState
@@ -127,9 +132,11 @@ export default function TonightShiftsScreen() {
               ? `Nothing on the roster at ${selectedLocation} for this day.`
               : "Nothing on the roster for this day."
           }
+          style={{ paddingTop: header.inset }}
         />
-      ) : (
+      ) : !header.ready ? null : (
         <FlatList
+          {...header.scrollProps}
           data={data}
           keyExtractor={(s) => s.id}
           renderItem={({ item }) => (

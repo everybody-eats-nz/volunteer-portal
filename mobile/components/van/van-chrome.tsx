@@ -1,9 +1,21 @@
-import { useState, type ReactNode } from "react";
-import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  type ScrollViewProps,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
+import {
+  FloatingHeader,
+  useFloatingHeader,
+  type FloatingHeaderState,
+} from "@/components/ui/floating-header";
 import { HeaderBackButton } from "@/components/ui/screen-header";
 import { Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -19,6 +31,35 @@ import type { KeyboardAwareScroll } from "@/hooks/use-keyboard-aware-scroll";
 
 /** Space under the last thing on a flow screen, above the home indicator. */
 const BOTTOM_GAP = 16;
+/** Space between the status bar and the flow header. */
+const TOP_GAP = 8;
+/** The flow header: its 44pt back button plus the space under it. */
+const HEADER_HEIGHT = 66;
+const SIDE_GUTTER = 24;
+
+/**
+ * The flow screen's header, when it floats over the screen's scroll view (see
+ * `FloatingHeader`). Null outside a `DriveFlowScreen`.
+ */
+const FlowHeaderContext = createContext<FloatingHeaderState | null>(null);
+
+/**
+ * For a scroll view in a flow screen. Where the header floats, the scroll view
+ * runs up underneath it (`style`) and content starts below it, either padded
+ * (`contentStyle`, for a form whose scroll offset must start at 0) or inset
+ * (`header.scrollProps`, for a list with pull to refresh). Both are empty when
+ * the header sits in flow.
+ */
+export function useFlowScroll() {
+  const header = useContext(FlowHeaderContext);
+  const inset = header?.floats ? header.inset : 0;
+  return {
+    header,
+    style: inset ? { marginTop: -inset } : undefined,
+    contentStyle: inset ? { paddingTop: inset } : undefined,
+    scrollProps: header?.floats ? header.scrollProps : {},
+  };
+}
 
 export function DriveFlowScreen({
   children,
@@ -29,22 +70,39 @@ export function DriveFlowScreen({
 }) {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
+  const header = useFloatingHeader({
+    estimatedHeight: insets.top + TOP_GAP + HEADER_HEIGHT,
+  });
 
   return (
-    <View
-      testID={testID}
-      style={[
-        styles.screen,
-        {
-          backgroundColor: colors.background,
-          paddingTop: insets.top + 8,
-          paddingBottom: insets.bottom + BOTTOM_GAP,
-        },
-      ]}
-    >
-      {children}
-    </View>
+    <FlowHeaderContext.Provider value={header}>
+      <View
+        testID={testID}
+        style={[
+          styles.screen,
+          {
+            backgroundColor: colors.background,
+            // A floating header is out of the layout, so the screen keeps
+            // its room here instead.
+            paddingTop: header.floats ? header.inset : insets.top + TOP_GAP,
+            paddingBottom: insets.bottom + BOTTOM_GAP,
+          },
+        ]}
+      >
+        {children}
+      </View>
+    </FlowHeaderContext.Provider>
   );
+}
+
+/**
+ * A list in a flow screen (trip history, a step's choices). Where the header
+ * floats it runs up underneath it, inset so pull to refresh and the scroll
+ * indicator stay below the header; otherwise it is a plain `ScrollView`.
+ */
+export function FlowScrollView({ style, ...props }: ScrollViewProps) {
+  const flowScroll = useFlowScroll();
+  return <ScrollView {...props} {...flowScroll.scrollProps} style={[style, flowScroll.style]} />;
 }
 
 /**
@@ -78,15 +136,20 @@ export function FlowScroll({
 }) {
   const colors = Colors[useColorScheme()];
   const insets = useSafeAreaInsets();
+  const flowScroll = useFlowScroll();
   const [footerHeight, setFooterHeight] = useState(0);
   const bottomSpace = insets.bottom + BOTTOM_GAP;
 
   return (
-    <View style={[styles.scrollFrame, { marginBottom: -bottomSpace }]}>
+    <View style={[styles.scrollFrame, { marginBottom: -bottomSpace }, flowScroll.style]}>
       <Animated.ScrollView
         {...keyboardScroll.scrollProps}
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          flowScroll.contentStyle,
+          contentContainerStyle,
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -129,8 +192,10 @@ export function FlowHeader({
   stepCount?: number;
 }) {
   const colors = Colors[useColorScheme()];
+  const insets = useSafeAreaInsets();
+  const floating = useContext(FlowHeaderContext);
 
-  return (
+  const row = (
     <View style={styles.header}>
       <HeaderBackButton onPress={onBack} color={colors.text} bordered />
 
@@ -170,10 +235,21 @@ export function FlowHeader({
       ) : null}
     </View>
   );
+
+  if (!floating?.floats) return row;
+
+  return (
+    <FloatingHeader
+      header={floating}
+      style={{ paddingTop: insets.top + TOP_GAP, paddingHorizontal: SIDE_GUTTER }}
+    >
+      {row}
+    </FloatingHeader>
+  );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 24 },
+  screen: { flex: 1, paddingHorizontal: SIDE_GUTTER },
   scrollFrame: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { flexGrow: 1 },

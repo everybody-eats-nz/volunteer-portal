@@ -4,9 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { withAlpha } from '@/lib/color';
+import { NativeScrollEdgeEffectView } from '@/modules/scroll-edge-effect';
 
 type StatusBarScrimProps = {
-  /** Paper colour to fade into. Defaults to the theme page background. */
+  /**
+   * Paper colour the fallback fades into. Defaults to the theme page
+   * background. The native effect samples the page itself.
+   */
   color?: string;
 };
 
@@ -28,18 +32,20 @@ const FADE_CURVE = [
 ] as const;
 
 /**
- * Paper-coloured cover for the status bar on screens whose scroll content runs
- * edge to edge. Scrolled content dissolves into the page background before it
- * reaches the clock, wifi and battery glyphs instead of colliding with them.
+ * Keeps scrolled content off the clock, wifi and battery glyphs on screens
+ * whose scroll view runs edge to edge.
  *
- * Render it after the screen's scroll view so it paints on top (see "Status
- * bar scrim" in STYLE_GUIDE.md). It sits entirely inside the top safe-area
- * inset, so content at rest is never tinted, and it is the same colour as the
- * page, so it only becomes visible once something scrolls beneath it.
+ * On iOS 26 it is the system's own scroll edge effect, the soft progressive
+ * blur a navigation bar gets: content blurs and fades as it slides under the
+ * status bar, and the page shows through. Elsewhere (Android, older iOS, and
+ * store builds without the native module) it is a paper-coloured fade that
+ * dissolves content into the page background instead.
  *
- * (The iOS 26 native scroll edge effect was tried first. Set to `hard` on a
- * tab screen it drew nothing: these screens have no navigation bar for it to
- * sit under. It also does not exist on Android or older iOS.)
+ * Render it after the screen's scroll view (see "Status bar scrim" in
+ * STYLE_GUIDE.md): the native view finds that scroll view among its siblings,
+ * and the fallback must paint on top of it. Either way it covers only the top
+ * safe-area inset, so content at rest is untouched, and it only shows once
+ * something scrolls beneath it.
  */
 export function StatusBarScrim({ color }: StatusBarScrimProps) {
   const insets = useSafeAreaInsets();
@@ -48,6 +54,17 @@ export function StatusBarScrim({ color }: StatusBarScrimProps) {
 
   // No status bar to protect (web, or a phone in landscape).
   if (insets.top <= 0) return null;
+
+  if (NativeScrollEdgeEffectView) {
+    return (
+      <NativeScrollEdgeEffectView
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.scrim, { height: insets.top }]}
+      />
+    );
+  }
 
   const fade = Math.min(MAX_FADE, Math.round(insets.top * FADE_RATIO));
   const solid = (insets.top - fade) / insets.top;
