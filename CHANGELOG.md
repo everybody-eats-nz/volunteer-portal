@@ -1,3 +1,9 @@
+## [0.202.2] - 2026-11-08
+
+### Changes
+- chore(deps): bump @radix-ui/react-progress from 1.1.16 to 1.2.1 in /web ([#1420](https://github.com/everybody-eats-nz/volunteer-portal/pull/1420)) by @dependabot[bot]
+
+
 ## [0.202.1] - 2026-11-08
 
 ### Changes
