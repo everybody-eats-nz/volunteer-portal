@@ -221,11 +221,11 @@ function TemplateProblem({
       </Badge>
     );
   }
-  if (status.lookupFailed) {
+  if (status.lookupProblem === "not-found") {
     return (
       <Badge variant="warning" data-testid="email-problem">
         <AlertTriangle aria-hidden />
-        Could not check
+        Template not found
       </Badge>
     );
   }
@@ -427,10 +427,16 @@ function EmailDetails({
                   </p>
                 )}
               </div>
-            ) : status.lookupFailed ? (
+            ) : status.lookupProblem === "not-found" ? (
               <p className="text-muted-foreground">
-                Campaign Monitor did not return a template for this ID. Check
-                the ID still matches a template there.
+                Campaign Monitor has no template with this ID. Check the ID
+                below against the template there.
+              </p>
+            ) : status.lookupProblem === "unavailable" ? (
+              <p className="text-muted-foreground">
+                Campaign Monitor could not be reached just now, so the
+                template&apos;s name and preview are missing. Try again
+                shortly.
               </p>
             ) : null}
 

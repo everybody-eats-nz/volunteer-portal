@@ -378,7 +378,7 @@ Copy `web/.env.example` to `web/.env` for local development (or use `npm run loc
 - **OAuth**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`, `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET`
 - **PostHog Analytics**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
 - **Supabase Storage**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- **Campaign Monitor**: `CAMPAIGN_MONITOR_API_KEY`, plus template IDs for cancellation, confirmation, verification, and invitation emails
+- **Campaign Monitor**: `CAMPAIGN_MONITOR_API_KEY`, plus one template ID per automated email (all listed in `web/.env.example` and at `/admin/emails`). `CAMPAIGN_MONITOR_APP_URL` overrides the account address used for the "Open" links on that page
 
 ### Mobile (`mobile/`):
 - API base URL configured in `mobile/lib/api.ts`

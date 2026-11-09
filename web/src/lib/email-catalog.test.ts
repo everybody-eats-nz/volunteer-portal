@@ -51,7 +51,10 @@ describe("email catalog", () => {
   const catalogEnvVars = EMAIL_CATALOG.map((email) => email.envVar);
 
   it("lists every Campaign Monitor template the app reads, and no others", () => {
-    expect([...catalogEnvVars].sort()).toEqual(templateEnvVarsReadByTheApp());
+    expect(
+      [...catalogEnvVars].sort(),
+      "EMAIL_CATALOG in src/lib/email-catalog.ts must have one entry per CAMPAIGN_MONITOR_* template variable the app reads. Add or remove the entry there (and its sender in this file)."
+    ).toEqual(templateEnvVarsReadByTheApp());
   });
 
   it("has unique keys and template variables", () => {
@@ -309,10 +312,28 @@ describe("emails as actually sent", () => {
 });
 
 describe("getEmailTemplateStatuses", () => {
+  beforeEach(() => {
+    // A fresh module each time: it remembers templates it has looked up.
+    vi.resetModules();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
+
+  const templateJson = (name: string) =>
+    JSON.stringify({ Name: name, Status: "Active", Properties: {} });
+
+  /** One template set up, with an API key, so Campaign Monitor gets asked. */
+  function oneTemplateWithApiKey() {
+    clearTemplateEnv();
+    vi.stubEnv("CAMPAIGN_MONITOR_API_KEY", "secret-key");
+    vi.stubEnv("CAMPAIGN_MONITOR_NO_SHOW_EMAIL_ID", "abc123");
+  }
 
   function clearTemplateEnv() {
     vi.stubEnv("CAMPAIGN_MONITOR_API_KEY", "");
@@ -342,7 +363,7 @@ describe("getEmailTemplateStatuses", () => {
       campaignMonitorUrl:
         "https://everybodyeats1.createsend.com/triggered/workflow/abc123",
       template: null,
-      lookupFailed: false,
+      lookupProblem: null,
     });
     expect(result.get("announcement")).toMatchObject({
       configured: false,
@@ -399,13 +420,102 @@ describe("getEmailTemplateStatuses", () => {
         status: "Active",
         previewUrl: "https://preview.example.com/abc123",
       },
-      lookupFailed: false,
+      lookupProblem: null,
     });
     expect(result.get("announcement")).toMatchObject({
       configured: true,
       template: null,
-      lookupFailed: true,
+      lookupProblem: "not-found",
     });
     expect(JSON.stringify([...result.values()])).not.toContain("secret-key");
   });
+
+  it.each([
+    ["a rejected API key", () => new Response("Unauthorized", { status: 401 })],
+    ["an outage", () => new Response("Bad gateway", { status: 502 })],
+    ["an answer that is not JSON", () => new Response("<html>oops</html>")],
+    ["an answer with no template in it", () => new Response("{}")],
+    [
+      "a timeout",
+      () => {
+        throw new DOMException("The operation timed out", "TimeoutError");
+      },
+    ],
+  ])(
+    "says Campaign Monitor was unavailable, not that the template is missing, after %s",
+    async (_what, respond) => {
+      oneTemplateWithApiKey();
+      vi.stubGlobal("fetch", vi.fn(async () => respond()));
+
+      const result = await statuses();
+
+      expect(result.get("no-show")).toMatchObject({
+        configured: true,
+        templateId: "abc123",
+        template: null,
+        lookupProblem: "unavailable",
+      });
+    }
+  );
+
+  it("gives up on a slow Campaign Monitor instead of holding the page", async () => {
+    oneTemplateWithApiKey();
+    const fetchMock = vi.fn(async () => new Response(templateJson("No show")));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await statuses();
+
+    const init = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init[1].signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("reuses an answer for five minutes, then asks again", async () => {
+    vi.useFakeTimers();
+    oneTemplateWithApiKey();
+    const fetchMock = vi.fn(async () => new Response(templateJson("No show")));
+    vi.stubGlobal("fetch", fetchMock);
+    const { getEmailTemplateStatuses } = await import("./email-catalog.server");
+
+    await getEmailTemplateStatuses();
+    await getEmailTemplateStatuses();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(5 * 60 * 1000 + 1);
+    await getEmailTemplateStatuses();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not remember a failed lookup", async () => {
+    oneTemplateWithApiKey();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("Bad gateway", { status: 502 }))
+      .mockResolvedValueOnce(new Response(templateJson("No show")));
+    vi.stubGlobal("fetch", fetchMock);
+    const { getEmailTemplateStatuses } = await import("./email-catalog.server");
+
+    const first = await getEmailTemplateStatuses();
+    const second = await getEmailTemplateStatuses();
+
+    const noShow = (all: typeof first) => all.find((s) => s.key === "no-show");
+    expect(noShow(first)?.lookupProblem).toBe("unavailable");
+    expect(noShow(second)?.template?.name).toBe("No show");
+  });
+
+  it.each(["not a url", "http://insecure.createsend.com", "javascript:alert(1)"])(
+    "leaves out the Campaign Monitor link when the account address is %s",
+    async (appUrl) => {
+      clearTemplateEnv();
+      vi.stubEnv("CAMPAIGN_MONITOR_APP_URL", appUrl);
+      vi.stubEnv("CAMPAIGN_MONITOR_NO_SHOW_EMAIL_ID", "abc123");
+      vi.stubGlobal("fetch", vi.fn());
+
+      const result = await statuses();
+
+      expect(result.get("no-show")).toMatchObject({
+        configured: true,
+        campaignMonitorUrl: null,
+      });
+    }
+  );
 });
