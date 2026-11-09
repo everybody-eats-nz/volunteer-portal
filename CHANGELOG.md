@@ -1,3 +1,9 @@
+## [0.202.4] - 2026-11-09
+
+### Changes
+- fix: notify volunteers when a signup is declined from the mobile admin app ([#1422](https://github.com/everybody-eats-nz/volunteer-portal/pull/1422)) by @malinmalliyawadu
+
+
 ## [0.202.3] - 2026-11-08
 
 ### Changes
