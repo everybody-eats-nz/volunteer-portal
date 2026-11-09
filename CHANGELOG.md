@@ -1,3 +1,9 @@
+## [0.203.0] - 2026-11-09
+
+### Changes
+- feat(shifts): cap open shift applications at 5 per volunteer ([#1423](https://github.com/everybody-eats-nz/volunteer-portal/pull/1423)) by @malinmalliyawadu
+
+
 ## [0.202.4] - 2026-11-09
 
 ### Changes
