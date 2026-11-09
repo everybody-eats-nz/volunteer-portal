@@ -1,3 +1,9 @@
+## [0.204.0] - 2026-11-09
+
+### Changes
+- feat: admin page listing every automated email and its Campaign Monitor template ([#1424](https://github.com/everybody-eats-nz/volunteer-portal/pull/1424)) by @malinmalliyawadu
+
+
 ## [0.203.0] - 2026-11-09
 
 ### Changes
