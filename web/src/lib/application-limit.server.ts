@@ -59,6 +59,13 @@ export async function getApplicationLimitStatus(
  *
  * Only call this for a signup that would be created as PENDING. Joining a
  * waitlist is not an application and is never capped.
+ *
+ * Best-effort by design: the count and the insert are not in one transaction,
+ * so simultaneous requests (a double tap, a retry on a flaky connection) can
+ * land a volunteer slightly over the cap, as can auto-approval eligibility
+ * changing between this check and `processAutoApproval`. The cap exists to
+ * stop apply-for-everything behaviour, not as an invariant, so that is not
+ * worth serialising signups for.
  */
 export async function validateApplicationLimit(
   userId: string,

@@ -57,9 +57,10 @@ type ApplicationLimit = {
 };
 
 /**
- * Shown when the volunteer is at the cap on open applications. The server
- * sends the same sentence when it refuses a signup; this copy covers the
- * pre-check, which only reports the numbers.
+ * Shown when the pre-check reports the volunteer is at the cap on open
+ * applications; it only sends the numbers. A refused signup shows the
+ * server's own sentence instead (see `buildApplicationLimitMessage` in
+ * web/src/lib/application-limit.ts, which this mirrors).
  */
 function applicationLimitMessage(limit: number): string {
   return `You have ${limit} shift applications waiting for a reply, which is the most you can have at once. Once one is confirmed, or you withdraw one, you can apply for another.`;
@@ -170,9 +171,10 @@ export function ShiftSignupSheet({
   } | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
-  // At the cap on open applications: this one would be refused. Set by the
-  // pre-check when the sheet opens, or by the server refusing the signup.
-  const [applicationLimit, setApplicationLimit] = useState<number | null>(null);
+  // At the cap on open applications: this one would be refused. Holds the
+  // explanation to show, set by the pre-check when the sheet opens or taken
+  // from the server's own words when it refuses the signup.
+  const [applicationLimitNotice, setApplicationLimitNotice] = useState<string | null>(null);
   const waitlistMode = isWaitlist || filledWhileOpen !== null;
   const signedUp = filledWhileOpen?.signedUp ?? shift.signedUp;
   const currentWaitlistCount = filledWhileOpen?.waitlistCount ?? waitlistCount;
@@ -181,7 +183,7 @@ export function ShiftSignupSheet({
   // Only when an admin will review it. An instant signup can't be overtaken.
   // Joining a waitlist and instant signups are never capped.
   const applicationLimitReached =
-    applicationLimit !== null && !waitlistMode && !autoApproval.eligible;
+    applicationLimitNotice !== null && !waitlistMode && !autoApproval.eligible;
   const askWaitlistIfFull =
     !waitlistMode &&
     !autoApproval.loading &&
@@ -201,7 +203,7 @@ export function ShiftSignupSheet({
       setError(null);
       setWaitlistIfFull(false);
       setFilledWhileOpen(null);
-      setApplicationLimit(null);
+      setApplicationLimitNotice(null);
       // Only block up front when the server told us what is missing. An
       // empty list with the flag set used to render "your profile is
       // incomplete" over a disabled button and no way to find out why.
@@ -230,7 +232,7 @@ export function ShiftSignupSheet({
         .then((data) => {
           setAutoApproval({ eligible: data.eligible, ruleName: data.ruleName, loading: false });
           if (data.applicationLimit?.reached) {
-            setApplicationLimit(data.applicationLimit.limit);
+            setApplicationLimitNotice(applicationLimitMessage(data.applicationLimit.limit));
           }
         })
         .catch(() => setAutoApproval({ eligible: false, loading: false }));
@@ -314,9 +316,9 @@ export function ShiftSignupSheet({
           });
         } else if (err.data?.applicationLimitReached === true) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          const limit = (err.data.applicationLimit as ApplicationLimit | undefined)?.limit;
-          // Fall back to 5, the cap when this build shipped.
-          setApplicationLimit(typeof limit === 'number' ? limit : 5);
+          // The refusal's `error` is the full explanation, so the copy and
+          // the cap both come from the server.
+          setApplicationLimitNotice(err.message);
         } else if (err.message === 'Profile incomplete') {
           setProfileIncomplete(true);
           const serverMissing = err.data?.missingFields;
@@ -543,7 +545,7 @@ export function ShiftSignupSheet({
                   You’ve reached the application limit
                 </Text>
                 <Text style={[ss.infoText, { color: orangeTone.fg }]}>
-                  {applicationLimitMessage(applicationLimit ?? 5)}
+                  {applicationLimitNotice}
                 </Text>
               </View>
             </View>

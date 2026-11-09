@@ -4,9 +4,15 @@ import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { gotoSettled } from "./helpers/streaming";
 import {
   createShift,
+  createSignup,
+  createTestUser,
+  deleteSignupsByShiftIds,
   deleteTestShifts,
+  deleteTestUsers,
   getShiftTypeByName,
+  getUserByEmail,
 } from "./helpers/test-helpers";
+import { randomUUID } from "crypto";
 
 const LIMIT_MESSAGE =
   "You have 5 shift applications waiting for a reply, which is the most you can have at once. Once one is confirmed, or you withdraw one, you can apply for another.";
@@ -130,5 +136,142 @@ test.describe("Cap on open shift applications", () => {
     // The dedicated notice replaces the generic "Something went wrong" panel.
     await expect(dialog.getByTestId("signup-error")).toHaveCount(0);
     await expect(dialog.getByTestId("shift-signup-confirm-button")).toBeDisabled();
+  });
+});
+
+/**
+ * The same rule against the real routes: a dedicated volunteer with five
+ * genuine pending applications. The shifts are hand-picked (no auto-approval)
+ * so the live rules can't confirm anything and take it off the pile.
+ */
+test.describe.configure({ timeout: 60_000 });
+test.describe("Cap on open shift applications - server", () => {
+  let volunteerEmail: string;
+  let volunteerId: string;
+  /** Five shifts the volunteer has applied for, then one they have not. */
+  let shiftIds: string[];
+  let nextShiftId: string;
+  /** A one-place shift somebody else already holds. */
+  let fullShiftId: string;
+
+  test.beforeEach(async ({ page }) => {
+    const testId = randomUUID().slice(0, 8);
+    volunteerEmail = `volunteer-applimit-${testId}@example.com`;
+
+    await loginAsAdmin(page);
+    await createTestUser(page, volunteerEmail, "VOLUNTEER");
+    volunteerId = (await getUserByEmail(page, volunteerEmail))!.id;
+    const shiftType = await getShiftTypeByName(page, "Kitchen Prep");
+
+    // One shift a day, so none of them clash with each other.
+    shiftIds = [];
+    for (let day = 0; day < 7; day++) {
+      const start = new Date();
+      start.setDate(start.getDate() + 5 + day);
+      start.setHours(11, 0, 0, 0);
+      const shift = await createShift(page, {
+        location: "Wellington",
+        start,
+        capacity: day === 6 ? 1 : 4,
+        shiftTypeId: shiftType?.id,
+        notes: "Application limit server test shift",
+        autoApprovalEnabled: false,
+      });
+      shiftIds.push(shift.id);
+    }
+    nextShiftId = shiftIds[5];
+    fullShiftId = shiftIds[6];
+
+    for (const shiftId of shiftIds.slice(0, 5)) {
+      await createSignup(page, { userId: volunteerId, shiftId, status: "PENDING" });
+    }
+    const other = await getUserByEmail(page, "volunteer@example.com");
+    await createSignup(page, {
+      userId: other!.id,
+      shiftId: fullShiftId,
+      status: "CONFIRMED",
+    });
+  });
+
+  test.afterEach(async ({ page }) => {
+    await loginAsAdmin(page);
+    await deleteSignupsByShiftIds(page, shiftIds);
+    await deleteTestUsers(page, [volunteerEmail]);
+    await deleteTestShifts(page, shiftIds);
+  });
+
+  test("web routes refuse a sixth application until one is withdrawn", async ({
+    page,
+  }) => {
+    await loginAsVolunteer(page, volunteerEmail);
+
+    const check = await page.request.get(
+      `/api/shifts/${nextShiftId}/auto-approval-check`
+    );
+    expect((await check.json()).applicationLimit).toEqual({
+      limit: 5,
+      pending: 5,
+      reached: true,
+    });
+
+    const refused = await page.request.post(`/api/shifts/${nextShiftId}/signup`);
+    expect(refused.status()).toBe(400);
+    const body = await refused.json();
+    expect(body.applicationLimitReached).toBe(true);
+    expect(body.error).toBe(LIMIT_MESSAGE);
+
+    // Joining a waitlist is not an application, so the cap doesn't apply.
+    const waitlisted = await page.request.post(
+      `/api/shifts/${fullShiftId}/signup`,
+      { form: { waitlist: "1" } }
+    );
+    expect(waitlisted.ok()).toBeTruthy();
+    expect((await waitlisted.json()).status).toBe("WAITLISTED");
+
+    // Withdrawing one application makes room for another.
+    const withdrawn = await page.request.delete(
+      `/api/shifts/${shiftIds[0]}/signup`
+    );
+    expect(withdrawn.ok()).toBeTruthy();
+
+    const accepted = await page.request.post(`/api/shifts/${nextShiftId}/signup`);
+    expect(accepted.ok()).toBeTruthy();
+    expect((await accepted.json()).status).toBe("PENDING");
+
+    // Re-applying for the withdrawn shift counts like any other application.
+    const reapply = await page.request.post(`/api/shifts/${shiftIds[0]}/signup`);
+    expect(reapply.status()).toBe(400);
+    expect((await reapply.json()).applicationLimitReached).toBe(true);
+  });
+
+  test("mobile routes refuse a sixth application", async ({ page }) => {
+    const login = await page.request.post("/api/auth/mobile/login", {
+      data: { email: volunteerEmail, password: "Test123456" },
+    });
+    expect(login.ok()).toBeTruthy();
+    const headers = { Authorization: `Bearer ${(await login.json()).token}` };
+
+    const check = await page.request.get(
+      `/api/mobile/shifts/${nextShiftId}/auto-approval-check`,
+      { headers }
+    );
+    expect((await check.json()).applicationLimit.reached).toBe(true);
+
+    const refused = await page.request.post(
+      `/api/mobile/shifts/${nextShiftId}/signup`,
+      { headers, data: {} }
+    );
+    expect(refused.status()).toBe(400);
+    const body = await refused.json();
+    expect(body.applicationLimitReached).toBe(true);
+    // Builds that predate the cap show this string as-is.
+    expect(body.error).toBe(LIMIT_MESSAGE);
+
+    const waitlisted = await page.request.post(
+      `/api/mobile/shifts/${fullShiftId}/signup`,
+      { headers, data: { waitlist: true } }
+    );
+    expect(waitlisted.ok()).toBeTruthy();
+    expect((await waitlisted.json()).status).toBe("WAITLISTED");
   });
 });
