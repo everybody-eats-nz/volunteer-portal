@@ -6,6 +6,7 @@ import {
   createShiftCanceledNotification,
   createWaitlistRemovedNotification,
   createShiftFilledNotification,
+  createSignupDeclinedNotification,
 } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
@@ -59,7 +60,11 @@ export interface SignupActionResult {
 interface ApplySignupActionOptions {
   signupId: string;
   action: SignupAction;
-  /** Send the volunteer an email on reject (mirrors web behaviour). */
+  /**
+   * Tell the volunteer about a reject: the "not needed" email plus the in-app
+   * notification and push. Off unless asked for, because the web dialog only
+   * sends it when its checkbox is ticked; the mobile route defaults it on.
+   */
   sendEmail?: boolean;
   /** Skip notifications + emails (used when cancelling past shifts). */
   skipNotification?: boolean;
@@ -346,8 +351,12 @@ export async function applySignupAction({
         });
       }
 
+      // Only someone who held a place had a shift canceled. A declined
+      // application gets wording that says so.
       try {
-        await createShiftCanceledNotification(
+        await (wasConfirmed
+          ? createShiftCanceledNotification
+          : createSignupDeclinedNotification)(
           signup.user.id,
           signup.shift.shiftType.name,
           formatNZLongDate(signup.shift.start),

@@ -89,7 +89,7 @@ export default function ApprovalsScreen() {
     (signup: PendingSignup) => {
       Alert.alert(
         "Decline signup?",
-        `${signup.volunteer.name} won't be added to this shift.`,
+        `${signup.volunteer.name} won't be added to this shift. We'll let them know by email and notification.`,
         [
           { text: "Cancel", style: "cancel" },
           { text: "Decline", style: "destructive", onPress: () => runAction(signup, "reject") },

@@ -12,7 +12,8 @@ import {
  * JWT-authed mirror of the web admin signup action route. Body:
  * { action, sendEmail?, skipNotification? }. Delegates to the shared
  * signup-action service so behaviour (emails, notifications, waitlisting)
- * matches the web admin exactly.
+ * matches the web admin exactly. One difference: `sendEmail` defaults to true
+ * here, so a decline from the app always tells the volunteer.
  */
 export async function POST(
   req: Request,
@@ -38,7 +39,12 @@ export async function POST(
       return NextResponse.json({ error: "action is required" }, { status: 400 });
     }
     action = body.action;
-    sendEmail = body.sendEmail;
+    // The app's decline has no "notify the volunteer" checkbox like the web
+    // dialog does, so it sends no flag at all. Treat that as "tell them":
+    // declining someone without a word leaves them waiting on a shift they
+    // will never get. Defaulting here rather than in the app also fixes store
+    // builds that are already out.
+    sendEmail = body.sendEmail ?? true;
     skipNotification = body.skipNotification;
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });

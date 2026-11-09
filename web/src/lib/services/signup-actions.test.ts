@@ -28,6 +28,7 @@ const notificationMocks = vi.hoisted(() => ({
   createShiftCanceledNotification: vi.fn().mockResolvedValue(undefined),
   createWaitlistRemovedNotification: vi.fn().mockResolvedValue(undefined),
   createShiftFilledNotification: vi.fn().mockResolvedValue(undefined),
+  createSignupDeclinedNotification: vi.fn().mockResolvedValue(undefined),
   createWaitlistConfirmRequestNotification: vi.fn().mockResolvedValue(undefined),
 }));
 const emailMocks = vi.hoisted(() => ({
@@ -365,6 +366,24 @@ describe("applySignupAction", () => {
 
     expect(result.signup.status).toBe("CANCELED");
     expect(result.message).toBe("Signup rejected");
+    expect(emailMocks.sendVolunteerNotNeededNotification).not.toHaveBeenCalled();
+    expect(notificationMocks.createSignupDeclinedNotification).not.toHaveBeenCalled();
+    expect(notificationMocks.createShiftCanceledNotification).not.toHaveBeenCalled();
+  });
+
+  it("tells a declined applicant they weren't needed, not that a shift was canceled", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("PENDING") as never);
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "reject",
+      sendEmail: true,
+    });
+
+    expect(result.message).toBe("Signup rejected and volunteer notified");
+    expect(emailMocks.sendVolunteerNotNeededNotification).toHaveBeenCalled();
+    expect(notificationMocks.createSignupDeclinedNotification).toHaveBeenCalled();
+    expect(notificationMocks.createShiftCanceledNotification).not.toHaveBeenCalled();
   });
 
   it("records who declined an application and when", async () => {
