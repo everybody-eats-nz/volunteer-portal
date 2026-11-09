@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { checkAutoApprovalEligibility } from "@/lib/auto-approval";
+import { getApplicationLimitStatus } from "@/lib/application-limit.server";
 
 /**
  * GET /api/mobile/shifts/[id]/auto-approval-check
@@ -44,7 +45,16 @@ export async function GET(
     }
 
     const eligibility = await checkAutoApprovalEligibility(userId, shiftId);
-    return NextResponse.json(eligibility);
+
+    // Where the volunteer stands against the cap on open applications, so the
+    // signup UI can say so up front instead of failing on confirm.
+    const applicationLimit = await getApplicationLimitStatus(
+      userId,
+      shiftId,
+      eligibility.eligible
+    );
+
+    return NextResponse.json({ ...eligibility, applicationLimit });
   } catch (error) {
     console.error("Error checking auto-approval eligibility:", error);
     return NextResponse.json(

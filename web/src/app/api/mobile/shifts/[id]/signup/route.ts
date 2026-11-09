@@ -14,6 +14,7 @@ import { getMissingProfileFields } from "@/lib/profile-completion";
 import { syncProfileCompletedFlag } from "@/lib/profile-completion.server";
 import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 import { parseWaitlistIfFull } from "@/lib/waitlist";
+import { validateApplicationLimit } from "@/lib/application-limit.server";
 
 /**
  * POST /api/mobile/shifts/[id]/signup
@@ -25,6 +26,7 @@ import { parseWaitlistIfFull } from "@/lib/waitlist";
  * - Duplicate signup prevention (re-signup allowed from CANCELED)
  * - Concurrent shift conflict detection (max 1 AM + 1 PM per day)
  * - Capacity check with optional waitlist
+ * - Cap on open (pending) applications
  * - Auto-approval processing
  *
  * Body (JSON): { waitlist?: boolean, waitlistIfFull?: boolean, note?: string,
@@ -224,6 +226,17 @@ export async function POST(
       status: "WAITLISTED",
       autoApproved: false,
     });
+  }
+
+  // Cap on open applications. Mirrors the web signup route: waitlist joins
+  // and instantly-approved signups are never refused. Builds that predate the
+  // cap show `error` as-is, which is a full sentence for that reason.
+  const applicationLimitError = await validateApplicationLimit(
+    user.id,
+    shift.id
+  );
+  if (applicationLimitError) {
+    return NextResponse.json(applicationLimitError, { status: 400 });
   }
 
   // Spots available — create pending signup (may be auto-approved)

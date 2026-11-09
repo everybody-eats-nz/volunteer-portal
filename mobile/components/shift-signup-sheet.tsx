@@ -49,6 +49,22 @@ type AutoApprovalStatus = {
   loading: boolean;
 };
 
+/** Mirrors `ApplicationLimitStatus` in web/src/lib/application-limit.ts. */
+type ApplicationLimit = {
+  limit: number;
+  pending: number;
+  reached: boolean;
+};
+
+/**
+ * Shown when the volunteer is at the cap on open applications. The server
+ * sends the same sentence when it refuses a signup; this copy covers the
+ * pre-check, which only reports the numbers.
+ */
+function applicationLimitMessage(limit: number): string {
+  return `You have ${limit} shift applications waiting for a reply, which is the most you can have at once. Once one is confirmed, or you withdraw one, you can apply for another.`;
+}
+
 type SignupResult = {
   id: string;
   status: string;
@@ -154,14 +170,23 @@ export function ShiftSignupSheet({
   } | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
+  // At the cap on open applications: this one would be refused. Set by the
+  // pre-check when the sheet opens, or by the server refusing the signup.
+  const [applicationLimit, setApplicationLimit] = useState<number | null>(null);
   const waitlistMode = isWaitlist || filledWhileOpen !== null;
   const signedUp = filledWhileOpen?.signedUp ?? shift.signedUp;
   const currentWaitlistCount = filledWhileOpen?.waitlistCount ?? waitlistCount;
   const capacity = filledWhileOpen?.capacity ?? shift.capacity;
   const spotsLeft = Math.max(0, capacity - signedUp);
   // Only when an admin will review it. An instant signup can't be overtaken.
+  // Joining a waitlist and instant signups are never capped.
+  const applicationLimitReached =
+    applicationLimit !== null && !waitlistMode && !autoApproval.eligible;
   const askWaitlistIfFull =
-    !waitlistMode && !autoApproval.loading && !autoApproval.eligible;
+    !waitlistMode &&
+    !autoApproval.loading &&
+    !autoApproval.eligible &&
+    !applicationLimitReached;
   const date = new Date(shift.start);
   const endDate = new Date(shift.end);
 
@@ -176,6 +201,7 @@ export function ShiftSignupSheet({
       setError(null);
       setWaitlistIfFull(false);
       setFilledWhileOpen(null);
+      setApplicationLimit(null);
       // Only block up front when the server told us what is missing. An
       // empty list with the flag set used to render "your profile is
       // incomplete" over a disabled button and no way to find out why.
@@ -198,12 +224,15 @@ export function ShiftSignupSheet({
 
     // Auto-approval check (skip for waitlist)
     if (!isWaitlist) {
-      api<{ eligible: boolean; ruleName?: string }>(
+      api<{ eligible: boolean; ruleName?: string; applicationLimit?: ApplicationLimit }>(
         `/api/mobile/shifts/${shift.id}/auto-approval-check`,
       )
-        .then((data) =>
-          setAutoApproval({ eligible: data.eligible, ruleName: data.ruleName, loading: false }),
-        )
+        .then((data) => {
+          setAutoApproval({ eligible: data.eligible, ruleName: data.ruleName, loading: false });
+          if (data.applicationLimit?.reached) {
+            setApplicationLimit(data.applicationLimit.limit);
+          }
+        })
         .catch(() => setAutoApproval({ eligible: false, loading: false }));
     } else {
       setAutoApproval({ eligible: false, loading: false });
@@ -283,6 +312,11 @@ export function ShiftSignupSheet({
                 ? err.data.waitlistCount
                 : waitlistCount,
           });
+        } else if (err.data?.applicationLimitReached === true) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          const limit = (err.data.applicationLimit as ApplicationLimit | undefined)?.limit;
+          // Fall back to 5, the cap when this build shipped.
+          setApplicationLimit(typeof limit === 'number' ? limit : 5);
         } else if (err.message === 'Profile incomplete') {
           setProfileIncomplete(true);
           const serverMissing = err.data?.missingFields;
@@ -498,6 +532,20 @@ export function ShiftSignupSheet({
               <Text style={[ss.infoText, { color: colors.textSecondary }]}>
                 Checking eligibility...
               </Text>
+            </View>
+          ) : applicationLimitReached ? (
+            <View
+              style={[ss.infoBox, { backgroundColor: orangeTone.bg }]}
+              accessibilityRole="alert">
+              <Text style={ss.infoEmoji}>📝</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[ss.infoTitle, { color: orangeTone.fg }]}>
+                  You’ve reached the application limit
+                </Text>
+                <Text style={[ss.infoText, { color: orangeTone.fg }]}>
+                  {applicationLimitMessage(applicationLimit ?? 5)}
+                </Text>
+              </View>
             </View>
           ) : autoApproval.eligible && !waitlistMode ? (
             <View style={[ss.infoBox, { backgroundColor: forestTone.bg }]}>
@@ -817,7 +865,7 @@ export function ShiftSignupSheet({
             label={buttonLabel}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={profileIncomplete}
+            disabled={profileIncomplete || applicationLimitReached}
             haptic={false}
             style={[ss.footerButton, ss.footerButtonPrimary]}
           />
