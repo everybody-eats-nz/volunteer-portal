@@ -27,6 +27,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { CopyButton } from "./copy-button";
+import { TemplatePreviewDialog } from "./template-preview-dialog";
 
 function plural(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`;
@@ -37,7 +38,7 @@ function plural(count: number, one: string, many: string) {
  * down the whole page: email, who it goes to, status, link to the template.
  */
 const ROW_GRID =
-  "grid items-center gap-x-4 gap-y-1 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_11rem_10rem]";
+  "grid items-center gap-x-4 gap-y-1 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_11rem_11rem]";
 
 const linkClass =
   "inline-flex min-h-9 items-center gap-1.5 font-medium text-primary-text underline-offset-4 hover:underline";
@@ -288,6 +289,14 @@ function EmailRow({
 
           <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
             <TemplateProblem status={status} />
+            {status?.template?.previewUrl && (
+              <TemplatePreviewDialog
+                emailName={email.name}
+                templateName={status.template.name}
+                subject={status.template.subject}
+                previewUrl={status.template.previewUrl}
+              />
+            )}
             {status?.campaignMonitorUrl && (
               <a
                 href={status.campaignMonitorUrl}
@@ -442,21 +451,6 @@ function EmailDetails({
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-x-5">
-              {template?.previewUrl && (
-                <a
-                  href={template.previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={linkClass}
-                  data-testid="email-template-preview"
-                >
-                  Preview
-                  <ExternalLink className="size-3.5" aria-hidden />
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              )}
-            </div>
           </>
         )}
       </div>

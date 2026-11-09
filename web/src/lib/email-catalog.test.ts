@@ -381,7 +381,8 @@ describe("getEmailTemplateStatuses", () => {
                 Status: "Active",
                 Properties: {
                   Subject: "We missed you",
-                  HtmlPreviewUrl: "https://preview.example.com/abc123",
+                  // Campaign Monitor returns http links; the page upgrades them.
+                  HtmlPreviewUrl: "http://preview.example.com/abc123",
                 },
               })
             )

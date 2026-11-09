@@ -90,7 +90,12 @@ async function lookUpTemplate(
       name,
       subject: stringOrNull(properties.Subject),
       status: stringOrNull(Status),
-      previewUrl: httpsUrlOrNull(properties.HtmlPreviewUrl),
+      // Campaign Monitor hands back http:// preview links; they work over https.
+      previewUrl: httpsUrlOrNull(
+        typeof properties.HtmlPreviewUrl === "string"
+          ? properties.HtmlPreviewUrl.replace(/^http:/, "https:")
+          : null
+      ),
     };
   } catch {
     return null;
