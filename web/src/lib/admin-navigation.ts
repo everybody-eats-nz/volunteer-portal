@@ -7,6 +7,7 @@ import {
   Star,
   Plus,
   Mail,
+  MailCheck,
   Bell,
   Settings,
   FileText,
@@ -342,6 +343,14 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "newsletter-lists",
       },
       {
+        title: "Automated Emails",
+        href: "/admin/emails",
+        icon: MailCheck,
+        description:
+          "Every email the portal sends by itself, and its Campaign Monitor template",
+        commandKey: "automated-emails templates campaign monitor",
+      },
+      {
         title: "Surveys",
         href: "/admin/surveys",
         icon: ClipboardList,
@@ -519,6 +528,7 @@ export const getIconColor = (
     Announcements: "text-orange-500",
     "Shortage Alerts": "text-amber-600",
     "Newsletter Lists": "text-cyan-600",
+    "Automated Emails": "text-sky-600",
     Surveys: "text-violet-600",
 
     // Content & AI
