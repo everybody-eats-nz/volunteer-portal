@@ -32,6 +32,12 @@ import {
   waitlistSizeSentence,
 } from "@/lib/waitlist";
 import {
+  MAX_PENDING_APPLICATIONS,
+  buildApplicationLimitMessage,
+  type ApplicationLimitStatus,
+} from "@/lib/application-limit";
+import {
+  ListChecks,
   MessageSquareDot,
   User,
   Calendar,
@@ -186,6 +192,9 @@ export function ShiftSignupDialog({
     capacity: number;
     waitlistCount: number;
   } | null>(null);
+  // The server refused the signup because the volunteer is at the cap on open
+  // applications (the pre-check missed it, e.g. it timed out or went stale).
+  const [limitRefused, setLimitRefused] = useState(false);
   const isWaitlist = initialIsWaitlist || filledWhileOpen !== null;
   const confirmedCount =
     filledWhileOpen?.confirmedCount ?? initialConfirmedCount;
@@ -232,6 +241,7 @@ export function ShiftSignupDialog({
   const { data: eligibility, isLoading: eligibilityLoading } = useSWR<{
     eligible: boolean;
     ruleName?: string;
+    applicationLimit?: ApplicationLimitStatus;
   }>(eligibilityKey, {
     loadingTimeout: 5000,
     onLoadingSlow: (key) => setSlowEligibilityKey(key),
@@ -248,9 +258,20 @@ export function ShiftSignupDialog({
   const remaining = Math.max(0, capacity - confirmedCount);
   const autoApproved =
     autoApprovalEligible.eligible && !autoApprovalEligible.loading;
+  // At the cap on open applications, this one would be refused. Joining a
+  // waitlist and instant signups are never capped.
+  const applicationLimitReached =
+    !isWaitlist &&
+    !autoApprovalEligible.loading &&
+    (limitRefused || eligibility?.applicationLimit?.reached === true);
+  const applicationLimit =
+    eligibility?.applicationLimit?.limit ?? MAX_PENDING_APPLICATIONS;
   // Only when an admin will review it. An instant signup can't be overtaken.
   const askWaitlistIfFull =
-    !isWaitlist && !autoApprovalEligible.loading && !autoApproved;
+    !isWaitlist &&
+    !autoApprovalEligible.loading &&
+    !autoApproved &&
+    !applicationLimitReached;
 
   // Every open starts with a clean slate.
   const handleOpenChange = (nextOpen: boolean) => {
@@ -261,6 +282,7 @@ export function ShiftSignupDialog({
       setShowNoteField(false);
       setWaitlistIfFull(false);
       setFilledWhileOpen(null);
+      setLimitRefused(false);
     }
     setOpen(nextOpen);
   };
@@ -426,6 +448,9 @@ export function ShiftSignupDialog({
               : []
           );
           setError(null);
+        } else if (errorData.applicationLimitReached === true) {
+          setLimitRefused(true);
+          setError(null);
         } else {
           setError(errorData.error || "Failed to sign up");
         }
@@ -452,6 +477,8 @@ export function ShiftSignupDialog({
           <p className="eyebrow text-forest-500/85 dark:text-cream-50/60">
             {isWaitlist
               ? "Shift is full"
+              : applicationLimitReached
+              ? "Taihoa - not just yet"
               : autoApproved
               ? "You're pre-approved"
               : "Kia ora — one quick step"}
@@ -462,6 +489,8 @@ export function ShiftSignupDialog({
           >
             {isWaitlist
               ? "Join Waitlist"
+              : applicationLimitReached
+              ? "Application Limit Reached"
               : autoApproved
               ? "Instant Signup"
               : "Confirm Signup"}
@@ -472,6 +501,8 @@ export function ShiftSignupDialog({
           >
             {isWaitlist
               ? `This shift is full. ${waitlistSizeSentence(waitlistCount)}`
+              : applicationLimitReached
+              ? "You can apply for this shift once one of your other applications has been answered."
               : autoApproved
               ? "You're eligible for instant approval! Confirm to sign up and get immediately confirmed for this shift."
               : "Please confirm that you want to sign up for this volunteer shift."}
@@ -538,6 +569,34 @@ export function ShiftSignupDialog({
                 The last place went while you were signing up. You can join the
                 waitlist instead, or cancel to look for another shift.
               </span>
+            </DialogPanel>
+          )}
+
+          {/* At the cap on open applications: say so first, with the way out. */}
+          {applicationLimitReached && (
+            <DialogPanel
+              variant="amber"
+              icon={<ListChecks className="h-4 w-4" />}
+              title="You've reached the application limit"
+              testId="application-limit-notice"
+            >
+              <div className="space-y-3">
+                <p role="alert">
+                  {buildApplicationLimitMessage(applicationLimit)}
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  data-testid="application-limit-my-shifts-button"
+                >
+                  <Link href="/shifts/mine">
+                    <Calendar className="h-4 w-4" />
+                    View My Shifts
+                  </Link>
+                </Button>
+              </div>
             </DialogPanel>
           )}
 
@@ -617,7 +676,7 @@ export function ShiftSignupDialog({
           </div>
 
           {/* Note Field */}
-          {!showNoteField ? (
+          {applicationLimitReached ? null : !showNoteField ? (
             <Button
               type="button"
               variant="outline"
@@ -653,7 +712,7 @@ export function ShiftSignupDialog({
           )}
 
           {/* Guardian Field for Underage Users */}
-          {isUnderage && (
+          {isUnderage && !applicationLimitReached && (
             <div className="space-y-2">
               <Label
                 htmlFor="guardian"
@@ -677,7 +736,7 @@ export function ShiftSignupDialog({
           )}
 
           {/* Backup Shift Options */}
-          {concurrentShifts.length > 0 && (
+          {concurrentShifts.length > 0 && !applicationLimitReached && (
             <div className="space-y-3 rounded-2xl border border-forest-500/15 bg-forest-500/5 p-4 dark:border-cream-50/15 dark:bg-cream-50/5">
               <div>
                 <Label className="text-sm font-medium text-forest-700 dark:text-cream-50">
@@ -803,7 +862,7 @@ export function ShiftSignupDialog({
             >
               Checking if you qualify for instant approval…
             </DialogPanel>
-          ) : autoApproved && !isWaitlist ? (
+          ) : applicationLimitReached ? null : autoApproved && !isWaitlist ? (
             <DialogPanel
               variant="green"
               icon={<CheckCircle2 className="h-4 w-4" />}
@@ -871,7 +930,7 @@ export function ShiftSignupDialog({
           </Button>
           <Button
             onClick={handleSignup}
-            disabled={isSubmitting || !emailVerified}
+            disabled={isSubmitting || !emailVerified || applicationLimitReached}
             className="min-w-[140px]"
             data-testid="shift-signup-confirm-button"
           >

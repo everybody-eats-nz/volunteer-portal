@@ -22,6 +22,7 @@ import { getMissingProfileFields } from "@/lib/profile-completion";
 import { syncProfileCompletedFlag } from "@/lib/profile-completion.server";
 import { offerWaitlistPlaces } from "@/lib/waitlist-offers.server";
 import { parseWaitlistIfFull } from "@/lib/waitlist";
+import { validateApplicationLimit } from "@/lib/application-limit.server";
 
 /**
  * HTML sanitizer for serverless environment.
@@ -253,6 +254,17 @@ export async function POST(
     });
 
     return NextResponse.json(signup);
+  }
+
+  // An application that would wait on an admin counts toward the cap on open
+  // applications. Checked here, after the waitlist branch: joining a waitlist
+  // is never capped, and neither is a signup that will be approved instantly.
+  const applicationLimitError = await validateApplicationLimit(
+    user.id,
+    shift.id
+  );
+  if (applicationLimitError) {
+    return NextResponse.json(applicationLimitError, { status: 400 });
   }
 
   // Spots available → create pending signup that might be auto-approved

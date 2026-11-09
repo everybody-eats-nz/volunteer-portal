@@ -154,6 +154,8 @@ export async function createShift(
     notes?: string;
     /** Links the shift to a template, as the weekly schedule does */
     templateId?: string;
+    /** False = hand-picked: signups always wait for an admin */
+    autoApprovalEnabled?: boolean;
   }
 ): Promise<{ id: string }> {
   const response = await page.request.post("/api/admin/shifts", {
@@ -167,6 +169,7 @@ export async function createShift(
       capacity: data.capacity,
       notes: data.notes || "Test shift",
       templateId: data.templateId,
+      autoApprovalEnabled: data.autoApprovalEnabled,
     },
   });
 
