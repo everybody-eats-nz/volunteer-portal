@@ -256,7 +256,7 @@ Real-time notifications via SSE (Server-Sent Events). Server-side broadcasting i
 
 ### Email System
 
-Transactional emails via Campaign Monitor (`src/lib/services/campaign-monitor.ts`). Email service abstraction in `src/lib/email-service.ts`. Email verification flow in `src/lib/email-verification.ts`.
+Transactional emails via Campaign Monitor (`src/lib/services/campaign-monitor.ts`). Email service abstraction in `src/lib/email-service.ts`. Email verification flow in `src/lib/email-verification.ts`. Every templated email is described in `src/lib/email-catalog.ts` and listed for admins at `/admin/emails`; add an entry (and a sender in `email-catalog.test.ts`) whenever you add an email.
 
 ### File Storage
 
