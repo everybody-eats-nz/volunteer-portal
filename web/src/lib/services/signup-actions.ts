@@ -6,6 +6,7 @@ import {
   createShiftCanceledNotification,
   createWaitlistRemovedNotification,
   createShiftFilledNotification,
+  createSignupDeclinedNotification,
 } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
@@ -59,7 +60,11 @@ export interface SignupActionResult {
 interface ApplySignupActionOptions {
   signupId: string;
   action: SignupAction;
-  /** Send the volunteer an email on reject (mirrors web behaviour). */
+  /**
+   * Tell the volunteer about a reject: the "not needed" email plus the in-app
+   * notification and push. Off unless asked for, because the web dialog only
+   * sends it when its checkbox is ticked; the mobile route defaults it on.
+   */
   sendEmail?: boolean;
   /** Skip notifications + emails (used when cancelling past shifts). */
   skipNotification?: boolean;
@@ -311,7 +316,8 @@ export async function applySignupAction({
   }
 
   if (action === "reject") {
-    const wasConfirmed = signup.status === "CONFIRMED";
+    // Only pending signups reach here (see the preconditions above), so no
+    // place is freed and there is nothing to offer the waitlist.
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
       data: {
@@ -319,12 +325,6 @@ export async function applySignupAction({
         ...firstResponse(signup, "DECLINED", actorId),
       },
     });
-
-    if (wasConfirmed) {
-      offerWaitlistPlaces(signup.shiftId).catch((err) =>
-        console.error("Error offering the freed place to the waitlist:", err)
-      );
-    }
 
     if (sendEmail) {
       if (signup.user.email) {
@@ -346,8 +346,10 @@ export async function applySignupAction({
         });
       }
 
+      // They never held a place, so this is "not needed this time" rather
+      // than "your shift was canceled" - the same thing the email says.
       try {
-        await createShiftCanceledNotification(
+        await createSignupDeclinedNotification(
           signup.user.id,
           signup.shift.shiftType.name,
           formatNZLongDate(signup.shift.start),

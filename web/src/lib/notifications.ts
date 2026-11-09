@@ -692,6 +692,30 @@ export async function createShiftCanceledNotification(
 }
 
 /**
+ * Tell a volunteer the team declined their pending signup.
+ *
+ * Separate from {@link createShiftCanceledNotification} for the same reason the
+ * waitlist removal is: they never held a place, so "your shift has been
+ * canceled" describes something that didn't happen. Matches the tone of the
+ * "not needed" email that goes out alongside it.
+ */
+export async function createSignupDeclinedNotification(
+  userId: string,
+  shiftName: string,
+  shiftDate: string,
+  shiftId: string
+) {
+  return createNotification({
+    userId,
+    type: "SHIFT_CANCELED",
+    title: "Not needed this time",
+    message: `Thanks for putting your hand up for ${shiftName} on ${shiftDate}. We have all the help we need for this one, so we haven't given you a place.`,
+    actionUrl: `/shifts/${shiftId}`,
+    relatedId: shiftId,
+  });
+}
+
+/**
  * Tell a volunteer their pending signup was released because the shift filled
  * before it could be approved, and they'd asked not to go on the waitlist.
  *
