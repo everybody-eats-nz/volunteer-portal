@@ -386,6 +386,18 @@ describe("applySignupAction", () => {
     expect(notificationMocks.createShiftCanceledNotification).not.toHaveBeenCalled();
   });
 
+  // Reject is for applications only. Someone holding a place or a waitlist
+  // spot is taken off with "cancel", which picks its own wording.
+  it.each(["CONFIRMED", "WAITLISTED"] as const)(
+    "blocks rejecting a %s signup",
+    async (status) => {
+      mockedFindUnique.mockResolvedValue(makeSignup(status) as never);
+
+      await expectActionError("reject", 400);
+      expect(notificationMocks.createSignupDeclinedNotification).not.toHaveBeenCalled();
+    }
+  );
+
   it("records who declined an application and when", async () => {
     mockedFindUnique.mockResolvedValue(makeSignup("PENDING") as never);
 

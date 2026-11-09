@@ -316,7 +316,8 @@ export async function applySignupAction({
   }
 
   if (action === "reject") {
-    const wasConfirmed = signup.status === "CONFIRMED";
+    // Only pending signups reach here (see the preconditions above), so no
+    // place is freed and there is nothing to offer the waitlist.
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
       data: {
@@ -324,12 +325,6 @@ export async function applySignupAction({
         ...firstResponse(signup, "DECLINED", actorId),
       },
     });
-
-    if (wasConfirmed) {
-      offerWaitlistPlaces(signup.shiftId).catch((err) =>
-        console.error("Error offering the freed place to the waitlist:", err)
-      );
-    }
 
     if (sendEmail) {
       if (signup.user.email) {
@@ -351,12 +346,10 @@ export async function applySignupAction({
         });
       }
 
-      // Only someone who held a place had a shift canceled. A declined
-      // application gets wording that says so.
+      // They never held a place, so this is "not needed this time" rather
+      // than "your shift was canceled" - the same thing the email says.
       try {
-        await (wasConfirmed
-          ? createShiftCanceledNotification
-          : createSignupDeclinedNotification)(
+        await createSignupDeclinedNotification(
           signup.user.id,
           signup.shift.shiftType.name,
           formatNZLongDate(signup.shift.start),
