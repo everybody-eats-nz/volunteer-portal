@@ -519,4 +519,55 @@ test.describe("Email casing", () => {
 
     await page.waitForURL("/dashboard");
   });
+
+  test("treats % and _ in the email as literal characters, not wildcards", async ({
+    page,
+  }) => {
+    // Case-insensitive lookups compile to ILIKE, where "%" would otherwise
+    // match every account and let one request try a password against all of
+    // them.
+    const password = "Wildcard123456";
+    const email = `wild.card.${Date.now()}@example.com`;
+    const created = await page.request.post("/api/test/users", {
+      data: {
+        email,
+        password,
+        firstName: "Wild",
+        lastName: "Card",
+        role: "VOLUNTEER",
+        emailVerified: true,
+        profileCompleted: true,
+      },
+    });
+    expect(created.ok()).toBeTruthy();
+
+    const signIn = async (attempt: string) => {
+      await page.context().clearCookies();
+      const { csrfToken } = await (
+        await page.request.get("/api/auth/csrf")
+      ).json();
+      await page.request.post("/api/auth/callback/credentials", {
+        form: { csrfToken, email: attempt, password, json: "true" },
+      });
+      const session = await (
+        await page.request.get("/api/auth/session")
+      ).json();
+      return session?.user?.email ?? null;
+    };
+
+    try {
+      // Only this account has this password, so any wildcard that reached
+      // the query would sign in as it.
+      for (const pattern of ["%", "%@example.com", email.replace(/\./g, "_")]) {
+        expect(await signIn(pattern), `email "${pattern}"`).toBeNull();
+      }
+
+      // The same request with the real address does sign in.
+      expect(await signIn(email.toUpperCase())).toBe(email);
+    } finally {
+      await page.request.delete(
+        `/api/test/users?email=${encodeURIComponent(email)}`
+      );
+    }
+  });
 });

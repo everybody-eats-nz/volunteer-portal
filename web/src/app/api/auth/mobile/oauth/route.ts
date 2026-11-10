@@ -12,7 +12,12 @@ const appleJWKS = createRemoteJWKSet(
   new URL("https://appleid.apple.com/auth/keys"),
 );
 
-type Provider = "apple" | "google" | "facebook";
+// Facebook is deliberately absent. Its sign-in hands over an access token,
+// which /me accepts no matter which Facebook app it was issued to, so taking
+// one without checking the app id (debug_token) lets any other app's operator
+// sign in as its users here. The mobile app has Facebook login switched off;
+// if it returns, verify the token's app id before trusting it.
+type Provider = "apple" | "google";
 
 type OAuthProfile = {
   email: string;
@@ -25,13 +30,12 @@ type OAuthProfile = {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { provider, idToken, accessToken } = body as {
+    const { provider, idToken } = body as {
       provider: Provider;
       idToken?: string;
-      accessToken?: string;
     };
 
-    if (!provider || !["apple", "google", "facebook"].includes(provider)) {
+    if (!provider || !["apple", "google"].includes(provider)) {
       return NextResponse.json(
         { error: "Unsupported provider" },
         { status: 400 }
@@ -43,12 +47,9 @@ export async function POST(request: Request) {
       if (provider === "apple") {
         if (!idToken) throw new Error("Missing Apple identity token");
         profile = await verifyAppleToken(idToken);
-      } else if (provider === "google") {
+      } else {
         if (!idToken) throw new Error("Missing Google id_token");
         profile = await verifyGoogleToken(idToken);
-      } else {
-        if (!accessToken) throw new Error("Missing Facebook access token");
-        profile = await verifyFacebookToken(accessToken);
       }
     } catch (error) {
       console.error(`Mobile OAuth (${provider}) verification failed:`, error);
@@ -222,26 +223,5 @@ async function verifyAppleToken(idToken: string): Promise<OAuthProfile> {
     emailVerified:
       payload.email_verified === true ||
       payload.email_verified === "true",
-  };
-}
-
-async function verifyFacebookToken(accessToken: string): Promise<OAuthProfile> {
-  const res = await fetch(
-    `https://graph.facebook.com/me?fields=id,name,email,picture.width(400).height(400)&access_token=${encodeURIComponent(accessToken)}`,
-  );
-  if (!res.ok) throw new Error(`Facebook /me returned ${res.status}`);
-  const data = (await res.json()) as {
-    id?: string;
-    name?: string;
-    email?: string;
-    picture?: { data?: { url?: string } };
-  };
-
-  return {
-    email: data.email ?? "",
-    name: data.name ?? null,
-    image: data.picture?.data?.url ?? null,
-    providerUserId: data.id ?? "",
-    emailVerified: true, // Facebook emails are verified
   };
 }

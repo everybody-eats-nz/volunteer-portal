@@ -68,8 +68,10 @@ export function useGoogleAuth() {
 /**
  * Facebook sign-in hook — disabled (broken integration). Re-enable this
  * function and the import above once the Facebook OAuth app is working again.
- * Facebook returns an access token (not an id_token) which the server
- * exchanges for a profile via the Graph API.
+ * Facebook returns an access token (not an id_token). The server no longer
+ * accepts one: /api/auth/mobile/oauth dropped its Facebook branch because it
+ * trusted tokens issued to any Facebook app. Re-enabling needs that branch
+ * back with an app-id check (Graph API debug_token) first.
  */
 // export function useFacebookAuth() {
 //   return Facebook.useAuthRequest({

@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { connection } from "next/server";
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -14,8 +15,14 @@ export const metadata: Metadata = {
 export default async function AnnouncementsPage() {
   await connection();
 
-  const [session, announcements, labels, locations] = await Promise.all([
-    getServerSession(authOptions),
+  // Checked here as well as in the admin layout, and before any query runs: a
+  // page renders independently of its layout, so the layout's redirect does
+  // not protect this data.
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/login?callbackUrl=/admin/announcements");
+  if (session.user.role !== "ADMIN") redirect("/dashboard");
+
+  const [announcements, labels, locations] = await Promise.all([
     prisma.announcement.findMany({
       include: {
         author: {

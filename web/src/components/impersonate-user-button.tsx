@@ -56,15 +56,15 @@ export function ImpersonateUserButton({
         throw new Error(error.error || "Failed to start impersonation");
       }
 
-      const data = await response.json();
-
-      // Update session with impersonation data
-      await update({
-        startImpersonation: {
-          targetUser: data.targetUser,
-          impersonationData: data.impersonationData,
-        },
+      // The route above is only the friendly pre-check. The session switch
+      // itself re-verifies the admin and loads the target server-side, so
+      // all it needs from here is who to impersonate.
+      const updated = await update({
+        startImpersonation: { targetUserId: userId },
       });
+      if (!updated?.impersonating) {
+        throw new Error("Failed to start impersonation");
+      }
 
       // Redirect to user dashboard
       router.push("/dashboard");
