@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createFriendRequestNotification } from "@/lib/notifications";
-import { emailMatches } from "@/lib/utils/email";
+import { emailMatches, insensitiveEquals } from "@/lib/utils/email";
 
 export type SendFriendRequestResult =
   | { ok: true; requestId: string }
@@ -101,7 +101,7 @@ export async function sendFriendRequestFromUserToUser(
   const sentRequests = await prisma.friendRequest.findMany({
     where: {
       fromUserId: fromUser.id,
-      toEmail: { equals: toUser.email, mode: "insensitive" },
+      toEmail: insensitiveEquals(toUser.email),
     },
   });
   const existingRequest =

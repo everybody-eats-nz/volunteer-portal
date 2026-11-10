@@ -9,11 +9,17 @@ import GoogleProvider from "next-auth/providers/google";
 //   FacebookProfile,
 // } from "next-auth/providers/facebook";
 import { prisma } from "@/lib/prisma";
-import { emailMatches, normalizeEmail } from "@/lib/utils/email";
+import {
+  emailMatches,
+  isPlausibleEmail,
+  MAX_EMAIL_CANDIDATES,
+  normalizeEmail,
+} from "@/lib/utils/email";
 import bcrypt from "bcrypt";
 import { unarchiveUser } from "@/lib/archive-service";
 import { ArchiveTriggerSource } from "@/generated/client";
 import { verifyPasskeyAuthentication } from "@/lib/passkey-auth";
+import { startImpersonation, stopImpersonation } from "@/lib/impersonation";
 
 type AppRole = "ADMIN" | "VOLUNTEER";
 
@@ -108,12 +114,14 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        if (!isPlausibleEmail(credentials.email)) return null;
         // Stored emails are mixed-case (see normalizeEmail), so match
         // case-insensitively. In the rare case two accounts differ only by
         // casing, the password decides which one is signing in.
         const candidates = await prisma.user.findMany({
           where: emailMatches(credentials.email),
           orderBy: { createdAt: "asc" },
+          take: MAX_EMAIL_CANDIDATES,
           select: {
             id: true,
             email: true,
@@ -299,53 +307,15 @@ export const authOptions: NextAuthOptions = {
 
       // Handle session updates (like profile changes or impersonation)
       if (trigger === "update" && session) {
-        // Handle starting impersonation
+        // The update payload is whatever the browser posted to
+        // /api/auth/session, so impersonation never takes an identity or a
+        // role from it - see src/lib/impersonation.ts.
         if (session.startImpersonation) {
-          const { targetUser, impersonationData } = session.startImpersonation;
-          // Store original admin info
-          token.impersonating = impersonationData;
-          // Replace token with target user data
-          token.sub = targetUser.id;
-          token.name = targetUser.name;
-          token.email = targetUser.email;
-          token.role = targetUser.role;
-          token.phone = targetUser.phone || undefined;
-          token.firstName = targetUser.firstName || undefined;
-          token.lastName = targetUser.lastName || undefined;
-          token.emailVerified = targetUser.emailVerified || false;
-        }
-        // Handle stopping impersonation
-        else if (session.stopImpersonation && token.impersonating) {
-          const adminId = token.impersonating.adminId;
-          // Clear impersonation
-          token.impersonating = undefined;
-          // Restore admin user data from database
-          const adminUser = await prisma.user.findUnique({
-            where: { id: adminId },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              phone: true,
-              role: true,
-              firstName: true,
-              lastName: true,
-              emailVerified: true,
-            },
-          });
-          if (adminUser) {
-            token.sub = adminUser.id;
-            token.name = adminUser.name;
-            token.email = adminUser.email;
-            token.role = adminUser.role;
-            token.phone = adminUser.phone || undefined;
-            token.firstName = adminUser.firstName || undefined;
-            token.lastName = adminUser.lastName || undefined;
-            token.emailVerified = adminUser.emailVerified || false;
-          }
-        }
-        // Update token with fresh user data from database (normal profile update)
-        else if (!session.startImpersonation && !session.stopImpersonation) {
+          await startImpersonation(token, session.startImpersonation);
+        } else if (session.stopImpersonation) {
+          await stopImpersonation(token);
+        } else {
+          // Normal profile update: refresh the token from the database
           const userId = token.sub;
           const dbUser = await prisma.user.findUnique({
             where: { id: userId },

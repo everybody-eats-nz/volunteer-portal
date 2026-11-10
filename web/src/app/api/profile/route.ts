@@ -188,7 +188,6 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    console.log("Received profile update:", body);
     const validatedData = updateProfileSchema.parse(body);
 
     // Check if user is admin
@@ -218,8 +217,16 @@ export async function PUT(req: Request) {
       updateData.phone = validatedData.phone || null;
     if (validatedData.pronouns !== undefined)
       updateData.pronouns = validatedData.pronouns || null;
-    if (validatedData.profilePhotoUrl !== undefined)
-      updateData.profilePhotoUrl = validatedData.profilePhotoUrl || null;
+    // A photo is only ever set by the upload route (/api/profile/photo),
+    // which stores the URL of the object it just created. This endpoint may
+    // clear the photo but never set it: the stored URL is later used to find
+    // the object to delete and is rendered to other volunteers and by the
+    // server-side video renderer, so it must not be client-chosen.
+    if (
+      validatedData.profilePhotoUrl !== undefined &&
+      !validatedData.profilePhotoUrl
+    )
+      updateData.profilePhotoUrl = null;
     if (validatedData.emergencyContactName !== undefined)
       updateData.emergencyContactName =
         validatedData.emergencyContactName || null;

@@ -52,3 +52,39 @@ export function extractFilePathFromUrl(url: string): string | null {
     return null;
   }
 }
+
+/**
+ * Object path for a public URL that points into one of OUR buckets, or null.
+ *
+ * Use this, not `extractFilePathFromUrl`, before deleting an object named by a
+ * URL that a user could have influenced: that helper accepts any host and any
+ * bucket, so a stored URL such as
+ * `https://elsewhere/storage/v1/object/public/x/uploads/someone-elses.jpg`
+ * would resolve to a real path in whichever bucket the caller deletes from.
+ *
+ * Returns null unless the URL is on this deployment's Supabase origin, inside
+ * the given bucket, and free of dot segments.
+ */
+export function extractOwnBucketPath(
+  url: string,
+  bucket: string,
+  supabaseUrl: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL
+): string | null {
+  if (!supabaseUrl) return null;
+  try {
+    // Compare the raw text as well as the parsed form: URL parsing resolves
+    // dot segments, so "/public/<bucket>/../other/x" would otherwise slip by.
+    if (/(^|\/)(\.|%2e){1,2}(\/|$)/i.test(url.split(/[?#]/)[0])) return null;
+
+    const parsed = new URL(url);
+    if (parsed.origin !== new URL(supabaseUrl).origin) return null;
+
+    const prefix = `/storage/v1/object/public/${bucket}/`;
+    if (!parsed.pathname.startsWith(prefix)) return null;
+
+    const path = parsed.pathname.slice(prefix.length);
+    return path.length > 0 ? path : null;
+  } catch {
+    return null;
+  }
+}
