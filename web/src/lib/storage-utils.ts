@@ -53,6 +53,8 @@ export function extractFilePathFromUrl(url: string): string | null {
   }
 }
 
+const DOT_SEGMENT = /(^|[\\/])(\.|%2e){1,2}([\\/]|$)/i;
+
 /**
  * Object path for a public URL that points into one of OUR buckets, or null.
  *
@@ -63,7 +65,8 @@ export function extractFilePathFromUrl(url: string): string | null {
  * would resolve to a real path in whichever bucket the caller deletes from.
  *
  * Returns null unless the URL is on this deployment's Supabase origin, inside
- * the given bucket, and free of dot segments.
+ * the given bucket, and free of dot segments. The path is percent-decoded, as
+ * storage keys are: public URLs carry the encoded form.
  */
 export function extractOwnBucketPath(
   url: string,
@@ -74,7 +77,7 @@ export function extractOwnBucketPath(
   try {
     // Compare the raw text as well as the parsed form: URL parsing resolves
     // dot segments, so "/public/<bucket>/../other/x" would otherwise slip by.
-    if (/(^|\/)(\.|%2e){1,2}(\/|$)/i.test(url.split(/[?#]/)[0])) return null;
+    if (DOT_SEGMENT.test(url.split(/[?#]/)[0])) return null;
 
     const parsed = new URL(url);
     if (parsed.origin !== new URL(supabaseUrl).origin) return null;
@@ -82,8 +85,11 @@ export function extractOwnBucketPath(
     const prefix = `/storage/v1/object/public/${bucket}/`;
     if (!parsed.pathname.startsWith(prefix)) return null;
 
-    const path = parsed.pathname.slice(prefix.length);
-    return path.length > 0 ? path : null;
+    // Checked again once decoded, so an encoded slash or a double-encoded
+    // dot cannot reintroduce a segment that climbs out of the bucket.
+    const path = decodeURIComponent(parsed.pathname.slice(prefix.length));
+    if (path.length === 0 || DOT_SEGMENT.test(path)) return null;
+    return path;
   } catch {
     return null;
   }

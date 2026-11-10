@@ -221,7 +221,9 @@ export async function PUT(req: Request) {
     // which stores the URL of the object it just created. This endpoint may
     // clear the photo but never set it: the stored URL is later used to find
     // the object to delete and is rendered to other volunteers and by the
-    // server-side video renderer, so it must not be client-chosen.
+    // server-side video renderer, so it must not be client-chosen. A non-empty
+    // value is ignored rather than rejected because the profile form resends
+    // the current photo URL on every save.
     if (
       validatedData.profilePhotoUrl !== undefined &&
       !validatedData.profilePhotoUrl

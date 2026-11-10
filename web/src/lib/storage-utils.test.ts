@@ -40,6 +40,10 @@ describe("extractOwnBucketPath", () => {
     ["dot segments", own("../resource-hub/uploads/a.pdf")],
     ["encoded dot segments", own("%2e%2e/resource-hub/uploads/a.pdf")],
     ["mixed-case encoded dot segments", own("uploads/%2E%2e/a.jpg")],
+    ["an encoded slash hiding dot segments", own("uploads%2F..%2F..%2Fa.pdf")],
+    ["double-encoded dot segments", own("%252e%252e/resource-hub/a.pdf")],
+    ["an encoded backslash hiding dot segments", own("uploads%5C..%5Ca.pdf")],
+    ["malformed percent-encoding", own("uploads/%E0%A4%A.jpg")],
     ["the bucket root", own("")],
     ["a non-public object URL", `${SUPABASE}/storage/v1/object/${BUCKET}/uploads/a.jpg`],
     ["an OAuth provider photo", "https://lh3.googleusercontent.com/a/photo"],
@@ -53,6 +57,12 @@ describe("extractOwnBucketPath", () => {
   it("returns null when the Supabase URL is not configured", () => {
     expect(extractOwnBucketPath(own("uploads/a.jpg"), BUCKET, "")).toBeNull();
     expect(extractOwnBucketPath(own("uploads/a.jpg"), BUCKET, undefined)).toBeNull();
+  });
+
+  it("decodes the path, because storage keys are not percent-encoded", () => {
+    expect(
+      extractOwnBucketPath(own("uploads/my%20photo%C3%A9.jpg"), BUCKET, SUPABASE),
+    ).toBe("uploads/my photo\u00e9.jpg");
   });
 
   it("keeps file names that merely contain dots", () => {

@@ -78,6 +78,8 @@ export async function startImpersonation(
   });
   if (!admin || admin.role !== "ADMIN" || admin.archivedAt) return false;
 
+  // Any existing user can be a target, including other admins and archived
+  // accounts. That is what the feature has always allowed.
   const target = await prisma.user.findUnique({
     where: { id: targetUserId },
     select: IDENTITY_SELECT,
@@ -90,6 +92,7 @@ export async function startImpersonation(
     adminName: admin.name,
   };
   applyIdentity(token, target);
+  console.info(`[impersonation] start admin=${admin.id} target=${target.id}`);
   return true;
 }
 
@@ -109,7 +112,9 @@ export async function stopImpersonation(token: JWT): Promise<boolean> {
   });
   if (!admin) return false;
 
+  const targetId = token.sub;
   token.impersonating = undefined;
   applyIdentity(token, admin);
+  console.info(`[impersonation] stop admin=${admin.id} target=${targetId}`);
   return true;
 }

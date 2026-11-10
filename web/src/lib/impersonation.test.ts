@@ -106,6 +106,19 @@ describe("startImpersonation", () => {
     expect(token.sub).toBe("admin");
   });
 
+  it("allows another admin or an archived account as the target", async () => {
+    const otherAdmin = row({ id: "other", role: "ADMIN" });
+    const archived = row({ id: "gone", role: "VOLUNTEER", archivedAt: new Date() });
+    seed(admin, otherAdmin, archived);
+
+    for (const target of [otherAdmin, archived]) {
+      const token = tokenFor(admin);
+      expect(await startImpersonation(token, { targetUserId: target.id })).toBe(true);
+      expect(token.sub).toBe(target.id);
+      expect(token.impersonating?.adminId).toBe("admin");
+    }
+  });
+
   it("refuses to nest impersonation", async () => {
     seed(admin, volunteer);
     const token: JWT = {
