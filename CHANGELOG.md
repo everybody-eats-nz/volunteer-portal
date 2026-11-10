@@ -1,3 +1,9 @@
+## [0.204.1] - 2026-11-10
+
+### Changes
+- fix(auth): harden session updates, email lookups and profile photos ([#1425](https://github.com/everybody-eats-nz/volunteer-portal/pull/1425)) by @malinmalliyawadu
+
+
 ## [0.204.0] - 2026-11-09
 
 ### Changes
