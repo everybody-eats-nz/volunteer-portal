@@ -117,7 +117,10 @@ test.describe("Admin Volunteer Profile View", () => {
         .getByRole("navigation", { name: "Breadcrumb" })
         .getByRole("link", { name: "Manage Shifts" });
       await backLink.click();
-      await waitForPageLoad(page);
+      // waitForURL, not toHaveURL: in CI (`next dev`) this is often the
+      // shard's first visit to /admin/shifts, and compiling it on demand can
+      // outlast the 5s expect timeout. waitForURL uses the navigation timeout.
+      await page.waitForURL((url) => url.pathname + url.search === from);
 
       await expect(page).toHaveURL(from);
     });
