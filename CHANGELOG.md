@@ -1,3 +1,9 @@
+## [0.204.4] - 2026-11-16
+
+### Changes
+- chore(deps): bump react-image-crop from 11.0.10 to 11.1.2 in /web ([#1428](https://github.com/everybody-eats-nz/volunteer-portal/pull/1428)) by @dependabot[bot]
+
+
 ## [0.204.3] - 2026-11-16
 
 ### Changes
