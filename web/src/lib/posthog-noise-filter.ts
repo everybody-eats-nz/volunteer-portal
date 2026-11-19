@@ -1,6 +1,7 @@
 /**
- * Filters out exception events that originate from browser extensions or opaque
- * cross-origin scripts rather than our own code. These add noise to PostHog
+ * Filters out exception events that originate from browser extensions, scripts
+ * the browser injects into the page, or opaque cross-origin scripts rather than
+ * our own code. These add noise to PostHog
  * error tracking (and inflate week-over-week trends) without being actionable,
  * so they are dropped client-side before being sent.
  *
@@ -52,13 +53,85 @@ export function getExceptionMessages(event: InspectableEvent): string[] {
   return messages;
 }
 
+/** A stack frame as posthog-js records it (`$exception_list[].stacktrace.frames[]`). */
+interface StackFrame {
+  filename?: unknown;
+  lineno?: unknown;
+}
+
+const SCRIPT_FILE_EXTENSION = /\.(m|c)?jsx?$/i;
+
 /**
- * True when the event is an exception whose message matches a known-noise
- * pattern and should be dropped before sending to PostHog.
+ * True when a frame points at line 2 or later of an HTML page rather than at a
+ * script file.
+ *
+ * Next.js renders the whole document, inline scripts included, on a single
+ * line, and all of our own code is served from `/_next/` script files. So a
+ * frame on line 2+ of a page URL can only come from script the browser injected
+ * into the page itself. Chrome for iOS does this: its Closure-minified helpers
+ * (autofill, translate, etc.) run as user scripts that report the page URL as
+ * their source, and occasionally recurse until "Maximum call stack size
+ * exceeded" (issues #1397, #1195, #1235) or throw minified messages such as
+ * "Ma" / "Ba" (issues #1398, #1196). None of that is fixable from our code.
+ */
+function isInjectedDocumentFrame(frame: StackFrame): boolean {
+  if (typeof frame.lineno !== "number" || frame.lineno <= 1) return false;
+  if (typeof frame.filename !== "string") return false;
+
+  let pathname: string;
+  try {
+    const url = new URL(frame.filename);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    pathname = url.pathname;
+  } catch {
+    // PostHog sometimes stores the path alone.
+    if (!frame.filename.startsWith("/")) return false;
+    pathname = frame.filename.split(/[?#]/)[0];
+  }
+
+  if (pathname.startsWith("/_next/")) return false;
+  return !SCRIPT_FILE_EXTENSION.test(pathname);
+}
+
+function getStackFrames(exception: unknown): StackFrame[] {
+  if (!exception || typeof exception !== "object") return [];
+  const stacktrace = (exception as { stacktrace?: unknown }).stacktrace;
+  if (!stacktrace || typeof stacktrace !== "object") return [];
+  const frames = (stacktrace as { frames?: unknown }).frames;
+  if (!Array.isArray(frames)) return [];
+  return frames.filter(
+    (frame): frame is StackFrame => !!frame && typeof frame === "object"
+  );
+}
+
+/**
+ * True when the event carries a stack trace and every frame of it comes from
+ * script the browser injected into the page (see `isInjectedDocumentFrame`).
+ * Exceptions without frames are kept: there is nothing to judge them by.
+ */
+export function isBrowserInjectedException(event: InspectableEvent): boolean {
+  const list = event.properties?.$exception_list;
+  if (!Array.isArray(list)) return false;
+
+  const framedExceptions = list
+    .map(getStackFrames)
+    .filter((frames) => frames.length > 0);
+  if (framedExceptions.length === 0) return false;
+
+  return framedExceptions.every((frames) =>
+    frames.every(isInjectedDocumentFrame)
+  );
+}
+
+/**
+ * True when the event is an exception that is known noise and should be
+ * dropped before sending to PostHog: either its message matches a known-noise
+ * pattern, or its whole stack comes from browser-injected script.
  */
 export function isNoiseException(event: InspectableEvent): boolean {
   if (event.event !== "$exception") return false;
-  return getExceptionMessages(event).some((message) =>
+  const messageIsNoise = getExceptionMessages(event).some((message) =>
     NOISE_EXCEPTION_PATTERNS.some((pattern) => pattern.test(message))
   );
+  return messageIsNoise || isBrowserInjectedException(event);
 }
