@@ -109,7 +109,11 @@ describe("posthog-noise-filter", () => {
   });
 
   describe("isBrowserInjectedException", () => {
-    const PAGE = "https://volunteers.everybodyeats.nz/volunteer/wellington";
+    const ORIGIN = "https://volunteers.everybodyeats.nz";
+    const PAGE = `${ORIGIN}/volunteer/wellington`;
+
+    const isInjected = (event: InspectableEvent) =>
+      isBrowserInjectedException(event, ORIGIN);
 
     function framedEvent(
       frames: Array<Record<string, unknown>>,
@@ -137,8 +141,8 @@ describe("posthog-noise-filter", () => {
         { filename: PAGE, lineno: 230, colno: 63, function: "Ek" },
         { filename: PAGE, lineno: 230, colno: 409, function: "Gk" },
       ]);
-      expect(isBrowserInjectedException(event)).toBe(true);
-      expect(isNoiseException(event)).toBe(true);
+      expect(isInjected(event)).toBe(true);
+      expect(isNoiseException(event, ORIGIN)).toBe(true);
     });
 
     it("drops injected frames that name another page (issue #1195)", () => {
@@ -146,19 +150,19 @@ describe("posthog-noise-filter", () => {
         { filename: "https://volunteers.everybodyeats.nz/shifts", lineno: 194 },
         { filename: "https://volunteers.everybodyeats.nz/me", lineno: 224 },
       ]);
-      expect(isBrowserInjectedException(event)).toBe(true);
+      expect(isInjected(event)).toBe(true);
     });
 
     it("drops minified injected-script messages like 'Ma' (issue #1398)", () => {
       const event = framedEvent([{ filename: PAGE, lineno: 520 }], "Ma");
-      expect(isNoiseException(event)).toBe(true);
+      expect(isNoiseException(event, ORIGIN)).toBe(true);
     });
 
     it("accepts bare page paths as PostHog sometimes stores them", () => {
       const event = framedEvent([
         { filename: "/volunteer/wellington?ref=x", lineno: 194 },
       ]);
-      expect(isBrowserInjectedException(event)).toBe(true);
+      expect(isInjected(event)).toBe(true);
     });
 
     it("keeps errors from our own Next.js chunks", () => {
@@ -169,7 +173,7 @@ describe("posthog-noise-filter", () => {
           lineno: 1,
         },
       ]);
-      expect(isNoiseException(event)).toBe(false);
+      expect(isNoiseException(event, ORIGIN)).toBe(false);
     });
 
     it("keeps a stack that mixes injected frames with one of ours", () => {
@@ -181,12 +185,48 @@ describe("posthog-noise-filter", () => {
           lineno: 1,
         },
       ]);
-      expect(isBrowserInjectedException(event)).toBe(false);
+      expect(isInjected(event)).toBe(false);
     });
 
     it("keeps frames on line 1 of the page, where our inline scripts live", () => {
       const event = framedEvent([{ filename: PAGE, lineno: 1 }]);
-      expect(isBrowserInjectedException(event)).toBe(false);
+      expect(isInjected(event)).toBe(false);
+    });
+
+    it("treats line 2 of the page as injected (boundary)", () => {
+      expect(isInjected(framedEvent([{ filename: PAGE, lineno: 2 }]))).toBe(
+        true
+      );
+    });
+
+    it("keeps extension-less script paths on other origins", () => {
+      const event = framedEvent([
+        {
+          filename: "https://www.googletagmanager.com/gtag/js?id=G-123",
+          lineno: 300,
+        },
+      ]);
+      expect(isInjected(event)).toBe(false);
+    });
+
+    it("keeps a stack mixing page frames with a cross-origin frame", () => {
+      const event = framedEvent([
+        { filename: PAGE, lineno: 194 },
+        { filename: "https://www.googletagmanager.com/gtag/js", lineno: 12 },
+      ]);
+      expect(isInjected(event)).toBe(false);
+    });
+
+    it("keeps same-origin script files that carry a query string", () => {
+      const event = framedEvent([
+        { filename: `${ORIGIN}/sw.js?v=1`, lineno: 40 },
+      ]);
+      expect(isInjected(event)).toBe(false);
+    });
+
+    it("keeps absolute page URLs when the page origin is unknown", () => {
+      const event = framedEvent([{ filename: PAGE, lineno: 194 }]);
+      expect(isBrowserInjectedException(event, undefined)).toBe(false);
     });
 
     it("keeps third-party script files, even on later lines", () => {
@@ -196,28 +236,40 @@ describe("posthog-noise-filter", () => {
           lineno: 300,
         },
       ]);
-      expect(isBrowserInjectedException(event)).toBe(false);
+      expect(isInjected(event)).toBe(false);
     });
 
     it("keeps frames with non-http or missing sources", () => {
-      for (const filename of ["webpack-internal:///./src/x.ts", "<anonymous>", undefined]) {
-        expect(
-          isBrowserInjectedException(framedEvent([{ filename, lineno: 50 }]))
-        ).toBe(false);
+      const sources = ["webpack-internal:///./src/x.ts", "<anonymous>", undefined];
+      for (const filename of sources) {
+        expect(isInjected(framedEvent([{ filename, lineno: 50 }]))).toBe(false);
       }
     });
 
     it("keeps frames without a line number", () => {
-      expect(
-        isBrowserInjectedException(framedEvent([{ filename: PAGE }]))
-      ).toBe(false);
+      expect(isInjected(framedEvent([{ filename: PAGE }]))).toBe(false);
     });
 
     it("keeps exceptions with no stack frames", () => {
-      expect(isBrowserInjectedException(framedEvent([]))).toBe(false);
-      expect(
-        isBrowserInjectedException(exceptionEvent(["RangeError: boom"]))
-      ).toBe(false);
+      expect(isInjected(framedEvent([]))).toBe(false);
+      expect(isInjected(exceptionEvent(["RangeError: boom"]))).toBe(false);
+    });
+
+    it("keeps the event when a chained cause has no frames", () => {
+      const event: InspectableEvent = {
+        event: "$exception",
+        properties: {
+          $exception_list: [
+            {
+              type: "Error",
+              value: "outer",
+              stacktrace: { frames: [{ filename: PAGE, lineno: 194 }] },
+            },
+            { type: "Error", value: "cause with no stack" },
+          ],
+        },
+      };
+      expect(isInjected(event)).toBe(false);
     });
 
     it("keeps the event when a chained cause has frames of ours", () => {
@@ -246,7 +298,7 @@ describe("posthog-noise-filter", () => {
           ],
         },
       };
-      expect(isBrowserInjectedException(event)).toBe(false);
+      expect(isInjected(event)).toBe(false);
     });
   });
 
