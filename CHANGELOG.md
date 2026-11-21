@@ -1,3 +1,9 @@
+## [0.204.5] - 2026-11-21
+
+### Changes
+- fix(errors): drop Chrome iOS injected-script exceptions from PostHog ([#1431](https://github.com/everybody-eats-nz/volunteer-portal/pull/1431)) by @malinmalliyawadu
+
+
 ## [0.204.4] - 2026-11-16
 
 ### Changes
