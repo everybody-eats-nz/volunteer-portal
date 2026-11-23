@@ -33,11 +33,9 @@ import {
   Sparkles,
   ChevronDown,
   Pencil,
-  Ticket,
   Clock,
   Info,
   Plus,
-  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -46,18 +44,18 @@ import type { NightlyTarget } from "@/lib/budget-calculations";
 import { NightlyTargetStrip } from "@/components/nightly-target-strip";
 import {
   DAY_REPORT_TYPE_META,
-  eventProfit,
+  describeActivities,
   formatDuration,
   gstPortion,
+  isActivityKind,
   isDayReportType,
   openMinutes,
-  summariseEventExpenses,
-  summariseEventIncome,
   profitLabel,
   type DayReportType,
   type EventExpenseCategory,
   type EventIncomeCategory,
   type EventIncomeSource,
+  type FundraisingActivityKind,
 } from "@/lib/day-reports";
 import {
   CountField,
@@ -69,16 +67,19 @@ import {
 } from "@/components/day-report/fields";
 import { ReportTypePicker } from "@/components/day-report/report-type-picker";
 import {
-  EventExpenseEditor,
-  EventIncomeEditor,
-  SectionTotal,
   EventProfitStatement,
   isBlankLineDraft,
   newExpenseDraft,
   newIncomeDraft,
-  type ExpenseDraft,
-  type IncomeDraft,
 } from "@/components/day-report/event-lines-editor";
+import {
+  ActivityList,
+  activityTitle,
+  isBlankActivityDraft,
+  newActivityDraft,
+  summariseActivityDrafts,
+  type ActivityDraft,
+} from "@/components/day-report/activity-editor";
 
 interface MealsServedInputProps {
   date: string; // ISO date string (YYYY-MM-DD)
@@ -86,7 +87,8 @@ interface MealsServedInputProps {
   /**
    * Whether any shifts run this day. Without shifts the report stays tucked
    * behind a one-line prompt (unless one is already recorded), since an empty
-   * day is usually not a service; events and cafe days can still be recorded.
+   * day is usually not a service; events, catering and cafe days can still be
+   * recorded.
    */
   hasShifts?: boolean;
 }
@@ -106,7 +108,6 @@ type StatKey =
   | "stripe"
   | "suggestedValue"
   | "protein"
-  | "eventName"
   | "opensAt"
   | "closesAt";
 
@@ -126,15 +127,15 @@ const EMPTY_FORM: FormState = {
   stripe: "",
   suggestedValue: "",
   protein: "",
-  eventName: "",
   opensAt: "",
   closesAt: "",
 };
 
 const ALL_KEYS = Object.keys(EMPTY_FORM) as StatKey[];
 
-// What each report asks for, which drives its "Logged x/y" progress. Event
-// income and expense lines count as one more item each (see `filledCount`).
+// What each report asks for, which drives its "Logged x/y" progress. On an
+// events & catering day, having activities, income and expenses count as one
+// more item each (see `filledCount`).
 const REPORT_KEYS: Record<DayReportType, StatKey[]> = {
   SERVICE_NIGHT: [
     "mealsServed",
@@ -151,7 +152,7 @@ const REPORT_KEYS: Record<DayReportType, StatKey[]> = {
     "suggestedValue",
     "protein",
   ],
-  EVENT: ["eventName", "mealsServed", "notes"],
+  EVENT: ["notes"],
   CAFE: ["opensAt", "closesAt", "mealsServed", "cash", "eftpos", "notes"],
 };
 
@@ -185,11 +186,12 @@ const ACCENT: Record<
   },
 };
 
-// What a save clears when the day changes type.
-const CLEARED_ON_SWITCH: Record<DayReportType, string> = {
+// What a save clears when the day changes type. An events & catering day has
+// nothing of its own: its activities belong to the day and stay.
+const CLEARED_ON_SWITCH: Record<DayReportType, string | null> = {
   SERVICE_NIGHT: "its koha and service stats",
-  EVENT: "its event name, income and expenses",
-  CAFE: "its cafe hours and takings",
+  EVENT: null,
+  CAFE: "its cafe hours, customers and takings",
 };
 
 const NZD = new Intl.NumberFormat("en-NZ", {
@@ -217,7 +219,7 @@ const num = (v: string | undefined | null): number | null => {
 };
 const article = (type: DayReportType) =>
   type === "EVENT"
-    ? "an event"
+    ? "an events and catering day"
     : type === "CAFE"
       ? "a cafe day"
       : "a service night";
@@ -239,10 +241,29 @@ interface ApiExpenseLine {
   estimated?: boolean;
 }
 
+interface ApiActivity {
+  kind: FundraisingActivityKind;
+  name: string | null;
+  pax: number | null;
+  income: ApiIncomeLine[];
+  expenses: ApiExpenseLine[];
+}
+
 // Saved amounts come back as numbers; the form edits them as "12.50".
 const toDraftFields = <T extends { description: string | null; amount: number }>(
   line: T
 ) => ({ ...line, description: line.description ?? "", amount: line.amount.toFixed(2) });
+
+const toActivityDraft = (activity: ApiActivity): ActivityDraft =>
+  newActivityDraft({
+    kind: isActivityKind(activity.kind) ? activity.kind : "EVENT",
+    name: activity.name ?? "",
+    pax: toFormString(activity.pax),
+    income: (activity.income ?? []).map((l) => newIncomeDraft(toDraftFields(l))),
+    expenses: (activity.expenses ?? []).map((l) =>
+      newExpenseDraft(toDraftFields(l))
+    ),
+  });
 
 export function MealsServedInput({
   date,
@@ -253,23 +274,15 @@ export function MealsServedInput({
   const [reportType, setReportType] = useState<DayReportType>("SERVICE_NIGHT");
   // The type as last saved, so switching can warn what a save would clear.
   const [savedType, setSavedType] = useState<DayReportType>("SERVICE_NIGHT");
-  const [income, setIncome] = useState<IncomeDraft[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseDraft[]>([]);
+  // The day's events and catering gigs. They belong to the day, not its
+  // type, so they stay put when the type changes.
+  const [activities, setActivities] = useState<ActivityDraft[]>([]);
   // Each type's own figures, parked while another type is selected, so
   // flicking between types never moves cafe takings into koha (both use the
   // cash and EFTPOS columns) and switching back restores what was typed.
-  const parked = useRef<
-    Partial<
-      Record<
-        DayReportType,
-        {
-          fields: Partial<FormState>;
-          income: IncomeDraft[];
-          expenses: ExpenseDraft[];
-        }
-      >
-    >
-  >({});
+  const parked = useRef<Partial<Record<DayReportType, Partial<FormState>>>>(
+    {}
+  );
   // On a day without shifts, the report opens only when asked for.
   const [started, setStarted] = useState(false);
   const [dayTheme, setDayTheme] = useState<string | null>(null);
@@ -348,22 +361,19 @@ export function MealsServedInput({
         const type: DayReportType = isDayReportType(data.reportType)
           ? data.reportType
           : "SERVICE_NIGHT";
-        const incomeLines: ApiIncomeLine[] = Array.isArray(data.income)
-          ? data.income
+        const savedActivities: ApiActivity[] = Array.isArray(data.activities)
+          ? data.activities
           : [];
-        const expenseLines: ApiExpenseLine[] = Array.isArray(data.expenses)
-          ? data.expenses
-          : [];
-        // An event or cafe day is a record even before any figures go in.
-        if (type !== "SERVICE_NIGHT") hasRecord = true;
+        // An events or cafe day is a record even before any figures go in,
+        // and so is a day with an activity on it.
+        if (type !== "SERVICE_NIGHT" || savedActivities.length > 0) {
+          hasRecord = true;
+        }
 
         setForm(next);
         setReportType(type);
         setSavedType(type);
-        setIncome(incomeLines.map((l) => newIncomeDraft(toDraftFields(l))));
-        setExpenses(
-          expenseLines.map((l) => newExpenseDraft(toDraftFields(l)))
-        );
+        setActivities(savedActivities.map(toActivityDraft));
         setDayTheme(typeof data.dayTheme === "string" ? data.dayTheme : null);
         setHasExistingRecord(hasRecord);
         setNewVolunteers(
@@ -395,25 +405,20 @@ export function MealsServedInput({
   const changeType = (type: DayReportType) => {
     if (type === reportType) return;
     // Park the outgoing type's own figures, and bring back (or blank) the
-    // incoming type's. Headcount and notes are shared and stay put.
-    const shared = new Set<StatKey>(["mealsServed", "notes"]);
+    // incoming type's. Notes are shared and stay put, and so is the headcount
+    // between a service night and a cafe day. Activities belong to the day.
     const own = (t: DayReportType) =>
-      REPORT_KEYS[t].filter((k) => !shared.has(k));
-    parked.current[reportType] = {
-      fields: Object.fromEntries(own(reportType).map((k) => [k, form[k]])),
-      income,
-      expenses,
-    };
+      REPORT_KEYS[t].filter((k) => k !== "notes");
+    parked.current[reportType] = Object.fromEntries(
+      own(reportType).map((k) => [k, form[k]])
+    );
     const restored = parked.current[type];
     const next: FormState = { ...form };
-    for (const k of own(type)) next[k] = restored?.fields[k] ?? "";
-    // The day's theme is usually the event's name ("Rotary fundraiser dinner").
-    if (type === "EVENT" && next.eventName.trim() === "" && dayTheme) {
-      next.eventName = dayTheme;
+    for (const k of own(type)) {
+      if (k === "mealsServed" && reportType !== "EVENT") continue;
+      next[k] = restored?.[k] ?? "";
     }
     setForm(next);
-    setIncome(restored?.income ?? []);
-    setExpenses(restored?.expenses ?? []);
     setReportType(type);
     setOpen(true);
     if (type === "SERVICE_NIGHT" && next.weather === "") {
@@ -433,30 +438,29 @@ export function MealsServedInput({
       }),
     [form.mealsServed, form.nonPayingCount, form.cash, form.eftpos, form.stripe]
   );
-  const incomeSummary = useMemo(
-    () =>
-      summariseEventIncome(
-        income
-          .filter((line) => num(line.amount) !== null)
-          .map((line) => ({ ...line, amount: num(line.amount) ?? 0 }))
-      ),
-    [income]
+  // The day's events and catering, all together.
+  const activityTotals = useMemo(
+    () => summariseActivityDrafts(activities),
+    [activities]
   );
-  const expenseSummary = useMemo(
-    () =>
-      summariseEventExpenses(
-        expenses
-          .filter((line) => num(line.amount) !== null)
-          .map((line) => ({ ...line, amount: num(line.amount) ?? 0 }))
-      ),
-    [expenses]
-  );
-  const profit = eventProfit(incomeSummary, expenseSummary);
+  const {
+    income: incomeSummary,
+    expenses: expenseSummary,
+    profit,
+  } = activityTotals;
   // Estimates count in the totals like actuals; every total that includes
   // one says so.
   const incomeEstimated = incomeSummary.estimatedLines > 0;
   const expensesEstimated = expenseSummary.estimatedLines > 0;
-  const profitEstimated = incomeEstimated || expensesEstimated;
+  const profitEstimated = activityTotals.estimated;
+  const activityPax = activities.reduce(
+    (sum, a) => sum + (num(a.pax) ?? 0),
+    0
+  );
+  const activitiesWithPax = activities.some((a) => num(a.pax) !== null);
+  const activityKinds = activities.map((a) => a.kind);
+  const linesEntered = (pick: (a: ActivityDraft) => { amount: string; description: string }[]) =>
+    activities.some((a) => pick(a).some((line) => !isBlankLineDraft(line)));
   const eftposTotal = num(form.eftpos);
   const customers = num(form.mealsServed);
   const cafeSales =
@@ -473,22 +477,27 @@ export function MealsServedInput({
 
   const reportKeys = REPORT_KEYS[reportType];
   const isEvent = reportType === "EVENT";
-  const incomeEntered =
-    isEvent && income.some((line) => !isBlankLineDraft(line));
-  const expensesEntered =
-    isEvent && expenses.some((line) => !isBlankLineDraft(line));
+  const hasActivities = activities.some((a) => !isBlankActivityDraft(a));
   const filledCount =
     reportKeys.filter((k) => form[k].trim() !== "").length +
-    (incomeEntered ? 1 : 0) +
-    (expensesEntered ? 1 : 0);
-  const totalCount = reportKeys.length + (isEvent ? 2 : 0);
+    (isEvent
+      ? (hasActivities ? 1 : 0) +
+        (linesEntered((a) => a.income) ? 1 : 0) +
+        (linesEntered((a) => a.expenses) ? 1 : 0)
+      : 0);
+  const totalCount = reportKeys.length + (isEvent ? 3 : 0);
   const completionPct = Math.round((filledCount / totalCount) * 100);
-  // Marking a day as an event or cafe is worth saving on its own.
   const switching = hasExistingRecord && reportType !== savedType;
-  // Marking a day as an event or cafe is worth saving on its own, and so is
-  // switching a recorded day back to a (still blank) service night.
+  const clearedOnSwitch = CLEARED_ON_SWITCH[savedType];
+  // Marking a day as an events or cafe day is worth saving on its own, and
+  // so is any activity, and any change to a day already recorded (say,
+  // removing its only catering gig, or switching it back to a still blank
+  // service night).
   const canSave =
-    reportType !== "SERVICE_NIGHT" || filledCount > 0 || switching;
+    reportType !== "SERVICE_NIGHT" ||
+    filledCount > 0 ||
+    hasActivities ||
+    hasExistingRecord;
   const accent = ACCENT[reportType];
   const meta = DAY_REPORT_TYPE_META[reportType];
 
@@ -553,20 +562,26 @@ export function MealsServedInput({
       toast.error("Enter at least one stat before saving");
       return;
     }
-    const incomeLines = income.filter((line) => !isBlankLineDraft(line));
-    const expenseLines = expenses.filter((line) => !isBlankLineDraft(line));
-    const missingAmount = (lines: { amount: string }[]) =>
-      isEvent && lines.some((line) => num(line.amount) === null);
-    for (const [kind, lines] of [
-      ["income", incomeLines],
-      ["expense", expenseLines],
-    ] as const) {
-      if (missingAmount(lines)) {
-        setOpen(true);
-        toast.error(`Enter an amount for every ${kind} line`, {
-          description: "Or remove the lines you don't need.",
-        });
-        return;
+    // Lines and activities with nothing typed in them are skipped.
+    const toSave = activities
+      .filter((a) => !isBlankActivityDraft(a))
+      .map((a) => ({
+        ...a,
+        income: a.income.filter((line) => !isBlankLineDraft(line)),
+        expenses: a.expenses.filter((line) => !isBlankLineDraft(line)),
+      }));
+    for (const activity of toSave) {
+      for (const [kind, lines] of [
+        ["income", activity.income],
+        ["expense", activity.expenses],
+      ] as const) {
+        if (lines.some((line) => num(line.amount) === null)) {
+          setOpen(true);
+          toast.error(`Enter an amount for every ${kind} line`, {
+            description: `${activityTitle(activity)} has one without. Or remove the lines you don't need.`,
+          });
+          return;
+        }
       }
     }
     if (reportType === "CAFE" && hoursInvalid) {
@@ -587,25 +602,26 @@ export function MealsServedInput({
             ? null
             : form[key].trim();
       });
-      payload.income = isEvent
-        ? incomeLines.map((line) => ({
-            source: line.source,
-            category: line.category,
-            description: line.description.trim() || null,
-            amount: line.amount.trim(),
-            gstIncluded: line.gstIncluded,
-            estimated: line.estimated,
-          }))
-        : [];
-      payload.expenses = isEvent
-        ? expenseLines.map((line) => ({
-            category: line.category,
-            description: line.description.trim() || null,
-            amount: line.amount.trim(),
-            gstIncluded: line.gstIncluded,
-            estimated: line.estimated,
-          }))
-        : [];
+      payload.activities = toSave.map((activity) => ({
+        kind: activity.kind,
+        name: activity.name.trim() || null,
+        pax: activity.pax.trim() || null,
+        income: activity.income.map((line) => ({
+          source: line.source,
+          category: line.category,
+          description: line.description.trim() || null,
+          amount: line.amount.trim(),
+          gstIncluded: line.gstIncluded,
+          estimated: line.estimated,
+        })),
+        expenses: activity.expenses.map((line) => ({
+          category: line.category,
+          description: line.description.trim() || null,
+          amount: line.amount.trim(),
+          gstIncluded: line.gstIncluded,
+          estimated: line.estimated,
+        })),
+      }));
 
       const response = await fetch("/api/admin/meals-served", {
         method: "POST",
@@ -618,10 +634,9 @@ export function MealsServedInput({
         setSavedType(reportType);
         // Saving cleared every other type's figures on the server.
         parked.current = {};
-        // The server keeps only this report's fields; mirror that so the
-        // form never shows figures that weren't saved.
-        setIncome(isEvent ? incomeLines : []);
-        setExpenses(isEvent ? expenseLines : []);
+        // Mirror what the server kept, so the form never shows lines that
+        // weren't saved.
+        setActivities(toSave);
         toast.success(`${meta.reportTitle} saved`);
       } else {
         const error = await response.json();
@@ -654,7 +669,7 @@ export function MealsServedInput({
           data-testid="day-report-start"
         >
           <Plus className="h-4 w-4" />
-          Record an event or cafe day
+          Record events, catering or a cafe day
         </Button>
       </div>
     );
@@ -763,7 +778,7 @@ export function MealsServedInput({
             <ReportTypePicker value={reportType} onChange={changeType} />
           </div>
 
-          {switching && (
+          {switching && clearedOnSwitch && (
             <p
               role="status"
               className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200"
@@ -772,7 +787,8 @@ export function MealsServedInput({
               <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>
                 Saving records this day as {article(reportType)} and clears{" "}
-                {CLEARED_ON_SWITCH[savedType]}.
+                {clearedOnSwitch}.
+                {activities.length > 0 && " Its events and catering stay."}
               </span>
             </p>
           )}
@@ -831,7 +847,7 @@ export function MealsServedInput({
                 <HeroStat
                   featured
                   tone="violet"
-                  label="Event income"
+                  label="Income"
                   value={NZD.format(incomeSummary.total)}
                   hint={
                     incomeEstimated
@@ -857,13 +873,14 @@ export function MealsServedInput({
                 <HeroStat
                   label="Pax"
                   value={
-                    customers === null ? "—" : customers.toLocaleString("en-NZ")
+                    activitiesWithPax ? activityPax.toLocaleString("en-NZ") : "—"
                   }
                   hint={
-                    customers && incomeSummary.total > 0
-                      ? `${NZD.format(incomeSummary.total / customers)} per head`
-                      : undefined
+                    activities.length > 0
+                      ? describeActivities(activityKinds)
+                      : "No events or catering yet"
                   }
+                  testId="event-hero-pax"
                 />
               </dl>
             )}
@@ -911,6 +928,20 @@ export function MealsServedInput({
                 />
               </dl>
             )}
+            {/* A service night or cafe day's catering and events, at a glance */}
+            {!isEvent && hasActivities && (
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="day-activities-summary"
+              >
+                <span className="font-medium text-foreground">
+                  Also {describeActivities(activityKinds)}:
+                </span>{" "}
+                {NZD.format(incomeSummary.total)} income,{" "}
+                {profitLabel(profit.profit, profitEstimated).toLowerCase()}{" "}
+                {NZD.format(profit.profit)}. Not koha.
+              </p>
+            )}
           </div>
         </header>
 
@@ -950,87 +981,27 @@ export function MealsServedInput({
 
             {reportType === "EVENT" && (
               <>
-                <SectionCard icon={Ticket} title="The event" tone="violet">
-                  <div className="sm:col-span-2">
-                    <Field
-                      htmlFor="eventName"
-                      label="Event name"
-                      action={
-                        dayTheme && form.eventName.trim() !== dayTheme ? (
-                          <button
-                            type="button"
-                            onClick={() => set("eventName", dayTheme)}
-                            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-violet-700 hover:bg-violet-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:text-violet-300 dark:hover:bg-violet-900/40"
-                          >
-                            Use day theme
-                          </button>
-                        ) : undefined
-                      }
-                    >
-                      <Input
-                        id="eventName"
-                        value={form.eventName}
-                        maxLength={120}
-                        onChange={(e) => set("eventName", e.target.value)}
-                        placeholder="e.g. Matariki fundraiser dinner"
-                        className="h-11 text-base font-medium"
-                      />
-                    </Field>
-                  </div>
-                  <CountField
-                    id="mealsServed"
-                    label="Guests (pax)"
-                    value={form.mealsServed}
-                    onChange={(v) => set("mealsServed", v)}
-                    hint="Counts towards people served."
-                  />
+                <ActivityList
+                  activities={activities}
+                  onChange={setActivities}
+                  dayTheme={dayTheme}
+                  primary
+                />
+                {/* With more than one, the day's bottom line across them all */}
+                {activities.length > 1 &&
+                  (incomeSummary.total > 0 || expenseSummary.total > 0) && (
+                    <EventProfitStatement
+                      income={incomeSummary}
+                      expenses={expenseSummary}
+                      profit={profit}
+                      estimated={profitEstimated}
+                      noun="day"
+                      heading="Day total"
+                    />
+                  )}
+                <div className="max-w-xs">
                   <NewVolunteersField value={newVolunteers} />
-                </SectionCard>
-
-                <SectionCard
-                  icon={HandCoins}
-                  title="Income"
-                  tone="violet"
-                  action={
-                    <SectionTotal
-                      total={incomeSummary.total}
-                      estimated={incomeEstimated}
-                    />
-                  }
-                >
-                  <EventIncomeEditor
-                    lines={income}
-                    onChange={setIncome}
-                    summary={incomeSummary}
-                  />
-                </SectionCard>
-
-                <SectionCard
-                  icon={Receipt}
-                  title="Expenses"
-                  tone="violet"
-                  action={
-                    <SectionTotal
-                      total={expenseSummary.total}
-                      estimated={expensesEstimated}
-                    />
-                  }
-                >
-                  <EventExpenseEditor
-                    lines={expenses}
-                    onChange={setExpenses}
-                    summary={expenseSummary}
-                  />
-                </SectionCard>
-
-                {(income.length > 0 || expenses.length > 0) && (
-                  <EventProfitStatement
-                    income={incomeSummary}
-                    expenses={expenseSummary}
-                    profit={profit}
-                    estimated={profitEstimated}
-                  />
-                )}
+                </div>
               </>
             )}
 
@@ -1127,6 +1098,15 @@ export function MealsServedInput({
                   </p>
                 </SectionCard>
               </>
+            )}
+
+            {!isEvent && (
+              <ActivityList
+                activities={activities}
+                onChange={setActivities}
+                dayTheme={dayTheme}
+                primary={false}
+              />
             )}
           </div>
         </CollapsibleContent>

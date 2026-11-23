@@ -425,10 +425,10 @@ const SHARED_MEAL_FIELDS = ["mealsServed", "notes", "newVolunteers"] as const;
 
 type MealRow = { reportType: DayReportType } & Record<string, unknown>;
 
-/** How many itemised event lines each side of a collision has. */
-export interface MealLineCounts {
-  income: { into: number; from: number };
-  expenses: { into: number; from: number };
+/** How many events and catering gigs each side of a collision has. */
+export interface MealActivityCounts {
+  into: number;
+  from: number;
 }
 
 /**
@@ -436,16 +436,16 @@ export interface MealLineCounts {
  * surviving one. Blank fields are back-filled from the duplicate, but only
  * within one report type: a cafe day's takings must never land on a service
  * night as koha. When the types differ, a survivor with nothing of its own
- * takes the duplicate's whole report (type, figures, event income and
- * expenses); otherwise the survivor's report wins and only shared fields are
- * filled. Income and expense lines are each moved only onto a survivor with
- * none of that kind, so nothing is ever counted twice.
+ * takes the duplicate's whole report (type and figures); otherwise the
+ * survivor's report wins and only shared fields are filled. The duplicate's
+ * events and catering gigs move only onto a survivor with none, so a day
+ * recorded at both locations is never counted twice.
  */
 export function planMealCollision(
   into: MealRow,
   from: MealRow,
-  lines: MealLineCounts
-): { data: Record<string, unknown>; move: { income: boolean; expenses: boolean } } {
+  activities: MealActivityCounts
+): { data: Record<string, unknown>; moveActivities: boolean } {
   const data: Record<string, unknown> = {};
   const fill = (fields: readonly string[]) => {
     for (const field of fields) {
@@ -455,38 +455,27 @@ export function planMealCollision(
     }
   };
   fill(SHARED_MEAL_FIELDS);
-  const nothingMoves = { income: false, expenses: false };
+  const moveActivities = activities.into === 0 && activities.from > 0;
 
   if (into.reportType === from.reportType) {
     fill(REPORT_FIELDS[into.reportType]);
-    if (into.reportType !== "EVENT") return { data, move: nothingMoves };
-    return {
-      data,
-      move: {
-        income: lines.income.into === 0 && lines.income.from > 0,
-        expenses: lines.expenses.into === 0 && lines.expenses.from > 0,
-      },
-    };
+  } else {
+    const intoBlank =
+      activities.into === 0 &&
+      REPORT_FIELDS[into.reportType].every((field) => into[field] === null);
+    if (intoBlank) {
+      data.reportType = from.reportType;
+      for (const field of REPORT_FIELDS[from.reportType]) {
+        data[field] = from[field];
+      }
+    }
   }
-
-  const intoBlank =
-    lines.income.into === 0 &&
-    lines.expenses.into === 0 &&
-    REPORT_FIELDS[into.reportType].every((field) => into[field] === null);
-  if (!intoBlank) return { data, move: nothingMoves };
-
-  data.reportType = from.reportType;
-  for (const field of REPORT_FIELDS[from.reportType]) {
-    data[field] = from[field];
+  // An events day's guests are its activities' pax, never its own count.
+  if ((data.reportType ?? into.reportType) === "EVENT") {
+    delete data.mealsServed;
+    if (into.mealsServed !== null) data.mealsServed = null;
   }
-  const isEvent = from.reportType === "EVENT";
-  return {
-    data,
-    move: {
-      income: isEvent && lines.income.from > 0,
-      expenses: isEvent && lines.expenses.from > 0,
-    },
-  };
+  return { data, moveActivities };
 }
 
 /**
@@ -541,29 +530,20 @@ export async function applyLocationMerge(
     for (const fromMeal of work.mealCollisions) {
       const intoMeal = intoMealsByDate.get(fromMeal.date.toISOString());
       if (intoMeal) {
-        const [intoIncome, fromIncome, intoExpenses, fromExpenses] =
-          await Promise.all([
-            tx.eventIncome.count({ where: { reportId: intoMeal.id } }),
-            tx.eventIncome.count({ where: { reportId: fromMeal.id } }),
-            tx.eventExpense.count({ where: { reportId: intoMeal.id } }),
-            tx.eventExpense.count({ where: { reportId: fromMeal.id } }),
-          ]);
-        const { data, move } = planMealCollision(intoMeal, fromMeal, {
-          income: { into: intoIncome, from: fromIncome },
-          expenses: { into: intoExpenses, from: fromExpenses },
+        const [intoActivities, fromActivities] = await Promise.all([
+          tx.fundraisingActivity.count({ where: { reportId: intoMeal.id } }),
+          tx.fundraisingActivity.count({ where: { reportId: fromMeal.id } }),
+        ]);
+        const { data, moveActivities } = planMealCollision(intoMeal, fromMeal, {
+          into: intoActivities,
+          from: fromActivities,
         });
         if (Object.keys(data).length > 0) {
           await tx.mealsServed.update({ where: { id: intoMeal.id }, data });
         }
-        // Event lines would cascade away with the duplicate.
-        if (move.income) {
-          await tx.eventIncome.updateMany({
-            where: { reportId: fromMeal.id },
-            data: { reportId: intoMeal.id },
-          });
-        }
-        if (move.expenses) {
-          await tx.eventExpense.updateMany({
+        // Activities (and their lines) would cascade away with the duplicate.
+        if (moveActivities) {
+          await tx.fundraisingActivity.updateMany({
             where: { reportId: fromMeal.id },
             data: { reportId: intoMeal.id },
           });

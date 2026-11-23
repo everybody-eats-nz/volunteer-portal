@@ -1,10 +1,11 @@
 /**
- * The Events & Cafe report: fundraiser income, costs and profit, and cafe
- * takings over a period. Pure aggregation over already-fetched day reports, shared by the
+ * The Events & Cafe report: the income, costs and profit of every event and
+ * catering gig, and cafe takings, over a period. Pure aggregation over already-fetched day reports, shared by the
  * page and its tests. Neither is koha, so none of this touches koha totals.
  */
 
 import {
+  FUNDRAISING_ACTIVITY_KINDS,
   EVENT_EXPENSE_CATEGORIES,
   EVENT_INCOME_CATEGORIES,
   EVENT_INCOME_SOURCES,
@@ -18,12 +19,17 @@ import {
   type EventIncomeCategory,
   type EventIncomeLine,
   type EventIncomeSource,
+  type FundraisingActivityKind,
 } from "@/lib/day-reports";
 
-export interface EventDayInput {
+/** One event or catering gig. A day can have several. */
+export interface ActivityInput {
   date: string; // NZ day, "yyyy-MM-dd"
   location: string;
-  eventName: string | null;
+  /** Order within the day. */
+  position: number;
+  kind: FundraisingActivityKind;
+  name: string | null;
   pax: number | null;
   income: EventIncomeLine[];
   expenses: EventExpenseLine[];
@@ -42,7 +48,9 @@ export interface CafeDayInput {
 export interface EventRow {
   date: string;
   location: string;
-  eventName: string | null;
+  position: number;
+  kind: FundraisingActivityKind;
+  name: string | null;
   pax: number | null;
   total: number;
   totalExGst: number;
@@ -59,7 +67,9 @@ export interface EventRow {
 export interface EventsReport {
   rows: EventRow[]; // newest first
   totals: {
-    events: number;
+    /** Events and catering gigs together. */
+    activities: number;
+    byKind: Record<FundraisingActivityKind, number>;
     pax: number;
     total: number;
     gst: number;
@@ -71,8 +81,8 @@ export interface EventsReport {
     expensesByCategory: Record<EventExpenseCategory, number>;
     profit: number;
     profitExGst: number;
-    /** Events with an estimate in their income or expenses. */
-    eventsWithEstimates: number;
+    /** Activities with an estimate in their income or expenses. */
+    activitiesWithEstimates: number;
     incomeEstimates: number;
     expenseEstimates: number;
   };
@@ -117,17 +127,21 @@ const newestFirst = <T extends { date: string; location: string }>(
   b: T
 ) => b.date.localeCompare(a.date) || a.location.localeCompare(b.location);
 
-export function buildEventsReport(days: EventDayInput[]): EventsReport {
-  const all = summariseEventIncome(days.flatMap((d) => d.income));
-  const allExpenses = summariseEventExpenses(days.flatMap((d) => d.expenses));
-  const rows = days
+export function buildEventsReport(activities: ActivityInput[]): EventsReport {
+  const all = summariseEventIncome(activities.flatMap((d) => d.income));
+  const allExpenses = summariseEventExpenses(
+    activities.flatMap((d) => d.expenses)
+  );
+  const rows = activities
     .map((d) => {
       const income = summariseEventIncome(d.income);
       const expenses = summariseEventExpenses(d.expenses);
       return {
         date: d.date,
         location: d.location,
-        eventName: d.eventName,
+        position: d.position,
+        kind: d.kind,
+        name: d.name,
         pax: d.pax,
         total: income.total,
         totalExGst: income.totalExGst,
@@ -139,13 +153,22 @@ export function buildEventsReport(days: EventDayInput[]): EventsReport {
         ...eventProfit(income, expenses),
       };
     })
-    .sort(newestFirst);
+    // A day's activities stay in the order they were entered.
+    .sort((a, b) => newestFirst(a, b) || a.position - b.position);
+
+  const byKind = Object.fromEntries(
+    FUNDRAISING_ACTIVITY_KINDS.map((kind) => [
+      kind,
+      activities.filter((a) => a.kind === kind).length,
+    ])
+  ) as Record<FundraisingActivityKind, number>;
 
   return {
     rows,
     totals: {
-      events: days.length,
-      pax: days.reduce((sum, d) => sum + (d.pax ?? 0), 0),
+      activities: activities.length,
+      byKind,
+      pax: activities.reduce((sum, d) => sum + (d.pax ?? 0), 0),
       total: all.total,
       gst: all.gst,
       totalExGst: all.totalExGst,
@@ -155,7 +178,7 @@ export function buildEventsReport(days: EventDayInput[]): EventsReport {
       expensesExGst: allExpenses.totalExGst,
       expensesByCategory: allExpenses.byCategory,
       ...eventProfit(all, allExpenses),
-      eventsWithEstimates: rows.filter(
+      activitiesWithEstimates: rows.filter(
         (r) => r.incomeEstimates + r.expenseEstimates > 0
       ).length,
       incomeEstimates: all.estimatedLines,
@@ -228,13 +251,14 @@ export function buildCafeReport(days: CafeDayInput[]): CafeReport {
 }
 
 /**
- * How many events in a period include estimates: "Includes estimates",
- * "All 3 events include estimates", "1 of 4 events includes estimates".
+ * How many events and catering gigs in a period include estimates:
+ * "Includes estimates", "All 3 include estimates", "1 of 4 includes
+ * estimates".
  */
-export function estimatesNote(withEstimates: number, events: number): string {
-  if (events === 1) return "Includes estimates";
-  if (withEstimates === events) return `All ${events} events include estimates`;
-  return `${withEstimates} of ${events} events ${
+export function estimatesNote(withEstimates: number, total: number): string {
+  if (total === 1) return "Includes estimates";
+  if (withEstimates === total) return `All ${total} include estimates`;
+  return `${withEstimates} of ${total} ${
     withEstimates === 1 ? "includes" : "include"
   } estimates`;
 }

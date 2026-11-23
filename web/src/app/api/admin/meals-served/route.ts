@@ -11,37 +11,46 @@ import { REPORT_FIELDS, ALL_REPORT_FIELDS } from "@/lib/day-reports";
 import { dayKeyToDbDate, isDayKey } from "@/lib/shift-day-themes";
 import type { Prisma } from "@/generated/client";
 
-const withLines = {
+const withActivities = {
   include: {
-    income: { orderBy: { position: "asc" } },
-    expenses: { orderBy: { position: "asc" } },
+    activities: {
+      orderBy: { position: "asc" },
+      include: {
+        income: { orderBy: { position: "asc" } },
+        expenses: { orderBy: { position: "asc" } },
+      },
+    },
   },
 } as const satisfies Prisma.MealsServedDefaultArgs;
 
 // Decimal columns come back as Prisma.Decimal — serialize to plain numbers for JSON.
-type MealsServedRecord = Prisma.MealsServedGetPayload<typeof withLines>;
+type MealsServedRecord = Prisma.MealsServedGetPayload<typeof withActivities>;
 
 function serializeStats(record: MealsServedRecord) {
   const toNumber = (v: Prisma.Decimal | null) => (v === null ? null : Number(v));
   return {
     reportType: record.reportType,
-    eventName: record.eventName,
     opensAt: record.opensAt,
     closesAt: record.closesAt,
-    income: record.income.map((line) => ({
-      source: line.source,
-      category: line.category,
-      description: line.description,
-      amount: Number(line.amount),
-      gstIncluded: line.gstIncluded,
-      estimated: line.estimated,
-    })),
-    expenses: record.expenses.map((line) => ({
-      category: line.category,
-      description: line.description,
-      amount: Number(line.amount),
-      gstIncluded: line.gstIncluded,
-      estimated: line.estimated,
+    activities: record.activities.map((activity) => ({
+      kind: activity.kind,
+      name: activity.name,
+      pax: activity.pax,
+      income: activity.income.map((line) => ({
+        source: line.source,
+        category: line.category,
+        description: line.description,
+        amount: Number(line.amount),
+        gstIncluded: line.gstIncluded,
+        estimated: line.estimated,
+      })),
+      expenses: activity.expenses.map((line) => ({
+        category: line.category,
+        description: line.description,
+        amount: Number(line.amount),
+        gstIncluded: line.gstIncluded,
+        estimated: line.estimated,
+      })),
     })),
     mealsServed: record.mealsServed,
     notes: record.notes,
@@ -100,14 +109,14 @@ export async function GET(request: NextRequest) {
             location,
           },
         },
-        ...withLines,
+        ...withActivities,
       }),
       prisma.location.findUnique({
         where: { name: location },
         include: { budgets: { where: { year: budgetYearOf(startOfDayUTC) } } },
       }),
       // The day's theme ("Rotary Club fundraiser dinner") is the natural
-      // name for an event, so the form can offer it.
+      // name for an event that day, so the form can offer it.
       isDayKey(date)
         ? prisma.shiftDayTheme.findUnique({
             where: {
@@ -146,8 +155,7 @@ export async function GET(request: NextRequest) {
     if (!mealsRecord) {
       return NextResponse.json({
         reportType: "SERVICE_NIGHT",
-        income: [],
-        expenses: [],
+        activities: [],
         mealsServed: null,
         defaultMealsServed: locationConfig?.defaultMealsServed || 60,
         notes: null,
@@ -175,7 +183,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST/PUT - Update or create the day report (service night, event or cafe)
+// POST/PUT - Update or create the day report (service night, events &
+// catering, or cafe) and its fundraising activities
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -196,8 +205,7 @@ export async function POST(request: NextRequest) {
     const {
       date,
       location,
-      income,
-      expenses,
+      activities,
       reportType: requestedType,
       ...fields
     } = parsed.data;
@@ -216,25 +224,24 @@ export async function POST(request: NextRequest) {
     const reportType =
       requestedType ?? existing?.reportType ?? "SERVICE_NIGHT";
 
-    // Keep only the columns this report type owns (plus the shared headcount
-    // and notes). Switching a day from a service night to an event clears its
-    // koha, so it can't linger in koha totals; switching away from an event
-    // drops its income and expense lines below.
+    // Keep only the columns this report type owns (plus the shared notes).
+    // Switching a day from a service night to an events day clears its koha,
+    // so it can't linger in koha totals. Its events and catering gigs belong
+    // to the day, not the type, and are kept.
     const owned = new Set(REPORT_FIELDS[reportType]);
     const stats = { ...fields } as Record<string, unknown>;
     for (const field of ALL_REPORT_FIELDS) {
       if (!owned.has(field)) stats[field] = null;
     }
-    const incomeLines = reportType === "EVENT" ? income : [];
-    const expenseLines = reportType === "EVENT" ? expenses : [];
+    // An events day's guests are counted on each activity, never twice.
+    if (reportType === "EVENT") stats.mealsServed = null;
 
     // Require something to save — don't create empty rows. Marking a day as
-    // an event or cafe is itself worth recording, and an existing day may be
-    // cleared (say, an event switched back to a not-yet-recorded service night).
+    // an events or cafe day is itself worth recording, and an existing day
+    // may be cleared (say, switched back to a not-yet-recorded service night).
     const hasAnyValue =
       reportType !== "SERVICE_NIGHT" ||
-      incomeLines.length > 0 ||
-      expenseLines.length > 0 ||
+      (activities?.length ?? 0) > 0 ||
       existing !== null ||
       Object.values(stats).some((v) => v !== null);
     if (!hasAnyValue) {
@@ -258,9 +265,9 @@ export async function POST(request: NextRequest) {
       createdBy: session.user.id,
     };
 
-    // Upsert the day report and replace its income and expense lines in one
-    // go, so the saved lines always match what the admin saw when they
-    // pressed Save.
+    // Upsert the day report and replace its activities (with their income
+    // and expense lines) in one go, so what's saved always matches what the
+    // admin saw when they pressed Save.
     const mealsRecord = await prisma.$transaction(async (tx) => {
       const report = await tx.mealsServed.upsert({
         where: {
@@ -273,29 +280,42 @@ export async function POST(request: NextRequest) {
         create: { date: startOfDayUTC, location, ...data },
         select: { id: true },
       });
-      await tx.eventIncome.deleteMany({ where: { reportId: report.id } });
-      if (incomeLines.length > 0) {
-        await tx.eventIncome.createMany({
-          data: incomeLines.map((line, position) => ({
-            ...line,
-            reportId: report.id,
-            position,
-          })),
+      if (activities !== undefined) {
+        // Lines cascade away with their activity.
+        await tx.fundraisingActivity.deleteMany({
+          where: { reportId: report.id },
         });
-      }
-      await tx.eventExpense.deleteMany({ where: { reportId: report.id } });
-      if (expenseLines.length > 0) {
-        await tx.eventExpense.createMany({
-          data: expenseLines.map((line, position) => ({
-            ...line,
-            reportId: report.id,
-            position,
-          })),
-        });
+        for (const [position, activity] of activities.entries()) {
+          await tx.fundraisingActivity.create({
+            data: {
+              reportId: report.id,
+              position,
+              kind: activity.kind,
+              name: activity.name,
+              pax: activity.pax,
+              income: {
+                createMany: {
+                  data: activity.income.map((line, i) => ({
+                    ...line,
+                    position: i,
+                  })),
+                },
+              },
+              expenses: {
+                createMany: {
+                  data: activity.expenses.map((line, i) => ({
+                    ...line,
+                    position: i,
+                  })),
+                },
+              },
+            },
+          });
+        }
       }
       return tx.mealsServed.findUniqueOrThrow({
         where: { id: report.id },
-        ...withLines,
+        ...withActivities,
       });
     });
 

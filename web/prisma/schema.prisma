@@ -1000,14 +1000,14 @@ model MealsServed {
   date        DateTime // Service night, stored as NZ-midnight expressed in UTC (e.g. NZ Jul 1 -> 2024-06-30T12:00Z). Read with toNZT()/formatInNZT() — a raw UTC slice lands a day early.
   location    String // Location name (Wellington, Glen Innes, Onehunga)
   reportType  DayReportType @default(SERVICE_NIGHT)
-  mealsServed Int? // Customers / people served that day — headline count (nullable — admins may save notes without a count). Event pax and cafe customers for those report types.
+  mealsServed Int? // Customers / people served that day - headline count (nullable - admins may save notes without a count). Cafe customers on a cafe day; null on an EVENT day, whose guests are each activity's pax.
   notes       String? // Optional notes about the day
 
-  // Event (fundraiser) report. Takings are itemised in EventIncome and costs
-  // in EventExpense, not in the koha columns below.
-  eventName String?        @db.VarChar(120)
-  income    EventIncome[]
-  expenses  EventExpense[]
+  // Events (fundraisers) and catering gigs held that day, any number of
+  // them. Each itemises its own takings and costs, never in the koha columns
+  // below. A day of only events and catering is reportType EVENT; a service
+  // night or cafe day can carry them too.
+  activities FundraisingActivity[]
 
   // Cafe report. Opening hours as NZ wall-clock "HH:mm"; takings use the cash
   // and eftpos columns below.
@@ -1038,6 +1038,28 @@ model MealsServed {
   @@index([reportType, date])
 }
 
+enum FundraisingActivityKind {
+  EVENT // A fundraiser: dinner, quiz night, gala
+  CATERING // A catering gig for a client
+}
+
+// One fundraising activity on a day at a location: an event or a catering
+// gig. Its income less its expenses is its profit. Nothing here is koha.
+model FundraisingActivity {
+  id       String                  @id @default(cuid())
+  reportId String
+  kind     FundraisingActivityKind @default(EVENT)
+  name     String?                 @db.VarChar(120) // "Matariki dinner", "Xero staff lunch"
+  pax      Int? // Guests at an event, people catered for at a gig
+  position Int                     @default(0) // Display order within the day
+
+  report   MealsServed    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  income   EventIncome[]
+  expenses EventExpense[]
+
+  @@index([reportId])
+}
+
 enum EventIncomeSource {
   CASH
   EFTPOS
@@ -1054,12 +1076,12 @@ enum EventIncomeCategory {
   OTHER
 }
 
-// One line of takings at an event (fundraiser), e.g. "Auction, EFTPOS, $1,200".
+// One line of takings at a fundraising activity, e.g. "Auction, EFTPOS, $1,200".
 // A line can be an estimate while the event is being planned, and is made
 // actual once the real figure is known.
 model EventIncome {
   id          String              @id @default(cuid())
-  reportId    String
+  activityId  String
   source      EventIncomeSource
   category    EventIncomeCategory
   description String?             @db.VarChar(120)
@@ -1068,9 +1090,9 @@ model EventIncome {
   estimated   Boolean             @default(false) // A planning estimate, not yet the actual figure
   position    Int                 @default(0) // Display order within the report
 
-  report MealsServed @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  activity FundraisingActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
-  @@index([reportId])
+  @@index([activityId])
 }
 
 enum EventExpenseCategory {
@@ -1083,11 +1105,11 @@ enum EventExpenseCategory {
   OTHER
 }
 
-// One line of costs for an event (fundraiser), e.g. "Equipment hire, $350".
-// Income less expenses is the event's profit.
+// One line of costs for a fundraising activity, e.g. "Equipment hire, $350".
+// Income less expenses is the activity's profit.
 model EventExpense {
   id          String               @id @default(cuid())
-  reportId    String
+  activityId  String
   category    EventExpenseCategory
   description String?              @db.VarChar(120)
   amount      Decimal              @db.Decimal(10, 2) // GST-inclusive when gstIncluded
@@ -1095,9 +1117,9 @@ model EventExpense {
   estimated   Boolean              @default(false) // A planning estimate, not yet the actual figure
   position    Int                  @default(0) // Display order within the report
 
-  report MealsServed @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  activity FundraisingActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
-  @@index([reportId])
+  @@index([activityId])
 }
 
 // Newsletter list management

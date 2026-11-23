@@ -52,6 +52,7 @@ import {
   type CashRangePreset,
   type CashReconciliation,
 } from "@/lib/cash-reconciliation";
+import { describeActivities } from "@/lib/day-reports";
 import { cn } from "@/lib/utils";
 import { SegmentedControl } from "../_components/primitives";
 
@@ -64,15 +65,29 @@ function plural(n: number, word: string) {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
-// "12 service nights", or "12 days, incl. 1 event and 2 cafe days".
+// "12 service nights", "12 days, incl. 2 cafe days", "12 days, with 3
+// catering gigs and an event". An events & catering day is told by what was
+// run on it.
 function describeDays(totals: CashReconciliation["totals"] | undefined) {
   if (!totals) return plural(0, "service night");
+  const ran = totals.activities.length > 0;
   const others = [
-    totals.events > 0 ? plural(totals.events, "event") : null,
     totals.cafeDays > 0 ? plural(totals.cafeDays, "cafe day") : null,
+    totals.eventDays > 0 && !ran
+      ? `${totals.eventDays} events & catering ${totals.eventDays === 1 ? "day" : "days"}`
+      : null,
   ].filter(Boolean);
-  if (others.length === 0) return plural(totals.nights, "service night");
-  return `${plural(totals.nights, "day")}, incl. ${others.join(" and ")}`;
+  const allNights = totals.cafeDays + totals.eventDays === 0;
+  const days = allNights
+    ? plural(totals.nights, "service night")
+    : plural(totals.nights, "day");
+  return [
+    days,
+    others.length > 0 ? `incl. ${others.join(" and ")}` : null,
+    ran ? `with ${describeActivities(totals.activities)}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 interface Props {
@@ -413,7 +428,7 @@ export function CashReconciliationClient({
                     colSpan={5}
                     className="h-32 text-center text-sm text-muted-foreground"
                   >
-                    No service nights, events or cafe days at {location} in
+                    No service nights, events, catering or cafe days at {location} in
                     this range.
                   </TableCell>
                 </TableRow>
@@ -431,7 +446,10 @@ export function CashReconciliationClient({
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
                       {plural(
                         totals.nights,
-                        totals.events + totals.cafeDays > 0 ? "day" : "night"
+                        totals.eventDays + totals.cafeDays > 0 ||
+                          totals.activities.length > 0
+                          ? "day"
+                          : "night"
                       )}
                     </span>
                   </TableCell>
@@ -518,7 +536,7 @@ function NightRow({ night, location }: { night: CashNight; location: string }) {
           <span
             className={cn(
               "mt-0.5 block max-w-[14rem] truncate text-xs font-medium",
-              night.type === "EVENT"
+              night.type === "EVENT" || night.activities.length > 0
                 ? "text-violet-700 dark:text-violet-300"
                 : "text-sky-700 dark:text-sky-300"
             )}

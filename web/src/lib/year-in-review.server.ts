@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
 import { FOOD_SAVED_KG_PER_MEAL } from "@/lib/impact-stats";
-import { SERVICE_NIGHTS_ONLY } from "@/lib/day-reports";
+import { SERVICE_NIGHTS_ONLY, peopleServed } from "@/lib/day-reports";
 import { formatInNZT } from "@/lib/timezone";
 import {
   greetingName,
@@ -79,7 +79,12 @@ export async function getVolunteerYearInReview(
         date: { gte: range.start, lt: range.end },
         location: { in: myLocations },
       },
-      select: { date: true, location: true, mealsServed: true },
+      select: {
+        date: true,
+        location: true,
+        mealsServed: true,
+        activities: { select: { pax: true } },
+      },
     }),
     getCoVolunteerNights(userId, myNights),
     prisma.friendship.findMany({
@@ -131,7 +136,7 @@ export async function getVolunteerYearInReview(
 
   const mealsServed = dayReports
     .filter((r) => myNights.has(nightKey(r.date, r.location)))
-    .reduce((sum, r) => sum + (r.mealsServed ?? 0), 0);
+    .reduce((sum, r) => sum + peopleServed(r), 0);
 
   // Friends who keep their shift activity private stay out of the video.
   const friends = new Map(
@@ -229,11 +234,17 @@ async function getOrganisationYear(
   range: { start: Date; end: Date },
   now: Date
 ): Promise<Omit<YearInReviewProps["organisation"], "volunteers">> {
-  const [meals, serviceNights, events, hours] = await Promise.all([
-    // People served counts towards impact for every kind of day report.
+  const inYear = { date: { gte: range.start, lt: range.end } };
+  const [meals, activityPax, serviceNights, events, hours] = await Promise.all([
+    // People served counts towards impact for every kind of day report, and
+    // for every event and catering gig (see peopleServed).
     prisma.mealsServed.aggregate({
-      where: { date: { gte: range.start, lt: range.end } },
+      where: inYear,
       _sum: { mealsServed: true },
+    }),
+    prisma.fundraisingActivity.aggregate({
+      where: { report: inYear },
+      _sum: { pax: true },
     }),
     prisma.mealsServed.count({
       where: {
@@ -241,13 +252,11 @@ async function getOrganisationYear(
         ...SERVICE_NIGHTS_ONLY,
       },
     }),
-    prisma.mealsServed.findMany({
-      where: {
-        date: { gte: range.start, lt: range.end },
-        reportType: "EVENT",
-      },
-      orderBy: { date: "asc" },
-      select: { date: true, location: true, eventName: true },
+    // The events hosted, not the catering gigs run for clients.
+    prisma.fundraisingActivity.findMany({
+      where: { kind: "EVENT", report: inYear },
+      orderBy: [{ report: { date: "asc" } }, { position: "asc" }],
+      select: { name: true, report: { select: { date: true, location: true } } },
     }),
     prisma.$queryRaw<{ seconds: number }[]>`
       SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (s."end" - s."start"))), 0)::float8 AS seconds
@@ -260,13 +269,13 @@ async function getOrganisationYear(
   ]);
 
   return {
-    mealsServed: meals._sum.mealsServed ?? 0,
+    mealsServed: (meals._sum.mealsServed ?? 0) + (activityPax._sum.pax ?? 0),
     serviceNights,
     volunteerHours: Math.round((hours[0]?.seconds ?? 0) / 3600),
     events: events.map((e) => ({
-      name: e.eventName?.trim() || `${e.location} event`,
-      date: formatInNZT(e.date, "yyyy-MM-dd"),
-      location: e.location,
+      name: e.name?.trim() || `${e.report.location} event`,
+      date: formatInNZT(e.report.date, "yyyy-MM-dd"),
+      location: e.report.location,
     })),
   };
 }

@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import {
   ArrowUpRight,
   CalendarRange,
+  ChefHat,
   Coffee,
   Loader2,
   MapPin,
@@ -34,11 +35,14 @@ import {
   EVENT_EXPENSE_CATEGORY_LABEL,
   EVENT_INCOME_CATEGORY_LABEL,
   EVENT_INCOME_SOURCE_LABEL,
+  ACTIVITY_KIND_META,
+  type FundraisingActivityKind,
   formatDuration,
   formatTimeOfDay,
   profitLabel,
 } from "@/lib/day-reports";
 import { EstimateBadge } from "@/components/day-report/estimate-badge";
+import { ACTIVITY_KIND_ICON } from "@/components/day-report/activity-editor";
 import {
   CATEGORY_KEYS,
   EXPENSE_CATEGORY_KEYS,
@@ -50,9 +54,14 @@ import {
 } from "@/lib/events-cafe-report";
 
 type View = "events" | "cafe";
+type KindFilter = FundraisingActivityKind | "all";
 
 interface Props {
   events: EventsReport;
+  /** Which activities the events view shows. */
+  kind: KindFilter;
+  /** Events and catering gigs in the period, before the kind filter. */
+  kindCounts: Record<FundraisingActivityKind, number>;
   cafe: CafeReport;
   years: number[];
   period: number | "all";
@@ -73,12 +82,30 @@ function plural(n: number, word: string, pluralWord = `${word}s`) {
   return `${n.toLocaleString("en-NZ")} ${n === 1 ? word : pluralWord}`;
 }
 
+/** "4 catering gigs and 2 events", "1 event". */
+function countActivities(byKind: Record<FundraisingActivityKind, number>) {
+  return (["CATERING", "EVENT"] as const)
+    .filter((k) => byKind[k] > 0)
+    .map((k) =>
+      plural(byKind[k], ACTIVITY_KIND_META[k].noun, ACTIVITY_KIND_META[k].plural)
+    )
+    .join(" and ");
+}
+
+const INCOME_LABEL: Record<KindFilter, string> = {
+  all: "Event and catering income",
+  EVENT: "Event income",
+  CATERING: "Catering income",
+};
+
 function reportHref(date: string, location: string) {
   return `/admin/shifts?${new URLSearchParams({ date, location })}`;
 }
 
 export function EventsCafeClient({
   events,
+  kind,
+  kindCounts,
   cafe,
   years,
   period,
@@ -93,12 +120,15 @@ export function EventsCafeClient({
     year?: string;
     location?: string;
     view?: View;
+    kind?: KindFilter;
   }) => {
     const params = new URLSearchParams({
       year: patch.year ?? String(period),
       location: patch.location ?? location,
       view: patch.view ?? view,
     });
+    const nextKind = patch.kind ?? kind;
+    if (nextKind !== "all") params.set("kind", nextKind);
     startTransition(() => {
       router.push(`/admin/analytics/events?${params}`, { scroll: false });
     });
@@ -162,7 +192,8 @@ export function EventsCafeClient({
           </SelectContent>
         </Select>
 
-        {/* Events | Cafe, with how many of each so an empty tab isn't a surprise */}
+        {/* Events & catering | Cafe, with how many of each so an empty tab
+            isn't a surprise */}
         <div
           role="group"
           aria-label="Activity"
@@ -172,8 +203,8 @@ export function EventsCafeClient({
             [
               {
                 value: "events",
-                label: "Events",
-                count: events.totals.events,
+                label: "Events & catering",
+                count: kindCounts.EVENT + kindCounts.CATERING,
                 Icon: Ticket,
               },
               {
@@ -233,6 +264,9 @@ export function EventsCafeClient({
         {view === "events" ? (
           <EventsView
             data={events}
+            kind={kind}
+            kindCounts={kindCounts}
+            onKind={(k) => navigate({ kind: k })}
             periodLabel={periodLabel}
             placeLabel={placeLabel}
           />
@@ -252,22 +286,42 @@ export function EventsCafeClient({
 
 function EventsView({
   data,
+  kind,
+  kindCounts,
+  onKind,
   periodLabel,
   placeLabel,
 }: {
   data: EventsReport;
+  kind: KindFilter;
+  kindCounts: Record<FundraisingActivityKind, number>;
+  onKind: (kind: KindFilter) => void;
   periodLabel: string;
   placeLabel: string;
 }) {
   const { totals, rows } = data;
+  const anyActivities = kindCounts.EVENT + kindCounts.CATERING > 0;
+  // Only worth filtering when both kinds were run.
+  const kindFilter = kindCounts.EVENT > 0 && kindCounts.CATERING > 0 && (
+    <KindFilterBar value={kind} counts={kindCounts} onChange={onKind} />
+  );
 
   if (rows.length === 0) {
+    const what =
+      kind === "all" ? "events or catering" : ACTIVITY_KIND_META[kind].plural;
     return (
-      <EmptyState
-        icon={Ticket}
-        title={`No events recorded for ${placeLabel} in ${periodLabel}`}
-        body="To record a fundraiser, open the day in Shifts, choose Event on its report, and add the night's income and expenses line by line."
-      />
+      <>
+        {kindFilter}
+        <EmptyState
+          icon={kind === "CATERING" ? ChefHat : Ticket}
+          title={`No ${what} recorded for ${placeLabel} in ${periodLabel}`}
+          body={
+            anyActivities && kind !== "all"
+              ? "Choose All to see everything that was recorded."
+              : "To record one, open the day in Shifts and add each event or catering gig to its report, with its income and expenses line by line. A day can have as many as were run."
+          }
+        />
+      </>
     );
   }
 
@@ -279,20 +333,21 @@ function EventsView({
   );
   const incomeEstimated = totals.incomeEstimates > 0;
   const expensesEstimated = totals.expenseEstimates > 0;
-  const profitEstimated = totals.eventsWithEstimates > 0;
+  const profitEstimated = totals.activitiesWithEstimates > 0;
 
   return (
     <>
+      {kindFilter}
       <Slip
         tone="violet"
-        label="Event income"
+        label={INCOME_LABEL[kind]}
         total={money(totals.total)}
         testId="events-total"
-        caption={`${plural(totals.events, "event")} at ${placeLabel} in ${periodLabel}, including GST.`}
+        caption={`${countActivities(totals.byKind)} at ${placeLabel} in ${periodLabel}, including GST.`}
         note={
           profitEstimated ? (
             <EstimateBadge testId="events-estimates">
-              {estimatesNote(totals.eventsWithEstimates, totals.events)}
+              {estimatesNote(totals.activitiesWithEstimates, totals.activities)}
             </EstimateBadge>
           ) : undefined
         }
@@ -316,7 +371,7 @@ function EventsView({
             negative: totals.profitExGst < 0,
             testId: "events-profit-ex-gst",
           },
-          { label: "Guests", value: totals.pax.toLocaleString("en-NZ") },
+          { label: "Pax", value: totals.pax.toLocaleString("en-NZ") },
         ]}
       />
 
@@ -359,12 +414,12 @@ function EventsView({
         <Table data-testid="events-table">
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="pl-4 text-xs">Event</TableHead>
+              <TableHead className="pl-4 text-xs">Event or catering</TableHead>
               <TableHead className="hidden text-xs md:table-cell">
                 Restaurant
               </TableHead>
               <TableHead className="hidden text-right text-xs lg:table-cell">
-                Guests
+                Pax
               </TableHead>
               <TableHead className="hidden text-right text-xs sm:table-cell">
                 Income
@@ -379,23 +434,38 @@ function EventsView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const rowId = `events-row-${row.date}-${row.position}`;
+              const KindIcon = ACTIVITY_KIND_ICON[row.kind];
+              return (
               <TableRow
-                key={`${row.date}-${row.location}`}
-                data-testid={`events-row-${row.date}`}
+                key={`${row.date}-${row.location}-${row.position}`}
+                data-testid={rowId}
+                data-kind={row.kind}
               >
                 <TableCell className="whitespace-normal py-2.5 pl-4">
-                  <p className="font-medium text-foreground">
-                    {row.eventName || (
-                      <span className="text-muted-foreground">
-                        Unnamed event
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {format(keyToDate(row.date), "EEE d MMM yyyy")}
-                    <span className="md:hidden">, {row.location}</span>
-                  </p>
+                  <div className="flex items-start gap-2.5">
+                    <span
+                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300"
+                      title={ACTIVITY_KIND_META[row.kind].label}
+                    >
+                      <KindIcon className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground">
+                        {row.name || (
+                          <span className="text-muted-foreground">
+                            Unnamed {ACTIVITY_KIND_META[row.kind].noun}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {ACTIVITY_KIND_META[row.kind].label},{" "}
+                        {format(keyToDate(row.date), "EEE d MMM yyyy")}
+                        <span className="md:hidden">, {row.location}</span>
+                      </p>
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell className="hidden py-2.5 text-sm md:table-cell">
                   {row.location}
@@ -416,7 +486,7 @@ function EventsView({
                     <Amount
                       value={money(row.total)}
                       estimated={row.incomeEstimates > 0}
-                      testId={`events-row-${row.date}-income-estimate`}
+                      testId={`${rowId}-income-estimate`}
                     />
                   )}
                 </TableCell>
@@ -427,7 +497,7 @@ function EventsView({
                     <Amount
                       value={money(row.expenses)}
                       estimated={row.expenseEstimates > 0}
-                      testId={`events-row-${row.date}-expenses-estimate`}
+                      testId={`${rowId}-expenses-estimate`}
                     />
                   )}
                 </TableCell>
@@ -441,7 +511,7 @@ function EventsView({
                       estimated={
                         row.incomeEstimates + row.expenseEstimates > 0
                       }
-                      testId={`events-row-${row.date}-profit-estimate`}
+                      testId={`${rowId}-profit-estimate`}
                     />
                   )}
                 </TableCell>
@@ -449,14 +519,15 @@ function EventsView({
                   <ReportLink date={row.date} location={row.location} />
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
           <TableFooter className="bg-transparent">
             <TableRow className="border-t-2 border-dashed hover:bg-transparent">
               <TableCell className="py-3 pl-4 font-semibold">
                 Total
                 <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  {plural(totals.events, "event")}
+                  {countActivities(totals.byKind)}
                 </span>
               </TableCell>
               <TableCell className="hidden md:table-cell" />
@@ -485,6 +556,71 @@ function EventsView({
         </Table>
       </div>
     </>
+  );
+}
+
+/** All | Catering | Events, each with its count for the period. */
+function KindFilterBar({
+  value,
+  counts,
+  onChange,
+}: {
+  value: KindFilter;
+  counts: Record<FundraisingActivityKind, number>;
+  onChange: (kind: KindFilter) => void;
+}) {
+  const options: {
+    value: KindFilter;
+    label: string;
+    count: number;
+    Icon?: React.ComponentType<{ className?: string }>;
+  }[] = [
+    { value: "all", label: "All", count: counts.EVENT + counts.CATERING },
+    {
+      value: "CATERING",
+      label: "Catering",
+      count: counts.CATERING,
+      Icon: ChefHat,
+    },
+    { value: "EVENT", label: "Events", count: counts.EVENT, Icon: Ticket },
+  ];
+  return (
+    <div
+      role="group"
+      aria-label="Show"
+      className="flex flex-wrap gap-2"
+      data-testid="events-kind-filter"
+    >
+      {options.map(({ value: v, label, count, Icon }) => {
+        const active = value === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(v)}
+            data-testid={`events-kind-${v.toLowerCase()}`}
+            className={cn(
+              "inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500",
+              active
+                ? "border-violet-700 bg-violet-700 text-white dark:border-violet-500 dark:bg-violet-600"
+                : "border-border bg-card text-muted-foreground hover:border-violet-300 hover:text-foreground"
+            )}
+          >
+            {Icon && <Icon className="h-3.5 w-3.5" aria-hidden />}
+            {label}
+            <span
+              className={cn(
+                "text-xs tabular-nums",
+                active ? "text-violet-100" : "text-muted-foreground"
+              )}
+            >
+              {count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -897,7 +1033,7 @@ function Amount({
   );
 }
 
-/** An event's profit, red when it made a loss, with the excl. GST figure. */
+/** A profit, red when it was a loss, with the excl. GST figure. */
 function Profit({
   amount,
   exGst,

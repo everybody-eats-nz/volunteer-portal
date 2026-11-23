@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  describeActivities,
+  peopleServed,
   formatDuration,
   formatTimeOfDay,
   gstPortion,
@@ -175,5 +177,30 @@ describe("cafe opening hours", () => {
     expect(formatTimeOfDay("12:00")).toBe("12pm");
     expect(formatTimeOfDay("00:15")).toBe("12:15am");
     expect(formatTimeOfDay("17:00")).toBe("5pm");
+  });
+});
+
+describe("describeActivities", () => {
+  it("counts each kind in words, catering first", () => {
+    expect(describeActivities([])).toBe("");
+    expect(describeActivities(["EVENT"])).toBe("an event");
+    expect(describeActivities(["CATERING", "CATERING", "CATERING"])).toBe(
+      "3 catering gigs"
+    );
+    expect(describeActivities(["EVENT", "CATERING", "CATERING"])).toBe(
+      "2 catering gigs and an event"
+    );
+  });
+});
+
+describe("peopleServed", () => {
+  it("adds every event's and catering gig's guests to the day's own count", () => {
+    expect(
+      peopleServed({
+        mealsServed: 60,
+        activities: [{ pax: 120 }, { pax: null }, { pax: 40 }],
+      })
+    ).toBe(220);
+    expect(peopleServed({ mealsServed: null, activities: [] })).toBe(0);
   });
 });

@@ -5,15 +5,19 @@
  * - Service night: the restaurant's koha model (cash / EFTPOS / Stripe koha).
  *   The only type that counts as koha, so the only one in koha totals,
  *   budget tracking and restaurant analytics.
- * - Event: a fundraiser. Takings are itemised lines, each with a source, a
- *   category and a GST flag, totalled incl. and excl. GST. Costs are
- *   itemised the same way, and income less costs is the event's profit.
- *   Any line can be an estimate, so an event can be planned before it runs;
- *   estimates count in the totals like actuals, and are flagged wherever
- *   a total includes one.
+ * - Events & catering: a day of fundraising activities and no service.
  * - Cafe: a cafe day. Opening hours, customers, cash and EFTPOS sales.
  *
- * People served (MealsServed.mealsServed) counts towards impact for every type.
+ * Any day, of any type, can also hold fundraising activities: events
+ * (fundraisers) and catering gigs, as many as were run. Each has a name and
+ * guests, and its takings are itemised lines, each with a source, a category
+ * and a GST flag, totalled incl. and excl. GST. Costs are itemised the same
+ * way, and income less costs is the activity's profit. Any line can be an
+ * estimate, so an activity can be planned before it runs; estimates count in
+ * the totals like actuals, and are flagged wherever a total includes one.
+ *
+ * People served is the day's own headcount (MealsServed.mealsServed) plus
+ * every activity's guests; see `peopleServed`.
  *
  * Shared by the API, the report form and the Events & Cafe analytics page, so
  * it must stay free of server-only imports.
@@ -27,7 +31,7 @@ export const DAY_REPORT_TYPE_META: Record<
   { label: string; reportTitle: string }
 > = {
   SERVICE_NIGHT: { label: "Service night", reportTitle: "Service Night Report" },
-  EVENT: { label: "Event", reportTitle: "Event Report" },
+  EVENT: { label: "Events & catering", reportTitle: "Events & Catering Report" },
   CAFE: { label: "Cafe", reportTitle: "Cafe Report" },
 };
 
@@ -40,6 +44,81 @@ export function isDayReportType(value: unknown): value is DayReportType {
 
 /** Prisma `where` fragment: only the days whose takings are koha. */
 export const SERVICE_NIGHTS_ONLY = { reportType: "SERVICE_NIGHT" } as const;
+
+// ── Fundraising activities ──────────────────────────────────────────────────
+
+export const FUNDRAISING_ACTIVITY_KINDS = ["EVENT", "CATERING"] as const;
+export type FundraisingActivityKind =
+  (typeof FUNDRAISING_ACTIVITY_KINDS)[number];
+
+export const ACTIVITY_KIND_META: Record<
+  FundraisingActivityKind,
+  {
+    label: string;
+    /** "an event", "a catering gig": for sentences. */
+    noun: string;
+    plural: string;
+    paxLabel: string;
+    namePlaceholder: string;
+  }
+> = {
+  EVENT: {
+    label: "Event",
+    noun: "event",
+    plural: "events",
+    paxLabel: "Guests (pax)",
+    namePlaceholder: "e.g. Matariki fundraiser dinner",
+  },
+  CATERING: {
+    label: "Catering",
+    noun: "catering gig",
+    plural: "catering gigs",
+    paxLabel: "People catered for",
+    namePlaceholder: "e.g. Xero staff lunch",
+  },
+};
+
+export function isActivityKind(
+  value: unknown
+): value is FundraisingActivityKind {
+  return (
+    typeof value === "string" &&
+    (FUNDRAISING_ACTIVITY_KINDS as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * How many of each kind, in words: "an event", "3 catering gigs",
+ * "2 catering gigs and an event". Catering first, as the usual one.
+ */
+export function describeActivities(
+  kinds: readonly FundraisingActivityKind[]
+): string {
+  const parts = (["CATERING", "EVENT"] as const)
+    .map((kind) => {
+      const n = kinds.filter((k) => k === kind).length;
+      if (n === 0) return null;
+      const meta = ACTIVITY_KIND_META[kind];
+      if (n > 1) return `${n} ${meta.plural}`;
+      return `${kind === "EVENT" ? "an" : "a"} ${meta.noun}`;
+    })
+    .filter((p): p is string => p !== null);
+  return parts.join(" and ");
+}
+
+/**
+ * People served on a day: its own headcount (service night customers, cafe
+ * customers) plus the guests at every event and catering gig.
+ */
+export function peopleServed(day: {
+  mealsServed: number | null;
+  activities: readonly { pax: number | null }[];
+}): number {
+  return (
+    (day.mealsServed ?? 0) +
+    day.activities.reduce((sum, a) => sum + (a.pax ?? 0), 0)
+  );
+}
 
 // ── Event income ────────────────────────────────────────────────────────────
 
@@ -307,8 +386,10 @@ export function formatTimeOfDay(time: string): string {
 /**
  * The stat columns each report type owns. On save, columns owned only by
  * another type are cleared, so a day switched from a service night to an
- * event can never leave stale koha behind. `mealsServed` and `notes` are
- * shared by every type.
+ * events day can never leave stale koha behind. `notes` is shared by every
+ * type, and `mealsServed` by the service night and the cafe day; an events
+ * day's guests are its activities' pax. Fundraising activities belong to the
+ * day, not its type, and survive a switch.
  */
 export const REPORT_FIELDS: Record<DayReportType, readonly string[]> = {
   SERVICE_NIGHT: [
@@ -324,7 +405,7 @@ export const REPORT_FIELDS: Record<DayReportType, readonly string[]> = {
     "suggestedValue",
     "protein",
   ],
-  EVENT: ["eventName"],
+  EVENT: [],
   CAFE: ["opensAt", "closesAt", "cash", "eftpos"],
 };
 

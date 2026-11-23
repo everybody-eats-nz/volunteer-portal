@@ -12,7 +12,9 @@ describe("buildEventsReport", () => {
       {
         date: "2026-08-01",
         location: "Wellington",
-        eventName: "Quiz night",
+        position: 0,
+        kind: "EVENT",
+        name: "Quiz night",
         pax: 80,
         income: [
           {
@@ -31,7 +33,9 @@ describe("buildEventsReport", () => {
       {
         date: "2026-09-12",
         location: "Onehunga",
-        eventName: null,
+        position: 0,
+        kind: "EVENT",
+        name: null,
         pax: null,
         income: [],
         expenses: [],
@@ -58,7 +62,8 @@ describe("buildEventsReport", () => {
       profit: 0,
     });
     expect(report.totals).toMatchObject({
-      events: 2,
+      activities: 2,
+      byKind: { EVENT: 2, CATERING: 0 },
       pax: 80,
       total: 2450,
       gst: 300,
@@ -80,7 +85,9 @@ describe("buildEventsReport with estimates", () => {
       {
         date: "2026-12-05",
         location: "Wellington",
-        eventName: "Christmas fundraiser",
+        position: 0,
+        kind: "EVENT",
+        name: "Christmas fundraiser",
         pax: null,
         income: [
           {
@@ -99,7 +106,9 @@ describe("buildEventsReport with estimates", () => {
       {
         date: "2026-11-26",
         location: "Wellington",
-        eventName: "Quiz night",
+        position: 0,
+        kind: "EVENT",
+        name: "Quiz night",
         pax: 60,
         income: [
           { source: "CASH", category: "KOHA", amount: 500, gstIncluded: false },
@@ -123,19 +132,65 @@ describe("buildEventsReport with estimates", () => {
       total: 3500,
       expenses: 1200,
       profit: 2300,
-      eventsWithEstimates: 1,
+      activitiesWithEstimates: 1,
       incomeEstimates: 1,
       expenseEstimates: 1,
     });
   });
 });
 
+describe("buildEventsReport with several activities a day", () => {
+  const gig = (position: number, name: string, amount: number) => ({
+    date: "2026-11-20",
+    location: "Wellington",
+    position,
+    kind: "CATERING" as const,
+    name,
+    pax: 40,
+    income: [
+      {
+        source: "INVOICE" as const,
+        category: "INVOICE" as const,
+        amount,
+        gstIncluded: true,
+      },
+    ],
+    expenses: [],
+  });
+
+  it("lists each catering gig and event as its own row, in the day's order", () => {
+    const report = buildEventsReport([
+      gig(1, "Xero staff lunch", 1150),
+      {
+        ...gig(2, "Quiz night", 600),
+        kind: "EVENT",
+        pax: 70,
+      },
+      gig(0, "Board breakfast", 460),
+      { ...gig(0, "Older gig", 230), date: "2026-11-01" },
+    ]);
+
+    expect(report.rows.map((r) => r.name)).toEqual([
+      "Board breakfast",
+      "Xero staff lunch",
+      "Quiz night",
+      "Older gig",
+    ]);
+    expect(report.totals).toMatchObject({
+      activities: 4,
+      byKind: { CATERING: 3, EVENT: 1 },
+      pax: 190,
+      total: 2440,
+    });
+  });
+});
+
 describe("estimatesNote", () => {
-  it("says how many events include estimates", () => {
+  it("says how many of the events and catering gigs include estimates", () => {
     expect(estimatesNote(1, 1)).toBe("Includes estimates");
-    expect(estimatesNote(3, 3)).toBe("All 3 events include estimates");
-    expect(estimatesNote(1, 4)).toBe("1 of 4 events includes estimates");
-    expect(estimatesNote(2, 4)).toBe("2 of 4 events include estimates");
+    expect(estimatesNote(3, 3)).toBe("All 3 include estimates");
+    expect(estimatesNote(1, 4)).toBe("1 of 4 includes estimates");
+    expect(estimatesNote(2, 4)).toBe("2 of 4 include estimates");
   });
 });
 
