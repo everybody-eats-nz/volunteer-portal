@@ -6,9 +6,14 @@ import { prisma } from "@/lib/prisma";
 /**
  * GET /api/mobile/admin/signups/pending
  *
- * Pending signups (PENDING / REGULAR_PENDING) for upcoming shifts, oldest
- * request first, so admins can clear the approval queue on the go. Optional
- * ?location= filter.
+ * Pending signups (PENDING / REGULAR_PENDING) for upcoming shifts, so admins
+ * can clear the approval queue on the go. Optional ?location= filter.
+ *
+ * Ordered by shift date, soonest first, so the most urgent decisions sit at
+ * the top. Signups for the same shift stay together, oldest request first.
+ * Sorting here (not in the app) also means `limit` keeps the soonest shifts
+ * rather than the oldest requests, and store builds pick it up without a
+ * release.
  */
 export async function GET(req: Request) {
   const auth = await requireMobileAdmin(req);
@@ -30,7 +35,7 @@ export async function GET(req: Request) {
 
   const signups = await prisma.signup.findMany({
     where,
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ shift: { start: "asc" } }, { shiftId: "asc" }, { createdAt: "asc" }],
     take: limit,
     select: {
       id: true,
