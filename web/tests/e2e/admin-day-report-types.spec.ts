@@ -527,6 +527,14 @@ test.describe("Day report types", () => {
     await report.getByTestId("day-report-save").click();
     await expect(page.getByText("Events & Catering Report saved")).toBeVisible();
 
+    // The day's headcount is its activities' guests, so impact counts them.
+    const day = await (
+      await page.request.get(
+        `/api/admin/meals-served?date=${DATE}&location=${encodeURIComponent(name)}`
+      )
+    ).json();
+    expect(day.mealsServed).toBe(110);
+
     // A list of activities reloads as summaries, in the order entered.
     const reloaded = await openReport(page, name);
     await reloaded.getByRole("button", { name: "Edit" }).click();

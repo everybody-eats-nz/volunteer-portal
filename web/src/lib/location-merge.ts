@@ -2,7 +2,11 @@ import { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 import { renameLocationInStoredList } from "@/lib/parse-availability";
 import { formatInNZT } from "@/lib/timezone";
-import { REPORT_FIELDS, type DayReportType } from "@/lib/day-reports";
+import {
+  REPORT_FIELDS,
+  eventDayHeadcount,
+  type DayReportType,
+} from "@/lib/day-reports";
 
 /**
  * Merge one location into another after an accidental duplication.
@@ -470,10 +474,10 @@ export function planMealCollision(
       }
     }
   }
-  // An events day's guests are its activities' pax, never its own count.
+  // An events day's headcount is its activities' guests, recounted once
+  // they've moved; never another day's customers.
   if ((data.reportType ?? into.reportType) === "EVENT") {
     delete data.mealsServed;
-    if (into.mealsServed !== null) data.mealsServed = null;
   }
   return { data, moveActivities };
 }
@@ -546,6 +550,16 @@ export async function applyLocationMerge(
           await tx.fundraisingActivity.updateMany({
             where: { reportId: fromMeal.id },
             data: { reportId: intoMeal.id },
+          });
+        }
+        if ((data.reportType ?? intoMeal.reportType) === "EVENT") {
+          const activities = await tx.fundraisingActivity.findMany({
+            where: { reportId: intoMeal.id },
+            select: { pax: true },
+          });
+          await tx.mealsServed.update({
+            where: { id: intoMeal.id },
+            data: { mealsServed: eventDayHeadcount(activities) },
           });
         }
       }

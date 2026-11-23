@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   describeActivities,
+  eventDayHeadcount,
   peopleServed,
   formatDuration,
   formatTimeOfDay,
@@ -197,10 +198,38 @@ describe("peopleServed", () => {
   it("adds every event's and catering gig's guests to the day's own count", () => {
     expect(
       peopleServed({
+        reportType: "SERVICE_NIGHT",
         mealsServed: 60,
         activities: [{ pax: 120 }, { pax: null }, { pax: 40 }],
       })
     ).toBe(220);
-    expect(peopleServed({ mealsServed: null, activities: [] })).toBe(0);
+    expect(
+      peopleServed({ reportType: "CAFE", mealsServed: null, activities: [] })
+    ).toBe(0);
+  });
+
+  it("never counts an events day's guests twice", () => {
+    // An events day's mealsServed is already its activities' total.
+    expect(
+      peopleServed({
+        reportType: "EVENT",
+        mealsServed: 160,
+        activities: [{ pax: 120 }, { pax: 40 }],
+      })
+    ).toBe(160);
+  });
+});
+
+describe("eventDayHeadcount", () => {
+  it("adds up the activities that have a count", () => {
+    expect(eventDayHeadcount([{ pax: 40 }, { pax: null }, { pax: 70 }])).toBe(
+      110
+    );
+    expect(eventDayHeadcount([{ pax: 0 }])).toBe(0);
+  });
+
+  it("is unknown while no activity has a count", () => {
+    expect(eventDayHeadcount([])).toBeNull();
+    expect(eventDayHeadcount([{ pax: null }])).toBeNull();
   });
 });

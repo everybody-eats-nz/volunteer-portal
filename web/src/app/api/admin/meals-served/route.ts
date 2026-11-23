@@ -7,7 +7,11 @@ import { parseISOInNZT, toUTC } from "@/lib/timezone";
 import { restaurantNightStatsSchema } from "@/lib/validation-schemas";
 import { countNewVolunteers } from "@/lib/service-night-attendance";
 import { budgetYearOf, resolveNightlyTarget } from "@/lib/budget-calculations";
-import { REPORT_FIELDS, ALL_REPORT_FIELDS } from "@/lib/day-reports";
+import {
+  REPORT_FIELDS,
+  ALL_REPORT_FIELDS,
+  eventDayHeadcount,
+} from "@/lib/day-reports";
 import { dayKeyToDbDate, isDayKey } from "@/lib/shift-day-themes";
 import type { Prisma } from "@/generated/client";
 
@@ -233,7 +237,8 @@ export async function POST(request: NextRequest) {
     for (const field of ALL_REPORT_FIELDS) {
       if (!owned.has(field)) stats[field] = null;
     }
-    // An events day's guests are counted on each activity, never twice.
+    // An events day's headcount is its activities' guests, set below once
+    // they're saved; it's never typed in.
     if (reportType === "EVENT") stats.mealsServed = null;
 
     // Require something to save — don't create empty rows. Marking a day as
@@ -312,6 +317,19 @@ export async function POST(request: NextRequest) {
             },
           });
         }
+      }
+      // Keep an events day's headcount equal to its activities' guests, so
+      // everything that reads mealsServed (impact, achievements, dashboards)
+      // still counts them.
+      if (reportType === "EVENT") {
+        const saved = await tx.fundraisingActivity.findMany({
+          where: { reportId: report.id },
+          select: { pax: true },
+        });
+        await tx.mealsServed.update({
+          where: { id: report.id },
+          data: { mealsServed: eventDayHeadcount(saved) },
+        });
       }
       return tx.mealsServed.findUniqueOrThrow({
         where: { id: report.id },

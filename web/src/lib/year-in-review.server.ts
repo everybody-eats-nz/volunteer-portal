@@ -82,6 +82,7 @@ export async function getVolunteerYearInReview(
       select: {
         date: true,
         location: true,
+        reportType: true,
         mealsServed: true,
         activities: { select: { pax: true } },
       },
@@ -237,13 +238,14 @@ async function getOrganisationYear(
   const inYear = { date: { gte: range.start, lt: range.end } };
   const [meals, activityPax, serviceNights, events, hours] = await Promise.all([
     // People served counts towards impact for every kind of day report, and
-    // for every event and catering gig (see peopleServed).
+    // for every event and catering gig (see peopleServed). An events day's
+    // headcount already is its activities' guests.
     prisma.mealsServed.aggregate({
       where: inYear,
       _sum: { mealsServed: true },
     }),
     prisma.fundraisingActivity.aggregate({
-      where: { report: inYear },
+      where: { report: { ...inYear, reportType: { not: "EVENT" } } },
       _sum: { pax: true },
     }),
     prisma.mealsServed.count({

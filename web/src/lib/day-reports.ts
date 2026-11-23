@@ -16,8 +16,11 @@
  * estimate, so an activity can be planned before it runs; estimates count in
  * the totals like actuals, and are flagged wherever a total includes one.
  *
- * People served is the day's own headcount (MealsServed.mealsServed) plus
- * every activity's guests; see `peopleServed`.
+ * MealsServed.mealsServed is the day's headcount: service night or cafe
+ * customers, and on an events & catering day the total of its activities'
+ * guests (kept in step by the API, so every reader of `mealsServed` still
+ * sees an events day's guests). People served adds a service night's or cafe
+ * day's activities on top; see `peopleServed`.
  *
  * Shared by the API, the report form and the Events & Cafe analytics page, so
  * it must stay free of server-only imports.
@@ -107,13 +110,29 @@ export function describeActivities(
 }
 
 /**
+ * An events & catering day's headcount, as stored in `mealsServed`: its
+ * activities' guests added up, or null while none has a count.
+ */
+export function eventDayHeadcount(
+  activities: readonly { pax: number | null }[]
+): number | null {
+  const counted = activities.filter((a) => a.pax !== null);
+  if (counted.length === 0) return null;
+  return counted.reduce((sum, a) => sum + (a.pax ?? 0), 0);
+}
+
+/**
  * People served on a day: its own headcount (service night customers, cafe
- * customers) plus the guests at every event and catering gig.
+ * customers) plus the guests at every event and catering gig. An events &
+ * catering day's `mealsServed` already is its activities' total, so they're
+ * never counted twice.
  */
 export function peopleServed(day: {
+  reportType: DayReportType;
   mealsServed: number | null;
   activities: readonly { pax: number | null }[];
 }): number {
+  if (day.reportType === "EVENT") return day.mealsServed ?? 0;
   return (
     (day.mealsServed ?? 0) +
     day.activities.reduce((sum, a) => sum + (a.pax ?? 0), 0)
@@ -387,9 +406,9 @@ export function formatTimeOfDay(time: string): string {
  * The stat columns each report type owns. On save, columns owned only by
  * another type are cleared, so a day switched from a service night to an
  * events day can never leave stale koha behind. `notes` is shared by every
- * type, and `mealsServed` by the service night and the cafe day; an events
- * day's guests are its activities' pax. Fundraising activities belong to the
- * day, not its type, and survive a switch.
+ * type, and `mealsServed` by the service night and the cafe day; on an events
+ * day the API sets it to its activities' guests. Fundraising activities
+ * belong to the day, not its type, and survive a switch.
  */
 export const REPORT_FIELDS: Record<DayReportType, readonly string[]> = {
   SERVICE_NIGHT: [

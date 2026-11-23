@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     mealsServed: { aggregate: vi.fn() },
+    fundraisingActivity: { aggregate: vi.fn() },
     $queryRaw: vi.fn(),
   },
 }));
@@ -17,11 +18,20 @@ import { prisma } from "./prisma";
 const mockedAggregate = prisma.mealsServed.aggregate as unknown as ReturnType<
   typeof vi.fn
 >;
+const mockedActivityAggregate = prisma.fundraisingActivity
+  .aggregate as unknown as ReturnType<typeof vi.fn>;
 const mockedQueryRaw = prisma.$queryRaw as unknown as ReturnType<typeof vi.fn>;
 
-/** Mock the two parallel queries: meals aggregate + raw hours sum. */
-function mockStats(opts: { mealsSum: number | null; seconds: number | null }) {
+/** Mock the parallel queries: meals and guests aggregates + raw hours sum. */
+function mockStats(opts: {
+  mealsSum: number | null;
+  seconds: number | null;
+  extraGuests?: number | null;
+}) {
   mockedAggregate.mockResolvedValue({ _sum: { mealsServed: opts.mealsSum } });
+  mockedActivityAggregate.mockResolvedValue({
+    _sum: { pax: opts.extraGuests ?? null },
+  });
   mockedQueryRaw.mockResolvedValue([{ seconds: opts.seconds }]);
 }
 
@@ -46,6 +56,19 @@ describe("getPublicImpactStats", () => {
     const stats = await getPublicImpactStats();
 
     expect(stats.peopleServed).toBe(279550);
+  });
+
+  it("adds the guests at events and catering on service nights and cafe days", async () => {
+    mockStats({ mealsSum: 1000, seconds: 0, extraGuests: 120 });
+
+    const stats = await getPublicImpactStats();
+
+    expect(stats.peopleServed).toBe(1120);
+    // An events day's guests are already its mealsServed.
+    expect(mockedActivityAggregate).toHaveBeenCalledWith({
+      where: { report: { reportType: { not: "EVENT" } } },
+      _sum: { pax: true },
+    });
   });
 
   it("derives foodSavedKg from peopleServed using the conversion factor", async () => {

@@ -33,8 +33,8 @@ WHERE m."reportType" = 'EVENT'
    OR EXISTS (SELECT 1 FROM "EventIncome" i WHERE i."reportId" = m."id")
    OR EXISTS (SELECT 1 FROM "EventExpense" e WHERE e."reportId" = m."id");
 
--- An event day's guests now live on its activities.
-UPDATE "MealsServed" SET "mealsServed" = NULL WHERE "reportType" = 'EVENT';
+-- An event day's mealsServed is left as it is: from now on it is kept equal
+-- to its activities' guests, which here is the one activity's pax.
 
 -- Re-point income and expense lines from the day to its activity.
 ALTER TABLE "EventIncome" ADD COLUMN "activityId" TEXT;

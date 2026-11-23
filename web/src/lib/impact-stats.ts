@@ -60,23 +60,38 @@ export async function getActiveVolunteerCount(now: Date): Promise<number> {
 }
 
 /**
+ * Everyone served, all time: every day's headcount, plus the guests at events
+ * and catering gigs held on a service night or cafe day. An events day's
+ * headcount already is its activities' guests (see `peopleServed`).
+ */
+export async function getTotalPeopleServed(): Promise<number> {
+  const [meals, extraGuests] = await Promise.all([
+    prisma.mealsServed.aggregate({ _sum: { mealsServed: true } }),
+    prisma.fundraisingActivity.aggregate({
+      where: { report: { reportType: { not: "EVENT" } } },
+      _sum: { pax: true },
+    }),
+  ]);
+  return (meals._sum.mealsServed ?? 0) + (extraGuests._sum.pax ?? 0);
+}
+
+/**
  * Computes the headline impact figures shared publicly (e.g. on the marketing
  * site). Kept deliberately lean — only the three numbers we expose — so it can
  * back a cacheable public endpoint without the heavier home-dashboard queries.
  *
- * - `peopleServed`: sum of recorded customers served (`MealsServed.mealsServed`).
+ * - `peopleServed`: everyone served, see `getTotalPeopleServed`.
  * - `volunteerHours`: sum of `(shift.end - shift.start)` for every CONFIRMED
  *   signup whose shift has finished. Computed in SQL so there's no row cap.
  */
 export async function getPublicImpactStats(): Promise<PublicImpactStats> {
   const now = new Date();
 
-  const [mealsAggregate, volunteerHours] = await Promise.all([
-    prisma.mealsServed.aggregate({ _sum: { mealsServed: true } }),
+  const [peopleServed, volunteerHours] = await Promise.all([
+    getTotalPeopleServed(),
     getConfirmedVolunteerHours(now),
   ]);
 
-  const peopleServed = mealsAggregate._sum.mealsServed ?? 0;
   const foodSavedKg = Math.round(peopleServed * FOOD_SAVED_KG_PER_MEAL);
 
   return {
