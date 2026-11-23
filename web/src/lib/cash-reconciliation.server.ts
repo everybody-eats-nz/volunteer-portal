@@ -1,9 +1,9 @@
 import { endOfDay, startOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
-import { summariseEventIncome } from "@/lib/day-reports";
 import {
   buildCashNights,
+  eventCashTakings,
   type CashReconciliation,
 } from "@/lib/cash-reconciliation";
 
@@ -67,22 +67,13 @@ export async function getCashReconciliation({
           stripe: decimal(r.stripe),
         };
       }
-      // An event's takings are itemised by source. Until any actual income
-      // is entered its cash is unknown (flagged); after that, no cash lines
-      // genuinely means $0 cash. Estimates were never banked, and invoices
-      // are paid later, not banked tonight.
-      const actual = r.income.filter((line) => !line.estimated);
-      const recorded = actual.length > 0;
-      const { bySource } = summariseEventIncome(
-        actual.map((line) => ({ ...line, amount: Number(line.amount) }))
-      );
       return {
         date,
         type: r.reportType,
         eventName: r.eventName,
-        cash: recorded ? bySource.CASH : null,
-        eftpos: recorded ? bySource.EFTPOS : null,
-        stripe: recorded ? bySource.STRIPE : null,
+        ...eventCashTakings(
+          r.income.map((line) => ({ ...line, amount: Number(line.amount) }))
+        ),
       };
     }),
     [...new Set(shifts.map((s) => formatInNZT(s.start, "yyyy-MM-dd")))]

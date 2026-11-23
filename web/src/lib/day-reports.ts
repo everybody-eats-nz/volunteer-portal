@@ -259,8 +259,10 @@ export function eventProfit(
 
 /** "Profit" or "Loss", said as an estimate when any line behind it is one. */
 export function profitLabel(profit: number, estimated = false): string {
+  // Breaking even ($0) reads as a profit, never "Loss".
   const word = profit < 0 ? "loss" : "profit";
-  return estimated ? `Estimated ${word}` : word === "loss" ? "Loss" : "Profit";
+  if (estimated) return `Estimated ${word}`;
+  return word === "loss" ? "Loss" : "Profit";
 }
 
 // ── Cafe opening hours ──────────────────────────────────────────────────────
