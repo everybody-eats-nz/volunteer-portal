@@ -1,3 +1,9 @@
+## [0.206.1] - 2026-11-23
+
+### Changes
+- chore(deps): bump @radix-ui/react-switch from 1.2.6 to 1.4.1 in /web ([#1434](https://github.com/everybody-eats-nz/volunteer-portal/pull/1434)) by @dependabot[bot]
+
+
 ## [0.206.0] - 2026-11-23
 
 ### Changes
