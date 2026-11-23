@@ -1,3 +1,4 @@
+import { cacheLife } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
   getActiveVolunteerCount,
@@ -34,8 +35,19 @@ const endOfWeekUTC = (now: Date) => {
   return end;
 };
 
-/** Aggregate impact numbers shown on the public landing page. */
+/**
+ * Aggregate impact numbers shown on the public landing page.
+ *
+ * Cached for a few minutes: these are headline figures, so a minute or two of
+ * staleness is invisible, and caching means the landing page renders without
+ * waiting on five aggregate queries per visit. It also keeps the page instant
+ * under cacheComponents: uncached queries here would block both the prerender
+ * and client navigations to `/` (Next's blocking-prerender-dynamic error).
+ */
 export async function getHomeStats(): Promise<HomeStats> {
+  "use cache";
+  cacheLife("minutes");
+
   const now = new Date();
   const weekStart = startOfWeekUTC(now);
   const weekEnd = endOfWeekUTC(now);

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildOrganizationSchema } from "@/lib/seo";
 import {
@@ -14,15 +15,25 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/",
 });
 
-export default async function Home() {
-  const organizationSchema = buildOrganizationSchema();
+/**
+ * Funnel entry point: first touch for the register/signup funnels.
+ *
+ * Reading the PostHog cookie is per-request data, so it lives in its own
+ * Suspense boundary and renders nothing. That keeps the rest of the landing
+ * page in the static shell: under cacheComponents a `cookies()` call in the
+ * page body would block the prerender and client navigations to `/`.
+ */
+async function HomepageViewTracker() {
   const phid = await getPhidFromCookies();
-
-  // Funnel entry point — first touch for the register/signup funnels.
   captureFunnelEvent({
     event: FunnelEvent.HOMEPAGE_VIEWED,
     phid,
   });
+  return null;
+}
+
+export default function Home() {
+  const organizationSchema = buildOrganizationSchema();
 
   return (
     <>
@@ -30,6 +41,9 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
+      <Suspense fallback={null}>
+        <HomepageViewTracker />
+      </Suspense>
       <HomeLanding />
     </>
   );
