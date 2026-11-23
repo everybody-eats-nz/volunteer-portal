@@ -36,11 +36,14 @@ import {
   EVENT_INCOME_SOURCE_LABEL,
   formatDuration,
   formatTimeOfDay,
+  profitLabel,
 } from "@/lib/day-reports";
+import { EstimateBadge } from "@/components/day-report/estimate-badge";
 import {
   CATEGORY_KEYS,
   EXPENSE_CATEGORY_KEYS,
   SOURCE_KEYS,
+  estimatesNote,
   rankedShares,
   type CafeReport,
   type EventsReport,
@@ -274,6 +277,9 @@ function EventsView({
     totals.expensesByCategory,
     EXPENSE_CATEGORY_KEYS
   );
+  const incomeEstimated = totals.incomeEstimates > 0;
+  const expensesEstimated = totals.expenseEstimates > 0;
+  const profitEstimated = totals.eventsWithEstimates > 0;
 
   return (
     <>
@@ -283,6 +289,13 @@ function EventsView({
         total={money(totals.total)}
         testId="events-total"
         caption={`${plural(totals.events, "event")} at ${placeLabel} in ${periodLabel}, including GST.`}
+        note={
+          profitEstimated ? (
+            <EstimateBadge testId="events-estimates">
+              {estimatesNote(totals.eventsWithEstimates, totals.events)}
+            </EstimateBadge>
+          ) : undefined
+        }
         figures={[
           { label: "Income excl. GST", value: money(totals.totalExGst) },
           { label: "GST", value: money(totals.gst) },
@@ -292,13 +305,13 @@ function EventsView({
             testId: "events-expenses",
           },
           {
-            label: totals.profit < 0 ? "Loss" : "Profit",
+            label: profitLabel(totals.profit, profitEstimated),
             value: money(totals.profit),
             negative: totals.profit < 0,
             testId: "events-profit",
           },
           {
-            label: totals.profitExGst < 0 ? "Loss excl. GST" : "Profit excl. GST",
+            label: `${profitLabel(totals.profitExGst, profitEstimated)} excl. GST`,
             value: money(totals.profitExGst),
             negative: totals.profitExGst < 0,
             testId: "events-profit-ex-gst",
@@ -400,17 +413,36 @@ function EventsView({
                       No income yet
                     </span>
                   ) : (
-                    money(row.total)
+                    <Amount
+                      value={money(row.total)}
+                      estimated={row.incomeEstimates > 0}
+                      testId={`events-row-${row.date}-income-estimate`}
+                    />
                   )}
                 </TableCell>
                 <TableCell className="hidden py-2.5 text-right text-sm tabular-nums text-muted-foreground sm:table-cell">
-                  {row.expenseLineCount === 0 ? <Dash /> : money(row.expenses)}
+                  {row.expenseLineCount === 0 ? (
+                    <Dash />
+                  ) : (
+                    <Amount
+                      value={money(row.expenses)}
+                      estimated={row.expenseEstimates > 0}
+                      testId={`events-row-${row.date}-expenses-estimate`}
+                    />
+                  )}
                 </TableCell>
                 <TableCell className="py-2.5 text-right text-sm font-medium tabular-nums">
                   {row.lineCount === 0 && row.expenseLineCount === 0 ? (
                     <Dash />
                   ) : (
-                    <Profit amount={row.profit} exGst={row.profitExGst} />
+                    <Profit
+                      amount={row.profit}
+                      exGst={row.profitExGst}
+                      estimated={
+                        row.incomeEstimates + row.expenseEstimates > 0
+                      }
+                      testId={`events-row-${row.date}-profit-estimate`}
+                    />
                   )}
                 </TableCell>
                 <TableCell className="py-2.5 pr-4 text-right">
@@ -432,13 +464,20 @@ function EventsView({
                 {totals.pax.toLocaleString("en-NZ")}
               </TableCell>
               <TableCell className="hidden py-3 text-right font-semibold tabular-nums sm:table-cell">
-                {money(totals.total)}
+                <Amount value={money(totals.total)} estimated={incomeEstimated} />
               </TableCell>
               <TableCell className="hidden py-3 text-right tabular-nums text-muted-foreground sm:table-cell">
-                {money(totals.expenses)}
+                <Amount
+                  value={money(totals.expenses)}
+                  estimated={expensesEstimated}
+                />
               </TableCell>
               <TableCell className="py-3 text-right font-semibold tabular-nums">
-                <Profit amount={totals.profit} exGst={totals.profitExGst} />
+                <Profit
+                  amount={totals.profit}
+                  exGst={totals.profitExGst}
+                  estimated={profitEstimated}
+                />
               </TableCell>
               <TableCell />
             </TableRow>
@@ -651,6 +690,7 @@ function Slip({
   total,
   caption,
   subtotal,
+  note,
   figures,
   testId,
 }: {
@@ -658,6 +698,8 @@ function Slip({
   label: string;
   total: string;
   caption: string;
+  /** A flag under the caption, e.g. that the figures include estimates. */
+  note?: React.ReactNode;
   /** A second figure for the headline total, e.g. the total excl. GST. */
   subtotal?: { value: string; detail?: string; testId?: string };
   figures: {
@@ -706,6 +748,7 @@ function Slip({
           <p className="mt-3 max-w-prose text-sm text-muted-foreground">
             {caption}
           </p>
+          {note && <div className="mt-3">{note}</div>}
         </div>
         {/* Three figures sit in one row; six fill a 2 × 3 or 3 × 2 grid,
             so no layout ever leaves an empty cell. */}
@@ -833,10 +876,47 @@ function ReportLink({ date, location }: { date: string; location: string }) {
   );
 }
 
-/** An event's profit, red when it made a loss, with the excl. GST figure. */
-function Profit({ amount, exGst }: { amount: number; exGst: number }) {
+const INCLUDES_ESTIMATES = "Includes estimates";
+
+/** An amount, flagged when it includes estimated lines. */
+function Amount({
+  value,
+  estimated,
+  testId,
+}: {
+  value: string;
+  estimated: boolean;
+  testId?: string;
+}) {
+  if (!estimated) return <>{value}</>;
   return (
-    <WithExGst amount={amount} exGst={exGst} negative={amount < 0} />
+    <span className="inline-flex items-center justify-end gap-1.5">
+      <EstimateBadge label={INCLUDES_ESTIMATES} testId={testId} />
+      {value}
+    </span>
+  );
+}
+
+/** An event's profit, red when it made a loss, with the excl. GST figure. */
+function Profit({
+  amount,
+  exGst,
+  estimated = false,
+  testId,
+}: {
+  amount: number;
+  exGst: number;
+  estimated?: boolean;
+  testId?: string;
+}) {
+  return (
+    <WithExGst
+      amount={amount}
+      exGst={exGst}
+      negative={amount < 0}
+      estimated={estimated}
+      testId={testId}
+    />
   );
 }
 
@@ -845,14 +925,20 @@ function WithExGst({
   amount,
   exGst,
   negative = false,
+  estimated = false,
+  testId,
 }: {
   amount: number;
   exGst: number;
   negative?: boolean;
+  estimated?: boolean;
+  testId?: string;
 }) {
   return (
     <span className="inline-flex flex-col items-end">
-      <span className={cn(negative && NEGATIVE)}>{money(amount)}</span>
+      <span className={cn(negative && NEGATIVE)}>
+        <Amount value={money(amount)} estimated={estimated} testId={testId} />
+      </span>
       <span
         className={cn(
           "whitespace-nowrap text-xs font-normal",

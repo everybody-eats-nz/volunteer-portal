@@ -203,6 +203,115 @@ test.describe("Day report types", () => {
     await expect(visibleTestId(page, "cash-total")).toHaveText("$150.50");
   });
 
+  test("plans an event with estimates, then records the actuals", async ({
+    page,
+  }) => {
+    const name = await setUpDay(page);
+    const report = await openReport(page, name);
+    await report.getByRole("radio", { name: "Event" }).click();
+    await report.getByLabel("Event name").fill("Christmas fundraiser");
+
+    const status = (line: string) =>
+      report.getByRole("group", { name: `Actual or estimate, ${line}` });
+
+    // Planning: ticket sales are a guess, and a new line follows the last
+    // one's status.
+    const income = report.getByTestId("event-income-editor");
+    await income.getByTestId("event-income-add").click();
+    await expect(
+      status("income line 1").getByRole("radio", { name: "Actual" })
+    ).toBeChecked();
+    await status("income line 1").getByText("Estimate", { exact: true }).click();
+    await report.getByLabel("Description, income line 1").fill("Tickets");
+    await report.getByLabel("Amount, income line 1").fill("3000");
+    await income.getByTestId("event-income-add").click();
+    await expect(
+      status("income line 2").getByRole("radio", { name: "Estimate" })
+    ).toBeChecked();
+    // A cash sponsorship that's already in hand is actual.
+    await status("income line 2").getByText("Actual", { exact: true }).click();
+    await report.getByLabel("Category, income line 2").click();
+    await page.getByRole("option", { name: /^Donation/ }).click();
+    await report.getByLabel("Paid by, income line 2").click();
+    await page.getByRole("option", { name: "Cash" }).click();
+    await report.getByLabel("Amount, income line 2").fill("200");
+
+    const expenses = report.getByTestId("event-expense-editor");
+    await expenses.getByTestId("event-expense-add").click();
+    await status("expense line 1").getByText("Estimate", { exact: true }).click();
+    await report.getByLabel("Amount, expense line 1").fill("800");
+
+    // Estimates count in the totals, which say they include them.
+    await expect(report.getByTestId("event-income-total")).toHaveText(
+      "$3,200.00"
+    );
+    await expect(report.getByTestId("event-income-estimates")).toHaveText(
+      "Includes 1 estimate"
+    );
+    await expect(report.getByTestId("event-expense-estimates")).toHaveText(
+      "Includes 1 estimate"
+    );
+    await expect(report.getByTestId("event-profit-total")).toHaveText(
+      "$2,400.00"
+    );
+    await expect(report.getByTestId("event-profit")).toContainText(
+      "Estimated profit"
+    );
+
+    await report.getByTestId("day-report-save").click();
+    await expect(page.getByText("Event Report saved")).toBeVisible();
+
+    const reloaded = await openReport(page, name);
+    await reloaded.getByRole("button", { name: "Edit" }).click();
+    await expect(
+      status("income line 1").getByRole("radio", { name: "Estimate" })
+    ).toBeChecked();
+    await expect(
+      status("income line 2").getByRole("radio", { name: "Actual" })
+    ).toBeChecked();
+    await expect(reloaded.getByTestId("event-hero-profit")).toHaveText(
+      "$2,400.00"
+    );
+
+    // The Events page mixes estimates into its totals and flags them.
+    const eventsPage = `/admin/analytics/events?year=${FY}&location=${encodeURIComponent(name)}`;
+    await gotoSettled(page, eventsPage);
+    await expect(visibleTestId(page, "events-total")).toHaveText("$3,200.00");
+    await expect(visibleTestId(page, "events-estimates")).toHaveText(
+      "Includes estimates"
+    );
+    await expect(
+      visibleTestId(page, `events-row-${DATE}-profit-estimate`)
+    ).toBeVisible();
+
+    // An estimate was never banked: only the actual cash is reconciled.
+    await gotoSettled(
+      page,
+      `/admin/analytics/cash?location=${encodeURIComponent(name)}&from=${DATE}&to=${DATE}`
+    );
+    await expect(visibleTestId(page, "cash-total")).toHaveText("$200.00");
+
+    // After the event: the real figures replace the estimates.
+    const after = await openReport(page, name);
+    await after.getByRole("button", { name: "Edit" }).click();
+    await status("income line 1").getByText("Actual", { exact: true }).click();
+    await after.getByLabel("Amount, income line 1").fill("3450");
+    await status("expense line 1").getByText("Actual", { exact: true }).click();
+    await expect(after.getByTestId("event-income-estimates")).toBeHidden();
+    await expect(after.getByTestId("event-profit")).not.toContainText(
+      "Estimated"
+    );
+    await after.getByTestId("day-report-save").click();
+    await expect(page.getByText("Event Report saved")).toBeVisible();
+
+    await gotoSettled(page, eventsPage);
+    await expect(visibleTestId(page, "events-total")).toHaveText("$3,650.00");
+    await expect(page.getByTestId("events-estimates")).toHaveCount(0);
+    await expect(
+      page.getByTestId(`events-row-${DATE}-profit-estimate`)
+    ).toHaveCount(0);
+  });
+
   test("records a cafe day's hours and takings", async ({ page }) => {
     const name = await setUpDay(page);
     const report = await openReport(page, name);

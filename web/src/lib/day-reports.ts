@@ -8,6 +8,9 @@
  * - Event: a fundraiser. Takings are itemised lines, each with a source, a
  *   category and a GST flag, totalled incl. and excl. GST. Costs are
  *   itemised the same way, and income less costs is the event's profit.
+ *   Any line can be an estimate, so an event can be planned before it runs;
+ *   estimates count in the totals like actuals, and are flagged wherever
+ *   a total includes one.
  * - Cafe: a cafe day. Opening hours, customers, cash and EFTPOS sales.
  *
  * People served (MealsServed.mealsServed) counts towards impact for every type.
@@ -131,6 +134,8 @@ export interface EventIncomeLine {
   category: EventIncomeCategory;
   amount: number;
   gstIncluded: boolean;
+  /** A planning estimate rather than the actual figure. */
+  estimated?: boolean;
 }
 
 export interface EventIncomeSummary {
@@ -142,12 +147,16 @@ export interface EventIncomeSummary {
   totalExGst: number;
   byCategory: Record<EventIncomeCategory, number>;
   bySource: Record<EventIncomeSource, number>;
+  /** How many of the lines are estimates (they're in the totals too). */
+  estimatedLines: number;
 }
 
 export interface EventExpenseLine {
   category: EventExpenseCategory;
   amount: number;
   gstIncluded: boolean;
+  /** A planning estimate rather than the actual figure. */
+  estimated?: boolean;
 }
 
 export interface EventExpenseSummary {
@@ -158,6 +167,8 @@ export interface EventExpenseSummary {
   /** Total less GST. */
   totalExGst: number;
   byCategory: Record<EventExpenseCategory, number>;
+  /** How many of the lines are estimates (they're in the totals too). */
+  estimatedLines: number;
 }
 
 export interface EventProfit {
@@ -186,8 +197,10 @@ export function summariseEventIncome(
   const bySource = zeroed(EVENT_INCOME_SOURCES);
   let total = 0;
   let gst = 0;
+  let estimatedLines = 0;
   for (const line of lines) {
     total += line.amount;
+    if (line.estimated) estimatedLines += 1;
     // GST is worked out per line, as it would be on each receipt.
     if (line.gstIncluded) gst += gstPortion(line.amount);
     byCategory[line.category] += line.amount;
@@ -197,7 +210,14 @@ export function summariseEventIncome(
   for (const k of EVENT_INCOME_SOURCES) bySource[k] = cents(bySource[k]);
   total = cents(total);
   gst = cents(gst);
-  return { total, gst, totalExGst: cents(total - gst), byCategory, bySource };
+  return {
+    total,
+    gst,
+    totalExGst: cents(total - gst),
+    byCategory,
+    bySource,
+    estimatedLines,
+  };
 }
 
 export function summariseEventExpenses(
@@ -206,8 +226,10 @@ export function summariseEventExpenses(
   const byCategory = zeroed(EVENT_EXPENSE_CATEGORIES);
   let total = 0;
   let gst = 0;
+  let estimatedLines = 0;
   for (const line of lines) {
     total += line.amount;
+    if (line.estimated) estimatedLines += 1;
     if (line.gstIncluded) gst += gstPortion(line.amount);
     byCategory[line.category] += line.amount;
   }
@@ -216,7 +238,13 @@ export function summariseEventExpenses(
   }
   total = cents(total);
   gst = cents(gst);
-  return { total, gst, totalExGst: cents(total - gst), byCategory };
+  return {
+    total,
+    gst,
+    totalExGst: cents(total - gst),
+    byCategory,
+    estimatedLines,
+  };
 }
 
 export function eventProfit(
@@ -227,6 +255,14 @@ export function eventProfit(
     profit: cents(income.total - expenses.total),
     profitExGst: cents(income.totalExGst - expenses.totalExGst),
   };
+}
+
+/** "Profit" or "Loss", said as an estimate when any line behind it is one. */
+export function profitLabel(profit: number, estimated = false): string {
+  // Breaking even ($0) reads as a profit, never "Loss".
+  const word = profit < 0 ? "loss" : "profit";
+  if (estimated) return `Estimated ${word}`;
+  return word === "loss" ? "Loss" : "Profit";
 }
 
 // ── Cafe opening hours ──────────────────────────────────────────────────────

@@ -26,13 +26,16 @@ import {
   type EventIncomeCategory,
   type EventIncomeSource,
   type EventProfit,
+  profitLabel,
 } from "@/lib/day-reports";
 import { SectionCard } from "@/components/day-report/fields";
+import { EstimateBadge } from "@/components/day-report/estimate-badge";
 
 /**
  * Itemised event lines: the income an event took and what it cost to put on.
  * Both are lists of category / description / amount / GST lines; income also
- * records how each line was paid.
+ * records how each line was paid. Any line can be an estimate, so an event can
+ * be planned here first and its lines made actual as the real figures come in.
  */
 
 /** A line as typed: the amount stays a string until it's saved. */
@@ -43,6 +46,7 @@ export interface IncomeDraft {
   description: string;
   amount: string;
   gstIncluded: boolean;
+  estimated: boolean;
 }
 
 export interface ExpenseDraft {
@@ -51,6 +55,7 @@ export interface ExpenseDraft {
   description: string;
   amount: string;
   gstIncluded: boolean;
+  estimated: boolean;
 }
 
 // Ticket and merch sales and hire / catering invoices are the usual taxable
@@ -89,6 +94,7 @@ export function newIncomeDraft(
     description: partial.description ?? "",
     amount: partial.amount ?? "",
     gstIncluded: partial.gstIncluded ?? INCOME_GST_BY_DEFAULT[category],
+    estimated: partial.estimated ?? false,
   };
 }
 
@@ -102,6 +108,7 @@ export function newExpenseDraft(
     description: partial.description ?? "",
     amount: partial.amount ?? "",
     gstIncluded: partial.gstIncluded ?? EXPENSE_GST_BY_DEFAULT[category],
+    estimated: partial.estimated ?? false,
   };
 }
 
@@ -123,6 +130,7 @@ export interface LinesSummary<C extends string> {
   gst: number;
   totalExGst: number;
   byCategory: Record<C, number>;
+  estimatedLines: number;
 }
 
 export function EventIncomeEditor({
@@ -149,9 +157,15 @@ export function EventIncomeEditor({
         gstIncluded: INCOME_GST_BY_DEFAULT[category],
         ...(category === "INVOICE" ? { source: "INVOICE" as const } : {}),
       })}
-      // A new line starts from the last one's source: takings tend to be
-      // entered one till or one invoice batch at a time.
-      newLine={() => newIncomeDraft({ source: lines.at(-1)?.source })}
+      // A new line starts from the last one's source and status: takings
+      // tend to be entered one till or one invoice batch at a time, and a
+      // plan is all estimates.
+      newLine={() =>
+        newIncomeDraft({
+          source: lines.at(-1)?.source,
+          estimated: lines.at(-1)?.estimated,
+        })
+      }
       sourceColumn={{
         options: EVENT_INCOME_SOURCES,
         label: EVENT_INCOME_SOURCE_LABEL,
@@ -165,7 +179,7 @@ export function EventIncomeEditor({
         add: "Add income",
         descriptionPlaceholder: "e.g. Door tickets",
         footnote:
-          "Enter amounts as taken, including any GST. Tick GST on taxable lines, such as ticket sales and hire or catering invoices. Event income is kept out of koha totals.",
+          "Enter amounts as taken, including any GST. Tick GST on taxable lines, such as ticket sales and hire or catering invoices. Planning ahead? Mark lines as estimates, then switch them to actual once the money is in. Event income is kept out of koha totals.",
       }}
     />
   );
@@ -193,7 +207,7 @@ export function EventExpenseEditor({
         category,
         gstIncluded: EXPENSE_GST_BY_DEFAULT[category],
       })}
-      newLine={() => newExpenseDraft()}
+      newLine={() => newExpenseDraft({ estimated: lines.at(-1)?.estimated })}
       copy={{
         emptyTitle: "No expenses recorded yet",
         emptyBody:
@@ -201,9 +215,27 @@ export function EventExpenseEditor({
         add: "Add expense",
         descriptionPlaceholder: "e.g. Marquee hire",
         footnote:
-          "Enter amounts as paid, including any GST. Tick GST on bills that charge it, so the GST can be claimed back.",
+          "Enter amounts as paid, including any GST. Tick GST on bills that charge it, so the GST can be claimed back. Mark costs you haven't been billed for yet as estimates.",
       }}
     />
+  );
+}
+
+/** A section's running total for its header, flagged when it has estimates. */
+export function SectionTotal({
+  total,
+  estimated,
+}: {
+  total: number;
+  estimated: boolean;
+}) {
+  return (
+    <span className="flex items-center gap-1.5">
+      {estimated && <EstimateBadge label="Includes estimates" />}
+      <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-violet-800 dark:bg-violet-950/50 dark:text-violet-300">
+        {NZD.format(total)}
+      </span>
+    </span>
   );
 }
 
@@ -216,19 +248,35 @@ export function EventProfitStatement({
   income,
   expenses,
   profit,
+  estimated = false,
 }: {
-  income: Pick<LinesSummary<string>, "total" | "totalExGst">;
-  expenses: Pick<LinesSummary<string>, "total" | "totalExGst">;
+  income: Pick<LinesSummary<string>, "total" | "totalExGst" | "estimatedLines">;
+  expenses: Pick<
+    LinesSummary<string>,
+    "total" | "totalExGst" | "estimatedLines"
+  >;
   profit: EventProfit;
+  /** Any line behind the figures is an estimate. */
+  estimated?: boolean;
 }) {
   const loss = profit.profit < 0;
+  const title = profitLabel(profit.profit, estimated);
+  const lineName = (
+    name: string,
+    lines: Pick<LinesSummary<string>, "estimatedLines">
+  ) => (
+    <span className="inline-flex items-center gap-1.5">
+      {name}
+      {lines.estimatedLines > 0 && <EstimateBadge label="Includes estimates" />}
+    </span>
+  );
   // Expenses read as deductions; never "-$0.00".
   const less = (n: number) => NZD.format(n === 0 ? 0 : -n);
   const cell = "py-1.5 pl-4 text-right tabular-nums";
   return (
     <SectionCard
       icon={PiggyBank}
-      title={loss ? "Loss" : "Profit"}
+      title={title}
       tone="violet"
       action={
         <span
@@ -257,7 +305,7 @@ export function EventProfitStatement({
           <tbody>
             <tr>
               <th scope="row" className="py-1.5 text-left font-normal">
-                Income
+                {lineName("Income", income)}
               </th>
               <td className={cell}>{NZD.format(income.total)}</td>
               <td className={cn(cell, "text-muted-foreground")}>
@@ -266,7 +314,7 @@ export function EventProfitStatement({
             </tr>
             <tr>
               <th scope="row" className="py-1.5 text-left font-normal">
-                Expenses
+                {lineName("Expenses", expenses)}
               </th>
               <td className={cell}>{less(expenses.total)}</td>
               <td className={cn(cell, "text-muted-foreground")}>
@@ -284,7 +332,7 @@ export function EventProfitStatement({
               )}
             >
               <th scope="row" className="pt-2 text-left">
-                {loss ? "Loss" : "Profit"}
+                {title}
               </th>
               <td className={cn(cell, "pt-2")} data-testid="event-profit-total">
                 {NZD.format(profit.profit)}
@@ -301,6 +349,8 @@ export function EventProfitStatement({
         <p className="mt-2 text-[11px] text-muted-foreground">
           Excl. GST is what the event made once the GST on its income is paid
           and the GST on its expenses is claimed back.
+          {estimated &&
+            " It includes estimates, so it will change as the actual figures come in."}
         </p>
       </div>
     </SectionCard>
@@ -313,6 +363,7 @@ interface LineBase<C extends string> {
   description: string;
   amount: string;
   gstIncluded: boolean;
+  estimated: boolean;
 }
 
 interface SourceColumn<L, S extends string> {
@@ -362,8 +413,8 @@ function LinesEditor<C extends string, L extends LineBase<C>, S extends string>(
   const testId = `event-${kind}`;
   // Expenses have no "Paid by", so their category gets the room instead.
   const columns = sourceColumn
-    ? "@3xl:grid-cols-[8.5rem_7.5rem_minmax(0,1fr)_8rem_5.5rem_2.25rem]"
-    : "@3xl:grid-cols-[10.5rem_minmax(0,1fr)_8rem_5.5rem_2.25rem]";
+    ? "@4xl:grid-cols-[8.5rem_7.5rem_minmax(0,1fr)_8rem_5rem_9rem_2.25rem]"
+    : "@4xl:grid-cols-[10.5rem_minmax(0,1fr)_8rem_5rem_9rem_2.25rem]";
 
   // Lines go columnar when the editor itself is wide enough, not the window:
   // beside the admin sidebar a laptop-width window is still narrow.
@@ -373,7 +424,7 @@ function LinesEditor<C extends string, L extends LineBase<C>, S extends string>(
         <div
           aria-hidden
           className={cn(
-            "mb-1.5 hidden gap-2 px-1 text-[11px] font-medium text-muted-foreground @3xl:grid",
+            "mb-1.5 hidden gap-2 px-1 text-[11px] font-medium text-muted-foreground @4xl:grid",
             columns
           )}
         >
@@ -382,6 +433,7 @@ function LinesEditor<C extends string, L extends LineBase<C>, S extends string>(
           <span>Description</span>
           <span className="text-right">Amount</span>
           <span>GST</span>
+          <span>Actual or estimate</span>
           <span />
         </div>
       )}
@@ -464,7 +516,8 @@ function LinesEditor<C extends string, L extends LineBase<C>, S extends string>(
               ))
             )}
           </dl>
-          {/* Totals: incl. GST, the GST in it, and what's left */}
+          {/* Totals: incl. GST, the GST in it, and what's left. Estimates
+              count in them, flagged beneath. */}
           <dl className="grid grid-cols-[auto_auto] gap-x-6 gap-y-0.5 text-sm sm:text-right">
             <dt className="text-muted-foreground">Total incl. GST</dt>
             <dd
@@ -482,6 +535,15 @@ function LinesEditor<C extends string, L extends LineBase<C>, S extends string>(
               {NZD.format(summary.totalExGst)}
             </dd>
           </dl>
+          {summary.estimatedLines > 0 && (
+            <p className="sm:col-start-2 sm:text-right">
+              <EstimateBadge testId={`${testId}-estimates`}>
+                {`Includes ${summary.estimatedLines} ${
+                  summary.estimatedLines === 1 ? "estimate" : "estimates"
+                }`}
+              </EstimateBadge>
+            </p>
+          )}
         </div>
       )}
 
@@ -524,7 +586,7 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
   // In a narrow editor each control shows its own label; in a wide one the
   // column headings do, and the labels stay for screen readers.
   const cellLabel =
-    "mb-1 block text-[11px] font-medium text-muted-foreground @3xl:sr-only";
+    "mb-1 block text-[11px] font-medium text-muted-foreground @4xl:sr-only";
   const amountInvalid =
     line.amount.trim() === "" && line.description.trim() !== "";
   const removeLabel = `Remove ${lineName}`;
@@ -532,12 +594,12 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
   return (
     <li
       className={cn(
-        "grid grid-cols-2 gap-2 rounded-xl border border-border/70 bg-card p-2.5 @3xl:items-center @3xl:rounded-lg @3xl:border-transparent @3xl:bg-transparent @3xl:p-0 @3xl:px-1",
+        "grid grid-cols-2 gap-2 rounded-xl border border-border/70 bg-card p-2.5 @4xl:items-center @4xl:rounded-lg @4xl:border-transparent @4xl:bg-transparent @4xl:p-0 @4xl:px-1",
         columns
       )}
       data-testid={`event-${kind}-line-${index}`}
     >
-      <div className={cn(!sourceColumn && "col-span-2 @3xl:col-span-1")}>
+      <div className={cn(!sourceColumn && "col-span-2 @4xl:col-span-1")}>
         <label htmlFor={`${id}-category`} className={cellLabel}>
           Category
           <span className="sr-only">, {lineName}</span>
@@ -548,7 +610,12 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
         >
           <SelectTrigger id={`${id}-category`} size="md" className="w-full">
             {/* Just the label: the hints are for choosing, not for the row */}
-            <SelectValue>{categoryLabel[line.category]}</SelectValue>
+            <SelectValue>
+              {/* Ellipsis, not a hard clip, when a phone-width cell is tight */}
+              <span className="min-w-0 truncate">
+                {categoryLabel[line.category]}
+              </span>
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {categories.map((c) => (
@@ -587,7 +654,7 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
         </div>
       )}
 
-      <div className="col-span-2 @3xl:col-span-1">
+      <div className="col-span-2 @4xl:col-span-1">
         <label htmlFor={`${id}-description`} className={cellLabel}>
           Description
           <span className="sr-only">, {lineName}</span>
@@ -622,12 +689,18 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
             onChange={(e) => onChange({ amount: e.target.value } as Partial<L>)}
             placeholder="0.00"
             aria-invalid={amountInvalid || undefined}
-            className="pl-7 text-right tabular-nums"
+            className={cn(
+              "pl-7 text-right tabular-nums",
+              // Pencilled in: dashed like the estimate badges.
+              line.estimated &&
+                "border-dashed border-amber-500/80 bg-amber-50/50 dark:border-amber-500/60 dark:bg-amber-950/20"
+            )}
           />
         </div>
       </div>
 
-      <div className="flex items-end gap-2 @3xl:items-center">
+
+      <div className="flex items-end gap-2 @4xl:items-center">
         <label
           htmlFor={`${id}-gst`}
           className={cn(
@@ -644,8 +717,8 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
             aria-label={`${lineTitle} includes GST`}
           />
           <span aria-hidden>
-            <span className="whitespace-nowrap @3xl:hidden">GST</span>
-            <span className="hidden @3xl:inline">Incl.</span>
+            <span className="whitespace-nowrap @4xl:hidden">GST</span>
+            <span className="hidden @4xl:inline">Incl.</span>
           </span>
         </label>
         <Button
@@ -654,11 +727,55 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
           size="icon"
           onClick={onRemove}
           aria-label={removeLabel}
-          className="h-9 w-9 shrink-0 text-muted-foreground hover:bg-red-50 hover:text-red-700 @3xl:hidden dark:hover:bg-red-950/40 dark:hover:text-red-300"
+          className="h-9 w-9 shrink-0 text-muted-foreground hover:bg-red-50 hover:text-red-700 @4xl:hidden dark:hover:bg-red-950/40 dark:hover:text-red-300"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
+
+      <fieldset
+        className="col-span-2 min-w-0 @4xl:col-span-1"
+        aria-label={`Actual or estimate, ${lineName}`}
+      >
+        <legend className={cellLabel}>Actual or estimate</legend>
+        <div className="flex h-11 rounded-xl border border-forest-500/20 bg-muted/40 p-1 dark:border-cream-50/15">
+          {(
+            [
+              { estimated: false, label: "Actual" },
+              { estimated: true, label: "Estimate" },
+            ] as const
+          ).map((option) => {
+            const selected = line.estimated === option.estimated;
+            return (
+              <label
+                key={option.label}
+                className={cn(
+                  "flex flex-1 cursor-pointer select-none items-center justify-center rounded-lg border px-2 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
+                  !selected &&
+                    "border-transparent text-muted-foreground hover:text-foreground",
+                  selected &&
+                    !option.estimated &&
+                    "border-forest-500/20 bg-card font-medium text-foreground shadow-sm dark:border-cream-50/15 dark:bg-input/60",
+                  selected &&
+                    option.estimated &&
+                    "border-dashed border-amber-500/80 bg-amber-50 font-medium text-amber-900 dark:border-amber-500/60 dark:bg-amber-950/50 dark:text-amber-200"
+                )}
+              >
+                <input
+                  type="radio"
+                  name={`${id}-status`}
+                  className="sr-only"
+                  checked={selected}
+                  onChange={() =>
+                    onChange({ estimated: option.estimated } as Partial<L>)
+                  }
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <Button
         type="button"
@@ -666,7 +783,7 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
         size="icon"
         onClick={onRemove}
         aria-label={removeLabel}
-        className="hidden h-9 w-9 text-muted-foreground hover:bg-red-50 hover:text-red-700 @3xl:inline-flex dark:hover:bg-red-950/40 dark:hover:text-red-300"
+        className="hidden h-9 w-9 text-muted-foreground hover:bg-red-50 hover:text-red-700 @4xl:inline-flex dark:hover:bg-red-950/40 dark:hover:text-red-300"
       >
         <Trash2 className="h-4 w-4" />
       </Button>

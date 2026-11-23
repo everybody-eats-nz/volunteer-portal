@@ -4,6 +4,7 @@ import {
   buildCashCopyText,
   buildCashNights,
   cashDayTypeLabel,
+  eventCashTakings,
   formatCashRange,
   isDateKey,
   parseCashRangeParams,
@@ -262,5 +263,48 @@ describe("event and cafe days", () => {
       "Events\t1",
       "Cafe days\t1",
     ]);
+  });
+});
+
+describe("eventCashTakings", () => {
+  const line = (
+    source: "CASH" | "EFTPOS" | "STRIPE" | "INVOICE",
+    amount: number,
+    estimated = false
+  ) => ({ source, category: "SALES" as const, amount, gstIncluded: true, estimated });
+
+  it("is unknown until any income is entered", () => {
+    expect(eventCashTakings([])).toEqual({ cash: null, eftpos: null, stripe: null });
+  });
+
+  it("is still unknown while every line is an estimate", () => {
+    expect(
+      eventCashTakings([line("CASH", 500, true), line("EFTPOS", 3000, true)])
+    ).toEqual({ cash: null, eftpos: null, stripe: null });
+  });
+
+  it("counts only the actual lines when estimates and actuals mix", () => {
+    expect(
+      eventCashTakings([
+        line("CASH", 200),
+        line("CASH", 500, true),
+        line("EFTPOS", 3000, true),
+        line("STRIPE", 40.5),
+      ])
+    ).toEqual({ cash: 200, eftpos: 0, stripe: 40.5 });
+  });
+
+  it("reads $0 cash, not unknown, once actual income without cash is in", () => {
+    expect(eventCashTakings([line("INVOICE", 1150)])).toEqual({
+      cash: 0,
+      eftpos: 0,
+      stripe: 0,
+    });
+  });
+
+  it("counts every line once they are all made actual", () => {
+    expect(
+      eventCashTakings([line("CASH", 500), line("EFTPOS", 3000)])
+    ).toEqual({ cash: 500, eftpos: 3000, stripe: 0 });
   });
 });

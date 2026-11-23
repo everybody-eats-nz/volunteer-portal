@@ -232,7 +232,7 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 - **AutoAcceptRule** / **AutoApproval** — Automatic shift approval rules
 - **RegularVolunteer** / **RegularSignup** — Regular volunteer scheduling
 - **RestaurantManager** — Manager assignments
-- **MealsServed** - The end-of-day report per location per day. `reportType` (`DayReportType`) makes it a service night (koha), an event / fundraiser (itemised **EventIncome** lines with a GST flag each) or a cafe day (opening hours, cash, EFTPOS). Only service nights are koha: filter with `SERVICE_NIGHTS_ONLY` from `src/lib/day-reports.ts` in any koha / budget query. Event and cafe takings are reported at `/admin/analytics/events`
+- **MealsServed** - The end-of-day report per location per day. `reportType` (`DayReportType`) makes it a service night (koha), an event / fundraiser (itemised **EventIncome** / **EventExpense** lines, each with a GST flag and an `estimated` flag so events can be planned first; estimates count in totals and are badged wherever a total includes one, but never in cash reconciliation) or a cafe day (opening hours, cash, EFTPOS). Only service nights are koha: filter with `SERVICE_NIGHTS_ONLY` from `src/lib/day-reports.ts` in any koha / budget query. Event and cafe takings are reported at `/admin/analytics/events`
 - **Resource** — Resource hub content (`ResourceType`, `ResourceCategory` enums)
 - **SiteSetting** — Dynamic site configuration
 

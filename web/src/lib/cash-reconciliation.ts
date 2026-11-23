@@ -1,5 +1,10 @@
 import { format } from "date-fns";
-import { DAY_REPORT_TYPE_META, type DayReportType } from "@/lib/day-reports";
+import {
+  DAY_REPORT_TYPE_META,
+  summariseEventIncome,
+  type DayReportType,
+  type EventIncomeLine,
+} from "@/lib/day-reports";
 
 /**
  * Cash reconciliation: one location's cash, day by day, over a date range, so
@@ -139,6 +144,22 @@ export interface CashRecordInput {
   cash: number | null;
   eftpos: number | null;
   stripe: number | null;
+}
+
+/**
+ * An event's banked takings, by source, from its itemised income. Until any
+ * actual income is entered its cash is unknown (null, so the night is
+ * flagged); after that, no cash lines genuinely means $0 cash. Estimates were
+ * never banked, so they never count, and invoices are paid later, not banked
+ * on the night.
+ */
+export function eventCashTakings(
+  income: readonly EventIncomeLine[]
+): Pick<CashRecordInput, "cash" | "eftpos" | "stripe"> {
+  const actual = income.filter((line) => !line.estimated);
+  if (actual.length === 0) return { cash: null, eftpos: null, stripe: null };
+  const { bySource } = summariseEventIncome(actual);
+  return { cash: bySource.CASH, eftpos: bySource.EFTPOS, stripe: bySource.STRIPE };
 }
 
 // Sum in whole cents so a column of $x.10s never totals $x.0999999.

@@ -85,6 +85,7 @@ export const eventIncomeLineSchema = z.object({
   ),
   amount: lineAmount("income"),
   gstIncluded: z.boolean().default(false),
+  estimated: z.boolean().default(false),
 });
 
 export type EventIncomeLineInput = z.infer<typeof eventIncomeLineSchema>;
@@ -100,6 +101,7 @@ export const eventExpenseLineSchema = z.object({
   ),
   amount: lineAmount("expense"),
   gstIncluded: z.boolean().default(false),
+  estimated: z.boolean().default(false),
 });
 
 export type EventExpenseLineInput = z.infer<typeof eventExpenseLineSchema>;

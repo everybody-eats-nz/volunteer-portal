@@ -5,6 +5,7 @@ import {
   gstPortion,
   eventProfit,
   openMinutes,
+  profitLabel,
   summariseEventExpenses,
   summariseEventIncome,
 } from "./day-reports";
@@ -29,6 +30,43 @@ describe("summariseEventExpenses", () => {
       DRINKS: 241.5,
       OTHER: 0,
     });
+  });
+});
+
+describe("estimated lines", () => {
+  it("count in the totals and are counted apart", () => {
+    const income = summariseEventIncome([
+      {
+        source: "EFTPOS",
+        category: "SALES",
+        amount: 2300,
+        gstIncluded: true,
+        estimated: true,
+      },
+      { source: "CASH", category: "KOHA", amount: 200, gstIncluded: false },
+    ]);
+    expect(income.total).toBe(2500);
+    expect(income.gst).toBe(300);
+    expect(income.estimatedLines).toBe(1);
+
+    const expenses = summariseEventExpenses([
+      { category: "FOOD", amount: 115, gstIncluded: true, estimated: true },
+      { category: "DECOR", amount: 50, gstIncluded: false, estimated: true },
+    ]);
+    expect(expenses.total).toBe(165);
+    expect(expenses.estimatedLines).toBe(2);
+
+    expect(summariseEventExpenses([]).estimatedLines).toBe(0);
+  });
+});
+
+describe("profitLabel", () => {
+  it("says profit or loss, as an estimate when it includes one", () => {
+    expect(profitLabel(10)).toBe("Profit");
+    expect(profitLabel(0)).toBe("Profit");
+    expect(profitLabel(-1)).toBe("Loss");
+    expect(profitLabel(10, true)).toBe("Estimated profit");
+    expect(profitLabel(-1, true)).toBe("Estimated loss");
   });
 });
 
