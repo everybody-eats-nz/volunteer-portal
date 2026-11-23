@@ -1,3 +1,9 @@
+## [0.206.2] - 2026-11-23
+
+### Changes
+- fix(home): make the landing page prerender instead of blocking ([#1438](https://github.com/everybody-eats-nz/volunteer-portal/pull/1438)) by @malinmalliyawadu
+
+
 ## [0.206.1] - 2026-11-23
 
 ### Changes
