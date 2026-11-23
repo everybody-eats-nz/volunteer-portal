@@ -1,3 +1,9 @@
+## [0.206.0] - 2026-11-23
+
+### Changes
+- feat(events): mark event income and expense lines as estimates ([#1437](https://github.com/everybody-eats-nz/volunteer-portal/pull/1437)) by @malinmalliyawadu
+
+
 ## [0.205.0] - 2026-11-23
 
 ### Changes
