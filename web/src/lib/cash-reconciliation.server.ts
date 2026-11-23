@@ -37,7 +37,13 @@ export async function getCashReconciliation({
         eftpos: true,
         stripe: true,
         income: {
-          select: { source: true, category: true, amount: true, gstIncluded: true },
+          select: {
+            source: true,
+            category: true,
+            amount: true,
+            gstIncluded: true,
+            estimated: true,
+          },
         },
       },
     }),
@@ -61,12 +67,14 @@ export async function getCashReconciliation({
           stripe: decimal(r.stripe),
         };
       }
-      // An event's takings are itemised by source. Until any income is
-      // entered its cash is unknown (flagged); after that, no cash lines
-      // genuinely means $0 cash. Invoices are paid later, not banked tonight.
-      const recorded = r.income.length > 0;
+      // An event's takings are itemised by source. Until any actual income
+      // is entered its cash is unknown (flagged); after that, no cash lines
+      // genuinely means $0 cash. Estimates were never banked, and invoices
+      // are paid later, not banked tonight.
+      const actual = r.income.filter((line) => !line.estimated);
+      const recorded = actual.length > 0;
       const { bySource } = summariseEventIncome(
-        r.income.map((line) => ({ ...line, amount: Number(line.amount) }))
+        actual.map((line) => ({ ...line, amount: Number(line.amount) }))
       );
       return {
         date,

@@ -49,6 +49,9 @@ export interface EventRow {
   lineCount: number;
   expenses: number;
   expenseLineCount: number;
+  /** Estimated lines in the income / expenses (they're in the totals). */
+  incomeEstimates: number;
+  expenseEstimates: number;
   profit: number;
   profitExGst: number;
 }
@@ -68,6 +71,10 @@ export interface EventsReport {
     expensesByCategory: Record<EventExpenseCategory, number>;
     profit: number;
     profitExGst: number;
+    /** Events with an estimate in their income or expenses. */
+    eventsWithEstimates: number;
+    incomeEstimates: number;
+    expenseEstimates: number;
   };
 }
 
@@ -127,6 +134,8 @@ export function buildEventsReport(days: EventDayInput[]): EventsReport {
         lineCount: d.income.length,
         expenses: expenses.total,
         expenseLineCount: d.expenses.length,
+        incomeEstimates: income.estimatedLines,
+        expenseEstimates: expenses.estimatedLines,
         ...eventProfit(income, expenses),
       };
     })
@@ -146,6 +155,11 @@ export function buildEventsReport(days: EventDayInput[]): EventsReport {
       expensesExGst: allExpenses.totalExGst,
       expensesByCategory: allExpenses.byCategory,
       ...eventProfit(all, allExpenses),
+      eventsWithEstimates: rows.filter(
+        (r) => r.incomeEstimates + r.expenseEstimates > 0
+      ).length,
+      incomeEstimates: all.estimatedLines,
+      expenseEstimates: allExpenses.estimatedLines,
     },
   };
 }
@@ -211,6 +225,18 @@ export function buildCafeReport(days: CafeDayInput[]): CafeReport {
         pairedCustomers > 0 ? cents(pairedTakings / pairedCustomers) : null,
     },
   };
+}
+
+/**
+ * How many events in a period include estimates: "Includes estimates",
+ * "All 3 events include estimates", "1 of 4 events includes estimates".
+ */
+export function estimatesNote(withEstimates: number, events: number): string {
+  if (events === 1) return "Includes estimates";
+  if (withEstimates === events) return `All ${events} events include estimates`;
+  return `${withEstimates} of ${events} events ${
+    withEstimates === 1 ? "includes" : "include"
+  } estimates`;
 }
 
 /** Categories / sources with money against them, largest first. */

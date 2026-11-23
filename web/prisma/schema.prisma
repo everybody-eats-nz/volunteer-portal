@@ -1055,6 +1055,8 @@ enum EventIncomeCategory {
 }
 
 // One line of takings at an event (fundraiser), e.g. "Auction, EFTPOS, $1,200".
+// A line can be an estimate while the event is being planned, and is made
+// actual once the real figure is known.
 model EventIncome {
   id          String              @id @default(cuid())
   reportId    String
@@ -1063,6 +1065,7 @@ model EventIncome {
   description String?             @db.VarChar(120)
   amount      Decimal             @db.Decimal(10, 2) // GST-inclusive when gstIncluded
   gstIncluded Boolean             @default(false) // Taxable: the amount includes 15% GST
+  estimated   Boolean             @default(false) // A planning estimate, not yet the actual figure
   position    Int                 @default(0) // Display order within the report
 
   report MealsServed @relation(fields: [reportId], references: [id], onDelete: Cascade)
@@ -1089,6 +1092,7 @@ model EventExpense {
   description String?              @db.VarChar(120)
   amount      Decimal              @db.Decimal(10, 2) // GST-inclusive when gstIncluded
   gstIncluded Boolean              @default(false) // The amount includes 15% GST (claimable)
+  estimated   Boolean              @default(false) // A planning estimate, not yet the actual figure
   position    Int                  @default(0) // Display order within the report
 
   report MealsServed @relation(fields: [reportId], references: [id], onDelete: Cascade)

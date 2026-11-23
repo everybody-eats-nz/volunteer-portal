@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCafeReport,
   buildEventsReport,
+  estimatesNote,
   rankedShares,
 } from "./events-cafe-report";
 
@@ -73,6 +74,71 @@ describe("buildEventsReport", () => {
   });
 });
 
+describe("buildEventsReport with estimates", () => {
+  it("keeps estimates in the totals and flags the events that have them", () => {
+    const report = buildEventsReport([
+      {
+        date: "2026-12-05",
+        location: "Wellington",
+        eventName: "Christmas fundraiser",
+        pax: null,
+        income: [
+          {
+            source: "EFTPOS",
+            category: "SALES",
+            amount: 3000,
+            gstIncluded: true,
+            estimated: true,
+          },
+        ],
+        expenses: [
+          { category: "FOOD", amount: 800, gstIncluded: true, estimated: true },
+          { category: "STAFFING", amount: 400, gstIncluded: false },
+        ],
+      },
+      {
+        date: "2026-11-26",
+        location: "Wellington",
+        eventName: "Quiz night",
+        pax: 60,
+        income: [
+          { source: "CASH", category: "KOHA", amount: 500, gstIncluded: false },
+        ],
+        expenses: [],
+      },
+    ]);
+
+    expect(report.rows[0]).toMatchObject({
+      total: 3000,
+      expenses: 1200,
+      profit: 1800,
+      incomeEstimates: 1,
+      expenseEstimates: 1,
+    });
+    expect(report.rows[1]).toMatchObject({
+      incomeEstimates: 0,
+      expenseEstimates: 0,
+    });
+    expect(report.totals).toMatchObject({
+      total: 3500,
+      expenses: 1200,
+      profit: 2300,
+      eventsWithEstimates: 1,
+      incomeEstimates: 1,
+      expenseEstimates: 1,
+    });
+  });
+});
+
+describe("estimatesNote", () => {
+  it("says how many events include estimates", () => {
+    expect(estimatesNote(1, 1)).toBe("Includes estimates");
+    expect(estimatesNote(3, 3)).toBe("All 3 events include estimates");
+    expect(estimatesNote(1, 4)).toBe("1 of 4 events includes estimates");
+    expect(estimatesNote(2, 4)).toBe("2 of 4 events include estimates");
+  });
+});
+
 describe("buildCafeReport", () => {
   it("averages takings over days that recorded them", () => {
     const report = buildCafeReport([
@@ -135,7 +201,7 @@ describe("buildCafeReport", () => {
 describe("rankedShares", () => {
   it("drops empty keys and sorts by amount", () => {
     expect(
-      rankedShares({ A: 25, B: 0, C: 75 }, ["A", "B", "C"] as const)
+      rankedShares({ A: 25, B: 0, C: 75 }, ["A", "B", "C"] as const),
     ).toEqual([
       { key: "C", amount: 75, share: 0.75 },
       { key: "A", amount: 25, share: 0.25 },

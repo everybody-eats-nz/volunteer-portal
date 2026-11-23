@@ -53,6 +53,7 @@ import {
   openMinutes,
   summariseEventExpenses,
   summariseEventIncome,
+  profitLabel,
   type DayReportType,
   type EventExpenseCategory,
   type EventIncomeCategory,
@@ -70,6 +71,7 @@ import { ReportTypePicker } from "@/components/day-report/report-type-picker";
 import {
   EventExpenseEditor,
   EventIncomeEditor,
+  SectionTotal,
   EventProfitStatement,
   isBlankLineDraft,
   newExpenseDraft,
@@ -226,6 +228,7 @@ interface ApiIncomeLine {
   description: string | null;
   amount: number;
   gstIncluded: boolean;
+  estimated?: boolean;
 }
 
 interface ApiExpenseLine {
@@ -233,6 +236,7 @@ interface ApiExpenseLine {
   description: string | null;
   amount: number;
   gstIncluded: boolean;
+  estimated?: boolean;
 }
 
 // Saved amounts come back as numbers; the form edits them as "12.50".
@@ -448,6 +452,11 @@ export function MealsServedInput({
     [expenses]
   );
   const profit = eventProfit(incomeSummary, expenseSummary);
+  // Estimates count in the totals like actuals; every total that includes
+  // one says so.
+  const incomeEstimated = incomeSummary.estimatedLines > 0;
+  const expensesEstimated = expenseSummary.estimatedLines > 0;
+  const profitEstimated = incomeEstimated || expensesEstimated;
   const eftposTotal = num(form.eftpos);
   const customers = num(form.mealsServed);
   const cafeSales =
@@ -585,6 +594,7 @@ export function MealsServedInput({
             description: line.description.trim() || null,
             amount: line.amount.trim(),
             gstIncluded: line.gstIncluded,
+            estimated: line.estimated,
           }))
         : [];
       payload.expenses = isEvent
@@ -593,6 +603,7 @@ export function MealsServedInput({
             description: line.description.trim() || null,
             amount: line.amount.trim(),
             gstIncluded: line.gstIncluded,
+            estimated: line.estimated,
           }))
         : [];
 
@@ -822,17 +833,23 @@ export function MealsServedInput({
                   tone="violet"
                   label="Event income"
                   value={NZD.format(incomeSummary.total)}
-                  hint="Incl. GST, not koha"
+                  hint={
+                    incomeEstimated
+                      ? "Incl. GST and estimates"
+                      : "Incl. GST, not koha"
+                  }
                   testId="event-hero-total"
                 />
                 <HeroStat
                   label="Expenses"
                   value={NZD.format(expenseSummary.total)}
-                  hint="Incl. GST"
+                  hint={
+                    expensesEstimated ? "Incl. GST and estimates" : "Incl. GST"
+                  }
                   testId="event-hero-expenses"
                 />
                 <HeroStat
-                  label={profit.profit < 0 ? "Loss" : "Profit"}
+                  label={profitLabel(profit.profit, profitEstimated)}
                   value={NZD.format(profit.profit)}
                   hint={`${NZD.format(profit.profitExGst)} excl. GST`}
                   testId="event-hero-profit"
@@ -975,9 +992,10 @@ export function MealsServedInput({
                   title="Income"
                   tone="violet"
                   action={
-                    <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-violet-800 dark:bg-violet-950/50 dark:text-violet-300">
-                      {NZD.format(incomeSummary.total)}
-                    </span>
+                    <SectionTotal
+                      total={incomeSummary.total}
+                      estimated={incomeEstimated}
+                    />
                   }
                 >
                   <EventIncomeEditor
@@ -992,9 +1010,10 @@ export function MealsServedInput({
                   title="Expenses"
                   tone="violet"
                   action={
-                    <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-violet-800 dark:bg-violet-950/50 dark:text-violet-300">
-                      {NZD.format(expenseSummary.total)}
-                    </span>
+                    <SectionTotal
+                      total={expenseSummary.total}
+                      estimated={expensesEstimated}
+                    />
                   }
                 >
                   <EventExpenseEditor
@@ -1009,6 +1028,7 @@ export function MealsServedInput({
                     income={incomeSummary}
                     expenses={expenseSummary}
                     profit={profit}
+                    estimated={profitEstimated}
                   />
                 )}
               </>

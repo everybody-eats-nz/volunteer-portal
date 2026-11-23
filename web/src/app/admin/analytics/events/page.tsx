@@ -109,10 +109,16 @@ export default async function EventsCafePage({
           category: true,
           amount: true,
           gstIncluded: true,
+          estimated: true,
         },
       },
       expenses: {
-        select: { category: true, amount: true, gstIncluded: true },
+        select: {
+          category: true,
+          amount: true,
+          gstIncluded: true,
+          estimated: true,
+        },
       },
     },
   });
