@@ -7,6 +7,15 @@ const CURRENT_PASSWORD = "Test123456";
 const NEW_PASSWORD = "Changed789Xy";
 
 async function signIn(page: Parameters<typeof createTestUser>[0], email: string, password: string) {
+  // Set next-auth's CSRF cookie before /login loads. With no cookie, every
+  // auth request the page fires on mount (two /api/auth/session calls, then
+  // /api/auth/csrf from signIn) mints its own token and sets it. On a cold
+  // `next dev` in CI a session response can land after the csrf one and
+  // overwrite the cookie, so the credentials POST carries a token that no
+  // longer matches. next-auth then redirects to /login?callbackUrl=... and
+  // waitForURL("/dashboard") times out. With the cookie already set, every
+  // response reuses it. (loginAsVolunteer gets this from clearSession.)
+  await page.request.get("/api/auth/csrf");
   await page.goto("/login");
   await page.waitForLoadState("load");
   await page.getByTestId("email-input").fill(email);
