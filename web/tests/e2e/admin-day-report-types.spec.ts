@@ -488,6 +488,33 @@ test.describe("Day report types", () => {
     ).toHaveValue("Street party");
   });
 
+  test("never offers a blank form when the day can't be loaded", async ({
+    page,
+  }) => {
+    const name = await setUpDay(page);
+    const reportApi = "**/api/admin/meals-served?*";
+    await page.route(reportApi, (route) =>
+      route.request().method() === "GET"
+        ? route.fulfill({ status: 500, body: "{}" })
+        : route.continue()
+    );
+    await gotoSettled(
+      page,
+      `/admin/shifts?date=${DATE}&location=${encodeURIComponent(name)}`
+    );
+
+    // No form to save over the day's recorded figures and activities...
+    await expect(visibleTestId(page, "day-report-load-error")).toBeVisible();
+    await expect(page.getByTestId("day-report")).toHaveCount(0);
+
+    // ...until it loads.
+    await page.unroute(reportApi);
+    await visibleTestId(page, "day-report-load-error")
+      .getByRole("button", { name: "Try again" })
+      .click();
+    await expect(visibleTestId(page, "day-report")).toBeVisible();
+  });
+
   test("records several catering gigs and an event on one day", async ({
     page,
   }) => {

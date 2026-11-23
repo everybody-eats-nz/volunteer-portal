@@ -289,6 +289,10 @@ export function MealsServedInput({
   const [defaultValue, setDefaultValue] = useState<number>(60);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  // The day couldn't be loaded. The form stays hidden, so a Save can never
+  // overwrite a recorded day (or wipe its activities) with blanks.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [hasExistingRecord, setHasExistingRecord] = useState(false);
   // Collapsed by default so the report doesn't dominate the shifts page;
   // the summary header + hero totals stay visible, the form expands on demand.
@@ -340,13 +344,17 @@ export function MealsServedInput({
     let active = true;
     const fetchData = async () => {
       setFetching(true);
+      setLoadFailed(false);
       try {
         const response = await fetch(
           `/api/admin/meals-served?date=${date}&location=${encodeURIComponent(
             location
           )}`
         );
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (active) setLoadFailed(true);
+          return;
+        }
         const data = await response.json();
         if (!active) return;
 
@@ -391,6 +399,7 @@ export function MealsServedInput({
         }
       } catch (error) {
         console.error("Error fetching service-night stats:", error);
+        if (active) setLoadFailed(true);
       } finally {
         if (active) setFetching(false);
       }
@@ -400,7 +409,7 @@ export function MealsServedInput({
     return () => {
       active = false;
     };
-  }, [date, location, applyWeather, hasShifts]);
+  }, [date, location, applyWeather, hasShifts, reloadKey]);
 
   const changeType = (type: DayReportType) => {
     if (type === reportType) return;
@@ -652,6 +661,31 @@ export function MealsServedInput({
 
   if (fetching) {
     return hasShifts ? <ServiceNightReportSkeleton /> : null;
+  }
+
+  if (loadFailed) {
+    return (
+      <div
+        role="alert"
+        className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
+        data-testid="day-report-load-error"
+      >
+        <span className="flex items-center gap-2">
+          <Info className="h-4 w-4 shrink-0" aria-hidden />
+          Couldn&apos;t load the report for {location} on this day.
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setReloadKey((k) => k + 1)}
+          className="gap-1.5"
+        >
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   if (!hasShifts && !hasExistingRecord && !started) {
