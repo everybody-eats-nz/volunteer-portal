@@ -1,3 +1,9 @@
+## [0.205.0] - 2026-11-23
+
+### Changes
+- feat(mobile): sort the approvals queue by shift date, soonest first ([#1436](https://github.com/everybody-eats-nz/volunteer-portal/pull/1436)) by @malinmalliyawadu
+
+
 ## [0.204.7] - 2026-11-23
 
 ### Changes
