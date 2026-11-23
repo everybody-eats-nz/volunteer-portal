@@ -42,15 +42,36 @@ describe("GET /api/mobile/admin/signups/pending", () => {
   });
 
   // Admins work the queue from the top, so the soonest shift has to be there,
-  // not whichever volunteer happened to apply first.
+  // not whichever volunteer happened to apply first. Prisma is mocked, so this
+  // pins the query rather than proving the rows come back sorted; the order
+  // was checked against real Postgres when it was written (PR #1436).
   it("orders the queue by shift date, soonest first, keeping each shift together", async () => {
     await get();
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: [{ shift: { start: "asc" } }, { shiftId: "asc" }, { createdAt: "asc" }],
+        orderBy: [
+          { shift: { start: "asc" } },
+          { shiftId: "asc" },
+          { createdAt: "asc" },
+          { id: "asc" },
+        ],
       })
     );
+  });
+
+  it.each([
+    ["no limit", "", 50],
+    ["a normal limit", "?limit=20", 20],
+    ["a limit over the cap", "?limit=500", 100],
+    ["a negative limit", "?limit=-5", 50],
+    ["zero", "?limit=0", 50],
+    ["a non-number", "?limit=abc", 50],
+    ["a fraction", "?limit=7.9", 7],
+  ])("takes a sane number of rows for %s", async (_label, query, take) => {
+    await get(query);
+
+    expect(mockFindMany.mock.calls[0][0].take).toBe(take);
   });
 
   it("only looks at upcoming shifts at the chosen location", async () => {

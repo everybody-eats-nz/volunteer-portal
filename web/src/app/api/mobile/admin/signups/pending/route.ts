@@ -23,7 +23,11 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const location = url.searchParams.get("location") ?? undefined;
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 100);
+  // A negative `take` makes Prisma read from the end of the list (the
+  // furthest-out shifts), and NaN throws, so fall back to the default for
+  // anything that isn't a positive whole number.
+  const requested = Math.trunc(Number(url.searchParams.get("limit") ?? 50));
+  const limit = requested >= 1 ? Math.min(requested, 100) : 50;
 
   const where: Prisma.SignupWhereInput = {
     status: { in: ["PENDING", "REGULAR_PENDING"] },
@@ -35,7 +39,14 @@ export async function GET(req: Request) {
 
   const signups = await prisma.signup.findMany({
     where,
-    orderBy: [{ shift: { start: "asc" } }, { shiftId: "asc" }, { createdAt: "asc" }],
+    // `id` last makes the order total, so signups created in the same
+    // instant (bulk regular inserts) never swap between requests.
+    orderBy: [
+      { shift: { start: "asc" } },
+      { shiftId: "asc" },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
     take: limit,
     select: {
       id: true,
