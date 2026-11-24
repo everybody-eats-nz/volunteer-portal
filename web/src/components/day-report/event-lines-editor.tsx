@@ -730,7 +730,7 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
         <label
           htmlFor={`${id}-gst`}
           className={cn(
-            "flex h-11 flex-1 cursor-pointer select-none items-center gap-2 rounded-xl border px-3 @lg:flex-none text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50 @4xl:px-2.5",
+            "flex h-11 flex-1 cursor-pointer select-none items-center gap-2 rounded-xl border px-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50 @lg:flex-none @4xl:px-2.5",
             line.gstIncluded
               ? "border-forest-500/20 bg-forest-500/5 font-medium text-foreground dark:border-cream-50/15 dark:bg-cream-50/5"
               : "border-forest-500/20 text-muted-foreground hover:text-foreground dark:border-cream-50/15"
