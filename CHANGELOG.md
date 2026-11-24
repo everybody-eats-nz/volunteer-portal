@@ -1,3 +1,9 @@
+## [0.207.1] - 2026-11-24
+
+### Changes
+- fix(events): put amount, GST and actual/estimate on one row ([#1441](https://github.com/everybody-eats-nz/volunteer-portal/pull/1441)) by @malinmalliyawadu
+
+
 ## [0.207.0] - 2026-11-24
 
 ### Changes
