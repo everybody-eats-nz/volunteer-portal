@@ -21,7 +21,7 @@ const loader = async () => {
   return mod;
 };
 
-describe('Year in mahi player loader', () => {
+describe('Everybody Eats, Served player loader', () => {
   beforeEach(() => {
     vi.resetModules();
   });

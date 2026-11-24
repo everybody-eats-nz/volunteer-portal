@@ -6,7 +6,7 @@ export function YearInReviewPageHeader({ year }: { year?: number }) {
     <PageHeader
       title={
         <>
-          Your <em>{year ?? "year"}</em> in mahi
+          Your <em>{year ?? "year"}</em>, served
         </>
       }
       description="Your shifts, the meals you helped serve and the crew you served with, made into a video to share."

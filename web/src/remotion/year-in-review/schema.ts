@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 /**
- * Everything the "Year in mahi" video shows, for one volunteer and one
- * calendar year. Built server-side by `getVolunteerYearInReview()` and passed
- * to the composition as input props, so it must stay JSON-serialisable (dates
- * are ISO strings).
+ * Everything the "Everybody Eats, Served" video shows, for one volunteer and
+ * one calendar year. Built server-side by `getVolunteerYearInReview()` and
+ * passed to the composition as input props, so it must stay JSON-serialisable
+ * (dates are ISO strings).
  *
  * Optional stories are carried as empty arrays / nulls and the timeline skips
  * their scene, so a volunteer with no friends or no new badges still gets a

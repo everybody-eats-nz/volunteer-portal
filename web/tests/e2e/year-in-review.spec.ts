@@ -14,17 +14,17 @@ import {
 } from "./helpers/test-helpers";
 
 /**
- * Year in mahi: the admin switch, the volunteer page and dashboard banner,
- * and an admin previewing someone's video. The switch is site-wide, so the
- * file runs serially and puts the original settings back afterwards.
- * (The MP4 is rendered on the server with the Remotion bundle and Chrome that
- * only the production image carries, so rendering itself isn't run here.)
+ * Everybody Eats, Served: the admin switch, the volunteer page and dashboard
+ * banner, and an admin previewing someone's video. The switch is site-wide, so
+ * the file runs serially and puts the original settings back afterwards. (The
+ * MP4 is rendered on the server with the Remotion bundle and Chrome that only
+ * the production image carries, so rendering itself isn't run here.)
  */
 test.describe.configure({ mode: "serial" });
 
 type Settings = { enabled: boolean; year: number };
 
-test.describe("Year in mahi", () => {
+test.describe("Everybody Eats, Served", () => {
   const runId = randomUUID().slice(0, 8);
   const volunteerEmail = `year-in-review-${runId}@example.com`;
   const shiftIds: string[] = [];
@@ -130,12 +130,12 @@ test.describe("Year in mahi", () => {
     const toggle = page.getByTestId("year-in-review-enabled-switch");
     await expect(toggle).toHaveAttribute("aria-checked", "false");
     await toggle.click();
-    await expect(page.getByText("Year in mahi is on for everyone")).toBeVisible();
+    await expect(page.getByText("Everybody Eats, Served is on for everyone")).toBeVisible();
     await expect(toggle).toHaveAttribute("aria-checked", "true");
 
     await loginAsVolunteer(page, volunteerEmail);
     const banner = page.getByTestId("dashboard-year-in-review-banner");
-    await expect(banner).toContainText(`Your ${year} in mahi is ready`);
+    await expect(banner).toContainText(`Your ${year}, served`);
     // Followed by URL rather than a click: a fresh volunteer's first-shift
     // achievement celebration can open over the dashboard at any moment.
     await expect(banner).toHaveAttribute("href", "/year-in-review");

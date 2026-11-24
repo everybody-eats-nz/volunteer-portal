@@ -13,7 +13,7 @@ export function chooseYearInReviewPlayer<T>(load: () => T): T | null {
 }
 
 /**
- * The Year in mahi player, or null when this binary cannot show one.
+ * The Everybody Eats, Served player, or null when this binary cannot show one.
  *
  * It needs react-native-webview, a native module. Installs built before that
  * was added still take over-the-air updates, and importing it there throws at

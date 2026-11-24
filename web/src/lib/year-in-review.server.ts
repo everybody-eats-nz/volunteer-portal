@@ -15,7 +15,7 @@ import {
 import type { YearInReviewProps } from "@/remotion/year-in-review/schema";
 
 /**
- * Builds the input props for one volunteer's "Year in mahi" video.
+ * Builds the input props for one volunteer's "Everybody Eats, Served" video.
  *
  * A shift counts once it's CONFIRMED and finished, the same basis as the
  * portal's hours and achievements, so a year still in progress covers the

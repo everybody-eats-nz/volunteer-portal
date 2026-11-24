@@ -1,4 +1,4 @@
-# Year in mahi video
+# Everybody Eats, Served video
 
 A Spotify Wrapped style video of one volunteer's year, built with
 [Remotion](https://www.remotion.dev) and sized for Instagram Stories and Reels.
@@ -76,7 +76,7 @@ npm run video:render -- --props=out/year-in-review/<userId>-2026.json
 `video:props` reads the database in `DATABASE_URL` and writes the props JSON
 to `out/` (gitignored). Studio runs on http://localhost:3200 and shows a
 sample volunteer when no `--props` is passed. Renders land in `out/` as
-`year-in-mahi-<year>-<name>.mp4`.
+`everybody-eats-served-<year>-<name>.mp4`.
 
 ## What it shows
 

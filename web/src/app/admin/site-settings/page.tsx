@@ -25,7 +25,7 @@ export default async function SiteSettingsPage() {
     redirect("/dashboard");
   }
 
-  // Year in mahi settings have their own page.
+  // Everybody Eats, Served settings have their own page.
   const settings = await prisma.siteSetting.findMany({
     where: { category: { not: YEAR_IN_REVIEW_CATEGORY } },
     orderBy: { category: "asc" },
@@ -61,7 +61,7 @@ export default async function SiteSettingsPage() {
                   <div className="flex items-center gap-3">
                     <Clapperboard className="w-5 h-5 text-primary-text" />
                     <div>
-                      <p className="font-medium">Year in mahi</p>
+                      <p className="font-medium">Everybody Eats, Served</p>
                       <p className="text-sm text-muted-foreground">
                         Turn on each volunteer&apos;s yearly video and pick its
                         year

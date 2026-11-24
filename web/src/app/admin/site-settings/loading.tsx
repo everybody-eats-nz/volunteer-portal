@@ -11,7 +11,7 @@ export default function SiteSettingsLoading() {
       title="Site Settings"
       description="Configure site-wide settings and URLs"
     >
-      {/* Messaging hours and Year in mahi link cards */}
+      {/* Messaging hours and Everybody Eats, Served link cards */}
       {[0, 1].map((i) => (
         <SkeletonCard key={i} className="py-5">
           <div className="flex items-center justify-between gap-4 px-6">

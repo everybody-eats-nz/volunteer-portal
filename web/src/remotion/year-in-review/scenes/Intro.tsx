@@ -120,7 +120,7 @@ export const Intro = ({ firstName, photoUrl, year }: YearInReviewProps) => {
       </div>
       <Rise delay={1.3}>
         <div style={{ ...lead, color: colors.forest200 }}>
-          Here&apos;s your year in mahi
+          Here&apos;s your year, served
         </div>
       </Rise>
     </Scene>

@@ -237,7 +237,7 @@ export default function RootLayout() {
             options={{
               headerShown: true,
               headerBackTitle: 'Back',
-              title: 'Year in mahi',
+              title: 'Everybody Eats, Served',
               headerStyle: { backgroundColor: Palette.forest700 },
               headerTintColor: Palette.cream50,
               headerTitleStyle: { fontFamily: FontFamily.semiBold },

@@ -6,8 +6,9 @@ import { getYearInReviewSettings } from "@/lib/year-in-review-settings";
 import { hasYearInReview } from "@/lib/year-in-review.server";
 
 /**
- * Points volunteers at their Year in mahi video once an admin has switched it
- * on, for anyone (admin or volunteer) with a completed shift that year.
+ * Points volunteers at their Everybody Eats, Served video once an admin has
+ * switched it on, for anyone (admin or volunteer) with a completed shift that
+ * year.
  */
 export async function DashboardYearInReviewBanner() {
   const session = await getServerSession(authOptions);
@@ -27,7 +28,7 @@ export async function DashboardYearInReviewBanner() {
     >
       <div className="min-w-0">
         <p className="display text-2xl leading-tight text-sun-300 sm:text-3xl">
-          Your {settings.year} in mahi is ready
+          Your {settings.year}, served
         </p>
         <p className="mt-1 text-sm text-cream-50/80 sm:text-base">
           Watch your year at Everybody Eats, then share it.

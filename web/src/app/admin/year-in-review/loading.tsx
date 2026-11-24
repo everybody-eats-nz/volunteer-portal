@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function YearInReviewAdminLoading() {
   return (
     <AdminPageSkeleton
-      title="Year in mahi"
+      title="Everybody Eats, Served"
       description="A video of each person's year at Everybody Eats, made to share on Instagram"
     >
       <SkeletonCard className="flex flex-col gap-6 py-6">
