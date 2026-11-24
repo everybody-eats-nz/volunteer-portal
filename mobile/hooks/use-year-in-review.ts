@@ -10,8 +10,8 @@ type YearInReviewAvailability = {
 };
 
 /**
- * Whether the signed-in volunteer has an Everybody Eats, Served video to watch. The
- * player is a web page the year-in-review screen opens in a WebView, so it
+ * Whether the signed-in volunteer has an Everybody Eats, Served video to watch.
+ * The player is a web page the year-in-review screen opens in a WebView, so it
  * updates without an app release.
  */
 export function useYearInReview() {

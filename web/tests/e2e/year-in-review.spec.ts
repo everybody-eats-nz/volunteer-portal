@@ -14,11 +14,11 @@ import {
 } from "./helpers/test-helpers";
 
 /**
- * Everybody Eats, Served: the admin switch, the volunteer page and dashboard banner,
- * and an admin previewing someone's video. The switch is site-wide, so the
- * file runs serially and puts the original settings back afterwards.
- * (The MP4 is rendered on the server with the Remotion bundle and Chrome that
- * only the production image carries, so rendering itself isn't run here.)
+ * Everybody Eats, Served: the admin switch, the volunteer page and dashboard
+ * banner, and an admin previewing someone's video. The switch is site-wide, so
+ * the file runs serially and puts the original settings back afterwards. (The
+ * MP4 is rendered on the server with the Remotion bundle and Chrome that only
+ * the production image carries, so rendering itself isn't run here.)
  */
 test.describe.configure({ mode: "serial" });
 

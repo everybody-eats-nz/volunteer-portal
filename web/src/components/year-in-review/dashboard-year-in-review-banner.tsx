@@ -6,8 +6,9 @@ import { getYearInReviewSettings } from "@/lib/year-in-review-settings";
 import { hasYearInReview } from "@/lib/year-in-review.server";
 
 /**
- * Points volunteers at their Everybody Eats, Served video once an admin has switched it
- * on, for anyone (admin or volunteer) with a completed shift that year.
+ * Points volunteers at their Everybody Eats, Served video once an admin has
+ * switched it on, for anyone (admin or volunteer) with a completed shift that
+ * year.
  */
 export async function DashboardYearInReviewBanner() {
   const session = await getServerSession(authOptions);

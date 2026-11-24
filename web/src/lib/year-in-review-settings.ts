@@ -2,10 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { nowInNZT } from "@/lib/timezone";
 
 /**
- * Whether volunteers can see their "Everybody Eats, Served" video, and which year it
- * covers. Stored as site settings under their own category; the admin page at
- * /admin/year-in-review edits them (the generic site-settings form skips
- * this category).
+ * Whether volunteers can see their "Everybody Eats, Served" video, and which
+ * year it covers. Stored as site settings under their own category; the admin
+ * page at /admin/year-in-review edits them (the generic site-settings form
+ * skips this category).
  */
 
 export const YEAR_IN_REVIEW_CATEGORY = "YEAR_IN_REVIEW";
@@ -69,10 +69,10 @@ export async function saveYearInReviewSettings(
 }
 
 /**
- * For now only Malin manages Everybody Eats, Served: the admin page, watching anyone's
- * video, and seeing it before it's switched on. Other admins are treated like
- * volunteers. `YEAR_IN_REVIEW_MANAGER_EMAILS` (comma separated) adds more,
- * which the e2e server uses for the seeded admin.
+ * For now only Malin manages Everybody Eats, Served: the admin page, watching
+ * anyone's video, and seeing it before it's switched on. Other admins are
+ * treated like volunteers. `YEAR_IN_REVIEW_MANAGER_EMAILS` (comma separated)
+ * adds more, which the e2e server uses for the seeded admin.
  */
 const YEAR_IN_REVIEW_MANAGER_EMAILS = [
   "malin.malliya.wadu@gmail.com",

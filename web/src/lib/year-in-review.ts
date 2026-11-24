@@ -3,9 +3,9 @@ import { formatInNZT, toNZT } from "@/lib/timezone";
 import { displayHours, totalShiftHours } from "@/lib/volunteer-hours";
 
 /**
- * Pure aggregation for the volunteer "Everybody Eats, Served" video. The Prisma side
- * lives in `year-in-review.server.ts`; everything here works on plain rows so
- * it can be unit tested.
+ * Pure aggregation for the volunteer "Everybody Eats, Served" video. The Prisma
+ * side lives in `year-in-review.server.ts`; everything here works on plain rows
+ * so it can be unit tested.
  */
 
 const NZ_TIMEZONE = "Pacific/Auckland";

@@ -12,7 +12,8 @@ import {
 import type { YearInReviewProps } from "@/remotion/year-in-review/schema";
 
 /**
- * Server-side rendering of Everybody Eats, Served videos, inside the web container.
+ * Server-side rendering of Everybody Eats, Served videos, inside the web
+ * container.
  *
  * Asking for a video queues a job row (YearInReviewVideo); a single in-process
  * loop renders queued jobs one at a time with Remotion and headless Chrome,

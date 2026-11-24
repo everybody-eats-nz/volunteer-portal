@@ -1,6 +1,6 @@
 /**
- * Writes one volunteer's "Everybody Eats, Served" video props to JSON, ready for
- * Remotion Studio or a render.
+ * Writes one volunteer's "Everybody Eats, Served" video props to JSON, ready
+ * for Remotion Studio or a render.
  *
  * Usage:
  *   npm run video:props -- <email> [year]

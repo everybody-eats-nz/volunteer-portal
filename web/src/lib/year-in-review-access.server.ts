@@ -10,10 +10,10 @@ import {
 } from "@/lib/year-in-review-settings";
 
 /**
- * Who an Everybody Eats, Served video request is for. Works for the web (session) and
- * the app (bearer token) alike: everyone gets their own video once it's
- * switched on (managers before then too), and managers can ask for anyone's,
- * for any recent year, with `?userId=` and `?year=`.
+ * Who an Everybody Eats, Served video request is for. Works for the web
+ * (session) and the app (bearer token) alike: everyone gets their own video
+ * once it's switched on (managers before then too), and managers can ask for
+ * anyone's, for any recent year, with `?userId=` and `?year=`.
  */
 export async function resolveVideoRequest(
   request: Request

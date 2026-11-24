@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 };
 
 /**
- * The Everybody Eats, Served player for the mobile app, which opens this page in a
- * WebView with the volunteer's bearer token as an Authorization header. No
- * site header or footer (see isEmbedPath); the app draws its own, and its
- * own Save or share button (it fetches the server-rendered MP4 natively).
+ * The Everybody Eats, Served player for the mobile app, which opens this page
+ * in a WebView with the volunteer's bearer token as an Authorization header. No
+ * site header or footer (see isEmbedPath); the app draws its own, and its own
+ * Save or share button (it fetches the server-rendered MP4 natively).
  */
 export default function YearInReviewEmbedPage() {
   return (
