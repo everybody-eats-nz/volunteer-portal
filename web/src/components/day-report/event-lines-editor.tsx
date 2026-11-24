@@ -688,42 +688,52 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
         />
       </div>
 
-      <div>
-        <label htmlFor={`${id}-amount`} className={cellLabel}>
-          Amount
-          <span className="sr-only">, {lineName}</span>
-        </label>
-        <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-            $
-          </span>
-          <Input
-            id={`${id}-amount`}
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            min="0"
-            value={line.amount}
-            onChange={(e) => onChange({ amount: e.target.value } as Partial<L>)}
-            placeholder="0.00"
-            aria-invalid={amountInvalid || undefined}
-            className={cn(
-              "pl-7 text-right tabular-nums",
-              // Pencilled in: dashed like the estimate badges.
-              line.estimated &&
-                "border-dashed border-amber-500/80 bg-amber-50/50 dark:border-amber-500/60 dark:bg-amber-950/20"
-            )}
-          />
+      {/* Amount, GST and actual / estimate are one row on a line card, the
+          way they're read: "$180, incl. GST, an estimate". Too narrow for
+          that (a phone), amount takes a row, GST shares one with the bin and
+          actual / estimate gets the last to itself. In the wide layout the
+          wrapper dissolves and each takes its own column. */}
+      <div className="col-span-2 flex flex-wrap items-end gap-2 @lg:flex-nowrap @4xl:contents">
+        <div className="basis-full @lg:min-w-[8rem] @lg:flex-1 @lg:basis-auto @4xl:min-w-0">
+          <label htmlFor={`${id}-amount`} className={cellLabel}>
+            Amount
+            <span className="sr-only">, {lineName}</span>
+          </label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              $
+            </span>
+            <Input
+              id={`${id}-amount`}
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              value={line.amount}
+              onChange={(e) =>
+                onChange({ amount: e.target.value } as Partial<L>)
+              }
+              placeholder="0.00"
+              aria-invalid={amountInvalid || undefined}
+              className={cn(
+                "pl-7 text-right tabular-nums",
+                // Pencilled in: dashed like the estimate badges.
+                line.estimated &&
+                  "border-dashed border-amber-500/80 bg-amber-50/50 dark:border-amber-500/60 dark:bg-amber-950/20"
+              )}
+            />
+          </div>
         </div>
-      </div>
 
-
-      <div className="flex items-end gap-2 @4xl:items-center">
+        {/* A field-height chip, so it sits in the row like the controls
+            beside it rather than floating as a bare checkbox. */}
         <label
           htmlFor={`${id}-gst`}
           className={cn(
-            "flex min-h-9 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 text-sm",
-            line.gstIncluded ? "text-foreground" : "text-muted-foreground"
+            "flex h-11 flex-1 cursor-pointer select-none items-center gap-2 rounded-xl border px-3 @lg:flex-none text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50 @4xl:px-2.5",
+            line.gstIncluded
+              ? "border-forest-500/20 bg-forest-500/5 font-medium text-foreground dark:border-cream-50/15 dark:bg-cream-50/5"
+              : "border-forest-500/20 text-muted-foreground hover:text-foreground dark:border-cream-50/15"
           )}
         >
           <Checkbox
@@ -734,77 +744,69 @@ function LineRow<C extends string, L extends LineBase<C>, S extends string>({
             }
             aria-label={`${lineTitle} includes GST`}
           />
-          <span aria-hidden>
-            <span className="whitespace-nowrap @4xl:hidden">GST</span>
+          <span aria-hidden className="whitespace-nowrap">
+            <span className="@4xl:hidden">Incl. GST</span>
             <span className="hidden @4xl:inline">Incl.</span>
           </span>
         </label>
+
+        <fieldset
+          className="order-last min-w-0 basis-full @lg:order-none @lg:basis-auto"
+          aria-label={`Actual or estimate, ${lineName}`}
+        >
+          {/* The options say what they are; the wide layout's column
+              heading names the pair. */}
+          <legend className="sr-only">Actual or estimate</legend>
+          <div className="flex h-11 rounded-xl border border-forest-500/20 bg-muted/40 p-1 dark:border-cream-50/15">
+            {(
+              [
+                { estimated: false, label: "Actual" },
+                { estimated: true, label: "Estimate" },
+              ] as const
+            ).map((option) => {
+              const selected = line.estimated === option.estimated;
+              return (
+                <label
+                  key={option.label}
+                  className={cn(
+                    "flex flex-1 cursor-pointer select-none items-center justify-center rounded-lg border px-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50 @4xl:px-2",
+                    !selected &&
+                      "border-transparent text-muted-foreground hover:text-foreground",
+                    selected &&
+                      !option.estimated &&
+                      "border-forest-500/20 bg-card font-medium text-foreground shadow-sm dark:border-cream-50/15 dark:bg-input/60",
+                    selected &&
+                      option.estimated &&
+                      "border-dashed border-amber-500/80 bg-amber-50 font-medium text-amber-900 dark:border-amber-500/60 dark:bg-amber-950/50 dark:text-amber-200"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name={`${id}-status`}
+                    className="sr-only"
+                    checked={selected}
+                    onChange={() =>
+                      onChange({ estimated: option.estimated } as Partial<L>)
+                    }
+                  />
+                  {option.label}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={onRemove}
           aria-label={removeLabel}
-          className="h-9 w-9 shrink-0 text-muted-foreground hover:bg-red-50 hover:text-red-700 @4xl:hidden dark:hover:bg-red-950/40 dark:hover:text-red-300"
+          className="ml-auto h-11 w-11 shrink-0 text-muted-foreground hover:bg-red-50 hover:text-red-700 @4xl:ml-0 @4xl:h-9 @4xl:w-9 dark:hover:bg-red-950/40 dark:hover:text-red-300"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-
-      <fieldset
-        className="col-span-2 min-w-0 @4xl:col-span-1"
-        aria-label={`Actual or estimate, ${lineName}`}
-      >
-        <legend className={cellLabel}>Actual or estimate</legend>
-        <div className="flex h-11 rounded-xl border border-forest-500/20 bg-muted/40 p-1 dark:border-cream-50/15">
-          {(
-            [
-              { estimated: false, label: "Actual" },
-              { estimated: true, label: "Estimate" },
-            ] as const
-          ).map((option) => {
-            const selected = line.estimated === option.estimated;
-            return (
-              <label
-                key={option.label}
-                className={cn(
-                  "flex flex-1 cursor-pointer select-none items-center justify-center rounded-lg border px-2 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
-                  !selected &&
-                    "border-transparent text-muted-foreground hover:text-foreground",
-                  selected &&
-                    !option.estimated &&
-                    "border-forest-500/20 bg-card font-medium text-foreground shadow-sm dark:border-cream-50/15 dark:bg-input/60",
-                  selected &&
-                    option.estimated &&
-                    "border-dashed border-amber-500/80 bg-amber-50 font-medium text-amber-900 dark:border-amber-500/60 dark:bg-amber-950/50 dark:text-amber-200"
-                )}
-              >
-                <input
-                  type="radio"
-                  name={`${id}-status`}
-                  className="sr-only"
-                  checked={selected}
-                  onChange={() =>
-                    onChange({ estimated: option.estimated } as Partial<L>)
-                  }
-                />
-                {option.label}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={onRemove}
-        aria-label={removeLabel}
-        className="hidden h-9 w-9 text-muted-foreground hover:bg-red-50 hover:text-red-700 @4xl:inline-flex dark:hover:bg-red-950/40 dark:hover:text-red-300"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
     </li>
   );
 }
