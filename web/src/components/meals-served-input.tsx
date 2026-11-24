@@ -667,7 +667,7 @@ export function MealsServedInput({
     return (
       <div
         role="alert"
-        className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
         data-testid="day-report-load-error"
       >
         <span className="flex items-center gap-2">
@@ -690,7 +690,7 @@ export function MealsServedInput({
 
   if (!hasShifts && !hasExistingRecord && !started) {
     return (
-      <div className="mb-2">
+      <div>
         <Button
           type="button"
           variant="ghost"
@@ -711,7 +711,7 @@ export function MealsServedInput({
 
   return (
     <Card
-      className="mb-6 gap-0 overflow-hidden border-border/70 py-0 shadow-sm"
+      className="gap-0 overflow-hidden border-border/70 py-0 shadow-sm"
       data-testid="day-report"
       data-report-type={reportType}
     >

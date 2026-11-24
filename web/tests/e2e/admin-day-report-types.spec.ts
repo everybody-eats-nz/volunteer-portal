@@ -82,6 +82,24 @@ test.describe("Day report types", () => {
     }
   });
 
+  test("shows the day report below the volunteer roster", async ({ page }) => {
+    const name = await setUpDay(page);
+    await openReport(page, name);
+
+    // The roster is what the team checks all day, so it comes first; the
+    // report, filled in at the end of the day, follows it.
+    const roster = visibleTestId(page, "admin-shifts-pm-section");
+    const section = visibleTestId(page, "day-report-section");
+    await expect(roster).toBeVisible();
+    const [rosterBox, sectionBox] = await Promise.all([
+      roster.boundingBox(),
+      section.boundingBox(),
+    ]);
+    expect(sectionBox!.y).toBeGreaterThanOrEqual(
+      rosterBox!.y + rosterBox!.height
+    );
+  });
+
   test("records a fundraiser's itemised income, kept out of koha", async ({
     page,
   }) => {

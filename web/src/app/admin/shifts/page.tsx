@@ -435,16 +435,6 @@ export default async function AdminShiftsPage({
           </div>
         </div>
 
-        {/* The day's report. Days without shifts offer it behind a prompt,
-            for events and cafe days run without rostered shifts. Keyed so a
-            new day or location never inherits the last one's figures. */}
-        <MealsServedInput
-          key={`day-report|${dateString}|${selectedLocation}`}
-          date={dateString}
-          location={selectedLocation}
-          hasShifts={shifts.length > 0}
-        />
-
         {/* Chef and FOH Manager - shown to volunteers on the calendar. Filled
             from the location's standard roster, changeable for this day.
             Keyed so switching day/location resets the editor's draft. */}
@@ -502,6 +492,20 @@ export default async function AdminShiftsPage({
         ) : (
           <ShiftsByTimeOfDay shifts={shifts} shiftIdToTypeName={shiftIdToTypeName} />
         )}
+
+        {/* The day's report, below the roster so the roster stays the first
+            thing on the page; it's filled in at the end of the day. Days
+            without shifts offer it behind a prompt, for events and cafe days
+            run without rostered shifts. Keyed so a new day or location never
+            inherits the last one's figures. */}
+        <div className="mt-8" data-testid="day-report-section">
+          <MealsServedInput
+            key={`day-report|${dateString}|${selectedLocation}`}
+            date={dateString}
+            location={selectedLocation}
+            hasShifts={shifts.length > 0}
+          />
+        </div>
       </PageContainer>
     </AdminPageWrapper>
   );
