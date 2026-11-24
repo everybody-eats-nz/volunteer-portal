@@ -5,7 +5,7 @@ import { WebView } from "react-native-webview";
 import { Palette } from "@/constants/theme";
 
 /**
- * The Year in mahi player: the web page at /embed/year-in-review in a
+ * The Everybody Eats, Served player: the web page at /embed/year-in-review in a
  * WebView, opened with the app's bearer token.
  *
  * This is the only file that imports react-native-webview. Never import it

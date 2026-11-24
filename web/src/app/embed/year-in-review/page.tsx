@@ -10,12 +10,13 @@ import { getVolunteerYearInReview } from "@/lib/year-in-review.server";
 import { YearInReviewPlayerFrame } from "@/components/year-in-review/year-in-review-player-frame";
 
 export const metadata: Metadata = {
-  title: "Your year in mahi",
+  // Already names the brand, so it skips the "| Everybody Eats" template.
+  title: { absolute: "Everybody Eats, Served" },
   robots: { index: false, follow: false },
 };
 
 /**
- * The Year in mahi player for the mobile app, which opens this page in a
+ * The Everybody Eats, Served player for the mobile app, which opens this page in a
  * WebView with the volunteer's bearer token as an Authorization header. No
  * site header or footer (see isEmbedPath); the app draws its own, and its
  * own Save or share button (it fetches the server-rendered MP4 natively).
@@ -33,20 +34,20 @@ export default function YearInReviewEmbedPage() {
 async function EmbedContent() {
   const user = await getMobileUserFromHeaders(await headers());
   if (!user) {
-    return <Message>Sign in again to see your year in mahi.</Message>;
+    return <Message>Sign in again to see your year, served.</Message>;
   }
 
   const settings = await getYearInReviewSettings();
   if (!canViewYearInReview(settings, user)) {
-    return <Message>Your year in mahi isn&apos;t out yet.</Message>;
+    return <Message>Everybody Eats, Served isn&apos;t out yet.</Message>;
   }
 
   const data = await getVolunteerYearInReview(user.id, settings.year);
   if (!data) {
     return (
       <Message>
-        No shifts in {settings.year} yet. Once you&apos;ve done one, your year
-        in mahi will show up here.
+        No shifts in {settings.year} yet. Once you&apos;ve done one,
+        we&apos;ll serve up your year here.
       </Message>
     );
   }

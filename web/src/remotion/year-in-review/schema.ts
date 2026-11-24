@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Everything the "Year in mahi" video shows, for one volunteer and one
+ * Everything the "Everybody Eats, Served" video shows, for one volunteer and one
  * calendar year. Built server-side by `getVolunteerYearInReview()` and passed
  * to the composition as input props, so it must stay JSON-serialisable (dates
  * are ISO strings).

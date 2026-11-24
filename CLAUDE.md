@@ -153,7 +153,7 @@ The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`).
 - `/api/resources` — Resource hub content
 - `/api/surveys/*` - Survey system (the token routes are public and shared by the web survey page and the mobile survey screen)
 - `/api/mobile/surveys` - Pending surveys for the mobile home tab (also assigns due milestone surveys) and dismissal
-- `/api/mobile/year-in-review` - Whether to show the Year in mahi card; the video is the web page `/embed/year-in-review`, opened in a WebView with the bearer token
+- `/api/mobile/year-in-review` - Whether to show the Everybody Eats, Served card; the video is the web page `/embed/year-in-review`, opened in a WebView with the bearer token
 - `/api/site-settings` — Dynamic site configuration
 - `/api/newsletter-lists` — Newsletter subscription management
 - `/api/admin/*` — Admin operations (protected, 25+ sub-routes)
@@ -305,7 +305,7 @@ File-based routing via expo-router (paths relative to `mobile/`):
 - `app/shift/[id].tsx` — Shift detail screen
 - `app/friend/[id].tsx` — Friend profile screen
 - `app/survey/[token].tsx` - Survey screen (opened from the home tab's survey card or a survey notification)
-- `app/year-in-review.tsx` - Year in mahi video (WebView onto `/embed/year-in-review`; shares the MP4 the page makes)
+- `app/year-in-review.tsx` - Everybody Eats, Served video (WebView onto `/embed/year-in-review`; shares the MP4 the page makes)
 - Root layout uses `AuthGate` + `Slot` pattern (not `Stack` with explicit screens)
 
 ### Data Fetching
@@ -319,7 +319,7 @@ Custom hooks in `mobile/hooks/` call the web API via `mobile/lib/api.ts`:
 - `useFeed()` — Activity feed
 - `usePendingSurveys()` - Surveys waiting on the volunteer (home tab card)
 - `useSurvey(token)` / `useSubmitSurvey(token)` - Load and submit one survey
-- `useYearInReview()` - Whether the Year in mahi card shows
+- `useYearInReview()` - Whether the Everybody Eats, Served card shows
 
 ## Testing Guidelines
 
@@ -415,4 +415,4 @@ See `web/docs/` for comprehensive guides:
 - **[Profile Images](web/docs/profile-images.md)** — Image upload and storage
 - **[Resource Hub](web/docs/resource-hub.md)** — Resource system documentation
 - **[Van Mileage Log](web/docs/van-mileage-log.md)** — Van trip logging, QR stickers, driver approval, exceptions
-- **[Year in mahi video](web/docs/year-in-review-video.md)** - Remotion "Wrapped" video per volunteer, Instagram-sized: admin switch, web page, mobile WebView, MP4 rendered server-side in the web container
+- **[Everybody Eats, Served video](web/docs/year-in-review-video.md)** - Remotion "Wrapped" video per volunteer, Instagram-sized: admin switch, web page, mobile WebView, MP4 rendered server-side in the web container

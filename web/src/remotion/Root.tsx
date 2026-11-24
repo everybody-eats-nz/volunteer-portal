@@ -11,7 +11,7 @@ const calculateMetadata: CalculateMetadataFunction<YearInReviewProps> = ({
   props,
 }) => ({
   durationInFrames: getDurationInFrames(props),
-  defaultOutName: `year-in-mahi-${props.year}-${props.firstName
+  defaultOutName: `everybody-eats-served-${props.year}-${props.firstName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")}`,
 });

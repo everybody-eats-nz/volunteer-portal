@@ -13,7 +13,7 @@ import {
 import { countYearInReviewPeople } from "@/lib/year-in-review.server";
 
 export const metadata: Metadata = {
-  title: "Year in mahi",
+  title: "Served",
 };
 
 export default async function YearInReviewAdminPage() {
@@ -30,7 +30,7 @@ export default async function YearInReviewAdminPage() {
 
   return (
     <AdminPageWrapper
-      title="Year in mahi"
+      title="Everybody Eats, Served"
       description="A video of each person's year at Everybody Eats, made to share on Instagram"
     >
       <PageContainer>

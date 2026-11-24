@@ -1,5 +1,5 @@
 /**
- * Writes one volunteer's "Year in mahi" video props to JSON, ready for
+ * Writes one volunteer's "Everybody Eats, Served" video props to JSON, ready for
  * Remotion Studio or a render.
  *
  * Usage:

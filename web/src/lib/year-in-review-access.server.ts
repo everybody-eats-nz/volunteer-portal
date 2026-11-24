@@ -10,7 +10,7 @@ import {
 } from "@/lib/year-in-review-settings";
 
 /**
- * Who a Year in mahi video request is for. Works for the web (session) and
+ * Who an Everybody Eats, Served video request is for. Works for the web (session) and
  * the app (bearer token) alike: everyone gets their own video once it's
  * switched on (managers before then too), and managers can ask for anyone's,
  * for any recent year, with `?userId=` and `?year=`.
@@ -51,7 +51,7 @@ export async function resolveVideoRequest(
   }
   if (!canViewYearInReview(settings, viewer)) {
     return NextResponse.json(
-      { error: "Year in mahi isn't available yet" },
+      { error: "Everybody Eats, Served isn't available yet" },
       { status: 403 }
     );
   }

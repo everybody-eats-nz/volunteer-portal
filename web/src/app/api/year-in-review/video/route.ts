@@ -11,7 +11,7 @@ import {
 } from "@/lib/year-in-review-render.server";
 
 /**
- * The Year in mahi MP4, rendered on the server.
+ * The Everybody Eats, Served MP4, rendered on the server.
  *
  * POST asks for it (queues a render unless an up-to-date one exists); GET
  * reports progress for polling. Both answer straight away and render after

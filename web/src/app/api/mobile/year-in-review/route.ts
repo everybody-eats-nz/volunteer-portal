@@ -9,7 +9,7 @@ import { hasYearInReview } from "@/lib/year-in-review.server";
 /**
  * GET /api/mobile/year-in-review
  *
- * Whether to show the Year in mahi card on the app's home tab. The video
+ * Whether to show the Everybody Eats, Served card on the app's home tab. The video
  * itself is the web page at /embed/year-in-review, which the app opens in a
  * WebView with the same bearer token.
  */

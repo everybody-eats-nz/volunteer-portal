@@ -12,7 +12,7 @@ import {
 import type { YearInReviewProps } from "@/remotion/year-in-review/schema";
 
 /**
- * Server-side rendering of Year in mahi videos, inside the web container.
+ * Server-side rendering of Everybody Eats, Served videos, inside the web container.
  *
  * Asking for a video queues a job row (YearInReviewVideo); a single in-process
  * loop renders queued jobs one at a time with Remotion and headless Chrome,
@@ -183,7 +183,7 @@ export function drainRenderQueue(): Promise<void> {
         // Keep going until the queue is empty.
       }
     } catch (error) {
-      console.error("Year in mahi render queue stopped", error);
+      console.error("Everybody Eats, Served render queue stopped", error);
     } finally {
       draining = null;
     }
@@ -251,7 +251,7 @@ async function renderNextJob(): Promise<boolean> {
       await deleteVideo(job.storagePath).catch(() => {});
     }
   } catch (error) {
-    console.error(`Year in mahi render failed for ${job.id}`, error);
+    console.error(`Everybody Eats, Served render failed for ${job.id}`, error);
     // Uploaded but never recorded: nothing would ever point at it.
     if (uploaded) await discard();
     await prisma.yearInReviewVideo.updateMany({

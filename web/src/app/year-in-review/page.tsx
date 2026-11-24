@@ -18,7 +18,8 @@ import {
 import { getVolunteerYearInReview } from "@/lib/year-in-review.server";
 
 export const metadata: Metadata = {
-  title: "Your year in mahi",
+  // Already names the brand, so it skips the "| Everybody Eats" template.
+  title: { absolute: "Everybody Eats, Served" },
   robots: { index: false, follow: false },
 };
 
@@ -64,7 +65,7 @@ async function YearInReviewContent({
     return (
       <EmptyState
         title={`No shifts in ${year} yet`}
-        body="Once you've done a shift, your year in mahi will show up here."
+        body="Once you've done a shift, we'll serve up your year here."
         action={
           <Button asChild size="lg">
             <Link href="/shifts">Find a shift</Link>
@@ -80,7 +81,7 @@ async function YearInReviewContent({
         <InfoBox title="Only admins can see this" variant="amber">
           Volunteers will see their video once it&apos;s switched on in{" "}
           <Link href="/admin/year-in-review" className="font-medium underline">
-            Year in mahi settings
+            Everybody Eats, Served settings
           </Link>
           .
         </InfoBox>
@@ -101,7 +102,7 @@ function NotYet() {
   return (
     <EmptyState
       title="Not quite ready"
-      body="Your year in mahi isn't out yet. We'll let you know when it's ready to watch."
+      body="Everybody Eats, Served isn't out yet. We'll let you know when it's ready to watch."
       action={
         <Button asChild size="lg" variant="outline">
           <Link href="/dashboard">Back to dashboard</Link>

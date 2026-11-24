@@ -197,11 +197,11 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "achievements",
       },
       {
-        title: "Year in mahi",
+        title: "Everybody Eats, Served",
         href: "/admin/year-in-review",
         icon: Clapperboard,
         description: "Each volunteer's year as a shareable video",
-        commandKey: "year-in-review wrapped video",
+        commandKey: "everybody eats served year-in-review wrapped video",
       },
       {
         title: "Archiving",

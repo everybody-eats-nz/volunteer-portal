@@ -32,7 +32,7 @@ export const queryKeys = {
   },
   yearInReview: {
     all: ['year-in-review'] as const,
-    /** Whether the home tab shows the Year in mahi card. */
+    /** Whether the home tab shows the Everybody Eats, Served card. */
     availability: () =>
       [...queryKeys.yearInReview.all, 'availability'] as const,
     /** The server-rendered MP4's status. */

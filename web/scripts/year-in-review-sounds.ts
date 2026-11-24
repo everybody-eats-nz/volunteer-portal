@@ -1,5 +1,5 @@
 /**
- * Makes the Year in mahi video's music bed and the sound effects Remotion's
+ * Makes the Everybody Eats, Served video's music bed and the sound effects Remotion's
  * library doesn't have, all synthesised here so Everybody Eats owns them
  * outright: nothing for Instagram's copyright matching to flag when
  * volunteers post their video.

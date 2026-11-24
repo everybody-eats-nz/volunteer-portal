@@ -533,7 +533,7 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* ── Year in mahi ──
+        {/* ── Everybody Eats, Served ──
              Seasonal, so it sits right under the next shift while it's
              switched on, above the survey and everything people browse. */}
         {yearInReview.available && yearInReview.year !== null && (

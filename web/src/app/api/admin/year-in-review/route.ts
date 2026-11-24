@@ -17,7 +17,7 @@ const settingsSchema = z.object({
 /**
  * PUT /api/admin/year-in-review
  *
- * Switches the Year in mahi video on or off for everyone and picks its year.
+ * Switches the Everybody Eats, Served video on or off for everyone and picks its year.
  * Returns how many people have a video for that year.
  */
 export async function PUT(request: Request) {

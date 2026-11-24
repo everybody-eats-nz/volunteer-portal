@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { nowInNZT } from "@/lib/timezone";
 
 /**
- * Whether volunteers can see their "Year in mahi" video, and which year it
+ * Whether volunteers can see their "Everybody Eats, Served" video, and which year it
  * covers. Stored as site settings under their own category; the admin page at
  * /admin/year-in-review edits them (the generic site-settings form skips
  * this category).
@@ -49,12 +49,12 @@ export async function saveYearInReviewSettings(
     {
       key: KEYS.enabled,
       value: String(settings.enabled),
-      description: "Show volunteers their Year in mahi video",
+      description: "Show volunteers their Everybody Eats, Served video",
     },
     {
       key: KEYS.year,
       value: String(settings.year),
-      description: "Which year the Year in mahi video covers",
+      description: "Which year the Everybody Eats, Served video covers",
     },
   ];
   await prisma.$transaction(
@@ -69,7 +69,7 @@ export async function saveYearInReviewSettings(
 }
 
 /**
- * For now only Malin manages Year in mahi: the admin page, watching anyone's
+ * For now only Malin manages Everybody Eats, Served: the admin page, watching anyone's
  * video, and seeing it before it's switched on. Other admins are treated like
  * volunteers. `YEAR_IN_REVIEW_MANAGER_EMAILS` (comma separated) adds more,
  * which the e2e server uses for the seeded admin.
