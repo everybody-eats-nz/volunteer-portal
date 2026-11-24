@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
 import {
   buildCashNights,
-  eventCashTakings,
+  dayCashTakings,
   type CashReconciliation,
 } from "@/lib/cash-reconciliation";
 
@@ -32,17 +32,23 @@ export async function getCashReconciliation({
       select: {
         date: true,
         reportType: true,
-        eventName: true,
         cash: true,
         eftpos: true,
         stripe: true,
-        income: {
+        activities: {
+          orderBy: { position: "asc" },
           select: {
-            source: true,
-            category: true,
-            amount: true,
-            gstIncluded: true,
-            estimated: true,
+            kind: true,
+            name: true,
+            income: {
+              select: {
+                source: true,
+                category: true,
+                amount: true,
+                gstIncluded: true,
+                estimated: true,
+              },
+            },
           },
         },
       },
@@ -56,26 +62,22 @@ export async function getCashReconciliation({
   ]);
 
   const { nights, totals } = buildCashNights(
-    records.map((r) => {
-      const date = formatInNZT(r.date, "yyyy-MM-dd");
-      if (r.reportType !== "EVENT") {
-        return {
-          date,
+    records.map((r) => ({
+      date: formatInNZT(r.date, "yyyy-MM-dd"),
+      type: r.reportType,
+      activities: r.activities.map((a) => ({ kind: a.kind, name: a.name })),
+      ...dayCashTakings(
+        {
           type: r.reportType,
           cash: decimal(r.cash),
           eftpos: decimal(r.eftpos),
           stripe: decimal(r.stripe),
-        };
-      }
-      return {
-        date,
-        type: r.reportType,
-        eventName: r.eventName,
-        ...eventCashTakings(
-          r.income.map((line) => ({ ...line, amount: Number(line.amount) }))
-        ),
-      };
-    }),
+        },
+        r.activities.flatMap((a) =>
+          a.income.map((line) => ({ ...line, amount: Number(line.amount) }))
+        )
+      ),
+    })),
     [...new Set(shifts.map((s) => formatInNZT(s.start, "yyyy-MM-dd")))]
   );
 

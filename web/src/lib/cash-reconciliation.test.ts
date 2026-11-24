@@ -4,6 +4,7 @@ import {
   buildCashCopyText,
   buildCashNights,
   cashDayTypeLabel,
+  dayCashTakings,
   eventCashTakings,
   formatCashRange,
   isDateKey,
@@ -125,7 +126,8 @@ describe("buildCashNights", () => {
       stripe: 12,
       nights: 2,
       flagged: 0,
-      events: 0,
+      eventDays: 0,
+      activities: [],
       cafeDays: 0,
     });
   });
@@ -151,7 +153,7 @@ describe("buildCashNights", () => {
       {
         date: "2026-09-30",
         type: "SERVICE_NIGHT",
-        eventName: null,
+        activities: [],
         cash: 120,
         eftpos: null,
         stripe: null,
@@ -160,7 +162,7 @@ describe("buildCashNights", () => {
       {
         date: "2026-10-01",
         type: "SERVICE_NIGHT",
-        eventName: null,
+        activities: [],
         cash: null,
         eftpos: null,
         stripe: null,
@@ -217,52 +219,125 @@ describe("buildCashCopyText", () => {
   });
 });
 
-describe("event and cafe days", () => {
+describe("events, catering and cafe days", () => {
   it("lists them beside service nights, counted and labelled", () => {
     const data = {
       location: "Wellington",
       from: "2026-10-05",
-      to: "2026-10-07",
+      to: "2026-10-08",
       ...buildCashNights(
         [
           { date: "2026-10-05", type: "SERVICE_NIGHT", cash: 100, eftpos: 50, stripe: null },
           {
             date: "2026-10-06",
             type: "EVENT",
-            eventName: "Quiz night",
+            activities: [{ kind: "EVENT", name: "Quiz night" }],
             cash: 300,
             eftpos: 0,
             stripe: null,
           },
           { date: "2026-10-07", type: "CAFE", cash: 80.5, eftpos: 120, stripe: null },
+          {
+            date: "2026-10-08",
+            type: "SERVICE_NIGHT",
+            activities: [{ kind: "CATERING", name: "Xero lunch" }],
+            cash: 20,
+            eftpos: 0,
+            stripe: null,
+          },
         ],
         []
       ),
     };
     expect(data.totals).toMatchObject({
-      cash: 480.5,
-      nights: 3,
-      events: 1,
+      cash: 500.5,
+      nights: 4,
+      eventDays: 1,
       cafeDays: 1,
+      activities: ["EVENT", "CATERING"],
     });
     expect(data.nights.map(cashDayTypeLabel)).toEqual([
       null,
       "Event · Quiz night",
       "Cafe",
+      "Service night + Catering · Xero lunch",
     ]);
     expect(buildCashCopyText(data).split("\n")).toEqual([
       "Cash reconciliation - Wellington",
-      "Mon 5 Oct – Wed 7 Oct 2026",
+      "Mon 5 Oct – Thu 8 Oct 2026",
       "",
       "Mon 5 Oct 2026\t$100.00",
       "Tue 6 Oct 2026 (Event · Quiz night)\t$300.00",
       "Wed 7 Oct 2026 (Cafe)\t$80.50",
+      "Thu 8 Oct 2026 (Service night + Catering · Xero lunch)\t$20.00",
       "",
-      "Total cash\t$480.50",
-      "Days\t3",
-      "Events\t1",
+      "Total cash\t$500.50",
+      "Days\t4",
+      "Events & catering days\t1",
       "Cafe days\t1",
+      "Catering gigs\t1",
+      "Events\t1",
     ]);
+  });
+
+  it("names a day of several activities by what was run", () => {
+    expect(
+      cashDayTypeLabel({
+        type: "EVENT",
+        activities: [
+          { kind: "CATERING", name: "A" },
+          { kind: "EVENT", name: "B" },
+          { kind: "CATERING", name: null },
+        ],
+      })
+    ).toBe("2 catering gigs and an event");
+    expect(cashDayTypeLabel({ type: "EVENT", activities: [] })).toBe(
+      "Events & catering"
+    );
+  });
+});
+
+describe("dayCashTakings", () => {
+  const line = (
+    source: "CASH" | "EFTPOS" | "STRIPE" | "INVOICE",
+    amount: number,
+    estimated = false
+  ) => ({ source, category: "SALES" as const, amount, gstIncluded: true, estimated });
+
+  it("adds a service night's catering takings to its koha", () => {
+    expect(
+      dayCashTakings(
+        { type: "SERVICE_NIGHT", cash: 100.1, eftpos: 50, stripe: 20 },
+        [line("CASH", 40.2), line("EFTPOS", 300), line("INVOICE", 1150)]
+      )
+    ).toEqual({ cash: 140.3, eftpos: 350, stripe: 20, cashMissing: false });
+  });
+
+  it("still flags a service night with no cash of its own", () => {
+    expect(
+      dayCashTakings(
+        { type: "SERVICE_NIGHT", cash: null, eftpos: null, stripe: null },
+        [line("CASH", 40)]
+      )
+    ).toEqual({ cash: 40, eftpos: 0, stripe: 0, cashMissing: true });
+  });
+
+  it("sums every activity on an events day, ignoring estimates", () => {
+    expect(
+      dayCashTakings({ type: "EVENT", cash: null, eftpos: null, stripe: null }, [
+        line("CASH", 200),
+        line("CASH", 50),
+        line("CASH", 999, true),
+      ])
+    ).toEqual({ cash: 250, eftpos: 0, stripe: 0, cashMissing: false });
+  });
+
+  it("flags an events day with no actual income yet", () => {
+    expect(
+      dayCashTakings({ type: "EVENT", cash: null, eftpos: null, stripe: null }, [
+        line("CASH", 999, true),
+      ])
+    ).toMatchObject({ cash: null, cashMissing: true });
   });
 });
 

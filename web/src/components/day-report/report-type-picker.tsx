@@ -39,7 +39,8 @@ export function ReportTypePicker({
   onChange: (value: DayReportType) => void;
 }) {
   // Sized by the space the card gives it, not the viewport: compact below
-  // 24rem, and icon-free when even that won't fit.
+  // 24rem, and icon-free below 22rem, where "Events & catering" would
+  // otherwise push Cafe out of the card.
   return (
     <div className="@container">
       <RadioGroupPrimitive.Root
@@ -63,7 +64,7 @@ export function ReportTypePicker({
               )}
             >
               <Icon
-                className="h-4 w-4 shrink-0 @max-[17rem]:hidden"
+                className="h-4 w-4 shrink-0 @max-[22rem]:hidden"
                 aria-hidden
               />
               {DAY_REPORT_TYPE_META[type].label}

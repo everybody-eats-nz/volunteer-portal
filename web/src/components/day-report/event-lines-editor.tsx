@@ -32,7 +32,8 @@ import { SectionCard } from "@/components/day-report/fields";
 import { EstimateBadge } from "@/components/day-report/estimate-badge";
 
 /**
- * Itemised event lines: the income an event took and what it cost to put on.
+ * Itemised lines for an event or catering gig: the income it took and what it
+ * cost to put on.
  * Both are lists of category / description / amount / GST lines; income also
  * records how each line was paid. Any line can be an estimate, so an event can
  * be planned here first and its lines made actual as the real figures come in.
@@ -137,10 +138,13 @@ export function EventIncomeEditor({
   lines,
   onChange,
   summary,
+  noun = "event",
 }: {
   lines: IncomeDraft[];
   onChange: (lines: IncomeDraft[]) => void;
   summary: LinesSummary<EventIncomeCategory>;
+  /** What the takings were for: "event", "catering gig". */
+  noun?: string;
 }) {
   return (
     <LinesEditor
@@ -175,11 +179,14 @@ export function EventIncomeEditor({
       copy={{
         emptyTitle: "No income recorded yet",
         emptyBody:
-          "Add a line for each kind of takings: ticket sales on EFTPOS, cash koha at the door, auction lots, an invoice for a venue hire.",
+          noun === "event"
+            ? "Add a line for each kind of takings: ticket sales on EFTPOS, cash koha at the door, auction lots, an invoice for a venue hire."
+            : `Add a line for each payment for the ${noun}: usually one invoice to the client, plus any cash or EFTPOS on the day.`,
         add: "Add income",
-        descriptionPlaceholder: "e.g. Door tickets",
+        descriptionPlaceholder:
+          noun === "event" ? "e.g. Door tickets" : "e.g. Invoice to client",
         footnote:
-          "Enter amounts as taken, including any GST. Tick GST on taxable lines, such as ticket sales and hire or catering invoices. Planning ahead? Mark lines as estimates, then switch them to actual once the money is in. Event income is kept out of koha totals.",
+          "Enter amounts as taken, including any GST. Tick GST on taxable lines, such as ticket sales and hire or catering invoices. Planning ahead? Mark lines as estimates, then switch them to actual once the money is in. Event and catering income is kept out of koha totals.",
       }}
     />
   );
@@ -189,10 +196,13 @@ export function EventExpenseEditor({
   lines,
   onChange,
   summary,
+  noun = "event",
 }: {
   lines: ExpenseDraft[];
   onChange: (lines: ExpenseDraft[]) => void;
   summary: LinesSummary<EventExpenseCategory>;
+  /** What the costs were for: "event", "catering gig". */
+  noun?: string;
 }) {
   return (
     <LinesEditor
@@ -211,7 +221,9 @@ export function EventExpenseEditor({
       copy={{
         emptyTitle: "No expenses recorded yet",
         emptyBody:
-          "Add a line for each cost of putting the event on: staff, food and drinks, licences, hired equipment, decorations.",
+          noun === "event"
+            ? "Add a line for each cost of putting the event on: staff, food and drinks, licences, hired equipment, decorations."
+            : `Add a line for each cost of the ${noun}: staff, food and drinks, packaging, delivery, hired equipment.`,
         add: "Add expense",
         descriptionPlaceholder: "e.g. Marquee hire",
         footnote:
@@ -249,6 +261,8 @@ export function EventProfitStatement({
   expenses,
   profit,
   estimated = false,
+  noun = "event",
+  heading,
 }: {
   income: Pick<LinesSummary<string>, "total" | "totalExGst" | "estimatedLines">;
   expenses: Pick<
@@ -258,6 +272,10 @@ export function EventProfitStatement({
   profit: EventProfit;
   /** Any line behind the figures is an estimate. */
   estimated?: boolean;
+  /** Whose profit it is: "event", "catering gig", "day". */
+  noun?: string;
+  /** The card's heading, when "Profit" alone wouldn't say whose. */
+  heading?: string;
 }) {
   const loss = profit.profit < 0;
   const title = profitLabel(profit.profit, estimated);
@@ -272,11 +290,11 @@ export function EventProfitStatement({
   );
   // Expenses read as deductions; never "-$0.00".
   const less = (n: number) => NZD.format(n === 0 ? 0 : -n);
-  const cell = "py-1.5 pl-4 text-right tabular-nums";
+  const cell = "py-1.5 pl-3 text-right tabular-nums sm:pl-4";
   return (
     <SectionCard
       icon={PiggyBank}
-      title={title}
+      title={heading ?? title}
       tone="violet"
       action={
         <span
@@ -292,14 +310,14 @@ export function EventProfitStatement({
       }
     >
       <div className="sm:col-span-2" data-testid="event-profit">
-        <table className="w-full text-sm sm:max-w-md">
+        <table className="w-full text-[13px] sm:max-w-md sm:text-sm">
           <thead>
             <tr className="text-[11px] text-muted-foreground">
               <th className="pb-1 text-left font-medium">
                 <span className="sr-only">Line</span>
               </th>
-              <th className="pb-1 pl-4 text-right font-medium">Incl. GST</th>
-              <th className="pb-1 pl-4 text-right font-medium">Excl. GST</th>
+              <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium sm:pl-4">Incl. GST</th>
+              <th className="whitespace-nowrap pb-1 pl-3 text-right font-medium sm:pl-4">Excl. GST</th>
             </tr>
           </thead>
           <tbody>
@@ -347,7 +365,7 @@ export function EventProfitStatement({
           </tfoot>
         </table>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Excl. GST is what the event made once the GST on its income is paid
+          Excl. GST is what the {noun} made once the GST on its income is paid
           and the GST on its expenses is claimed back.
           {estimated &&
             " It includes estimates, so it will change as the actual figures come in."}

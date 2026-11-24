@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  describeActivities,
+  eventDayHeadcount,
+  peopleServed,
   formatDuration,
   formatTimeOfDay,
   gstPortion,
@@ -175,5 +178,58 @@ describe("cafe opening hours", () => {
     expect(formatTimeOfDay("12:00")).toBe("12pm");
     expect(formatTimeOfDay("00:15")).toBe("12:15am");
     expect(formatTimeOfDay("17:00")).toBe("5pm");
+  });
+});
+
+describe("describeActivities", () => {
+  it("counts each kind in words, catering first", () => {
+    expect(describeActivities([])).toBe("");
+    expect(describeActivities(["EVENT"])).toBe("an event");
+    expect(describeActivities(["CATERING", "CATERING", "CATERING"])).toBe(
+      "3 catering gigs"
+    );
+    expect(describeActivities(["EVENT", "CATERING", "CATERING"])).toBe(
+      "2 catering gigs and an event"
+    );
+  });
+});
+
+describe("peopleServed", () => {
+  it("adds every event's and catering gig's guests to the day's own count", () => {
+    expect(
+      peopleServed({
+        reportType: "SERVICE_NIGHT",
+        mealsServed: 60,
+        activities: [{ pax: 120 }, { pax: null }, { pax: 40 }],
+      })
+    ).toBe(220);
+    expect(
+      peopleServed({ reportType: "CAFE", mealsServed: null, activities: [] })
+    ).toBe(0);
+  });
+
+  it("never counts an events day's guests twice", () => {
+    // An events day's mealsServed is already its activities' total.
+    expect(
+      peopleServed({
+        reportType: "EVENT",
+        mealsServed: 160,
+        activities: [{ pax: 120 }, { pax: 40 }],
+      })
+    ).toBe(160);
+  });
+});
+
+describe("eventDayHeadcount", () => {
+  it("adds up the activities that have a count", () => {
+    expect(eventDayHeadcount([{ pax: 40 }, { pax: null }, { pax: 70 }])).toBe(
+      110
+    );
+    expect(eventDayHeadcount([{ pax: 0 }])).toBe(0);
+  });
+
+  it("is unknown while no activity has a count", () => {
+    expect(eventDayHeadcount([])).toBeNull();
+    expect(eventDayHeadcount([{ pax: null }])).toBeNull();
   });
 });

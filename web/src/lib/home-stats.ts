@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   getActiveVolunteerCount,
   getConfirmedVolunteerHours,
+  getTotalPeopleServed,
 } from "@/lib/impact-stats";
 import {
   getShiftEffectiveCount,
@@ -52,14 +53,12 @@ export async function getHomeStats(): Promise<HomeStats> {
   const weekStart = startOfWeekUTC(now);
   const weekEnd = endOfWeekUTC(now);
 
-  const [volunteers, mealsAggregate, hoursLogged, openShiftsRaw, weekShifts] =
+  const [volunteers, mealsServed, hoursLogged, openShiftsRaw, weekShifts] =
     await Promise.all([
       // Volunteers: distinct people who have actually done a shift, not
       // everyone who ever registered. Shared with the public impact endpoint.
       getActiveVolunteerCount(now),
-      prisma.mealsServed.aggregate({
-        _sum: { mealsServed: true },
-      }),
+      getTotalPeopleServed(),
       // Hours logged: sum of completed CONFIRMED signups' shift duration.
       // Computed in SQL (no row cap) — shared with the public impact endpoint.
       getConfirmedVolunteerHours(now),
@@ -86,7 +85,7 @@ export async function getHomeStats(): Promise<HomeStats> {
 
   return {
     volunteers,
-    mealsServed: mealsAggregate._sum.mealsServed ?? 0,
+    mealsServed,
     hoursLogged,
     openShiftsCount,
     openSpots,
