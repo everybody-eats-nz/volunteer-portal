@@ -1,3 +1,9 @@
+## [0.208.0] - 2026-11-24
+
+### Changes
+- feat: rename Year in mahi to Everybody Eats, Served ([#1443](https://github.com/everybody-eats-nz/volunteer-portal/pull/1443)) by @malinmalliyawadu
+
+
 ## [0.207.2] - 2026-11-24
 
 ### Changes
