@@ -1,3 +1,9 @@
+## [0.207.2] - 2026-11-24
+
+### Changes
+- feat(shifts): show the day report below the volunteer roster ([#1442](https://github.com/everybody-eats-nz/volunteer-portal/pull/1442)) by @malinmalliyawadu
+
+
 ## [0.207.1] - 2026-11-24
 
 ### Changes
