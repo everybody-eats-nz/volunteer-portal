@@ -1,3 +1,9 @@
+## [0.207.0] - 2026-11-24
+
+### Changes
+- feat(events): record catering and any number of events per day ([#1440](https://github.com/everybody-eats-nz/volunteer-portal/pull/1440)) by @malinmalliyawadu
+
+
 ## [0.206.2] - 2026-11-23
 
 ### Changes
