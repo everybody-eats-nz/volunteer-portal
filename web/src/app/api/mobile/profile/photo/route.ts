@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { uploadFile, deleteFile, ALLOWED_FILE_TYPES, MAX_PROFILE_PHOTO_SIZE, PROFILE_PHOTOS_BUCKET } from "@/lib/storage";
-import { extractFilePathFromUrl } from "@/lib/storage-utils";
+import { extractOwnBucketPath } from "@/lib/storage-utils";
 
 /**
  * POST /api/mobile/profile/photo
@@ -47,7 +47,11 @@ export async function POST(request: Request) {
     });
 
     if (currentUser?.profilePhotoUrl) {
-      const oldPath = extractFilePathFromUrl(currentUser.profilePhotoUrl);
+      // Only ever delete an object in our own profile-photos bucket
+      const oldPath = extractOwnBucketPath(
+        currentUser.profilePhotoUrl,
+        PROFILE_PHOTOS_BUCKET,
+      );
       if (oldPath) {
         try {
           await deleteFile(oldPath, PROFILE_PHOTOS_BUCKET);
@@ -93,9 +97,13 @@ export async function DELETE(request: Request) {
       select: { profilePhotoUrl: true },
     });
 
-    // Delete from storage if it's a Supabase URL
+    // Delete from storage only if it is an object in our own profile-photos
+    // bucket (the stored value can also be a data URI or an OAuth URL)
     if (user?.profilePhotoUrl) {
-      const filePath = extractFilePathFromUrl(user.profilePhotoUrl);
+      const filePath = extractOwnBucketPath(
+        user.profilePhotoUrl,
+        PROFILE_PHOTOS_BUCKET,
+      );
       if (filePath) {
         try {
           await deleteFile(filePath, PROFILE_PHOTOS_BUCKET);

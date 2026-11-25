@@ -112,12 +112,14 @@ export default function AdminShiftsLoading() {
         </div>
       </div>
 
-      {/* Service night report (collapsed) */}
-      <ServiceNightReportSkeleton />
-
       <div className="space-y-8">
         <ShiftSectionSkeleton titleWidth="w-24" shifts={DAY_SHIFTS} />
         <ShiftSectionSkeleton titleWidth="w-32" shifts={EVENING_SHIFTS} />
+      </div>
+
+      {/* Service night report (collapsed), below the roster */}
+      <div className="mt-8">
+        <ServiceNightReportSkeleton />
       </div>
     </AdminPageSkeleton>
   );

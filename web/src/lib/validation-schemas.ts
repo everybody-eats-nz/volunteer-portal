@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getActiveLocationNames } from "@/lib/locations";
 import {
   DAY_REPORT_TYPES,
+  FUNDRAISING_ACTIVITY_KINDS,
   EVENT_EXPENSE_CATEGORIES,
   EVENT_INCOME_CATEGORIES,
   EVENT_INCOME_SOURCES,
@@ -85,6 +86,7 @@ export const eventIncomeLineSchema = z.object({
   ),
   amount: lineAmount("income"),
   gstIncluded: z.boolean().default(false),
+  estimated: z.boolean().default(false),
 });
 
 export type EventIncomeLineInput = z.infer<typeof eventIncomeLineSchema>;
@@ -100,21 +102,23 @@ export const eventExpenseLineSchema = z.object({
   ),
   amount: lineAmount("expense"),
   gstIncluded: z.boolean().default(false),
+  estimated: z.boolean().default(false),
 });
 
 export type EventExpenseLineInput = z.infer<typeof eventExpenseLineSchema>;
 
-// Body for POST /api/admin/meals-served — a full day report (service night,
-// event or cafe). `date` (YYYY-MM-DD) and `location` identify the day;
-// everything else is optional.
-export const restaurantNightStatsSchema = z.object({
-  date: z.string().min(1, "Date is required"),
-  location: z.string().min(1, "Location is required"),
-  // Omitted by older clients: the day keeps the type it already has.
-  reportType: z.enum(DAY_REPORT_TYPES).optional(),
-  eventName: optionalString.refine(
+// One event or catering gig on a day, with its itemised income and costs.
+export const fundraisingActivitySchema = z.object({
+  kind: z.enum(FUNDRAISING_ACTIVITY_KINDS, {
+    error: "Choose event or catering",
+  }),
+  name: optionalString.refine(
     (v) => v === null || v.length <= 120,
-    "Keep the event name under 120 characters"
+    "Keep event and catering names under 120 characters"
+  ),
+  pax: optionalInt.refine(
+    (v) => v === null || v >= 0,
+    "Guests can't be negative"
   ),
   income: z
     .array(eventIncomeLineSchema)
@@ -124,6 +128,26 @@ export const restaurantNightStatsSchema = z.object({
     .array(eventExpenseLineSchema)
     .max(100, "That's a lot of expense lines - combine some")
     .default([]),
+});
+
+export type FundraisingActivityInput = z.infer<
+  typeof fundraisingActivitySchema
+>;
+
+// Body for POST /api/admin/meals-served - a full day report (service night,
+// events & catering, or cafe) and the day's fundraising activities. `date`
+// (YYYY-MM-DD) and `location` identify the day; everything else is optional.
+export const restaurantNightStatsSchema = z.object({
+  date: z.string().min(1, "Date is required"),
+  location: z.string().min(1, "Location is required"),
+  // Omitted by older clients: the day keeps the type it already has.
+  reportType: z.enum(DAY_REPORT_TYPES).optional(),
+  // The day's events and catering gigs, in order. Omitted by older clients:
+  // the day keeps the activities it already has.
+  activities: z
+    .array(fundraisingActivitySchema)
+    .max(30, "That's a lot of activities for one day - combine some")
+    .optional(),
   opensAt: optionalTime,
   closesAt: optionalTime,
   mealsServed: optionalInt, // customers / people served (headline count)

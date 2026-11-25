@@ -5,12 +5,22 @@
  * - Service night: the restaurant's koha model (cash / EFTPOS / Stripe koha).
  *   The only type that counts as koha, so the only one in koha totals,
  *   budget tracking and restaurant analytics.
- * - Event: a fundraiser. Takings are itemised lines, each with a source, a
- *   category and a GST flag, totalled incl. and excl. GST. Costs are
- *   itemised the same way, and income less costs is the event's profit.
+ * - Events & catering: a day of fundraising activities and no service.
  * - Cafe: a cafe day. Opening hours, customers, cash and EFTPOS sales.
  *
- * People served (MealsServed.mealsServed) counts towards impact for every type.
+ * Any day, of any type, can also hold fundraising activities: events
+ * (fundraisers) and catering gigs, as many as were run. Each has a name and
+ * guests, and its takings are itemised lines, each with a source, a category
+ * and a GST flag, totalled incl. and excl. GST. Costs are itemised the same
+ * way, and income less costs is the activity's profit. Any line can be an
+ * estimate, so an activity can be planned before it runs; estimates count in
+ * the totals like actuals, and are flagged wherever a total includes one.
+ *
+ * MealsServed.mealsServed is the day's headcount: service night or cafe
+ * customers, and on an events & catering day the total of its activities'
+ * guests (kept in step by the API, so every reader of `mealsServed` still
+ * sees an events day's guests). People served adds a service night's or cafe
+ * day's activities on top; see `peopleServed`.
  *
  * Shared by the API, the report form and the Events & Cafe analytics page, so
  * it must stay free of server-only imports.
@@ -24,7 +34,7 @@ export const DAY_REPORT_TYPE_META: Record<
   { label: string; reportTitle: string }
 > = {
   SERVICE_NIGHT: { label: "Service night", reportTitle: "Service Night Report" },
-  EVENT: { label: "Event", reportTitle: "Event Report" },
+  EVENT: { label: "Events & catering", reportTitle: "Events & Catering Report" },
   CAFE: { label: "Cafe", reportTitle: "Cafe Report" },
 };
 
@@ -37,6 +47,97 @@ export function isDayReportType(value: unknown): value is DayReportType {
 
 /** Prisma `where` fragment: only the days whose takings are koha. */
 export const SERVICE_NIGHTS_ONLY = { reportType: "SERVICE_NIGHT" } as const;
+
+// ── Fundraising activities ──────────────────────────────────────────────────
+
+export const FUNDRAISING_ACTIVITY_KINDS = ["EVENT", "CATERING"] as const;
+export type FundraisingActivityKind =
+  (typeof FUNDRAISING_ACTIVITY_KINDS)[number];
+
+export const ACTIVITY_KIND_META: Record<
+  FundraisingActivityKind,
+  {
+    label: string;
+    /** "an event", "a catering gig": for sentences. */
+    noun: string;
+    plural: string;
+    paxLabel: string;
+    namePlaceholder: string;
+  }
+> = {
+  EVENT: {
+    label: "Event",
+    noun: "event",
+    plural: "events",
+    paxLabel: "Guests (pax)",
+    namePlaceholder: "e.g. Matariki fundraiser dinner",
+  },
+  CATERING: {
+    label: "Catering",
+    noun: "catering gig",
+    plural: "catering gigs",
+    paxLabel: "People catered for",
+    namePlaceholder: "e.g. Xero staff lunch",
+  },
+};
+
+export function isActivityKind(
+  value: unknown
+): value is FundraisingActivityKind {
+  return (
+    typeof value === "string" &&
+    (FUNDRAISING_ACTIVITY_KINDS as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * How many of each kind, in words: "an event", "3 catering gigs",
+ * "2 catering gigs and an event". Catering first, as the usual one.
+ */
+export function describeActivities(
+  kinds: readonly FundraisingActivityKind[]
+): string {
+  const parts = (["CATERING", "EVENT"] as const)
+    .map((kind) => {
+      const n = kinds.filter((k) => k === kind).length;
+      if (n === 0) return null;
+      const meta = ACTIVITY_KIND_META[kind];
+      if (n > 1) return `${n} ${meta.plural}`;
+      return `${kind === "EVENT" ? "an" : "a"} ${meta.noun}`;
+    })
+    .filter((p): p is string => p !== null);
+  return parts.join(" and ");
+}
+
+/**
+ * An events & catering day's headcount, as stored in `mealsServed`: its
+ * activities' guests added up, or null while none has a count.
+ */
+export function eventDayHeadcount(
+  activities: readonly { pax: number | null }[]
+): number | null {
+  const counted = activities.filter((a) => a.pax !== null);
+  if (counted.length === 0) return null;
+  return counted.reduce((sum, a) => sum + (a.pax ?? 0), 0);
+}
+
+/**
+ * People served on a day: its own headcount (service night customers, cafe
+ * customers) plus the guests at every event and catering gig. An events &
+ * catering day's `mealsServed` already is its activities' total, so they're
+ * never counted twice.
+ */
+export function peopleServed(day: {
+  reportType: DayReportType;
+  mealsServed: number | null;
+  activities: readonly { pax: number | null }[];
+}): number {
+  if (day.reportType === "EVENT") return day.mealsServed ?? 0;
+  return (
+    (day.mealsServed ?? 0) +
+    day.activities.reduce((sum, a) => sum + (a.pax ?? 0), 0)
+  );
+}
 
 // ── Event income ────────────────────────────────────────────────────────────
 
@@ -131,6 +232,8 @@ export interface EventIncomeLine {
   category: EventIncomeCategory;
   amount: number;
   gstIncluded: boolean;
+  /** A planning estimate rather than the actual figure. */
+  estimated?: boolean;
 }
 
 export interface EventIncomeSummary {
@@ -142,12 +245,16 @@ export interface EventIncomeSummary {
   totalExGst: number;
   byCategory: Record<EventIncomeCategory, number>;
   bySource: Record<EventIncomeSource, number>;
+  /** How many of the lines are estimates (they're in the totals too). */
+  estimatedLines: number;
 }
 
 export interface EventExpenseLine {
   category: EventExpenseCategory;
   amount: number;
   gstIncluded: boolean;
+  /** A planning estimate rather than the actual figure. */
+  estimated?: boolean;
 }
 
 export interface EventExpenseSummary {
@@ -158,6 +265,8 @@ export interface EventExpenseSummary {
   /** Total less GST. */
   totalExGst: number;
   byCategory: Record<EventExpenseCategory, number>;
+  /** How many of the lines are estimates (they're in the totals too). */
+  estimatedLines: number;
 }
 
 export interface EventProfit {
@@ -186,8 +295,10 @@ export function summariseEventIncome(
   const bySource = zeroed(EVENT_INCOME_SOURCES);
   let total = 0;
   let gst = 0;
+  let estimatedLines = 0;
   for (const line of lines) {
     total += line.amount;
+    if (line.estimated) estimatedLines += 1;
     // GST is worked out per line, as it would be on each receipt.
     if (line.gstIncluded) gst += gstPortion(line.amount);
     byCategory[line.category] += line.amount;
@@ -197,7 +308,14 @@ export function summariseEventIncome(
   for (const k of EVENT_INCOME_SOURCES) bySource[k] = cents(bySource[k]);
   total = cents(total);
   gst = cents(gst);
-  return { total, gst, totalExGst: cents(total - gst), byCategory, bySource };
+  return {
+    total,
+    gst,
+    totalExGst: cents(total - gst),
+    byCategory,
+    bySource,
+    estimatedLines,
+  };
 }
 
 export function summariseEventExpenses(
@@ -206,8 +324,10 @@ export function summariseEventExpenses(
   const byCategory = zeroed(EVENT_EXPENSE_CATEGORIES);
   let total = 0;
   let gst = 0;
+  let estimatedLines = 0;
   for (const line of lines) {
     total += line.amount;
+    if (line.estimated) estimatedLines += 1;
     if (line.gstIncluded) gst += gstPortion(line.amount);
     byCategory[line.category] += line.amount;
   }
@@ -216,7 +336,13 @@ export function summariseEventExpenses(
   }
   total = cents(total);
   gst = cents(gst);
-  return { total, gst, totalExGst: cents(total - gst), byCategory };
+  return {
+    total,
+    gst,
+    totalExGst: cents(total - gst),
+    byCategory,
+    estimatedLines,
+  };
 }
 
 export function eventProfit(
@@ -227,6 +353,14 @@ export function eventProfit(
     profit: cents(income.total - expenses.total),
     profitExGst: cents(income.totalExGst - expenses.totalExGst),
   };
+}
+
+/** "Profit" or "Loss", said as an estimate when any line behind it is one. */
+export function profitLabel(profit: number, estimated = false): string {
+  // Breaking even ($0) reads as a profit, never "Loss".
+  const word = profit < 0 ? "loss" : "profit";
+  if (estimated) return `Estimated ${word}`;
+  return word === "loss" ? "Loss" : "Profit";
 }
 
 // ── Cafe opening hours ──────────────────────────────────────────────────────
@@ -271,8 +405,10 @@ export function formatTimeOfDay(time: string): string {
 /**
  * The stat columns each report type owns. On save, columns owned only by
  * another type are cleared, so a day switched from a service night to an
- * event can never leave stale koha behind. `mealsServed` and `notes` are
- * shared by every type.
+ * events day can never leave stale koha behind. `notes` is shared by every
+ * type, and `mealsServed` by the service night and the cafe day; on an events
+ * day the API sets it to its activities' guests. Fundraising activities
+ * belong to the day, not its type, and survive a switch.
  */
 export const REPORT_FIELDS: Record<DayReportType, readonly string[]> = {
   SERVICE_NIGHT: [
@@ -288,7 +424,7 @@ export const REPORT_FIELDS: Record<DayReportType, readonly string[]> = {
     "suggestedValue",
     "protein",
   ],
-  EVENT: ["eventName"],
+  EVENT: [],
   CAFE: ["opensAt", "closesAt", "cash", "eftpos"],
 };
 

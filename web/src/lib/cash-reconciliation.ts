@@ -1,10 +1,19 @@
 import { format } from "date-fns";
-import { DAY_REPORT_TYPE_META, type DayReportType } from "@/lib/day-reports";
+import {
+  ACTIVITY_KIND_META,
+  DAY_REPORT_TYPE_META,
+  describeActivities,
+  summariseEventIncome,
+  type DayReportType,
+  type EventIncomeLine,
+  type FundraisingActivityKind,
+} from "@/lib/day-reports";
 
 /**
  * Cash reconciliation: one location's cash, day by day, over a date range, so
- * a bank deposit can be checked against it. Service nights, events and cafe
- * days all go to the same bank, so all three are listed, each labelled.
+ * a bank deposit can be checked against it. Service nights, events, catering
+ * gigs and cafe days all go to the same bank, so all are listed, each
+ * labelled. A day's events and catering gigs are added to its own takings.
  *
  * All dates here are NZ calendar days as "yyyy-MM-dd" strings. Calendar maths
  * is done on UTC-midnight Dates so DST never shifts a day.
@@ -101,12 +110,18 @@ export const CASH_FLAG_LABEL: Record<CashFlag, string> = {
   "no-record": "Night not recorded",
 };
 
+/** An event or catering gig, as named on the day's row. */
+export interface CashActivity {
+  kind: FundraisingActivityKind;
+  name: string | null;
+}
+
 export interface CashNight {
   date: string;
   /** What the day was; a day with shifts but no record counts as a service night. */
   type: DayReportType;
-  /** The event's name, for an event. */
-  eventName: string | null;
+  /** The day's events and catering gigs, whose takings are in its figures. */
+  activities: CashActivity[];
   cash: number | null;
   eftpos: number | null;
   stripe: number | null;
@@ -120,8 +135,10 @@ export interface CashTotals {
   nights: number;
   flagged: number;
   /** Days that weren't service nights, so the summary can say so. */
-  events: number;
+  eventDays: number;
   cafeDays: number;
+  /** Every event and catering gig over the range. */
+  activities: FundraisingActivityKind[];
 }
 
 export interface CashReconciliation {
@@ -135,10 +152,57 @@ export interface CashReconciliation {
 export interface CashRecordInput {
   date: string;
   type: DayReportType;
-  eventName?: string | null;
+  activities?: CashActivity[];
   cash: number | null;
   eftpos: number | null;
   stripe: number | null;
+  /**
+   * The day's own cash was never entered, so it's flagged even if an
+   * activity's cash makes the total non-null. Defaults to `cash === null`.
+   */
+  cashMissing?: boolean;
+}
+
+/**
+ * An event's banked takings, by source, from its itemised income. Until any
+ * actual income is entered its cash is unknown (null, so the night is
+ * flagged); after that, no cash lines genuinely means $0 cash. Estimates were
+ * never banked, so they never count, and invoices are paid later, not banked
+ * on the night.
+ */
+export function eventCashTakings(
+  income: readonly EventIncomeLine[]
+): Pick<CashRecordInput, "cash" | "eftpos" | "stripe"> {
+  const actual = income.filter((line) => !line.estimated);
+  if (actual.length === 0) return { cash: null, eftpos: null, stripe: null };
+  const { bySource } = summariseEventIncome(actual);
+  return { cash: bySource.CASH, eftpos: bySource.EFTPOS, stripe: bySource.STRIPE };
+}
+
+/**
+ * A day's banked takings: its own (a service night's koha, a cafe day's
+ * takings) plus its events' and catering gigs'. An events & catering day has
+ * only its activities'. A service night or cafe day is flagged while its own
+ * cash is blank, whatever its catering took.
+ */
+export function dayCashTakings(
+  day: Pick<CashRecordInput, "type" | "cash" | "eftpos" | "stripe">,
+  activityIncome: readonly EventIncomeLine[]
+): Pick<CashRecordInput, "cash" | "eftpos" | "stripe" | "cashMissing"> {
+  const fromActivities = eventCashTakings(activityIncome);
+  if (day.type === "EVENT") {
+    return { ...fromActivities, cashMissing: fromActivities.cash === null };
+  }
+  const add = (own: number | null, extra: number | null) =>
+    own === null && extra === null
+      ? null
+      : Math.round(((own ?? 0) + (extra ?? 0)) * 100) / 100;
+  return {
+    cash: add(day.cash, fromActivities.cash),
+    eftpos: add(day.eftpos, fromActivities.eftpos),
+    stripe: add(day.stripe, fromActivities.stripe),
+    cashMissing: day.cash === null,
+  };
 }
 
 // Sum in whole cents so a column of $x.10s never totals $x.0999999.
@@ -165,11 +229,11 @@ export function buildCashNights(
     byDate.set(r.date, {
       date: r.date,
       type: r.type,
-      eventName: r.eventName ?? null,
+      activities: r.activities ?? [],
       cash: r.cash,
       eftpos: r.eftpos,
       stripe: r.stripe,
-      status: r.cash === null ? "no-cash" : "recorded",
+      status: (r.cashMissing ?? r.cash === null) ? "no-cash" : "recorded",
     });
   }
   for (const date of shiftDates) {
@@ -177,7 +241,7 @@ export function buildCashNights(
       byDate.set(date, {
         date,
         type: "SERVICE_NIGHT",
-        eventName: null,
+        activities: [],
         cash: null,
         eftpos: null,
         stripe: null,
@@ -198,8 +262,9 @@ export function buildCashNights(
       stripe: sumCents(nights.map((n) => n.stripe)),
       nights: nights.length,
       flagged: nights.filter((n) => n.status !== "recorded").length,
-      events: nights.filter((n) => n.type === "EVENT").length,
+      eventDays: nights.filter((n) => n.type === "EVENT").length,
       cafeDays: nights.filter((n) => n.type === "CAFE").length,
+      activities: nights.flatMap((n) => n.activities.map((a) => a.kind)),
     },
   };
 }
@@ -217,13 +282,32 @@ export const keyToLocalDate = (key: string) => new Date(`${key}T00:00:00`);
 export const formatNight = (key: string) =>
   format(keyToLocalDate(key), "EEE d MMM yyyy");
 
-/** "Event · Quiz night", "Cafe", or null for a service night. */
+/**
+ * What the day was, or null for a plain service night: "Event · Quiz night",
+ * "Cafe", "Service night + Catering · Xero lunch", "2 catering gigs and an
+ * event".
+ */
 export function cashDayTypeLabel(
-  night: Pick<CashNight, "type" | "eventName">
+  night: Pick<CashNight, "type" | "activities">
 ): string | null {
-  if (night.type === "SERVICE_NIGHT") return null;
-  const label = DAY_REPORT_TYPE_META[night.type].label;
-  return night.eventName ? `${label} · ${night.eventName}` : label;
+  const { activities } = night;
+  const base =
+    night.type === "EVENT"
+      ? null
+      : activities.length > 0 || night.type === "CAFE"
+        ? DAY_REPORT_TYPE_META[night.type].label
+        : null;
+  let extra: string | null = null;
+  if (activities.length === 1) {
+    const [only] = activities;
+    const label = ACTIVITY_KIND_META[only.kind].label;
+    extra = only.name ? `${label} · ${only.name}` : label;
+  } else if (activities.length > 1) {
+    const words = describeActivities(activities.map((a) => a.kind));
+    extra = words.charAt(0).toUpperCase() + words.slice(1);
+  }
+  if (night.type === "EVENT" && !extra) return DAY_REPORT_TYPE_META.EVENT.label;
+  return [base, extra].filter(Boolean).join(" + ") || null;
 }
 
 export function formatCashRange(from: string, to: string): string {
@@ -257,8 +341,17 @@ export function buildCashCopyText(data: CashReconciliation): string {
     `Total cash\t${formatMoney(data.totals.cash)}`,
     `Days\t${data.totals.nights}`,
   ];
-  if (data.totals.events > 0) lines.push(`Events\t${data.totals.events}`);
+  if (data.totals.eventDays > 0) {
+    lines.push(`Events & catering days\t${data.totals.eventDays}`);
+  }
   if (data.totals.cafeDays > 0) lines.push(`Cafe days\t${data.totals.cafeDays}`);
+  for (const kind of ["CATERING", "EVENT"] as const) {
+    const n = data.totals.activities.filter((k) => k === kind).length;
+    if (n > 0) {
+      const label = ACTIVITY_KIND_META[kind].plural;
+      lines.push(`${label.charAt(0).toUpperCase()}${label.slice(1)}\t${n}`);
+    }
+  }
   if (data.totals.flagged > 0) {
     lines.push(`Nights with no cash recorded\t${data.totals.flagged}`);
   }

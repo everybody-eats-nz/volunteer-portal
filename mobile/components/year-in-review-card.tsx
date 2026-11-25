@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { FontFamily, Palette, Radius } from "@/constants/theme";
 
 /**
- * "Your 2026 in mahi is ready."
+ * "Your 2026, served."
  *
- * Home-tab card for the Year in mahi video, shown once an admin has switched
- * it on and the volunteer has a completed shift that year. Mobile twin of the
- * web dashboard banner, in the video's own forest-and-sun colours in both
- * light and dark mode.
+ * Home-tab card for the Everybody Eats, Served video, shown once an admin has
+ * switched it on and the volunteer has a completed shift that year. Mobile twin
+ * of the web dashboard banner, in the video's own forest-and-sun colours in
+ * both light and dark mode.
  */
 export function YearInReviewCard({
   year,
@@ -21,7 +21,7 @@ export function YearInReviewCard({
   return (
     <View style={styles.card}>
       <Text style={styles.title} accessibilityRole="header">
-        Your {year} in mahi is ready
+        Your {year}, served
       </Text>
       <Text style={styles.body}>
         Your shifts, the meals you helped serve and your crew, made into a
@@ -35,7 +35,7 @@ export function YearInReviewCard({
         size="sm"
         onPress={onWatch}
         style={styles.button}
-        accessibilityLabel={`Watch your ${year} in mahi`}
+        accessibilityLabel={`Watch your ${year} video`}
         testID="year-in-review-card-watch"
       />
     </View>

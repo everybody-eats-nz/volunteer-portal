@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { uploadFile, deleteFile, ALLOWED_FILE_TYPES, MAX_PROFILE_PHOTO_SIZE, PROFILE_PHOTOS_BUCKET } from "@/lib/storage";
-import { extractFilePathFromUrl } from "@/lib/storage-utils";
+import { extractOwnBucketPath } from "@/lib/storage-utils";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -63,8 +63,13 @@ export async function POST(request: Request) {
       select: { profilePhotoUrl: true },
     });
 
-    if (currentUser?.profilePhotoUrl && !currentUser.profilePhotoUrl.startsWith("data:")) {
-      const oldPath = extractFilePathFromUrl(currentUser.profilePhotoUrl);
+    // Only ever delete an object in our own profile-photos bucket. The stored
+    // value can also be a base64 data URI or an OAuth provider's URL.
+    if (currentUser?.profilePhotoUrl) {
+      const oldPath = extractOwnBucketPath(
+        currentUser.profilePhotoUrl,
+        PROFILE_PHOTOS_BUCKET,
+      );
       if (oldPath) {
         try {
           await deleteFile(oldPath, PROFILE_PHOTOS_BUCKET);
@@ -111,12 +116,16 @@ export async function DELETE() {
       select: { profilePhotoUrl: true },
     });
 
-    // Delete from storage if it's a Supabase URL (skip base64 data URIs)
-    if (user?.profilePhotoUrl && !user.profilePhotoUrl.startsWith("data:")) {
-      const filePath = extractFilePathFromUrl(user.profilePhotoUrl);
+    // Delete from storage only if it is an object in our own profile-photos
+    // bucket (the stored value can also be a data URI or an OAuth URL)
+    if (user?.profilePhotoUrl) {
+      const filePath = extractOwnBucketPath(
+        user.profilePhotoUrl,
+        PROFILE_PHOTOS_BUCKET,
+      );
       if (filePath) {
         try {
-          await deleteFile(filePath);
+          await deleteFile(filePath, PROFILE_PHOTOS_BUCKET);
         } catch {
           // Non-critical
         }

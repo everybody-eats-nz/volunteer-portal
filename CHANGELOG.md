@@ -1,3 +1,93 @@
+## [0.208.0] - 2026-11-24
+
+### Changes
+- feat: rename Year in mahi to Everybody Eats, Served ([#1443](https://github.com/everybody-eats-nz/volunteer-portal/pull/1443)) by @malinmalliyawadu
+
+
+## [0.207.2] - 2026-11-24
+
+### Changes
+- feat(shifts): show the day report below the volunteer roster ([#1442](https://github.com/everybody-eats-nz/volunteer-portal/pull/1442)) by @malinmalliyawadu
+
+
+## [0.207.1] - 2026-11-24
+
+### Changes
+- fix(events): put amount, GST and actual/estimate on one row ([#1441](https://github.com/everybody-eats-nz/volunteer-portal/pull/1441)) by @malinmalliyawadu
+
+
+## [0.207.0] - 2026-11-24
+
+### Changes
+- feat(events): record catering and any number of events per day ([#1440](https://github.com/everybody-eats-nz/volunteer-portal/pull/1440)) by @malinmalliyawadu
+
+
+## [0.206.2] - 2026-11-23
+
+### Changes
+- fix(home): make the landing page prerender instead of blocking ([#1438](https://github.com/everybody-eats-nz/volunteer-portal/pull/1438)) by @malinmalliyawadu
+
+
+## [0.206.1] - 2026-11-23
+
+### Changes
+- chore(deps): bump @radix-ui/react-switch from 1.2.6 to 1.4.1 in /web ([#1434](https://github.com/everybody-eats-nz/volunteer-portal/pull/1434)) by @dependabot[bot]
+
+
+## [0.206.0] - 2026-11-23
+
+### Changes
+- feat(events): mark event income and expense lines as estimates ([#1437](https://github.com/everybody-eats-nz/volunteer-portal/pull/1437)) by @malinmalliyawadu
+
+
+## [0.205.0] - 2026-11-23
+
+### Changes
+- feat(mobile): sort the approvals queue by shift date, soonest first ([#1436](https://github.com/everybody-eats-nz/volunteer-portal/pull/1436)) by @malinmalliyawadu
+
+
+## [0.204.7] - 2026-11-23
+
+### Changes
+- chore(deps): bump the production-dependencies group across 1 directory with 7 updates ([#1433](https://github.com/everybody-eats-nz/volunteer-portal/pull/1433)) by @dependabot[bot]
+
+
+## [0.204.6] - 2026-11-22
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 4 updates ([#1432](https://github.com/everybody-eats-nz/volunteer-portal/pull/1432)) by @dependabot[bot]
+
+
+## [0.204.5] - 2026-11-21
+
+### Changes
+- fix(errors): drop Chrome iOS injected-script exceptions from PostHog ([#1431](https://github.com/everybody-eats-nz/volunteer-portal/pull/1431)) by @malinmalliyawadu
+
+
+## [0.204.4] - 2026-11-16
+
+### Changes
+- chore(deps): bump react-image-crop from 11.0.10 to 11.1.2 in /web ([#1428](https://github.com/everybody-eats-nz/volunteer-portal/pull/1428)) by @dependabot[bot]
+
+
+## [0.204.3] - 2026-11-16
+
+### Changes
+- chore(deps): bump the production-dependencies group across 1 directory with 9 updates ([#1427](https://github.com/everybody-eats-nz/volunteer-portal/pull/1427)) by @dependabot[bot]
+
+
+## [0.204.2] - 2026-11-15
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 6 updates ([#1426](https://github.com/everybody-eats-nz/volunteer-portal/pull/1426)) by @dependabot[bot]
+
+
+## [0.204.1] - 2026-11-10
+
+### Changes
+- fix(auth): harden session updates, email lookups and profile photos ([#1425](https://github.com/everybody-eats-nz/volunteer-portal/pull/1425)) by @malinmalliyawadu
+
+
 ## [0.204.0] - 2026-11-09
 
 ### Changes

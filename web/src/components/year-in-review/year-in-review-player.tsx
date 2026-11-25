@@ -59,7 +59,7 @@ const renderPoster: RenderPoster = function Poster() {
 };
 
 /**
- * The "Year in mahi" video, played live from the same composition the
+ * The "Everybody Eats, Served" video, played live from the same composition the
  * download renders. Loaded with `next/dynamic` (no SSR) by
  * {@link YearInReviewPlayerFrame}, so Remotion stays out of the server bundle.
  */

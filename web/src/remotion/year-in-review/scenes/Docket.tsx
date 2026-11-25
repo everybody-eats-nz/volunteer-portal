@@ -255,7 +255,7 @@ export const Docket = (props: YearInReviewProps) => {
                 src={staticFile("everybody-eats-logo.svg")}
                 style={{ width: 300 }}
               />
-              <div style={{ marginTop: 24 }}>Year in mahi {year}</div>
+              <div style={{ marginTop: 24 }}>Served {year}</div>
               <div>Table for {firstName}</div>
             </div>
             <Rule />

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 
 /**
- * Where finished Year in mahi MP4s live.
+ * Where finished Everybody Eats, Served MP4s live.
  *
  * A private Supabase Storage bucket when Supabase is configured (production):
  * the videos carry names and friends' photos, so they are never public and

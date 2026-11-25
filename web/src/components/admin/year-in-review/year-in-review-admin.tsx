@@ -72,8 +72,8 @@ export function YearInReviewAdmin({
         next.enabled === previous.enabled
           ? `Showing ${next.year}`
           : next.enabled
-            ? "Year in mahi is on for everyone"
-            : "Year in mahi is off"
+            ? "Everybody Eats, Served is on for everyone"
+            : "Everybody Eats, Served is off"
       );
     } catch {
       setSettings(previous);

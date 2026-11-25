@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     headers: {
       "Content-Type": "video/mp4",
       "Content-Length": String(video.byteLength),
-      "Content-Disposition": `attachment; filename="year-in-mahi-${target.year}.mp4"`,
+      "Content-Disposition": `attachment; filename="everybody-eats-served-${target.year}.mp4"`,
       // Personal, so never in a shared cache. The URL carries a version, so
       // the browser may keep it.
       "Cache-Control": "private, max-age=3600",

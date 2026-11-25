@@ -1,11 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildOrganizationSchema } from "@/lib/seo";
-import {
-  captureFunnelEvent,
-  FunnelEvent,
-  getPhidFromCookies,
-} from "@/lib/funnel";
 import { HomeLanding } from "@/components/home-landing";
+import { HomepageViewTracker } from "@/components/homepage-view-tracker";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Make a Difference One Plate at a Time",
@@ -14,15 +11,8 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/",
 });
 
-export default async function Home() {
+export default function Home() {
   const organizationSchema = buildOrganizationSchema();
-  const phid = await getPhidFromCookies();
-
-  // Funnel entry point — first touch for the register/signup funnels.
-  captureFunnelEvent({
-    event: FunnelEvent.HOMEPAGE_VIEWED,
-    phid,
-  });
 
   return (
     <>
@@ -30,6 +20,11 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
+      {/* Per-request funnel tracking (reads cookies) stays out of the
+          static shell. */}
+      <Suspense fallback={null}>
+        <HomepageViewTracker />
+      </Suspense>
       <HomeLanding />
     </>
   );

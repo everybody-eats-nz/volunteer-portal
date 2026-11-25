@@ -390,4 +390,72 @@ test.describe("Admin User Impersonation", () => {
       });
     });
   });
+
+  test.describe("Session update cannot be forged", () => {
+    // The session switch runs in the NextAuth jwt callback, whose "update"
+    // payload is whatever the browser posts to /api/auth/session. A volunteer
+    // posting the payload themselves must get nothing from it.
+    test("a volunteer cannot make themselves an admin through the session endpoint", async ({
+      page,
+      context,
+    }) => {
+      const admin = await getUserByEmail(page, "admin@everybodyeats.nz");
+      expect(admin?.id).toBeTruthy();
+
+      await context.clearCookies();
+      await loginAsVolunteer(page);
+
+      const before = await (await page.request.get("/api/auth/session")).json();
+      expect(before.user.role).toBe("VOLUNTEER");
+
+      const { csrfToken } = await (
+        await page.request.get("/api/auth/csrf")
+      ).json();
+
+      // Both the current payload shape and the one the client used to send,
+      // which the server once copied into the token as is.
+      const forgedIdentity = {
+        id: admin!.id,
+        email: admin!.email,
+        name: "Forged",
+        role: "ADMIN",
+      };
+      const response = await page.request.post("/api/auth/session", {
+        data: {
+          csrfToken,
+          data: {
+            startImpersonation: {
+              targetUserId: admin!.id,
+              targetUser: forgedIdentity,
+              impersonationData: {
+                adminId: admin!.id,
+                adminEmail: admin!.email,
+                adminName: null,
+              },
+            },
+          },
+        },
+      });
+      expect(response.ok()).toBeTruthy();
+
+      const after = await (await page.request.get("/api/auth/session")).json();
+      expect(after.user.id).toBe(before.user.id);
+      expect(after.user.email).toBe(before.user.email);
+      expect(after.user.role).toBe("VOLUNTEER");
+      expect(after.impersonating).toBeUndefined();
+
+      // Stopping an impersonation that never started must not restore anyone.
+      await page.request.post("/api/auth/session", {
+        data: { csrfToken, data: { stopImpersonation: true } },
+      });
+      const afterStop = await (
+        await page.request.get("/api/auth/session")
+      ).json();
+      expect(afterStop.user.id).toBe(before.user.id);
+      expect(afterStop.user.role).toBe("VOLUNTEER");
+
+      const adminApi = await page.request.get("/api/admin/users");
+      expect(adminApi.status()).toBe(403);
+    });
+  });
 });

@@ -3,6 +3,9 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     mealsServed: { findMany: vi.fn(), aggregate: vi.fn() },
+    fundraisingActivity: {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { pax: null } }),
+    },
     $queryRaw: vi.fn(),
   },
 }));

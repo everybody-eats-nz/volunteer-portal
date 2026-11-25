@@ -70,7 +70,7 @@ function useShareableFile(fileUrl: string | null): File | null {
       .then((blob) => {
         if (!blob || cancelled) return;
         const year = new URL(fileUrl, location.href).searchParams.get("year");
-        const candidate = new File([blob], `year-in-mahi-${year}.mp4`, {
+        const candidate = new File([blob], `everybody-eats-served-${year}.mp4`, {
           type: "video/mp4",
         });
         if (navigator.canShare({ files: [candidate] })) {

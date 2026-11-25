@@ -13,18 +13,46 @@ import {
   currentBudgetYear,
 } from "@/lib/budget-calculations";
 import { buildCafeReport, buildEventsReport } from "@/lib/events-cafe-report";
+import { isActivityKind, type FundraisingActivityKind } from "@/lib/day-reports";
 import type { Prisma } from "@/generated/client";
 import { EventsCafeClient } from "./events-cafe-client";
 
+const DESCRIPTION =
+  "Event and catering income and profit, and cafe takings, kept separate from koha";
+
 export const metadata: Metadata = {
   title: "Events & Cafe",
-  description: "Fundraiser income and profit, and cafe takings, kept separate from koha",
+  description: DESCRIPTION,
 };
 
-// Everything that isn't a service night, i.e. isn't koha.
+// Every day with something that isn't koha: an events or cafe day, or a
+// service night that also ran an event or catering gig.
 const OTHER_ACTIVITY: Prisma.MealsServedWhereInput = {
-  reportType: { in: ["EVENT", "CAFE"] },
+  OR: [
+    { reportType: { in: ["EVENT", "CAFE"] } },
+    { activities: { some: {} } },
+  ],
 };
+
+const lineFields = {
+  income: {
+    select: {
+      source: true,
+      category: true,
+      amount: true,
+      gstIncluded: true,
+      estimated: true,
+    },
+  },
+  expenses: {
+    select: {
+      category: true,
+      amount: true,
+      gstIncluded: true,
+      estimated: true,
+    },
+  },
+} as const;
 
 const decimal = (v: unknown): number | null =>
   v === null || v === undefined ? null : Number(v);
@@ -61,7 +89,8 @@ export default async function EventsCafePage({
     getActiveLocationNames(),
   ]);
 
-  // Financial years from the first event or cafe day to now, newest first.
+  // Financial years from the first event, catering gig or cafe day to now,
+  // newest first.
   const currentYear = currentBudgetYear();
   const firstYear = earliest._min.date
     ? Math.min(budgetYearOf(earliest._min.date), currentYear)
@@ -86,6 +115,11 @@ export default async function EventsCafePage({
       ? requestedLocation
       : "all";
 
+  const requestedKind = str(params.kind);
+  const kind: FundraisingActivityKind | "all" = isActivityKind(requestedKind)
+    ? requestedKind
+    : "all";
+
   const range = period === "all" ? null : budgetYearRange(period);
   const records = await prisma.mealsServed.findMany({
     where: {
@@ -97,43 +131,41 @@ export default async function EventsCafePage({
       date: true,
       location: true,
       reportType: true,
-      eventName: true,
       mealsServed: true,
       opensAt: true,
       closesAt: true,
       cash: true,
       eftpos: true,
-      income: {
+      activities: {
         select: {
-          source: true,
-          category: true,
-          amount: true,
-          gstIncluded: true,
+          kind: true,
+          name: true,
+          pax: true,
+          position: true,
+          ...lineFields,
         },
-      },
-      expenses: {
-        select: { category: true, amount: true, gstIncluded: true },
       },
     },
   });
 
+  const activities = records.flatMap((r) =>
+    r.activities.map((a) => ({
+      date: formatInNZT(r.date, "yyyy-MM-dd"),
+      location: r.location,
+      position: a.position,
+      kind: a.kind,
+      name: a.name,
+      pax: a.pax,
+      income: a.income.map((line) => ({ ...line, amount: Number(line.amount) })),
+      expenses: a.expenses.map((line) => ({
+        ...line,
+        amount: Number(line.amount),
+      })),
+    }))
+  );
+  const kindCounts = buildEventsReport(activities).totals.byKind;
   const events = buildEventsReport(
-    records
-      .filter((r) => r.reportType === "EVENT")
-      .map((r) => ({
-        date: formatInNZT(r.date, "yyyy-MM-dd"),
-        location: r.location,
-        eventName: r.eventName,
-        pax: r.mealsServed,
-        income: r.income.map((line) => ({
-          ...line,
-          amount: Number(line.amount),
-        })),
-        expenses: r.expenses.map((line) => ({
-          ...line,
-          amount: Number(line.amount),
-        })),
-      }))
+    kind === "all" ? activities : activities.filter((a) => a.kind === kind)
   );
   const cafe = buildCafeReport(
     records
@@ -150,13 +182,12 @@ export default async function EventsCafePage({
   );
 
   return (
-    <AdminPageWrapper
-      title="Events & Cafe"
-      description="Fundraiser income and profit, and cafe takings, kept separate from koha"
-    >
+    <AdminPageWrapper title="Events & Cafe" description={DESCRIPTION}>
       <PageContainer testid="events-cafe-page">
         <EventsCafeClient
           events={events}
+          kind={kind}
+          kindCounts={kindCounts}
           cafe={cafe}
           years={years}
           period={period}

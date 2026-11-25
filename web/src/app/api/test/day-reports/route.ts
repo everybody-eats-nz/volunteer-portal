@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Test-only endpoint: delete every day report (and, by cascade, its event
- * income and expenses) at one location, so e2e tests leave no records behind.
+ * Test-only endpoint: delete every day report (and, by cascade, its events
+ * and catering gigs with their income and expenses) at one location, so e2e
+ * tests leave no records behind.
  * Only available in development/test environments.
  */
 export async function DELETE(request: NextRequest) {

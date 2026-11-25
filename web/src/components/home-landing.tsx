@@ -340,7 +340,7 @@ export async function HomeLanding() {
             src="/patterns/kawakawa.avif"
             alt=""
             width={416}
-            height={416}
+            height={153}
             aria-hidden
             className="pointer-events-none absolute -right-8 top-0 w-80 opacity-20 sm:w-[26rem]"
           />
@@ -400,7 +400,7 @@ export async function HomeLanding() {
             src="/patterns/kawakawa.avif"
             alt=""
             width={416}
-            height={416}
+            height={153}
             aria-hidden
             className="pointer-events-none absolute -left-10 -top-6 w-72 opacity-25 mix-blend-multiply sm:w-96"
           />

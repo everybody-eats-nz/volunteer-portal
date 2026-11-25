@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  describeActivities,
+  eventDayHeadcount,
+  peopleServed,
   formatDuration,
   formatTimeOfDay,
   gstPortion,
   eventProfit,
   openMinutes,
+  profitLabel,
   summariseEventExpenses,
   summariseEventIncome,
 } from "./day-reports";
@@ -29,6 +33,43 @@ describe("summariseEventExpenses", () => {
       DRINKS: 241.5,
       OTHER: 0,
     });
+  });
+});
+
+describe("estimated lines", () => {
+  it("count in the totals and are counted apart", () => {
+    const income = summariseEventIncome([
+      {
+        source: "EFTPOS",
+        category: "SALES",
+        amount: 2300,
+        gstIncluded: true,
+        estimated: true,
+      },
+      { source: "CASH", category: "KOHA", amount: 200, gstIncluded: false },
+    ]);
+    expect(income.total).toBe(2500);
+    expect(income.gst).toBe(300);
+    expect(income.estimatedLines).toBe(1);
+
+    const expenses = summariseEventExpenses([
+      { category: "FOOD", amount: 115, gstIncluded: true, estimated: true },
+      { category: "DECOR", amount: 50, gstIncluded: false, estimated: true },
+    ]);
+    expect(expenses.total).toBe(165);
+    expect(expenses.estimatedLines).toBe(2);
+
+    expect(summariseEventExpenses([]).estimatedLines).toBe(0);
+  });
+});
+
+describe("profitLabel", () => {
+  it("says profit or loss, as an estimate when it includes one", () => {
+    expect(profitLabel(10)).toBe("Profit");
+    expect(profitLabel(0)).toBe("Profit");
+    expect(profitLabel(-1)).toBe("Loss");
+    expect(profitLabel(10, true)).toBe("Estimated profit");
+    expect(profitLabel(-1, true)).toBe("Estimated loss");
   });
 });
 
@@ -137,5 +178,58 @@ describe("cafe opening hours", () => {
     expect(formatTimeOfDay("12:00")).toBe("12pm");
     expect(formatTimeOfDay("00:15")).toBe("12:15am");
     expect(formatTimeOfDay("17:00")).toBe("5pm");
+  });
+});
+
+describe("describeActivities", () => {
+  it("counts each kind in words, catering first", () => {
+    expect(describeActivities([])).toBe("");
+    expect(describeActivities(["EVENT"])).toBe("an event");
+    expect(describeActivities(["CATERING", "CATERING", "CATERING"])).toBe(
+      "3 catering gigs"
+    );
+    expect(describeActivities(["EVENT", "CATERING", "CATERING"])).toBe(
+      "2 catering gigs and an event"
+    );
+  });
+});
+
+describe("peopleServed", () => {
+  it("adds every event's and catering gig's guests to the day's own count", () => {
+    expect(
+      peopleServed({
+        reportType: "SERVICE_NIGHT",
+        mealsServed: 60,
+        activities: [{ pax: 120 }, { pax: null }, { pax: 40 }],
+      })
+    ).toBe(220);
+    expect(
+      peopleServed({ reportType: "CAFE", mealsServed: null, activities: [] })
+    ).toBe(0);
+  });
+
+  it("never counts an events day's guests twice", () => {
+    // An events day's mealsServed is already its activities' total.
+    expect(
+      peopleServed({
+        reportType: "EVENT",
+        mealsServed: 160,
+        activities: [{ pax: 120 }, { pax: 40 }],
+      })
+    ).toBe(160);
+  });
+});
+
+describe("eventDayHeadcount", () => {
+  it("adds up the activities that have a count", () => {
+    expect(eventDayHeadcount([{ pax: 40 }, { pax: null }, { pax: 70 }])).toBe(
+      110
+    );
+    expect(eventDayHeadcount([{ pax: 0 }])).toBe(0);
+  });
+
+  it("is unknown while no activity has a count", () => {
+    expect(eventDayHeadcount([])).toBeNull();
+    expect(eventDayHeadcount([{ pax: null }])).toBeNull();
   });
 });

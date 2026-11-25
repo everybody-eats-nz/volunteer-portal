@@ -65,7 +65,7 @@ export default async function DashboardPage() {
         <ProfileCompletionBannerServer />
       </Suspense>
 
-      {/* Year in mahi - once an admin switches it on */}
+      {/* Everybody Eats, Served - once an admin switches it on */}
       <Suspense fallback={null}>
         <DashboardYearInReviewBanner />
       </Suspense>

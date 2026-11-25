@@ -22,15 +22,16 @@ vi.mock("@/lib/storage", () => ({
   PROFILE_PHOTOS_BUCKET: "profile-photos",
 }));
 
-vi.mock("@/lib/storage-utils", () => ({
-  extractFilePathFromUrl: vi.fn(),
-}));
+// storage-utils is not mocked: which stored URLs may be deleted is the point.
+const SUPABASE_URL = "https://project.supabase.co";
+vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", SUPABASE_URL);
+const ownPhotoUrl = (name: string) =>
+  `${SUPABASE_URL}/storage/v1/object/public/profile-photos/uploads/${name}`;
 
 import { POST, DELETE } from "./route";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { prisma } from "@/lib/prisma";
 import { uploadFile, deleteFile } from "@/lib/storage";
-import { extractFilePathFromUrl } from "@/lib/storage-utils";
 
 const mockRequireMobileUser = requireMobileUser as ReturnType<typeof vi.fn>;
 const mockPrisma = prisma as unknown as {
@@ -41,7 +42,6 @@ const mockPrisma = prisma as unknown as {
 };
 const mockUploadFile = uploadFile as ReturnType<typeof vi.fn>;
 const mockDeleteFile = deleteFile as ReturnType<typeof vi.fn>;
-const mockExtractFilePath = extractFilePathFromUrl as ReturnType<typeof vi.fn>;
 
 function makePhotoRequest() {
   const formData = new FormData();
@@ -157,9 +157,8 @@ describe("POST /api/mobile/profile/photo", () => {
       userId: "user-1",
     });
     mockPrisma.user.findUnique.mockResolvedValue({
-      profilePhotoUrl: "https://supabase.co/storage/old-photo.jpg",
+      profilePhotoUrl: ownPhotoUrl("old-photo.jpg"),
     });
-    mockExtractFilePath.mockReturnValue("uploads/old-photo.jpg");
     mockUploadFile.mockResolvedValue({
       url: "https://supabase.co/storage/new-photo.jpg",
       path: "uploads/new-photo.jpg",
@@ -172,6 +171,38 @@ describe("POST /api/mobile/profile/photo", () => {
       "uploads/old-photo.jpg",
       "profile-photos"
     );
+  });
+
+  it.each([
+    [
+      "another host",
+      "https://evil.example/storage/v1/object/public/profile-photos/uploads/victim.jpg",
+    ],
+    [
+      "another bucket",
+      `${SUPABASE_URL}/storage/v1/object/public/resource-hub/uploads/handbook.pdf`,
+    ],
+    [
+      "a path that climbs out of the bucket",
+      `${SUPABASE_URL}/storage/v1/object/public/profile-photos/../resource-hub/uploads/handbook.pdf`,
+    ],
+    ["an OAuth provider photo", "https://lh3.googleusercontent.com/a/photo"],
+    ["a base64 data URI", "data:image/jpeg;base64,AAAA"],
+  ])("does not delete anything for a stored URL on %s", async (_label, url) => {
+    mockRequireMobileUser.mockResolvedValue({
+      user: { id: "user-1" },
+      userId: "user-1",
+    });
+    mockPrisma.user.findUnique.mockResolvedValue({ profilePhotoUrl: url });
+    mockUploadFile.mockResolvedValue({
+      url: ownPhotoUrl("new-photo.jpg"),
+      path: "uploads/new-photo.jpg",
+    });
+    mockPrisma.user.update.mockResolvedValue({});
+
+    const response = await POST(makePhotoRequest());
+    expect(response.status).toBe(200);
+    expect(mockDeleteFile).not.toHaveBeenCalled();
   });
 });
 
@@ -193,9 +224,8 @@ describe("DELETE /api/mobile/profile/photo", () => {
       userId: "user-1",
     });
     mockPrisma.user.findUnique.mockResolvedValue({
-      profilePhotoUrl: "https://supabase.co/storage/photo.jpg",
+      profilePhotoUrl: ownPhotoUrl("photo.jpg"),
     });
-    mockExtractFilePath.mockReturnValue("uploads/photo.jpg");
     mockPrisma.user.update.mockResolvedValue({});
 
     const response = await DELETE(makeDeleteRequest());
@@ -228,5 +258,26 @@ describe("DELETE /api/mobile/profile/photo", () => {
     expect(response.status).toBe(200);
 
     expect(mockDeleteFile).not.toHaveBeenCalled();
+  });
+
+  it("clears the photo without deleting an object it does not own", async () => {
+    mockRequireMobileUser.mockResolvedValue({
+      user: { id: "user-1" },
+      userId: "user-1",
+    });
+    mockPrisma.user.findUnique.mockResolvedValue({
+      profilePhotoUrl:
+        "https://evil.example/storage/v1/object/public/x/uploads/victim.jpg",
+    });
+    mockPrisma.user.update.mockResolvedValue({});
+
+    const response = await DELETE(makeDeleteRequest());
+    expect(response.status).toBe(200);
+
+    expect(mockDeleteFile).not.toHaveBeenCalled();
+    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: { profilePhotoUrl: null },
+    });
   });
 });

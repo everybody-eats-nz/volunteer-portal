@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
-import { emailMatches } from "@/lib/utils/email";
+import {
+  emailMatches,
+  isPlausibleEmail,
+  MAX_EMAIL_CANDIDATES,
+} from "@/lib/utils/email";
 import { signMobileToken, toMobileUser } from "@/lib/mobile-auth";
 
 export async function POST(request: Request) {
@@ -16,11 +20,26 @@ export async function POST(request: Request) {
       );
     }
 
+    if (typeof email !== "string" || typeof password !== "string") {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!isPlausibleEmail(email)) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
+
     // Stored emails are mixed-case, so match case-insensitively and let the
     // password pick the account in the rare case two differ only by casing.
     const candidates = await prisma.user.findMany({
-      where: emailMatches(String(email)),
+      where: emailMatches(email),
       orderBy: { createdAt: "asc" },
+      take: MAX_EMAIL_CANDIDATES,
       select: {
         id: true,
         name: true,
@@ -44,7 +63,7 @@ export async function POST(request: Request) {
     let user: (typeof candidates)[number] | null = null;
     for (const candidate of candidates) {
       if (!candidate.hashedPassword) continue;
-      if (await bcrypt.compare(String(password), candidate.hashedPassword)) {
+      if (await bcrypt.compare(password, candidate.hashedPassword)) {
         user = candidate;
         break;
       }

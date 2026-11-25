@@ -16,7 +16,7 @@ const HERO_STAT_SPANS = [
  */
 export function ServiceNightReportSkeleton() {
   return (
-    <SkeletonCard className="mb-6 overflow-hidden">
+    <SkeletonCard className="overflow-hidden">
       <div className="border-b px-6 py-5">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <div className="space-y-2">

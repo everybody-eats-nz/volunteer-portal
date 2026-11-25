@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { getToken } from "next-auth/jwt";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId } = body;
 
-    if (!userId) {
+    if (typeof userId !== "string" || !userId) {
       return NextResponse.json(
         { error: "User ID is required" },
         { status: 400 }
@@ -34,54 +33,18 @@ export async function POST(request: NextRequest) {
     // Verify target user exists
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        emailVerified: true,
-      },
+      select: { id: true },
     });
 
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get current token to extract admin info
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!token) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-    }
-
-    // Create a new token with impersonation data
-    const impersonationData = {
-      adminId: session.user.id,
-      adminEmail: session.user.email || "",
-      adminName: session.user.name || null,
-    };
-
-    // Return data for client to trigger session update
-    return NextResponse.json({
-      success: true,
-      targetUser: {
-        id: targetUser.id,
-        email: targetUser.email,
-        name: targetUser.name,
-        role: targetUser.role,
-        firstName: targetUser.firstName,
-        lastName: targetUser.lastName,
-        phone: targetUser.phone,
-        emailVerified: targetUser.emailVerified,
-      },
-      impersonationData,
-    });
+    // This route is a pre-check so the button can show a useful error. It
+    // grants nothing: the session is switched by the NextAuth jwt callback,
+    // which repeats the admin check against the database
+    // (src/lib/impersonation.ts).
+    return NextResponse.json({ success: true, targetUserId: targetUser.id });
   } catch (error) {
     console.error("Impersonation error:", error);
     return NextResponse.json(

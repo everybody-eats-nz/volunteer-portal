@@ -26,7 +26,7 @@ export function YearInReviewSharePanel({
 
   const share = async (file: File) => {
     try {
-      await navigator.share({ files: [file], title: `My ${year} in mahi` });
+      await navigator.share({ files: [file], title: `My ${year}, served` });
     } catch (error) {
       // Closing the share sheet isn't a failure.
       if (error instanceof DOMException && error.name === "AbortError") return;

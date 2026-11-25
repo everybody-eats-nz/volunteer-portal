@@ -83,9 +83,6 @@ const registerSchema = z
       .optional(),
     volunteerAgreementAccepted: z.boolean(),
     healthSafetyPolicyAccepted: z.boolean(),
-
-    // Profile image (optional, nullable in DB)
-    profilePhotoUrl: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -219,8 +216,9 @@ export async function POST(req: Request) {
       requiresParentalConsent,
       parentalConsentReceived: false, // Always false initially
 
-      // Profile image (optional, nullable in DB)
-      profilePhotoUrl: validatedData.profilePhotoUrl || null,
+      // No photo at registration: one is only ever set by the authenticated
+      // upload route, never from a client-supplied URL.
+      profilePhotoUrl: null,
 
       // Whether the registration form supplied every required profile field.
       // The shift signup endpoint gates on this flag, so set it eagerly here

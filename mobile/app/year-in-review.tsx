@@ -33,7 +33,7 @@ const STORE_URL =
     : "https://apps.apple.com/app/id6760931588";
 
 /**
- * The volunteer's Year in mahi video.
+ * The volunteer's Everybody Eats, Served video.
  *
  * The player is the web page at /embed/year-in-review, opened with the app's
  * bearer token, so the video changes without an app release. The MP4 is
@@ -62,7 +62,7 @@ export default function YearInReviewScreen() {
         ) : loadFailed ? (
           <View style={styles.centered}>
             <Text style={styles.message}>
-              Couldn&apos;t load your year in mahi. Check your connection and
+              Couldn&apos;t load your year, served. Check your connection and
               try again.
             </Text>
             <Button
@@ -108,7 +108,7 @@ function ShareBar({ token, bottomInset }: { token: string; bottomInset: number }
       setDownloading(true);
       try {
         const year = new URLSearchParams(ready.fileUrl.split("?")[1]).get("year");
-        const file = new File(Paths.cache, `year-in-mahi-${year}.mp4`);
+        const file = new File(Paths.cache, `everybody-eats-served-${year}.mp4`);
         if (file.exists) file.delete();
         try {
           await File.downloadFileAsync(`${API_URL}${ready.fileUrl}`, file, {
@@ -126,7 +126,7 @@ function ShareBar({ token, bottomInset }: { token: string; bottomInset: number }
         await Sharing.shareAsync(file.uri, {
           mimeType: "video/mp4",
           UTI: "public.mpeg-4",
-          dialogTitle: "Share your year in mahi",
+          dialogTitle: "Share your year, served",
         });
       } catch {
         Alert.alert("Couldn't share the video", "Please try again.");

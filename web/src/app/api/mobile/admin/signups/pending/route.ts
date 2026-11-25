@@ -6,9 +6,14 @@ import { prisma } from "@/lib/prisma";
 /**
  * GET /api/mobile/admin/signups/pending
  *
- * Pending signups (PENDING / REGULAR_PENDING) for upcoming shifts, oldest
- * request first, so admins can clear the approval queue on the go. Optional
- * ?location= filter.
+ * Pending signups (PENDING / REGULAR_PENDING) for upcoming shifts, so admins
+ * can clear the approval queue on the go. Optional ?location= filter.
+ *
+ * Ordered by shift date, soonest first, so the most urgent decisions sit at
+ * the top. Signups for the same shift stay together, oldest request first.
+ * Sorting here (not in the app) also means `limit` keeps the soonest shifts
+ * rather than the oldest requests, and store builds pick it up without a
+ * release.
  */
 export async function GET(req: Request) {
   const auth = await requireMobileAdmin(req);
@@ -18,7 +23,11 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const location = url.searchParams.get("location") ?? undefined;
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 100);
+  // A negative `take` makes Prisma read from the end of the list (the
+  // furthest-out shifts), and NaN throws, so fall back to the default for
+  // anything that isn't a positive whole number.
+  const requested = Math.trunc(Number(url.searchParams.get("limit") ?? 50));
+  const limit = requested >= 1 ? Math.min(requested, 100) : 50;
 
   const where: Prisma.SignupWhereInput = {
     status: { in: ["PENDING", "REGULAR_PENDING"] },
@@ -30,7 +39,14 @@ export async function GET(req: Request) {
 
   const signups = await prisma.signup.findMany({
     where,
-    orderBy: { createdAt: "asc" },
+    // `id` last makes the order total, so signups created in the same
+    // instant (bulk regular inserts) never swap between requests.
+    orderBy: [
+      { shift: { start: "asc" } },
+      { shiftId: "asc" },
+      { createdAt: "asc" },
+      { id: "asc" },
+    ],
     take: limit,
     select: {
       id: true,
