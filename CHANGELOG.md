@@ -1,3 +1,9 @@
+## [0.209.1] - 2026-11-26
+
+### Changes
+- feat(budget): start budget tracking weeks on Sunday ([#1445](https://github.com/everybody-eats-nz/volunteer-portal/pull/1445)) by @malinmalliyawadu
+
+
 ## [0.209.0] - 2026-11-26
 
 ### Changes
