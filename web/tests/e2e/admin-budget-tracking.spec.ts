@@ -1,6 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
-import { gotoSettled } from "./helpers/streaming";
+import { gotoSettled, waitForStreamSettled } from "./helpers/streaming";
 
 /**
  * Budget tracking: an admin enters an annual koha target and planned service
@@ -99,15 +99,15 @@ test.describe("Admin budget tracking", () => {
       `/admin/analytics/budget?location=${encodeURIComponent(name)}&period=week&date=2098-07-15`
     );
     const label = page.getByTestId("budget-period-label");
-    await expect(label).toHaveText("14 – 20 Jul 2098");
+    await expect(label).toHaveText("13 – 19 Jul 2098");
     await expect(page.getByTestId("budget-range-headline")).toHaveText(
       "This week hasn't started yet"
     );
 
-    // Step to the next week.
+    // Step to the next Sunday-Saturday week.
     await page.getByTestId("budget-period-next").click();
-    await page.waitForURL(/date=2098-07-21/);
-    await expect(label).toHaveText("21 – 27 Jul 2098");
+    await page.waitForURL(/date=2098-07-20/);
+    await expect(label).toHaveText("20 – 26 Jul 2098");
 
     // Month opens the month the week is in.
     const kinds = page.getByTestId("budget-period-kind");
@@ -132,7 +132,9 @@ test.describe("Admin budget tracking", () => {
       page,
       `/admin/analytics/budget?location=${encodeURIComponent(name)}&period=custom&from=2098-07-16&to=2098-07-10`
     );
+    // The redirect arrives mid-stream, so the landing page streams again.
     await page.waitForURL(/from=2098-07-10&to=2098-07-16/);
+    await waitForStreamSettled(page);
     await expect(range).toHaveText("10 – 16 Jul 2098");
 
     // Back to the financial year the range ends in.

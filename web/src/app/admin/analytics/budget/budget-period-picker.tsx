@@ -6,6 +6,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { budgetYearLabel } from "@/lib/budget-calculations";
 import {
+  BUDGET_WEEK_STARTS_ON,
   formatDayRange,
   MAX_CUSTOM_RANGE_DAYS,
   resolveBudgetPeriod,
@@ -214,9 +215,9 @@ function PeriodStepper({
               captionLayout="dropdown"
               {...calendarBounds(period, today)}
               defaultMonth={toDate(period.start)}
-              weekStartsOn={1}
+              weekStartsOn={BUDGET_WEEK_STARTS_ON}
               selected={{ from: toDate(period.start), to: toDate(period.end) }}
-              // Any day picks the Monday-Sunday week around it.
+              // Any day picks the Sunday-Saturday week around it.
               onSelect={(_range, day) => pick(toDay(day))}
               autoFocus
             />
@@ -364,7 +365,7 @@ function CustomRange({
           captionLayout="dropdown"
           {...calendarBounds(period, today)}
           defaultMonth={draft.from}
-          weekStartsOn={1}
+          weekStartsOn={BUDGET_WEEK_STARTS_ON}
           selected={{ from: draft.from, to: draft.to }}
           // The dates in view show first; the next click starts a new range.
           resetOnSelect

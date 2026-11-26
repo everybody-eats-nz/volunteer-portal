@@ -3,7 +3,7 @@ import { budgetYearLabel, budgetYearSpan } from "@/lib/budget-calculations";
 
 /**
  * The window the budget tracking page looks at: a whole financial year (the
- * default), one calendar month, one Monday-Sunday week or a custom run of
+ * default), one calendar month, one Sunday-Saturday week or a custom run of
  * dates. Every date here is an NZ calendar day as `yyyy-MM-dd`, so all the
  * maths is plain calendar arithmetic with no timezone involved; only
  * `budgetPeriodBounds` turns a period into instants for the database.
@@ -38,7 +38,7 @@ export interface BudgetPeriod {
    * year its last day falls in. Budgets are set and edited for this year.
    */
   year: number;
-  /** "2026/27", "November 2026", "23 – 29 Nov 2026" */
+  /** "2026/27", "November 2026", "22 – 28 Nov 2026" */
   label: string;
   /** The dates covered, written out: "1 Apr 2026 – 31 Mar 2027". */
   span: string;
@@ -122,15 +122,25 @@ function budgetYearOfDay({ y, m }: Ymd): number {
   return m >= 4 ? y + 1 : y;
 }
 
-/** The Monday on or before a day. Throws on anything but a valid yyyy-MM-dd. */
+/**
+ * Budget weeks run Sunday to Saturday, as the team asked for this page.
+ * 0 = Sunday, the same numbering as `Date.getDay` and react-day-picker's
+ * `weekStartsOn`, so the calendars use this too.
+ */
+export const BUDGET_WEEK_STARTS_ON = 0;
+
+/**
+ * The first day of the budget week (a Sunday) on or before a day. Throws on
+ * anything but a valid yyyy-MM-dd.
+ */
 export function weekStartOf(day: string): string {
   const parsed = parseDay(day);
   if (!parsed) throw new Error(`Invalid day: ${day}`);
-  const weekday = toUtc(parsed).getUTCDay(); // 0 = Sunday
-  return iso(addDays(parsed, -((weekday + 6) % 7)));
+  const weekday = toUtc(parsed).getUTCDay();
+  return iso(addDays(parsed, -((weekday - BUDGET_WEEK_STARTS_ON + 7) % 7)));
 }
 
-/** "23 – 29 Nov 2026", "30 Nov – 6 Dec 2026", "29 Dec 2025 – 4 Jan 2026" */
+/** "22 – 28 Nov 2026", "29 Nov – 5 Dec 2026", "28 Dec 2025 – 3 Jan 2026" */
 export function formatDayRange(start: string, end: string): string {
   const a = parseDay(start);
   const b = parseDay(end);
@@ -188,20 +198,20 @@ function monthPeriod(anchor: Ymd, today: string): BudgetPeriod {
 
 function weekPeriod(anchor: Ymd, today: string): BudgetPeriod {
   const start = weekStartOf(iso(anchor));
-  const monday = parseDay(start)!;
-  const sunday = addDays(monday, 6);
-  const end = iso(sunday);
+  const sunday = parseDay(start)!;
+  const saturday = addDays(sunday, 6);
+  const end = iso(saturday);
   const span = formatDayRange(start, end);
   return {
     kind: "week",
     start,
     end,
-    year: budgetYearOfDay(sunday),
+    year: budgetYearOfDay(saturday),
     label: span,
     span,
     timing: timingOf(start, end, today),
-    prev: iso(addDays(monday, -7)),
-    next: iso(addDays(monday, 7)),
+    prev: iso(addDays(sunday, -7)),
+    next: iso(addDays(sunday, 7)),
   };
 }
 

@@ -44,22 +44,22 @@ describe("resolveBudgetPeriod", () => {
     expect(resolveBudgetPeriod({ year: "nope" }, TODAY).year).toBe(2027);
   });
 
-  it("shows the Monday-Sunday week around a date", () => {
+  it("shows the Sunday-Saturday week around a date", () => {
     const p = resolveBudgetPeriod({ period: "week", date: "2026-11-26" }, TODAY);
     expect(p).toMatchObject({
       kind: "week",
-      start: "2026-11-23",
-      end: "2026-11-29",
-      label: "23 – 29 Nov 2026",
+      start: "2026-11-22",
+      end: "2026-11-28",
+      label: "22 – 28 Nov 2026",
       timing: "current",
-      prev: "2026-11-16",
-      next: "2026-11-30",
+      prev: "2026-11-15",
+      next: "2026-11-29",
     });
   });
 
   it("defaults a week or month to the one containing today", () => {
     expect(resolveBudgetPeriod({ period: "week" }, TODAY).start).toBe(
-      "2026-11-23"
+      "2026-11-22"
     );
     expect(resolveBudgetPeriod({ period: "month" }, TODAY).start).toBe(
       "2026-11-01"
@@ -81,10 +81,10 @@ describe("resolveBudgetPeriod", () => {
   });
 
   it("puts a week that crosses 1 April in the year it ends in", () => {
-    // Mon 30 Mar - Sun 5 Apr 2026
+    // Sun 29 Mar - Sat 4 Apr 2026
     const p = resolveBudgetPeriod({ period: "week", date: "2026-04-01" }, TODAY);
-    expect(p.start).toBe("2026-03-30");
-    expect(p.end).toBe("2026-04-05");
+    expect(p.start).toBe("2026-03-29");
+    expect(p.end).toBe("2026-04-04");
     expect(p.year).toBe(2027);
     expect(budgetYearsInPeriod(p)).toEqual([2026, 2027]);
   });
@@ -141,10 +141,10 @@ describe("resolveBudgetPeriod", () => {
 });
 
 describe("weekStartOf", () => {
-  it("finds the Monday on or before a day", () => {
-    expect(weekStartOf("2026-11-23")).toBe("2026-11-23"); // Monday
-    expect(weekStartOf("2026-11-29")).toBe("2026-11-23"); // Sunday
-    expect(weekStartOf("2027-01-01")).toBe("2026-12-28"); // across a year
+  it("finds the Sunday on or before a day", () => {
+    expect(weekStartOf("2026-11-22")).toBe("2026-11-22"); // Sunday
+    expect(weekStartOf("2026-11-28")).toBe("2026-11-22"); // Saturday
+    expect(weekStartOf("2027-01-01")).toBe("2026-12-27"); // across a year
   });
 });
 
@@ -166,7 +166,7 @@ describe("budgetPeriodSearchParams", () => {
     for (const params of [
       { year: "2026" },
       { period: "month", date: "2026-07-01" },
-      { period: "week", date: "2026-11-23" },
+      { period: "week", date: "2026-11-22" },
       { period: "custom", from: "2026-09-01", to: "2026-10-15" },
     ]) {
       const p = resolveBudgetPeriod(params, TODAY);
@@ -178,14 +178,14 @@ describe("budgetPeriodSearchParams", () => {
 describe("switchBudgetPeriod", () => {
   it("opens today's week or month from the current year", () => {
     const year = resolveBudgetPeriod({}, TODAY);
-    expect(switchBudgetPeriod(year, "week", TODAY).start).toBe("2026-11-23");
+    expect(switchBudgetPeriod(year, "week", TODAY).start).toBe("2026-11-22");
     expect(switchBudgetPeriod(year, "month", TODAY).start).toBe("2026-11-01");
   });
 
   it("opens the last week or month of a past year", () => {
     const year = resolveBudgetPeriod({ year: "2026" }, TODAY);
     expect(switchBudgetPeriod(year, "month", TODAY).start).toBe("2026-03-01");
-    expect(switchBudgetPeriod(year, "week", TODAY).start).toBe("2026-03-30");
+    expect(switchBudgetPeriod(year, "week", TODAY).start).toBe("2026-03-29");
   });
 
   it("starts a custom range on the dates in view", () => {
@@ -218,13 +218,13 @@ describe("budgetPeriodBounds", () => {
   });
 
   it("handles a week crossing the start of daylight saving", () => {
-    // DST starts 27 Sep 2026: NZST (UTC+12) → NZDT (UTC+13)
+    // DST starts 2am Sun 27 Sep 2026: NZST (UTC+12) → NZDT (UTC+13)
     const { start, end } = budgetPeriodBounds({
-      start: "2026-09-21",
-      end: "2026-09-27",
+      start: "2026-09-27",
+      end: "2026-10-03",
     });
-    expect(start.toISOString()).toBe("2026-09-20T12:00:00.000Z");
-    expect(end.toISOString()).toBe("2026-09-27T11:00:00.000Z");
+    expect(start.toISOString()).toBe("2026-09-26T12:00:00.000Z");
+    expect(end.toISOString()).toBe("2026-10-03T11:00:00.000Z");
   });
 
   it("handles a month containing a daylight saving change", () => {
