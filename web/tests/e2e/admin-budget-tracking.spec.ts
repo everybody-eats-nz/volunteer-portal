@@ -93,6 +93,16 @@ test.describe("Admin budget tracking", () => {
     });
     expect(saved.ok()).toBe(true);
 
+    // With no period in the URL the page opens on this week.
+    await gotoSettled(
+      page,
+      `/admin/analytics/budget?location=${encodeURIComponent(name)}`
+    );
+    await expect(
+      page.getByTestId("budget-period-kind").getByRole("tab", { name: "Week" })
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("budget-period-label")).toBeVisible();
+
     // Tue 15 Jul 2098 sits in financial year 2098/99 (YEAR).
     await gotoSettled(
       page,

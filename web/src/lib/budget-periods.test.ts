@@ -15,33 +15,47 @@ import {
 const TODAY = "2026-11-26";
 
 describe("resolveBudgetPeriod", () => {
-  it("defaults to the current financial year", () => {
+  it("defaults to this week", () => {
     const p = resolveBudgetPeriod({}, TODAY);
     expect(p).toMatchObject({
-      kind: "year",
-      start: "2026-04-01",
-      end: "2027-03-31",
+      kind: "week",
+      start: "2026-11-22",
+      end: "2026-11-28",
       year: 2027,
-      label: "2026/27",
       timing: "current",
+    });
+  });
+
+  it("opens a picked financial year", () => {
+    const p = resolveBudgetPeriod({ period: "year", year: "2026" }, TODAY);
+    expect(p).toMatchObject({
+      kind: "year",
+      start: "2025-04-01",
+      end: "2026-03-31",
+      label: "2025/26",
+      timing: "past",
       prev: null,
       next: null,
     });
   });
 
-  it("opens a picked financial year", () => {
+  it("still opens a year from a bare ?year= link", () => {
     const p = resolveBudgetPeriod({ year: "2026" }, TODAY);
-    expect(p).toMatchObject({
-      kind: "year",
-      start: "2025-04-01",
-      end: "2026-03-31",
-      timing: "past",
-    });
+    expect(p).toMatchObject({ kind: "year", year: 2026 });
   });
 
-  it("ignores an out-of-range year", () => {
-    expect(resolveBudgetPeriod({ year: "1999" }, TODAY).year).toBe(2027);
-    expect(resolveBudgetPeriod({ year: "nope" }, TODAY).year).toBe(2027);
+  it("opens the current year for an out-of-range year", () => {
+    for (const year of ["1999", "nope"]) {
+      expect(resolveBudgetPeriod({ period: "year", year }, TODAY)).toMatchObject({
+        kind: "year",
+        year: 2027,
+      });
+    }
+    expect(resolveBudgetPeriod({ period: "year" }, TODAY).year).toBe(2027);
+  });
+
+  it("opens the default week for a bare invalid ?year= link", () => {
+    expect(resolveBudgetPeriod({ year: "1999" }, TODAY).kind).toBe("week");
   });
 
   it("shows the Sunday-Saturday week around a date", () => {
@@ -121,16 +135,16 @@ describe("resolveBudgetPeriod", () => {
     expect(p.start).toBe("2023-11-27");
   });
 
-  it("falls back to the year when a custom range is incomplete or invalid", () => {
+  it("falls back to this week when a custom range is incomplete or invalid", () => {
     expect(
-      resolveBudgetPeriod({ period: "custom", from: "2026-09-01" }, TODAY).kind
-    ).toBe("year");
+      resolveBudgetPeriod({ period: "custom", from: "2026-09-01" }, TODAY).start
+    ).toBe("2026-11-22");
     expect(
       resolveBudgetPeriod(
         { period: "custom", from: "2026-02-30", to: "2026-03-10" },
         TODAY
       ).kind
-    ).toBe("year");
+    ).toBe("week");
   });
 
   it("ignores an invalid anchor date", () => {
@@ -164,7 +178,7 @@ describe("formatDayRange", () => {
 describe("budgetPeriodSearchParams", () => {
   it("round-trips every kind of period", () => {
     for (const params of [
-      { year: "2026" },
+      { period: "year", year: "2026" },
       { period: "month", date: "2026-07-01" },
       { period: "week", date: "2026-11-22" },
       { period: "custom", from: "2026-09-01", to: "2026-10-15" },
