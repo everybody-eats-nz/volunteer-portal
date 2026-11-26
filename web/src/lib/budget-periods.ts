@@ -11,13 +11,6 @@ import { budgetYearLabel, budgetYearSpan } from "@/lib/budget-calculations";
 
 export type BudgetPeriodKind = "year" | "month" | "week" | "custom";
 
-export const BUDGET_PERIOD_KINDS: BudgetPeriodKind[] = [
-  "year",
-  "month",
-  "week",
-  "custom",
-];
-
 export interface BudgetPeriodParams {
   period?: string;
   year?: string;
