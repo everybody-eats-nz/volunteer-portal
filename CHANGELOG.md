@@ -1,3 +1,9 @@
+## [0.209.2] - 2026-11-26
+
+### Changes
+- feat(budget): order periods Custom, Week, Month, Year and default to Week ([#1446](https://github.com/everybody-eats-nz/volunteer-portal/pull/1446)) by @malinmalliyawadu
+
+
 ## [0.209.1] - 2026-11-26
 
 ### Changes
