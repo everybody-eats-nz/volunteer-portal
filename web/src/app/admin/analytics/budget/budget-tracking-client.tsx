@@ -3,9 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Loader2, MapPin, CalendarRange } from "lucide-react";
+import { Loader2, MapPin, CalendarRange, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { budgetYearLabel, budgetYearSpan } from "@/lib/budget-calculations";
+import {
+  budgetPeriodSearchParams,
+  switchBudgetPeriod,
+  type BudgetPeriod,
+} from "@/lib/budget-periods";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -22,6 +26,12 @@ import { chartTokens } from "../_lib/chart-theme";
 import { BudgetFormDialog, type BudgetFormTarget } from "./budget-form-dialog";
 import { LocationBudgetView } from "./location-budget-view";
 import { NetworkBudgetView } from "./network-budget-view";
+import {
+  PERIOD_CONTROL_LABEL,
+  PeriodKindControl,
+  PeriodValueControl,
+} from "./budget-period-picker";
+import { RangeLocationView, RangeNetworkView } from "./range-budget-views";
 
 const ALL = "all";
 
@@ -43,10 +53,13 @@ export function BudgetTrackingClient({
     [resolvedTheme]
   );
 
-  const navigate = (next: { location?: string; year?: number }) => {
+  const { period } = data;
+  const isYear = period.kind === "year";
+
+  const navigate = (next: { location?: string; period?: BudgetPeriod }) => {
     const params = new URLSearchParams({
       location: next.location ?? location,
-      year: String(next.year ?? data.year),
+      ...budgetPeriodSearchParams(next.period ?? period),
     });
     startTransition(() => {
       router.push(`/admin/analytics/budget?${params}`, { scroll: false });
@@ -63,9 +76,10 @@ export function BudgetTrackingClient({
 
   return (
     <div className="space-y-4 pb-12">
-      <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm sm:flex-row sm:items-end">
-        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,16rem)_minmax(0,10rem)]">
-          <div className="space-y-1.5">
+      {/* Wraps by its own width, not the viewport: the admin sidebar takes a
+          variable share of the screen. */}
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4 shadow-sm">
+          <div className="w-full space-y-1.5 sm:w-56">
             <Label
               htmlFor="budget-location"
               className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
@@ -95,37 +109,37 @@ export function BudgetTrackingClient({
             </Select>
           </div>
           <div className="space-y-1.5">
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Period
+            </p>
+            <PeriodKindControl
+              period={period}
+              today={data.today}
+              onChange={(next) => navigate({ period: next })}
+            />
+          </div>
+          <div className="min-w-60 flex-1 space-y-1.5 sm:max-w-72">
             <Label
-              htmlFor="budget-year"
+              htmlFor="budget-period-value"
               className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
             >
               <CalendarRange className="h-3.5 w-3.5" />
-              Financial year
+              {PERIOD_CONTROL_LABEL[period.kind]}
             </Label>
-            <Select
-              value={String(data.year)}
-              onValueChange={(v) => navigate({ year: Number(v) })}
-            >
-              <SelectTrigger
-                id="budget-year"
-                className="w-full"
-                data-testid="budget-year-select"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {data.years.map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {budgetYearLabel(y)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PeriodValueControl
+              id="budget-period-value"
+              period={period}
+              years={data.years}
+              today={data.today}
+              onChange={(next) => navigate({ period: next })}
+            />
           </div>
-        </div>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:pb-2.5">
+        <p className="ml-auto flex items-center gap-1.5 pb-2.5 text-xs text-muted-foreground">
           {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          {budgetYearSpan(data.year)} · koha = cash + EFTPOS + Stripe
+          {(period.kind === "year" || period.kind === "month") &&
+            `${period.span} · `}
+          koha = cash + EFTPOS + Stripe
         </p>
       </div>
 
@@ -136,16 +150,36 @@ export function BudgetTrackingClient({
         )}
       >
         {data.selected ? (
-          <LocationBudgetView
-            key={`${data.selected.location}-${data.year}`}
-            data={data}
-            selected={data.selected}
-            tokens={tokens}
-            onEditBudget={() => editBudget(data.selected!)}
-          />
-        ) : (
+          isYear ? (
+            <LocationBudgetView
+              key={`${data.selected.location}-${data.year}`}
+              data={data}
+              selected={data.selected}
+              tokens={tokens}
+              onEditBudget={() => editBudget(data.selected!)}
+            />
+          ) : (
+            <RangeLocationView
+              key={`${data.selected.location}-${period.start}-${period.end}`}
+              data={data}
+              selected={data.selected}
+              tokens={tokens}
+              onEditBudget={() => editBudget(data.selected!)}
+              onShowYear={() =>
+                navigate({ period: switchBudgetPeriod(period, "year", data.today) })
+              }
+            />
+          )
+        ) : isYear ? (
           <NetworkBudgetView
             key={data.year}
+            data={data}
+            onOpenLocation={(name) => navigate({ location: name })}
+            onEditBudget={editBudget}
+          />
+        ) : (
+          <RangeNetworkView
+            key={`${period.start}-${period.end}`}
             data={data}
             onOpenLocation={(name) => navigate({ location: name })}
             onEditBudget={editBudget}

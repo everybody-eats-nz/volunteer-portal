@@ -182,6 +182,119 @@ export function computeBudgetProgress(
   };
 }
 
+export interface RangeNight {
+  /** Koha banked that night. */
+  actual: number;
+  /** The night's target from its own year's budget; null when that year has none. */
+  target: number | null;
+}
+
+export interface RangeProgress {
+  /** Service nights with koha banked in the range. */
+  nightsHeld: number;
+  /** All koha banked in the range. */
+  actual: number;
+  /** Nights held that have a target (their financial year has a budget). */
+  scoredNights: number;
+  /** Koha banked on the scored nights - what `target` is compared with. */
+  scoredActual: number;
+  /** Sum of the nightly targets of the scored nights. */
+  target: number;
+  /** scoredActual − target (negative = behind). */
+  variance: number;
+  ratio: number | null;
+  status: BudgetStatus | null;
+  avgActualPerNight: number | null;
+  /** Average nightly target over the scored nights. */
+  avgTargetPerNight: number | null;
+  statusCounts: Record<BudgetStatus, number>;
+}
+
+type RangeTotals = Pick<
+  RangeProgress,
+  "nightsHeld" | "actual" | "scoredNights" | "scoredActual" | "target" | "statusCounts"
+>;
+
+function finishRange(t: RangeTotals): RangeProgress {
+  return {
+    ...t,
+    variance: t.scoredActual - t.target,
+    ratio: t.target > 0 ? t.scoredActual / t.target : null,
+    status: t.target > 0 ? budgetStatus(t.scoredActual, t.target) : null,
+    avgActualPerNight: t.nightsHeld > 0 ? t.actual / t.nightsHeld : null,
+    avgTargetPerNight: t.scoredNights > 0 ? t.target / t.scoredNights : null,
+  };
+}
+
+/**
+ * Koha against target over any run of nights (a week, a month, a custom
+ * range). Unlike the annual view there is no fixed total to aim for: the
+ * target is the sum of each night's own nightly target, so a range that
+ * crosses into a new financial year scores each night against its own year.
+ */
+export function computeRangeProgress(nights: RangeNight[]): RangeProgress {
+  const t: RangeTotals = {
+    nightsHeld: nights.length,
+    actual: 0,
+    scoredNights: 0,
+    scoredActual: 0,
+    target: 0,
+    statusCounts: { green: 0, yellow: 0, red: 0 },
+  };
+  for (const night of nights) {
+    t.actual += night.actual;
+    if (night.target === null) continue;
+    t.scoredNights += 1;
+    t.scoredActual += night.actual;
+    t.target += night.target;
+    t.statusCounts[budgetStatus(night.actual, night.target)]++;
+  }
+  return finishRange(t);
+}
+
+/** Adds up several locations' range progress into one network figure. */
+export function sumRangeProgress(parts: RangeProgress[]): RangeProgress {
+  const t: RangeTotals = {
+    nightsHeld: 0,
+    actual: 0,
+    scoredNights: 0,
+    scoredActual: 0,
+    target: 0,
+    statusCounts: { green: 0, yellow: 0, red: 0 },
+  };
+  for (const p of parts) {
+    t.nightsHeld += p.nightsHeld;
+    t.actual += p.actual;
+    t.scoredNights += p.scoredNights;
+    t.scoredActual += p.scoredActual;
+    t.target += p.target;
+    for (const s of ["green", "yellow", "red"] as const) {
+      t.statusCounts[s] += p.statusCounts[s];
+    }
+  }
+  return finishRange(t);
+}
+
+/**
+ * The nightly target in force on each day of a range, for a chart's target
+ * line: a night's own target where one was held, otherwise the last target
+ * seen (or, before the first night, the first one), so the line steps once
+ * where a new financial year's target begins instead of breaking on nights
+ * off. Days with no target anywhere in sight are null.
+ */
+export function dailyTargets(
+  days: string[],
+  nights: Array<{ date: string; target: number | null }>
+): Array<number | null> {
+  const byDate = new Map(nights.map((n) => [n.date, n.target]));
+  let target = nights.find((n) => n.target !== null)?.target ?? null;
+  return days.map((day) => {
+    const own = byDate.get(day);
+    if (own != null) target = own;
+    return target;
+  });
+}
+
 export interface NightlyTargetLocation {
   targetPerNight: number | null;
   budgets: Array<BudgetInput & { year: number }>;

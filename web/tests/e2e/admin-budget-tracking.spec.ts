@@ -81,6 +81,77 @@ test.describe("Admin budget tracking", () => {
     ).toBeVisible();
   });
 
+  test("admin views a week, a month and a custom range", async ({ page }) => {
+    const name = location!.name;
+    const saved = await page.request.put("/api/admin/location-budgets", {
+      data: {
+        locationId: location!.id,
+        year: YEAR,
+        annualTarget: 50000,
+        plannedServiceNights: 200,
+      },
+    });
+    expect(saved.ok()).toBe(true);
+
+    // Tue 15 Jul 2098 sits in financial year 2098/99 (YEAR).
+    await gotoSettled(
+      page,
+      `/admin/analytics/budget?location=${encodeURIComponent(name)}&period=week&date=2098-07-15`
+    );
+    const label = page.getByTestId("budget-period-label");
+    await expect(label).toHaveText("14 – 20 Jul 2098");
+    await expect(page.getByTestId("budget-range-headline")).toHaveText(
+      "This week hasn't started yet"
+    );
+
+    // Step to the next week.
+    await page.getByTestId("budget-period-next").click();
+    await page.waitForURL(/date=2098-07-21/);
+    await expect(label).toHaveText("21 – 27 Jul 2098");
+
+    // Month opens the month the week is in.
+    const kinds = page.getByTestId("budget-period-kind");
+    await kinds.getByRole("tab", { name: "Month" }).click();
+    await page.waitForURL(/period=month&date=2098-07-01/);
+    await expect(label).toHaveText("July 2098");
+
+    // Custom starts on the month's dates and applies from the calendar.
+    await kinds.getByRole("tab", { name: "Custom" }).click();
+    await page.waitForURL(/period=custom&from=2098-07-01&to=2098-07-31/);
+    const range = page.getByTestId("budget-custom-range");
+    await expect(range).toHaveText("1 – 31 Jul 2098");
+    await range.click();
+    await page.getByRole("button", { name: /Thursday, July 10th, 2098/ }).click();
+    await page.getByRole("button", { name: /Wednesday, July 16th, 2098/ }).click();
+    await page.getByTestId("budget-custom-apply").click();
+    await page.waitForURL(/from=2098-07-10&to=2098-07-16/);
+    await expect(range).toHaveText("10 – 16 Jul 2098");
+
+    // A reversed range in a typed-in URL lands on the URL of what is shown.
+    await gotoSettled(
+      page,
+      `/admin/analytics/budget?location=${encodeURIComponent(name)}&period=custom&from=2098-07-16&to=2098-07-10`
+    );
+    await page.waitForURL(/from=2098-07-10&to=2098-07-16/);
+    await expect(range).toHaveText("10 – 16 Jul 2098");
+
+    // Back to the financial year the range ends in.
+    await kinds.getByRole("tab", { name: "Year" }).click();
+    await page.waitForURL(new RegExp(`year=${YEAR}`));
+    await expect(page.getByTestId("budget-scoreboard").first()).toContainText(
+      "$50,000 budget"
+    );
+
+    // The all-restaurants view scores each venue over the range too.
+    await gotoSettled(
+      page,
+      `/admin/analytics/budget?location=all&period=month&date=2098-07-01`
+    );
+    await expect(
+      page.getByTestId(`budget-range-card-${name}`).first()
+    ).toContainText("No nights yet");
+  });
+
   test("rejects a budget without planned service nights", async ({ page }) => {
     const response = await page.request.put("/api/admin/location-budgets", {
       data: {

@@ -103,11 +103,14 @@ export function BudgetProgressBar({
   proRataRatio,
   status,
   size = "md",
+  ariaLabel,
 }: {
   annualRatio: number;
   proRataRatio: number;
   status: BudgetStatus | null;
   size?: "sm" | "md";
+  /** Overrides the annual-budget wording, e.g. for a week against its target. */
+  ariaLabel?: string;
 }) {
   const fill = Math.min(1, Math.max(0, annualRatio));
   const notch = Math.min(1, Math.max(0, proRataRatio));
@@ -118,7 +121,10 @@ export function BudgetProgressBar({
         size === "md" ? "h-3" : "h-2"
       )}
       role="img"
-      aria-label={`${Math.floor(annualRatio * 100)}% of the annual budget banked; pro-rata target is ${Math.floor(proRataRatio * 100)}%`}
+      aria-label={
+        ariaLabel ??
+        `${Math.floor(annualRatio * 100)}% of the annual budget banked; pro-rata target is ${Math.floor(proRataRatio * 100)}%`
+      }
     >
       <div
         className={cn(
