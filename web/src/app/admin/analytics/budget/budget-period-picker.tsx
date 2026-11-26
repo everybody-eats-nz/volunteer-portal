@@ -214,9 +214,9 @@ function PeriodStepper({
               captionLayout="dropdown"
               {...calendarBounds(period, today)}
               defaultMonth={toDate(period.start)}
-              weekStartsOn={1}
+              weekStartsOn={0}
               selected={{ from: toDate(period.start), to: toDate(period.end) }}
-              // Any day picks the Monday-Sunday week around it.
+              // Any day picks the Sunday-Saturday week around it.
               onSelect={(_range, day) => pick(toDay(day))}
               autoFocus
             />
@@ -364,7 +364,7 @@ function CustomRange({
           captionLayout="dropdown"
           {...calendarBounds(period, today)}
           defaultMonth={draft.from}
-          weekStartsOn={1}
+          weekStartsOn={0}
           selected={{ from: draft.from, to: draft.to }}
           // The dates in view show first; the next click starts a new range.
           resetOnSelect

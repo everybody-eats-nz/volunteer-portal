@@ -3,7 +3,7 @@ import { budgetYearLabel, budgetYearSpan } from "@/lib/budget-calculations";
 
 /**
  * The window the budget tracking page looks at: a whole financial year (the
- * default), one calendar month, one Monday-Sunday week or a custom run of
+ * default), one calendar month, one Sunday-Saturday week or a custom run of
  * dates. Every date here is an NZ calendar day as `yyyy-MM-dd`, so all the
  * maths is plain calendar arithmetic with no timezone involved; only
  * `budgetPeriodBounds` turns a period into instants for the database.
@@ -122,12 +122,15 @@ function budgetYearOfDay({ y, m }: Ymd): number {
   return m >= 4 ? y + 1 : y;
 }
 
-/** The Monday on or before a day. Throws on anything but a valid yyyy-MM-dd. */
+/**
+ * The Sunday on or before a day: budget weeks run Sunday to Saturday, as
+ * the team asked for this page. Throws on anything but a valid yyyy-MM-dd.
+ */
 export function weekStartOf(day: string): string {
   const parsed = parseDay(day);
   if (!parsed) throw new Error(`Invalid day: ${day}`);
   const weekday = toUtc(parsed).getUTCDay(); // 0 = Sunday
-  return iso(addDays(parsed, -((weekday + 6) % 7)));
+  return iso(addDays(parsed, -weekday));
 }
 
 /** "23 – 29 Nov 2026", "30 Nov – 6 Dec 2026", "29 Dec 2025 – 4 Jan 2026" */
@@ -188,20 +191,20 @@ function monthPeriod(anchor: Ymd, today: string): BudgetPeriod {
 
 function weekPeriod(anchor: Ymd, today: string): BudgetPeriod {
   const start = weekStartOf(iso(anchor));
-  const monday = parseDay(start)!;
-  const sunday = addDays(monday, 6);
-  const end = iso(sunday);
+  const sunday = parseDay(start)!;
+  const saturday = addDays(sunday, 6);
+  const end = iso(saturday);
   const span = formatDayRange(start, end);
   return {
     kind: "week",
     start,
     end,
-    year: budgetYearOfDay(sunday),
+    year: budgetYearOfDay(saturday),
     label: span,
     span,
     timing: timingOf(start, end, today),
-    prev: iso(addDays(monday, -7)),
-    next: iso(addDays(monday, 7)),
+    prev: iso(addDays(sunday, -7)),
+    next: iso(addDays(sunday, 7)),
   };
 }
 

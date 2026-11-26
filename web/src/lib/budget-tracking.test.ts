@@ -114,8 +114,8 @@ describe("getBudgetTracking for a range crossing 1 April", () => {
     expect(
       where.OR.map((w) => [w.date.gte.toISOString(), w.date.lt.toISOString()])
     ).toEqual([
-      // Mon 30 Mar - Sun 5 Apr 2026 (DST ends on the 5th)
-      ["2026-03-29T11:00:00.000Z", "2026-04-05T12:00:00.000Z"],
+      // Sun 29 Mar - Sat 4 Apr 2026, all NZDT (DST ends 3am on the 5th)
+      ["2026-03-28T11:00:00.000Z", "2026-04-04T11:00:00.000Z"],
       // Financial year 2026/27
       ["2026-03-31T11:00:00.000Z", "2027-03-31T11:00:00.000Z"],
     ]);
