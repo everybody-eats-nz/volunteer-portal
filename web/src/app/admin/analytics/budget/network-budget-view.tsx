@@ -216,7 +216,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function UnbudgetedCard({
+export function UnbudgetedCard({
   summary,
   year,
   onSet,

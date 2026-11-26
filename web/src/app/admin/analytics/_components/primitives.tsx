@@ -366,7 +366,8 @@ export function SegmentedControl<T extends string>({
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
-  size?: "sm" | "md";
+  /** lg lines up with the 44px form controls beside it. */
+  size?: "sm" | "md" | "lg";
 }) {
   return (
     <div
@@ -384,7 +385,9 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(opt.value)}
             className={cn(
               "whitespace-nowrap rounded-md font-medium transition-colors",
-              size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
+              size === "sm" && "px-2.5 py-1 text-xs",
+              size === "md" && "px-3 py-1.5 text-sm",
+              size === "lg" && "h-[38px] px-3.5 text-sm",
               active
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

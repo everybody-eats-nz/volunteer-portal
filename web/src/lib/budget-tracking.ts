@@ -6,11 +6,20 @@ import {
   budgetYearOf,
   budgetYearRange,
   computeBudgetProgress,
+  computeRangeProgress,
   currentBudgetYear,
+  nightlyTargetFor,
+  sumRangeProgress,
   yearElapsedRatio,
   type BudgetProgress,
   type BudgetStatus,
+  type RangeProgress,
 } from "@/lib/budget-calculations";
+import {
+  budgetPeriodBounds,
+  budgetYearsInPeriod,
+  type BudgetPeriod,
+} from "@/lib/budget-periods";
 
 export interface BudgetNight {
   /** NZ service date, yyyy-MM-dd */
@@ -25,27 +34,37 @@ export interface BudgetNight {
 export interface LocationBudgetSummary {
   locationId: string;
   location: string;
+  /** The budget for the financial year in view (`BudgetTrackingData.year`). */
   budget: {
     annualTarget: number;
     plannedServiceNights: number;
     updatedAt: string;
   } | null;
+  /** Year-to-date progress against that budget. */
   progress: BudgetProgress | null;
-  /** Nights recorded with guests but no koha yet - left out of YTD. */
+  /**
+   * Koha against target over a week, month or custom period. Null in the
+   * financial year view, and when no budget covers any night of the period.
+   */
+  range: RangeProgress | null;
+  /** Nights in the period with guests but no koha yet - left out of totals. */
   pendingNights: number;
   lastNightHeld: string | null;
 }
 
 export interface BudgetTrackingData {
+  period: BudgetPeriod;
+  /** The financial year in view: picked, or the one the period ends in. */
   year: number;
   /** Years offered in the year picker, newest first. */
   years: number[];
   /** Today in NZ, yyyy-MM-dd */
   today: string;
+  /** Where today sits in the financial year in view. */
   timing: "past" | "current" | "future";
   yearElapsedRatio: number;
   locations: LocationBudgetSummary[];
-  /** Sums across the locations that have a budget for the year. */
+  /** Year-to-date sums across the locations that have a budget for the year. */
   totals: {
     budgetedLocations: number;
     annualTarget: number;
@@ -54,7 +73,9 @@ export interface BudgetTrackingData {
     plannedServiceNights: number;
     nightsHeld: number;
   };
-  /** Night-by-night detail when one location is selected. */
+  /** Period sums across the locations with a budget covering it; null for a year. */
+  rangeTotals: (RangeProgress & { budgetedLocations: number }) | null;
+  /** Night-by-night detail for the period when one location is selected. */
   selected: (LocationBudgetSummary & { nights: BudgetNight[] }) | null;
 }
 
@@ -65,23 +86,42 @@ function toNum(v: unknown): number {
 }
 
 export async function getBudgetTracking(
-  year: number,
+  period: BudgetPeriod,
   locationName: string | null
 ): Promise<BudgetTrackingData> {
-  const { start, end } = budgetYearRange(year);
+  const { year } = period;
+  const isYear = period.kind === "year";
   const now = new Date();
   const currentYear = currentBudgetYear(now);
+  const yearSpan = { start: `${year - 1}-04-01`, end: `${year}-03-31` };
 
-  // Active venues, plus any disabled venue that still has a budget this year.
-  const [locations, earliestNight, budgetYears] = await Promise.all([
+  // The year in view always loads (for year-to-date figures), plus every year
+  // the period touches so each night is scored against its own year's budget.
+  const budgetYears = Array.from(
+    new Set([year, ...budgetYearsInPeriod(period)])
+  );
+  const yearBounds = budgetYearRange(year);
+  const periodBounds = budgetPeriodBounds(period);
+  const fetchStart = new Date(
+    Math.min(yearBounds.start.getTime(), periodBounds.start.getTime())
+  );
+  const fetchEnd = new Date(
+    Math.max(yearBounds.end.getTime(), periodBounds.end.getTime())
+  );
+
+  // Active venues, plus any disabled venue that still has a budget in view.
+  const [locations, earliestNight, savedBudgetYears] = await Promise.all([
     prisma.location.findMany({
       where: {
-        OR: [{ isActive: true }, { budgets: { some: { year } } }],
+        OR: [
+          { isActive: true },
+          { budgets: { some: { year: { in: budgetYears } } } },
+        ],
       },
       select: {
         id: true,
         name: true,
-        budgets: { where: { year } },
+        budgets: { where: { year: { in: budgetYears } } },
       },
       orderBy: { name: "asc" },
     }),
@@ -100,7 +140,7 @@ export async function getBudgetTracking(
     // Only service nights are koha against the budget.
     where: {
       ...SERVICE_NIGHTS_ONLY,
-      date: { gte: start, lt: end },
+      date: { gte: fetchStart, lt: fetchEnd },
       location: { in: names },
     },
     select: {
@@ -122,7 +162,16 @@ export async function getBudgetTracking(
   }
 
   const summaries = locations.map((loc) => {
-    const raw = loc.budgets[0];
+    const nightlyTargetByYear = new Map(
+      loc.budgets.map((b) => [
+        b.year,
+        nightlyTargetFor({
+          annualTarget: Number(b.annualTarget),
+          plannedServiceNights: b.plannedServiceNights,
+        }),
+      ])
+    );
+    const raw = loc.budgets.find((b) => b.year === year);
     const budget = raw
       ? {
           annualTarget: Number(raw.annualTarget),
@@ -130,31 +179,38 @@ export async function getBudgetTracking(
           updatedAt: raw.updatedAt.toISOString(),
         }
       : null;
-    const nightlyTarget =
-      budget && budget.plannedServiceNights > 0
-        ? budget.annualTarget / budget.plannedServiceNights
-        : null;
 
-    const nights: BudgetNight[] = (recordsByLocation.get(loc.name) ?? []).map(
+    const allNights: BudgetNight[] = (recordsByLocation.get(loc.name) ?? []).map(
       (r) => {
         const banked = r.cash !== null || r.eftpos !== null || r.stripe !== null;
         const actual = banked
           ? toNum(r.cash) + toNum(r.eftpos) + toNum(r.stripe)
           : null;
+        const target = nightlyTargetByYear.get(budgetYearOf(r.date)) ?? null;
         return {
           date: formatInNZT(r.date, "yyyy-MM-dd"),
           guests: r.mealsServed,
           actual,
-          target: nightlyTarget,
+          target,
           status:
-            actual !== null && nightlyTarget !== null
-              ? budgetStatus(actual, nightlyTarget)
+            actual !== null && target !== null
+              ? budgetStatus(actual, target)
               : null,
         };
       }
     );
+    const within = (span: { start: string; end: string }) =>
+      allNights.filter((n) => n.date >= span.start && n.date <= span.end);
+    const isHeld = (n: BudgetNight): n is BudgetNight & { actual: number } =>
+      n.actual !== null;
 
-    const held = nights.filter((n) => n.actual !== null);
+    const nights = within(period);
+    const held = nights.filter(isHeld);
+    const yearHeld = isYear ? held : within(yearSpan).filter(isHeld);
+    const periodHasBudget = budgetYearsInPeriod(period).some((y) =>
+      nightlyTargetByYear.has(y)
+    );
+
     const summary: LocationBudgetSummary = {
       locationId: loc.id,
       location: loc.name,
@@ -162,9 +218,15 @@ export async function getBudgetTracking(
       progress: budget
         ? computeBudgetProgress(
             budget,
-            held.map((n) => n.actual as number)
+            yearHeld.map((n) => n.actual)
           )
         : null,
+      range:
+        !isYear && periodHasBudget
+          ? computeRangeProgress(
+              held.map((n) => ({ actual: n.actual, target: n.target }))
+            )
+          : null,
       pendingNights: nights.length - held.length,
       lastNightHeld: held.at(-1)?.date ?? null,
     };
@@ -186,11 +248,18 @@ export async function getBudgetTracking(
     nightsHeld: budgeted.reduce((t, s) => t + s.progress!.nightsHeld, 0),
   };
 
+  const ranged = summaries
+    .map((s) => s.summary.range)
+    .filter((r): r is RangeProgress => r !== null);
+  const rangeTotals = isYear
+    ? null
+    : { ...sumRangeProgress(ranged), budgetedLocations: ranged.length };
+
   // Year picker: every year from the first recorded night (or budget) to next
   // year, so admins can set next year's budget ahead of time.
   const firstYear = Math.min(
     earliestNight._min.date ? budgetYearOf(earliestNight._min.date) : currentYear,
-    ...budgetYears.map((b) => b.year),
+    ...savedBudgetYears.map((b) => b.year),
     currentYear,
     year
   );
@@ -203,6 +272,7 @@ export async function getBudgetTracking(
     : undefined;
 
   return {
+    period,
     year,
     years,
     today: formatInNZT(now, "yyyy-MM-dd"),
@@ -211,6 +281,7 @@ export async function getBudgetTracking(
     yearElapsedRatio: yearElapsedRatio(year, now),
     locations: summaries.map((s) => s.summary),
     totals,
+    rangeTotals,
     selected: selectedEntry
       ? { ...selectedEntry.summary, nights: selectedEntry.nights }
       : null,

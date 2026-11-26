@@ -12,9 +12,13 @@ export default function BudgetTrackingLoading() {
     >
       {/* Filters */}
       <SkeletonCard className="p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[16rem_10rem]">
-          {["restaurant", "year"].map((key) => (
-            <div key={key} className="space-y-1.5">
+        <div className="flex flex-wrap gap-3">
+          {[
+            { key: "restaurant", className: "w-full sm:w-56" },
+            { key: "period", className: "w-64" },
+            { key: "value", className: "min-w-60 flex-1 sm:max-w-72" },
+          ].map(({ key, className }) => (
+            <div key={key} className={`space-y-1.5 ${className}`}>
               <Skeleton className="h-3.5 w-24" />
               <Skeleton className="h-9 w-full" />
             </div>

@@ -7,6 +7,8 @@ import {
   budgetYearSpan,
   currentBudgetYear,
   computeBudgetProgress,
+  computeRangeProgress,
+  sumRangeProgress,
   makeNightlyTargetLookup,
   resolveNightlyTarget,
   nightlyTargetFor,
@@ -248,5 +250,74 @@ describe("resolveNightlyTarget", () => {
         new Date("2026-10-06T11:00:00Z")
       )
     ).toBeNull();
+  });
+});
+
+describe("computeRangeProgress", () => {
+  it("scores a run of nights against the sum of their nightly targets", () => {
+    const p = computeRangeProgress([
+      { actual: 600, target: 500 },
+      { actual: 450, target: 500 },
+      { actual: 300, target: 500 },
+    ]);
+    expect(p.nightsHeld).toBe(3);
+    expect(p.actual).toBe(1350);
+    expect(p.target).toBe(1500);
+    expect(p.variance).toBe(-150);
+    expect(p.ratio).toBeCloseTo(0.9);
+    expect(p.status).toBe("yellow");
+    expect(p.avgActualPerNight).toBe(450);
+    expect(p.avgTargetPerNight).toBe(500);
+    expect(p.statusCounts).toEqual({ green: 1, yellow: 1, red: 1 });
+  });
+
+  it("scores each night against its own year's target", () => {
+    // A range crossing 1 April: $500 a night before, $600 after.
+    const p = computeRangeProgress([
+      { actual: 500, target: 500 },
+      { actual: 600, target: 600 },
+    ]);
+    expect(p.target).toBe(1100);
+    expect(p.status).toBe("green");
+    expect(p.avgTargetPerNight).toBe(550);
+  });
+
+  it("banks unbudgeted nights without scoring them", () => {
+    const p = computeRangeProgress([
+      { actual: 400, target: 500 },
+      { actual: 900, target: null },
+    ]);
+    expect(p.actual).toBe(1300);
+    expect(p.scoredNights).toBe(1);
+    expect(p.scoredActual).toBe(400);
+    expect(p.target).toBe(500);
+    expect(p.variance).toBe(-100);
+    expect(p.status).toBe("red");
+  });
+
+  it("has no ratio before any night is held", () => {
+    const p = computeRangeProgress([]);
+    expect(p.ratio).toBeNull();
+    expect(p.status).toBeNull();
+    expect(p.avgActualPerNight).toBeNull();
+  });
+});
+
+describe("sumRangeProgress", () => {
+  it("adds locations together", () => {
+    const total = sumRangeProgress([
+      computeRangeProgress([{ actual: 600, target: 500 }]),
+      computeRangeProgress([
+        { actual: 300, target: 400 },
+        { actual: 500, target: null },
+      ]),
+    ]);
+    expect(total.nightsHeld).toBe(3);
+    expect(total.actual).toBe(1400);
+    expect(total.target).toBe(900);
+    expect(total.scoredActual).toBe(900);
+    expect(total.ratio).toBe(1);
+    expect(total.status).toBe("green");
+    expect(total.statusCounts).toEqual({ green: 1, yellow: 0, red: 1 });
   });
 });

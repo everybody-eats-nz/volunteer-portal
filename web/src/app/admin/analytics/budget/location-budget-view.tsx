@@ -15,6 +15,7 @@ import {
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { formatInNZT, parseISOInNZT } from "@/lib/timezone";
+import { eachDayOfPeriod } from "@/lib/budget-periods";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -58,6 +59,29 @@ function dayMs(date: string) {
   return Date.parse(`${date}T00:00:00Z`);
 }
 
+const HALF_DAY_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * Datetime x-axis labelled by NZ day. With a span (a week, month or custom
+ * range) the axis covers every day of it, so quiet nights show as gaps and a
+ * short range never falls back to hour ticks.
+ */
+function dayAxis(tokens: ChartTokens, span?: { start: string; end: string }) {
+  return {
+    type: "datetime" as const,
+    ...(span
+      ? { min: dayMs(span.start) - HALF_DAY_MS, max: dayMs(span.end) + HALF_DAY_MS }
+      : {}),
+    labels: {
+      style: tokens.axisStyle,
+      datetimeUTC: true,
+      datetimeFormatter: { year: "yyyy", month: "MMM yyyy", day: "d MMM" },
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+  };
+}
+
 function fmtDay(date: string, pattern = "EEE d MMM") {
   return formatInNZT(parseISOInNZT(date), pattern);
 }
@@ -77,24 +101,11 @@ export function LocationBudgetView({
 
   if (!progress || !selected.budget) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/50 px-6 py-14 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-primary-text">
-          <Target className="h-6 w-6" />
-        </span>
-        <div>
-          <p className="font-accent text-lg font-semibold">
-            No {budgetYearLabel(data.year)} budget for {selected.location} yet
-          </p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-            Enter the annual koha target and how many service nights are
-            planned. Every night is then scored against its share of the budget.
-          </p>
-        </div>
-        <Button onClick={onEditBudget} data-testid="budget-set-button">
-          <Target className="h-4 w-4" />
-          Set {budgetYearLabel(data.year)} budget
-        </Button>
-      </div>
+      <NoBudgetState
+        location={selected.location}
+        year={data.year}
+        onSet={onEditBudget}
+      />
     );
   }
 
@@ -116,22 +127,49 @@ export function LocationBudgetView({
       <motion.div variants={staggerItem}>
         <NightlyChart
           nights={selected.nights}
-          progress={progress}
+          counts={progress.statusCounts}
           tokens={tokens}
-          year={data.year}
+          emptyMessage={`No service nights banked in ${budgetYearLabel(data.year)} yet.`}
         />
       </motion.div>
       <motion.div variants={staggerItem}>
-        <CumulativeChart
-          nights={selected.nights}
-          progress={progress}
-          tokens={tokens}
-        />
+        <CumulativeChart nights={selected.nights} tokens={tokens} />
       </motion.div>
       <motion.div variants={staggerItem}>
         <NightsTable nights={selected.nights} />
       </motion.div>
     </motion.div>
+  );
+}
+
+export function NoBudgetState({
+  location,
+  year,
+  onSet,
+}: {
+  location: string;
+  year: number;
+  onSet: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/50 px-6 py-14 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-primary-text">
+        <Target className="h-6 w-6" />
+      </span>
+      <div>
+        <p className="font-accent text-lg font-semibold">
+          No {budgetYearLabel(year)} budget for {location} yet
+        </p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+          Enter the annual koha target and how many service nights are
+          planned. Every night is then scored against its share of the budget.
+        </p>
+      </div>
+      <Button onClick={onSet} data-testid="budget-set-button">
+        <Target className="h-4 w-4" />
+        Set {budgetYearLabel(year)} budget
+      </Button>
+    </div>
   );
 }
 
@@ -355,7 +393,7 @@ function Scoreboard({
   );
 }
 
-function Figure({
+export function Figure({
   icon: Icon,
   label,
   value,
@@ -404,21 +442,109 @@ function Figure({
 
 // ── Charts ───────────────────────────────────────────────────────────────
 
-function NightlyChart({
+/** The nightly targets in play: one for a single year, more across 1 April. */
+function distinctTargets(nights: BudgetNight[]): number[] {
+  return Array.from(
+    new Set(
+      nights.flatMap((n) => (n.target === null ? [] : [Math.round(n.target * 100) / 100]))
+    )
+  );
+}
+
+/** Short ranges get a slot for every day; longer ones plot nights held only. */
+const MAX_DAILY_SLOTS = 62;
+
+interface DaySlot {
+  date: string;
+  /**
+   * Category key: "Mon 20 Jul". Not the ISO date, which ApexCharts would
+   * parse into a timestamp and hand the label formatter instead.
+   */
+  key: string;
+  night: BudgetNight | null;
+  /** The target in force that day, carried across nights off for the step line. */
+  target: number | null;
+}
+
+/**
+ * The x positions of the nightly chart. A week or month gets one evenly
+ * spaced slot per day (empty on nights off), which reads far better than a
+ * datetime axis: ApexCharts pads datetime bar charts, and with a handful of
+ * bars that leaves the target line stopping short of the plot.
+ */
+function daySlots(
+  held: BudgetNight[],
+  span?: { start: string; end: string }
+): { daily: boolean; points: DaySlot[] } {
+  const days = span ? eachDayOfPeriod(span) : [];
+  if (days.length === 0 || days.length > MAX_DAILY_SLOTS) {
+    return {
+      daily: false,
+      points: held.map((n) => ({
+        date: n.date,
+        key: fmtDay(n.date, "EEE d MMM yyyy"),
+        night: n,
+        target: n.target,
+      })),
+    };
+  }
+  const byDate = new Map(held.map((n) => [n.date, n]));
+  let target = held.find((n) => n.target !== null)?.target ?? null;
+  return {
+    daily: true,
+    points: days.map((date) => {
+      const night = byDate.get(date) ?? null;
+      if (night?.target != null) target = night.target;
+      return { date, key: fmtDay(date, "EEE d MMM yyyy"), night, target };
+    }),
+  };
+}
+
+/** Category axis with one slot per day, labelled sparsely enough to read. */
+function dailyAxis(tokens: ChartTokens, points: DaySlot[]) {
+  const index = new Map(points.map((p, i) => [p.key, i]));
+  const every = points.length <= 10 ? 1 : Math.ceil(points.length / 8);
+  const pattern = points.length <= 10 ? "EEE d" : "d MMM";
+  return {
+    type: "category" as const,
+    labels: {
+      style: tokens.axisStyle,
+      rotate: 0,
+      hideOverlappingLabels: false,
+      formatter: (value: string) => {
+        const i = index.get(value);
+        return i !== undefined && i % every === 0
+          ? fmtDay(points[i].date, pattern)
+          : "";
+      },
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+    tooltip: { enabled: false },
+  };
+}
+
+export function NightlyChart({
   nights,
-  progress,
+  counts,
   tokens,
-  year,
+  emptyMessage,
+  span,
 }: {
   nights: BudgetNight[];
-  progress: BudgetProgress;
+  counts: Record<BudgetStatus, number>;
   tokens: ChartTokens;
-  year: number;
+  emptyMessage: string;
+  /** Days the axis covers; omitted, it fits the nights held. */
+  span?: { start: string; end: string };
 }) {
-  const held = nights.filter((n) => n.actual !== null);
-  const target = progress.nightlyTarget ?? 0;
+  const held = useMemo(() => nights.filter((n) => n.actual !== null), [nights]);
+  const targets = distinctTargets(held);
+  // One target gets a flat dashed line; a range spanning two budget years
+  // steps from one year's nightly target to the next.
+  const singleTarget = targets.length <= 1 ? (targets[0] ?? null) : null;
+  const slots = useMemo(() => daySlots(held, span), [held, span]);
   const base = baseOptions(tokens);
-  const counts = progress.statusCounts;
 
   return (
     <ChartCard
@@ -447,34 +573,42 @@ function NightlyChart({
       }}
       action={
         <div className="hidden lg:block">
-          <NightlyLegend counts={counts} target={target} />
+          <NightlyLegend counts={counts} target={singleTarget} />
         </div>
       }
     >
       <div className="px-2 pb-2 lg:hidden">
-        <NightlyLegend counts={counts} target={target} />
+        <NightlyLegend counts={counts} target={singleTarget} />
       </div>
       {held.length === 0 ? (
-        <ChartEmpty
-          height={300}
-          message={`No service nights banked in ${budgetYearLabel(year)} yet.`}
-        />
+        <ChartEmpty height={300} message={emptyMessage} />
       ) : (
         <ApexChart
-          type="bar"
+          // Mixed only when a target line has to step between years: a plain
+          // bar chart keeps the flat target annotation full width.
+          type={singleTarget === null ? "line" : "bar"}
           height={300}
           options={{
             ...base,
             chart: { ...base.chart, id: "budget-nightly", zoom: { enabled: false } },
+            ...(singleTarget === null
+              ? {
+                  colors: [tokens.palette.neutral, tokens.foreground],
+                  stroke: { width: [0, 1.5], dashArray: [0, 5], curve: "stepline" },
+                }
+              : {}),
             plotOptions: {
-              bar: { columnWidth: held.length > 60 ? "85%" : "60%", borderRadius: 2 },
+              bar: {
+                columnWidth:
+                  slots.points.length > 60
+                    ? "85%"
+                    : slots.points.length > 10
+                      ? "60%"
+                      : "40%",
+                borderRadius: 2,
+              },
             },
-            xaxis: {
-              type: "datetime",
-              labels: { style: tokens.axisStyle, datetimeUTC: true },
-              axisBorder: { show: false },
-              axisTicks: { show: false },
-            },
+            xaxis: slots.daily ? dailyAxis(tokens, slots.points) : dayAxis(tokens),
             yaxis: {
               min: 0,
               forceNiceScale: true,
@@ -482,33 +616,67 @@ function NightlyChart({
             },
             legend: { show: false },
             annotations: {
-              yaxis: [
-                {
-                  y: target,
-                  borderColor: tokens.foreground,
-                  strokeDashArray: 5,
-                  borderWidth: 1.5,
-                },
-              ],
+              yaxis:
+                singleTarget !== null
+                  ? [
+                      {
+                        y: singleTarget,
+                        borderColor: tokens.foreground,
+                        strokeDashArray: 5,
+                        borderWidth: 1.5,
+                      },
+                    ]
+                  : [],
             },
             tooltip: {
               theme: tokens.mode,
-              x: { format: "ddd d MMM yyyy" },
+              shared: true,
+              intersect: false,
+              x: {
+                formatter: (_v: number, opts?: { dataPointIndex: number }) => {
+                  const point = slots.points[opts?.dataPointIndex ?? -1];
+                  return point ? fmtDay(point.date, "EEE d MMM yyyy") : "";
+                },
+              },
               y: {
-                formatter: (v: number) =>
-                  `${money0(v)} · ${ratioToPercent(target > 0 ? v / target : 0)}% of target`,
+                formatter: (
+                  v: number,
+                  opts?: { seriesIndex: number; dataPointIndex: number }
+                ) => {
+                  if (opts?.seriesIndex === 1) return money0(v);
+                  const target =
+                    slots.points[opts?.dataPointIndex ?? -1]?.night?.target;
+                  return target
+                    ? `${money0(v)} · ${ratioToPercent(v / target)}% of target`
+                    : money0(v);
+                },
               },
             },
           }}
           series={[
             {
               name: "Koha",
-              data: held.map((n) => ({
-                x: dayMs(n.date),
-                y: Math.round(n.actual as number),
-                fillColor: n.status ? STATUS_META[n.status].hex : tokens.palette.neutral,
+              ...(singleTarget === null ? { type: "bar" } : {}),
+              data: slots.points.map(({ date, key, night }) => ({
+                x: slots.daily ? key : dayMs(date),
+                y: night ? Math.round(night.actual as number) : null,
+                fillColor: night?.status
+                  ? STATUS_META[night.status].hex
+                  : tokens.palette.neutral,
               })),
             },
+            ...(singleTarget === null
+              ? [
+                  {
+                    name: "Nightly target",
+                    type: "line",
+                    data: slots.points.map(({ date, key, target }) => ({
+                      x: slots.daily ? key : dayMs(date),
+                      y: target === null ? null : Math.round(target),
+                    })),
+                  },
+                ]
+              : []),
           ]}
         />
       )}
@@ -521,7 +689,8 @@ function NightlyLegend({
   target,
 }: {
   counts: Record<BudgetStatus, number>;
-  target: number;
+  /** Null when the nightly target changes within the range. */
+  target: number | null;
 }) {
   return (
     <div
@@ -540,46 +709,50 @@ function NightlyLegend({
           aria-hidden
           className="w-4 border-t-2 border-dashed border-slate-700 dark:border-slate-200"
         />
-        Target {money0(target)}
+        {target === null ? "Nightly target" : `Target ${money0(target)}`}
       </span>
     </div>
   );
 }
 
-function CumulativeChart({
+export function CumulativeChart({
   nights,
-  progress,
   tokens,
+  title = "Year to date vs pro-rata target",
+  description = "Running koha total against where the budget says it should be.",
+  span,
 }: {
   nights: BudgetNight[];
-  progress: BudgetProgress;
   tokens: ChartTokens;
+  title?: string;
+  description?: string;
+  span?: { start: string; end: string };
 }) {
   const base = baseOptions(tokens);
   const { actual, proRata } = useMemo(() => {
     const actual: Array<[number, number]> = [];
     const proRata: Array<[number, number]> = [];
     let sum = 0;
-    let count = 0;
+    let targetSum = 0;
     for (const n of nights) {
       if (n.actual === null) continue;
       sum += n.actual;
-      count += 1;
+      targetSum += n.target ?? 0;
       const x = dayMs(n.date);
       actual.push([x, Math.round(sum)]);
-      proRata.push([x, Math.round((progress.nightlyTarget ?? 0) * count)]);
+      proRata.push([x, Math.round(targetSum)]);
     }
     return { actual, proRata };
-  }, [nights, progress.nightlyTarget]);
+  }, [nights]);
 
   return (
     <ChartCard
-      title="Year to date vs pro-rata target"
+      title={title}
       icon={TrendingUp}
       accent="text-emerald-600 dark:text-emerald-400"
       info={{
-        title: "Year to date vs pro-rata target",
-        description: "Running koha total against where the budget says it should be.",
+        title,
+        description,
         body: (
           <p>
             The pro-rata target adds one nightly target for every service night
@@ -606,12 +779,7 @@ function CumulativeChart({
               opacity: [1, 0],
               gradient: { opacityFrom: 0.35, opacityTo: 0.02, stops: [0, 100] },
             },
-            xaxis: {
-              type: "datetime",
-              labels: { style: tokens.axisStyle, datetimeUTC: true },
-              axisBorder: { show: false },
-              axisTicks: { show: false },
-            },
+            xaxis: dayAxis(tokens, span),
             yaxis: {
               min: 0,
               forceNiceScale: true,
@@ -639,7 +807,7 @@ function CumulativeChart({
 type NightFilter = "all" | BudgetStatus | "pending";
 const PAGE = 15;
 
-function NightsTable({ nights }: { nights: BudgetNight[] }) {
+export function NightsTable({ nights }: { nights: BudgetNight[] }) {
   const [filter, setFilter] = useState<NightFilter>("all");
   const [showAll, setShowAll] = useState(false);
 
