@@ -28,6 +28,7 @@ import {
 import {
   budgetStatus,
   budgetYearLabel,
+  dailyTargets,
   ratioToPercent,
   type BudgetProgress,
   type BudgetStatus,
@@ -489,14 +490,15 @@ function daySlots(
     };
   }
   const byDate = new Map(held.map((n) => [n.date, n]));
-  let target = held.find((n) => n.target !== null)?.target ?? null;
+  const targets = dailyTargets(days, held);
   return {
     daily: true,
-    points: days.map((date) => {
-      const night = byDate.get(date) ?? null;
-      if (night?.target != null) target = night.target;
-      return { date, key: fmtDay(date, "EEE d MMM yyyy"), night, target };
-    }),
+    points: days.map((date, i) => ({
+      date,
+      key: fmtDay(date, "EEE d MMM yyyy"),
+      night: byDate.get(date) ?? null,
+      target: targets[i],
+    })),
   };
 }
 

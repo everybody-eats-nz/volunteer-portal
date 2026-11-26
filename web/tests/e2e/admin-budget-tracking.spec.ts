@@ -127,6 +127,14 @@ test.describe("Admin budget tracking", () => {
     await page.waitForURL(/from=2098-07-10&to=2098-07-16/);
     await expect(range).toHaveText("10 – 16 Jul 2098");
 
+    // A reversed range in a typed-in URL lands on the URL of what is shown.
+    await gotoSettled(
+      page,
+      `/admin/analytics/budget?location=${encodeURIComponent(name)}&period=custom&from=2098-07-16&to=2098-07-10`
+    );
+    await page.waitForURL(/from=2098-07-10&to=2098-07-16/);
+    await expect(range).toHaveText("10 – 16 Jul 2098");
+
     // Back to the financial year the range ends in.
     await kinds.getByRole("tab", { name: "Year" }).click();
     await page.waitForURL(new RegExp(`year=${YEAR}`));

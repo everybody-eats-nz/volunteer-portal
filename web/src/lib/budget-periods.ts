@@ -62,6 +62,13 @@ const MONTHS = [
   "November",
   "December",
 ];
+/**
+ * Longest custom range: three years (one leap day included). Keeps a stray
+ * or bookmarked URL from loading decades of nights; longer asks are clamped
+ * to the three years ending on their last day.
+ */
+export const MAX_CUSTOM_RANGE_DAYS = 3 * 365 + 1;
+
 const MIN_YEAR = 2000;
 const MAX_YEAR = 2100;
 const NZ_TZ = "Pacific/Auckland";
@@ -115,7 +122,7 @@ function budgetYearOfDay({ y, m }: Ymd): number {
   return m >= 4 ? y + 1 : y;
 }
 
-/** The Monday on or before a day. */
+/** The Monday on or before a day. Throws on anything but a valid yyyy-MM-dd. */
 export function weekStartOf(day: string): string {
   const parsed = parseDay(day);
   if (!parsed) throw new Error(`Invalid day: ${day}`);
@@ -202,6 +209,8 @@ function customPeriod(from: Ymd, to: Ymd, today: string): BudgetPeriod {
   let start = iso(from);
   let end = iso(to);
   if (start > end) [start, end] = [end, start];
+  const earliest = iso(addDays(parseDay(end)!, -(MAX_CUSTOM_RANGE_DAYS - 1)));
+  if (start < earliest) start = earliest;
   const span = formatDayRange(start, end);
   return {
     kind: "custom",

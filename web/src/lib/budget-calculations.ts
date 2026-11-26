@@ -275,6 +275,26 @@ export function sumRangeProgress(parts: RangeProgress[]): RangeProgress {
   return finishRange(t);
 }
 
+/**
+ * The nightly target in force on each day of a range, for a chart's target
+ * line: a night's own target where one was held, otherwise the last target
+ * seen (or, before the first night, the first one), so the line steps once
+ * where a new financial year's target begins instead of breaking on nights
+ * off. Days with no target anywhere in sight are null.
+ */
+export function dailyTargets(
+  days: string[],
+  nights: Array<{ date: string; target: number | null }>
+): Array<number | null> {
+  const byDate = new Map(nights.map((n) => [n.date, n.target]));
+  let target = nights.find((n) => n.target !== null)?.target ?? null;
+  return days.map((day) => {
+    const own = byDate.get(day);
+    if (own != null) target = own;
+    return target;
+  });
+}
+
 export interface NightlyTargetLocation {
   targetPerNight: number | null;
   budgets: Array<BudgetInput & { year: number }>;

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { budgetYearLabel } from "@/lib/budget-calculations";
 import {
   formatDayRange,
+  MAX_CUSTOM_RANGE_DAYS,
   resolveBudgetPeriod,
   switchBudgetPeriod,
   type BudgetPeriod,
@@ -367,6 +368,8 @@ function CustomRange({
           selected={{ from: draft.from, to: draft.to }}
           // The dates in view show first; the next click starts a new range.
           resetOnSelect
+          // The same three-year cap the page enforces on a typed-in URL.
+          max={MAX_CUSTOM_RANGE_DAYS - 1}
           onSelect={(range) => setDraft({ from: range?.from, to: range?.to })}
           numberOfMonths={2}
           autoFocus

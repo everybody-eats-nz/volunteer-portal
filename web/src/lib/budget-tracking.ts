@@ -100,14 +100,14 @@ export async function getBudgetTracking(
   const budgetYears = Array.from(
     new Set([year, ...budgetYearsInPeriod(period)])
   );
+  // Two windows: the period, and the year in view for the year-to-date
+  // strip. Fetched separately so a range far from that year never loads the
+  // nights in between.
   const yearBounds = budgetYearRange(year);
   const periodBounds = budgetPeriodBounds(period);
-  const fetchStart = new Date(
-    Math.min(yearBounds.start.getTime(), periodBounds.start.getTime())
-  );
-  const fetchEnd = new Date(
-    Math.max(yearBounds.end.getTime(), periodBounds.end.getTime())
-  );
+  const windows = isYear
+    ? [periodBounds]
+    : [periodBounds, yearBounds];
 
   // Active venues, plus any disabled venue that still has a budget in view.
   const [locations, earliestNight, savedBudgetYears] = await Promise.all([
@@ -140,7 +140,7 @@ export async function getBudgetTracking(
     // Only service nights are koha against the budget.
     where: {
       ...SERVICE_NIGHTS_ONLY,
-      date: { gte: fetchStart, lt: fetchEnd },
+      OR: windows.map((w) => ({ date: { gte: w.start, lt: w.end } })),
       location: { in: names },
     },
     select: {

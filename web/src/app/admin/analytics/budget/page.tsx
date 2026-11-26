@@ -5,7 +5,10 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { getBudgetTracking } from "@/lib/budget-tracking";
-import { resolveBudgetPeriod } from "@/lib/budget-periods";
+import {
+  budgetPeriodSearchParams,
+  resolveBudgetPeriod,
+} from "@/lib/budget-periods";
 import { formatInNZT } from "@/lib/timezone";
 import { BudgetTrackingClient } from "./budget-tracking-client";
 
@@ -43,6 +46,19 @@ export default async function BudgetTrackingPage({
     formatInNZT(new Date(), "yyyy-MM-dd")
   );
   const requestedLocation = param("location") || "all";
+
+  // A reversed or over-long custom range is shown swapped or clamped; send
+  // the browser to the URL of what is actually shown so the two agree.
+  if (
+    period.kind === "custom" &&
+    (param("from") !== period.start || param("to") !== period.end)
+  ) {
+    const canonical = new URLSearchParams({
+      location: requestedLocation,
+      ...budgetPeriodSearchParams(period),
+    });
+    redirect(`/admin/analytics/budget?${canonical}`);
+  }
 
   const data = await getBudgetTracking(
     period,

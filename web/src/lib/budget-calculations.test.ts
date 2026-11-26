@@ -8,6 +8,7 @@ import {
   currentBudgetYear,
   computeBudgetProgress,
   computeRangeProgress,
+  dailyTargets,
   sumRangeProgress,
   makeNightlyTargetLookup,
   resolveNightlyTarget,
@@ -319,5 +320,37 @@ describe("sumRangeProgress", () => {
     expect(total.ratio).toBe(1);
     expect(total.status).toBe("green");
     expect(total.statusCounts).toEqual({ green: 1, yellow: 0, red: 1 });
+  });
+});
+
+describe("dailyTargets", () => {
+  const days = ["2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03"];
+
+  it("steps once where the new financial year's target starts", () => {
+    expect(
+      dailyTargets(days, [
+        { date: "2026-03-31", target: 500 },
+        { date: "2026-04-02", target: 550 },
+      ])
+    ).toEqual([500, 500, 500, 550, 550]);
+  });
+
+  it("carries over a night held in a year without a budget", () => {
+    expect(
+      dailyTargets(days, [
+        { date: "2026-03-31", target: null },
+        { date: "2026-04-02", target: 550 },
+      ])
+    ).toEqual([550, 550, 550, 550, 550]);
+  });
+
+  it("is null throughout when no night has a target", () => {
+    expect(dailyTargets(days, [{ date: "2026-03-31", target: null }])).toEqual([
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
   });
 });

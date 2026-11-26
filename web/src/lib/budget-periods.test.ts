@@ -3,7 +3,9 @@ import {
   budgetPeriodBounds,
   budgetPeriodSearchParams,
   budgetYearsInPeriod,
+  eachDayOfPeriod,
   formatDayRange,
+  MAX_CUSTOM_RANGE_DAYS,
   resolveBudgetPeriod,
   switchBudgetPeriod,
   weekStartOf,
@@ -99,6 +101,24 @@ describe("resolveBudgetPeriod", () => {
       label: "1 Sep – 15 Oct 2026",
       timing: "past",
     });
+  });
+
+  it("clamps a custom range to three years ending on its last day", () => {
+    const p = resolveBudgetPeriod(
+      { period: "custom", from: "2000-01-01", to: "2026-11-26" },
+      TODAY
+    );
+    expect(p.end).toBe("2026-11-26");
+    expect(p.start).toBe("2023-11-27");
+    expect(eachDayOfPeriod(p)).toHaveLength(MAX_CUSTOM_RANGE_DAYS);
+  });
+
+  it("keeps a custom range of exactly the cap", () => {
+    const p = resolveBudgetPeriod(
+      { period: "custom", from: "2023-11-27", to: "2026-11-26" },
+      TODAY
+    );
+    expect(p.start).toBe("2023-11-27");
   });
 
   it("falls back to the year when a custom range is incomplete or invalid", () => {
@@ -197,6 +217,26 @@ describe("budgetPeriodBounds", () => {
     expect(end.toISOString()).toBe("2026-11-29T11:00:00.000Z");
   });
 
+  it("handles a week crossing the start of daylight saving", () => {
+    // DST starts 27 Sep 2026: NZST (UTC+12) → NZDT (UTC+13)
+    const { start, end } = budgetPeriodBounds({
+      start: "2026-09-21",
+      end: "2026-09-27",
+    });
+    expect(start.toISOString()).toBe("2026-09-20T12:00:00.000Z");
+    expect(end.toISOString()).toBe("2026-09-27T11:00:00.000Z");
+  });
+
+  it("handles a month containing a daylight saving change", () => {
+    // September 2026: starts on NZST, ends on NZDT
+    const { start, end } = budgetPeriodBounds({
+      start: "2026-09-01",
+      end: "2026-09-30",
+    });
+    expect(start.toISOString()).toBe("2026-08-31T12:00:00.000Z");
+    expect(end.toISOString()).toBe("2026-09-30T11:00:00.000Z");
+  });
+
   it("handles a range crossing the end of daylight saving", () => {
     // DST ends 5 Apr 2026: NZDT (UTC+13) → NZST (UTC+12)
     const { start, end } = budgetPeriodBounds({
@@ -205,5 +245,16 @@ describe("budgetPeriodBounds", () => {
     });
     expect(start.toISOString()).toBe("2026-03-29T11:00:00.000Z");
     expect(end.toISOString()).toBe("2026-04-05T12:00:00.000Z");
+  });
+});
+
+describe("eachDayOfPeriod", () => {
+  it("lists every day, across a month end", () => {
+    expect(eachDayOfPeriod({ start: "2026-02-27", end: "2026-03-02" })).toEqual([
+      "2026-02-27",
+      "2026-02-28",
+      "2026-03-01",
+      "2026-03-02",
+    ]);
   });
 });
