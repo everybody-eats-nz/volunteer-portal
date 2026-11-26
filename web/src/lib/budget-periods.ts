@@ -38,7 +38,7 @@ export interface BudgetPeriod {
    * year its last day falls in. Budgets are set and edited for this year.
    */
   year: number;
-  /** "2026/27", "November 2026", "23 – 29 Nov 2026" */
+  /** "2026/27", "November 2026", "22 – 28 Nov 2026" */
   label: string;
   /** The dates covered, written out: "1 Apr 2026 – 31 Mar 2027". */
   span: string;
@@ -123,17 +123,24 @@ function budgetYearOfDay({ y, m }: Ymd): number {
 }
 
 /**
- * The Sunday on or before a day: budget weeks run Sunday to Saturday, as
- * the team asked for this page. Throws on anything but a valid yyyy-MM-dd.
+ * Budget weeks run Sunday to Saturday, as the team asked for this page.
+ * 0 = Sunday, the same numbering as `Date.getDay` and react-day-picker's
+ * `weekStartsOn`, so the calendars use this too.
+ */
+export const BUDGET_WEEK_STARTS_ON = 0;
+
+/**
+ * The first day of the budget week (a Sunday) on or before a day. Throws on
+ * anything but a valid yyyy-MM-dd.
  */
 export function weekStartOf(day: string): string {
   const parsed = parseDay(day);
   if (!parsed) throw new Error(`Invalid day: ${day}`);
-  const weekday = toUtc(parsed).getUTCDay(); // 0 = Sunday
-  return iso(addDays(parsed, -weekday));
+  const weekday = toUtc(parsed).getUTCDay();
+  return iso(addDays(parsed, -((weekday - BUDGET_WEEK_STARTS_ON + 7) % 7)));
 }
 
-/** "23 – 29 Nov 2026", "30 Nov – 6 Dec 2026", "29 Dec 2025 – 4 Jan 2026" */
+/** "22 – 28 Nov 2026", "29 Nov – 5 Dec 2026", "28 Dec 2025 – 3 Jan 2026" */
 export function formatDayRange(start: string, end: string): string {
   const a = parseDay(start);
   const b = parseDay(end);
