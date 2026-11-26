@@ -11,13 +11,6 @@ import { budgetYearLabel, budgetYearSpan } from "@/lib/budget-calculations";
 
 export type BudgetPeriodKind = "year" | "month" | "week" | "custom";
 
-export const BUDGET_PERIOD_KINDS: BudgetPeriodKind[] = [
-  "year",
-  "month",
-  "week",
-  "custom",
-];
-
 export interface BudgetPeriodParams {
   period?: string;
   year?: string;
@@ -238,7 +231,9 @@ function customPeriod(from: Ymd, to: Ymd, today: string): BudgetPeriod {
 /**
  * Reads the page's search params into a period. Anything missing or invalid
  * falls back sensibly: no anchor date means the week or month containing
- * today, and a custom range without both ends means the current year.
+ * today, an invalid year means the current one, and no period at all (or a
+ * custom range without both ends) means the default, this week. A bare
+ * `?year=` link, from before weeks were the default, still opens that year.
  */
 export function resolveBudgetPeriod(
   params: BudgetPeriodParams,
@@ -247,8 +242,18 @@ export function resolveBudgetPeriod(
   const todayDay = parseDay(today);
   if (!todayDay) throw new Error(`Invalid today: ${today}`);
   const anchor = parseDay(params.date) ?? todayDay;
+  const requestedYear = Number(params.year);
+  const year =
+    params.year !== undefined &&
+    Number.isInteger(requestedYear) &&
+    requestedYear >= MIN_YEAR &&
+    requestedYear <= MAX_YEAR
+      ? requestedYear
+      : null;
 
   switch (params.period) {
+    case "year":
+      return yearPeriod(year ?? budgetYearOfDay(todayDay), today);
     case "month":
       return monthPeriod(anchor, today);
     case "week":
@@ -261,14 +266,9 @@ export function resolveBudgetPeriod(
     }
   }
 
-  const requestedYear = Number(params.year);
-  const year =
-    Number.isInteger(requestedYear) &&
-    requestedYear >= MIN_YEAR &&
-    requestedYear <= MAX_YEAR
-      ? requestedYear
-      : budgetYearOfDay(todayDay);
-  return yearPeriod(year, today);
+  if (params.period === undefined && year !== null) return yearPeriod(year, today);
+  // The default view, as the team asked: the week around the anchor (today).
+  return weekPeriod(anchor, today);
 }
 
 /** Search params that reopen a period (without the location). */
@@ -277,7 +277,7 @@ export function budgetPeriodSearchParams(
 ): Record<string, string> {
   switch (period.kind) {
     case "year":
-      return { year: String(period.year) };
+      return { period: "year", year: String(period.year) };
     case "month":
     case "week":
       return { period: period.kind, date: period.start };

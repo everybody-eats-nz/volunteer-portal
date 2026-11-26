@@ -125,7 +125,7 @@ describe("getBudgetTracking for a range crossing 1 April", () => {
 describe("getBudgetTracking for a financial year", () => {
   it("fetches the year once and computes no range", async () => {
     const data = await getBudgetTracking(
-      resolveBudgetPeriod({ year: "2027" }, TODAY),
+      resolveBudgetPeriod({ period: "year", year: "2027" }, TODAY),
       "Wellington"
     );
     const where = nights.mock.calls[0][0]!.where! as { OR: unknown[] };

@@ -30,11 +30,13 @@ import {
 } from "@/components/ui/select";
 import { SegmentedControl } from "../_components/primitives";
 
+// The order the team asked for. Display only: the default period (Week) is
+// set in resolveBudgetPeriod (budget-periods.ts).
 const KIND_OPTIONS: { value: BudgetPeriodKind; label: string }[] = [
-  { value: "year", label: "Year" },
-  { value: "month", label: "Month" },
-  { value: "week", label: "Week" },
   { value: "custom", label: "Custom" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+  { value: "year", label: "Year" },
 ];
 
 /** What the second control is called for each kind of period. */
@@ -128,7 +130,7 @@ export function PeriodValueControl({
         <Select
           value={String(period.year)}
           onValueChange={(v) =>
-            onChange(resolveBudgetPeriod({ year: v }, today))
+            onChange(resolveBudgetPeriod({ period: "year", year: v }, today))
           }
         >
           <SelectTrigger
